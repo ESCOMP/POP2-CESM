@@ -1,15 +1,7 @@
 module marbl_share_mod
 
 !-----------------------------------------------------------------------------
-!   This module contains definitions of variables, derived types, and
-!   functions/subroutines that are used in ecocys_mod.F90 as well as by
-!   other modules that make use of the marbl_mod.
-!
-!   The variables are shared using threading with pointers, and need to be
-!   pointed to in the code.
-!   Note: So far the values of all of these fields are set in marbl_mod
-!   and are NOT modified in the other modules
-!   A. Jahn, NCAR
+!  This contains the marbl namelist variables
 !-----------------------------------------------------------------------------
 
   use marbl_kinds_mod       , only : r8
@@ -20,7 +12,6 @@ module marbl_share_mod
   use marbl_sizes           , only : ecosys_ciso_tracer_cnt
   use marbl_interface_types , only : marbl_tracer_read_type
   use marbl_interface_types , only : marbl_forcing_monthly_every_ts_type
-  use marbl_interface_types , only : marbl_surface_forcing_indexing_type
 
   implicit none
 
@@ -30,15 +21,9 @@ module marbl_share_mod
   !  parameters for time frequency options
   !-----------------------------------------------------------------------------
 
-   integer (int_kind), parameter :: marbl_freq_opt_never    = 0
-   integer (int_kind), parameter :: marbl_freq_opt_nyear    = 1
-   integer (int_kind), parameter :: marbl_freq_opt_nmonth   = 2
-
-  !-----------------------------------------------------------------------
-  !  indices for forcing fields - FIXME - this belongs in marbl_mod
-  !-----------------------------------------------------------------------
-
-  type(marbl_surface_forcing_indexing_type), public :: marbl_surface_forcing_ind
+  integer (int_kind), parameter :: marbl_freq_opt_never    = 0
+  integer (int_kind), parameter :: marbl_freq_opt_nyear    = 1
+  integer (int_kind), parameter :: marbl_freq_opt_nmonth   = 2
 
   !-----------------------------------------------------------------------------
   ! namelist: ecosys_nml
@@ -50,9 +35,6 @@ module marbl_share_mod
   integer (int_kind), parameter :: atm_co2_iopt_const         = 1
   integer (int_kind), parameter :: atm_co2_iopt_drv_prog      = 2
   integer (int_kind), parameter :: atm_co2_iopt_drv_diag      = 3
-  integer (int_kind), parameter :: ndep_shr_stream_var_cnt    = 2 ! number of variables in ndep shr_stream
-  integer (int_kind), parameter :: ndep_shr_stream_no_ind     = 1 ! index for NO forcing
-  integer (int_kind), parameter :: ndep_shr_stream_nh_ind     = 2 ! index for NH forcing
 
   type(marbl_tracer_read_type) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers 
   type(marbl_tracer_read_type) :: fesedflux_input                    ! namelist input for iron_flux

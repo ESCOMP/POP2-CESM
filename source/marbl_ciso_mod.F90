@@ -4,17 +4,12 @@
 module marbl_ciso_mod
 
   !-----------------------------------------------------------------------
-  !  !DESCRIPTION:
   !  Carbon 13 module and biotic 14C module
   !  13C code is based on code form G. Xavier, ETH, 2010, which
   !  was written for pop1 (CCSM3)
   !  This code needs the ecosystem model to run, as it uses several
   !  variables computed there. Data is shared using marbl_share_mod.F90
   !  This module adds 7 carbon pools for 13C and another 7 for 14C
-  !
-  !  Developer: Alexandra Jahn, NCAR, Started Nov 2012, edited July 2014
-  !  A first version of the 13C code for POP1, which was used to develop 
-  !  the code for the current model version, was written by Xavier Giraud 
   !-----------------------------------------------------------------------
 
   use marbl_kinds_mod       , only : r8
@@ -256,7 +251,6 @@ contains
   
   subroutine marbl_ciso_init_tracer_metadata(marbl_tracer_metadata, marbl_status_log)
 
-    !  DESCRIPTION:
     !  Set tracer and forcing metadata
 
     use marbl_share_mod       , only : ecosys_ciso_tracer_cnt
@@ -441,11 +435,9 @@ contains
        marbl_interior_diags,                  &
        marbl_status_log)
 
-    ! !DESCRIPTION:
     !  Compute time derivatives for 13C and 14C state variables.
     !  13C code is based on code from X. Giraud, ETH ZÃ¼rich, 2008, for pop1
-    !  Adapted to pop2 and new ecosystem model code and added biotic 14C
-    !  by A. Jahn, NCAR, 2012-2013
+    !  Also added biotic 14C
 
     use marbl_share_mod        , only : ecosys_ciso_tracer_cnt
     use marbl_share_mod        , only : ciso_lsource_sink
@@ -1375,8 +1367,7 @@ contains
        eps_p)
 
     !---------------------------------------------------------------------------
-    ! DESCRIPTION: Calculate the carbon isotopic fractionation of phytoplankton
-    !              photosynthesis : eps_p
+    ! Calculate the carbon isotopic fractionation of phytoplankton photosynthesis : eps_p
     !
     ! COMPUTATION : based on Keller and Morel, 1999
     !
@@ -1396,8 +1387,6 @@ contains
     !  --------
     !
     !   Developed by X. Giraud, ETH ZÃ¼rich, 21.07.2008
-    !   Converted to Fortran 90, adapted to changes since POP1, and included in
-    !   POP2 ciso code by A. Jahn, NCAR, in 10/2012
     !---------------------------------------------------------------------------
     
     implicit none
@@ -1416,7 +1405,6 @@ contains
     !-----------------------------------------------------------------------
     !  local variables and parameters
     !-----------------------------------------------------------------------
-
     real (r8) :: &
          var, theta, eps_up
 
@@ -1488,7 +1476,6 @@ contains
   subroutine init_particulate_terms(k, POC_ciso, P_CaCO3_ciso)
 
     !---------------------------------------------------------------------
-    ! !DESCRIPTION:
     !  Set incoming fluxes (put into outgoing flux for first level usage).
     !  Set dissolution length, production fraction and mass terms.
     !---------------------------------------------------------------------
@@ -1580,13 +1567,14 @@ contains
   subroutine compute_particulate_terms(k, column_km, column_kmt, column_delta_z, column_zw, &
        O2_loc, NO3_loc, POC, P_CaCO3, marbl_particulate_share, POC_ciso, P_CaCO3_ciso)
 
-    ! !DESCRIPTION:
+    !----------------------------------------------------------------------------------------
     !  Compute outgoing fluxes and remineralization terms for Carbon isotopes.
     !  Assumes that production terms have been set and that fluxes and remineralization
     !  for Carbon 12 has already been computed.
     !
     !  Incoming fluxes are assumed to be the outgoing fluxes from the previous level.
     !  For other comments, see compute_particulate_terms in marbl_mod
+    !----------------------------------------------------------------------------------------
     
     use marbl_parms     , only : denitrif_C_N
     use marbl_parms     , only : parm_POMbury

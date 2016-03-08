@@ -631,7 +631,7 @@ contains
        do n = 1, tracer_cnt
           if (vflux_flag(n)) then
              WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
-                  SURF_VALS_CUR(:,:,n,iblock))*TFACT
+                         SURF_VALS_CUR(:,:,n,iblock))*TFACT
              local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
           endif
        end do

@@ -3,8 +3,6 @@
 
 module marbl_mod
 
-  ! !DESCRIPTION:
-  !
   !  Multispecies ecosystem based on Doney et al. 1996, Moore et al., 2002
   !  Based on POP Global NCAR Nitrogen Ecosystem Model
   !  version 0.0 (June 15th, 1998) from S.C. Doney.
@@ -76,8 +74,6 @@ module marbl_mod
   !  the module level. The use statements for variables that are only needed
   !  locally are located at the module subprogram level.
   !-----------------------------------------------------------------------
-
-  ! !USES:
 
   use marbl_constants_mod, only : T0_Kelvin
 
@@ -179,7 +175,6 @@ module marbl_mod
   use marbl_sizes, only : autotroph_cnt
   use marbl_sizes, only : zooplankton_cnt
   use marbl_sizes, only : grazer_prey_cnt
-  use marbl_sizes, only : max_surface_forcing_fields
 
   use marbl_parms, only : grazing  
   use marbl_parms, only : autotrophs
@@ -203,8 +198,9 @@ module marbl_mod
   use marbl_interface_types , only : marbl_domain_type
   use marbl_interface_types , only : marbl_tracer_metadata_type
   use marbl_interface_types , only : marbl_tracer_read_type
+  use marbl_interface_types , only : marbl_saved_state_type
   use marbl_interface_types , only : marbl_interior_forcing_input_type
-  use marbl_interface_types , only : marbl_interior_forcing_saved_type
+  use marbl_interface_types , only : marbl_surface_forcing_indexing_type
   use marbl_interface_types , only : marbl_surface_forcing_output_type
   use marbl_interface_types , only : marbl_forcing_fields_type
   use marbl_interface_types , only : marbl_forcing_monthly_every_ts_type
@@ -264,36 +260,14 @@ module marbl_mod
   end type autotroph_local_type
 
   !-----------------------------------------------------------------------
-  !  flags controlling which portion of code are executed, useful for debugging
+  ! flags
   !-----------------------------------------------------------------------
 
+  ! control which portion of code are executed, useful for debugging
   logical (log_kind) ::  lsource_sink
-  logical (log_kind) ::  lflux_gas_o2
-  logical (log_kind) ::  lflux_gas_co2
-  logical (log_kind) ::  locmip_k1_k2_bug_fix
 
-  !-----------------------------------------------------------------------
-
-  type(marbl_tracer_read_type) :: gas_flux_fice ! ice fraction for gas fluxes
-  type(marbl_tracer_read_type) :: gas_flux_ws   ! wind speed for gas fluxes
-  type(marbl_tracer_read_type) :: gas_flux_ap   ! atmospheric pressure for gas fluxes
-
-  !-----------------------------------------------------------------------
-  !  restoring climatologies for nutrients
-  !-----------------------------------------------------------------------
-
-  character(char_len) :: nutr_rest_file              ! file containing nutrient fields
-  character(char_len) :: nutr_variable_rest_file     ! file containing variable restoring info
-  character(char_len) :: nutr_variable_rest_file_fmt ! format of file containing variable restoring info
-  logical (log_kind)  :: lnutr_variable_restore      ! geographically varying nutrient restoring (maltrud)
-
-  !-----------------------------------------------------------------------
-  !  iron patch fertilization
-  !-----------------------------------------------------------------------
-
-  logical (log_kind)  :: liron_patch               ! flag for iron patch fertilization
-  character(char_len) :: iron_patch_flux_filename  ! file containing name of iron patch file
-  integer (int_kind)  :: iron_patch_month          ! integer month to add patch flux
+  ! should ecosystem vars be written full depth
+  logical (log_kind)  :: lecovars_full_depth_tavg 
 
   !-----------------------------------------------------------------------
   !  bury to sediment options
@@ -309,7 +283,7 @@ module marbl_mod
   integer (int_kind), parameter :: caco3_bury_thres_iopt_omega_calc  = 2
 
   ! threshold depth for caco3_bury_thres_opt='fixed_depth'
-  real (r8)           :: caco3_bury_thres_depth  
+  real (r8) :: caco3_bury_thres_depth  
 
   ! PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
   ! factor is used to avoid overburying PON like POC
@@ -332,12 +306,9 @@ module marbl_mod
   real (r8), parameter :: del_ph = 0.20_r8        ! delta-ph for prev soln
 
   !-----------------------------------------------------------------------
-
-  logical (log_kind)  :: lecovars_full_depth_tavg ! should ecosystem vars be written full depth
-
-  !-----------------------------------------------------------------------
   !  input surface forcing
   !-----------------------------------------------------------------------
+
   type(marbl_forcing_monthly_every_ts_type), target :: dust_flux_file_loc
   type(marbl_forcing_monthly_every_ts_type), target :: iron_flux_file_loc
   type(marbl_forcing_monthly_every_ts_type), target :: fice_file_loc
@@ -363,7 +334,6 @@ contains
 
   subroutine marbl_init_nml(nl_buffer, marbl_status_log)
 
-    ! !DESCRIPTION:
     !  Initialize ecosys tracer module. This involves setting metadata, reading
     !  the module namelist, setting initial conditions, setting up forcing,
     !  and defining additional tavg variables.
@@ -432,28 +402,36 @@ contains
     character(*), parameter :: subname = 'marbl_mod:marbl_init_nml'
     character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
-    integer (int_kind)           :: n                        ! index for looping over tracers
-    character(char_len)          :: comp_surf_avg_freq_opt   ! choice for freq of comp_surf_avg
-    character(char_len)          :: gas_flux_forcing_opt     ! option for forcing gas fluxes
-    character(char_len)          :: atm_co2_opt              ! option for atmospheric co2 concentration
-    character(char_len)          :: atm_alt_co2_opt          ! option for atmospheric alternative CO2
-    type(marbl_tracer_read_type) :: dust_flux_input          ! namelist input for dust_flux
-    type(marbl_tracer_read_type) :: iron_flux_input          ! namelist input for iron_flux
-    type(marbl_tracer_read_type) :: nox_flux_monthly_input   ! namelist input for nox_flux_monthly
-    type(marbl_tracer_read_type) :: nhy_flux_monthly_input   ! namelist input for nhy_flux_monthly
-    type(marbl_tracer_read_type) :: din_riv_flux_input       ! namelist input for din_riv_flux
-    type(marbl_tracer_read_type) :: dip_riv_flux_input       ! namelist input for dip_riv_flux
-    type(marbl_tracer_read_type) :: don_riv_flux_input       ! namelist input for don_riv_flux
-    type(marbl_tracer_read_type) :: dop_riv_flux_input       ! namelist input for dop_riv_flux
-    type(marbl_tracer_read_type) :: dsi_riv_flux_input       ! namelist input for dsi_riv_flux
-    type(marbl_tracer_read_type) :: dfe_riv_flux_input       ! namelist input for dfe_riv_flux
-    type(marbl_tracer_read_type) :: dic_riv_flux_input       ! namelist input for dic_riv_flux
-    type(marbl_tracer_read_type) :: alk_riv_flux_input       ! namelist input for alk_riv_flux
-    type(marbl_tracer_read_type) :: doc_riv_flux_input       ! namelist input for doc_riv_flux
-    integer (int_kind)           :: nml_error                ! namelist i/o error flag
-    integer (int_kind)           :: zoo_ind                  ! zooplankton functional group index
-    integer (int_kind)           :: comp_surf_avg_freq_iopt  ! choice for freq of comp_surf_avg
-    integer (int_kind)           :: comp_surf_avg_freq       ! choice for freq of comp_surf_avg
+    integer (int_kind)           :: n                           ! index for looping over tracers
+    character(char_len)          :: comp_surf_avg_freq_opt      ! choice for freq of comp_surf_avg
+    character(char_len)          :: gas_flux_forcing_opt        ! option for forcing gas fluxes
+    character(char_len)          :: atm_co2_opt                 ! option for atmospheric co2 concentration
+    character(char_len)          :: atm_alt_co2_opt             ! option for atmospheric alternative CO2
+    type(marbl_tracer_read_type) :: dust_flux_input             ! namelist input for dust_flux
+    type(marbl_tracer_read_type) :: iron_flux_input             ! namelist input for iron_flux
+    type(marbl_tracer_read_type) :: nox_flux_monthly_input      ! namelist input for nox_flux_monthly
+    type(marbl_tracer_read_type) :: nhy_flux_monthly_input      ! namelist input for nhy_flux_monthly
+    type(marbl_tracer_read_type) :: din_riv_flux_input          ! namelist input for din_riv_flux
+    type(marbl_tracer_read_type) :: dip_riv_flux_input          ! namelist input for dip_riv_flux
+    type(marbl_tracer_read_type) :: don_riv_flux_input          ! namelist input for don_riv_flux
+    type(marbl_tracer_read_type) :: dop_riv_flux_input          ! namelist input for dop_riv_flux
+    type(marbl_tracer_read_type) :: dsi_riv_flux_input          ! namelist input for dsi_riv_flux
+    type(marbl_tracer_read_type) :: dfe_riv_flux_input          ! namelist input for dfe_riv_flux
+    type(marbl_tracer_read_type) :: dic_riv_flux_input          ! namelist input for dic_riv_flux
+    type(marbl_tracer_read_type) :: alk_riv_flux_input          ! namelist input for alk_riv_flux
+    type(marbl_tracer_read_type) :: doc_riv_flux_input          ! namelist input for doc_riv_flux
+    integer (int_kind)           :: nml_error                   ! namelist i/o error flag
+    integer (int_kind)           :: zoo_ind                     ! zooplankton functional group index
+    integer (int_kind)           :: comp_surf_avg_freq_iopt     ! choice for freq of comp_surf_avg
+    integer (int_kind)           :: comp_surf_avg_freq          ! choice for freq of comp_surf_avg
+    type(marbl_tracer_read_type) :: gas_flux_fice               ! ice fraction for gas fluxes
+    type(marbl_tracer_read_type) :: gas_flux_ws                 ! wind speed for gas fluxes
+    type(marbl_tracer_read_type) :: gas_flux_ap                 ! atmospheric pressure for gas fluxes
+    character(char_len)          :: nutr_rest_file              ! file containing nutrient fields
+    character(char_len)          :: nutr_variable_rest_file     ! file containing variable restoring info
+    character(char_len)          :: nutr_variable_rest_file_fmt ! format of file containing variable restoring info
+    logical (log_kind)           :: lnutr_variable_restore      ! geographically varying nutrient restoring (maltrud)
+    logical (log_kind)           :: locmip_k1_k2_bug_fix
 
     !-----------------------------------------------------------------------
     !  values to be used when comp_surf_avg_freq_opt==never
@@ -537,7 +515,7 @@ contains
     fesedflux_input%default_val  = c0
     fesedflux_input%file_fmt     = 'bin'
 
-    ndep_data_type              = 'monthly-calendar'
+    ndep_data_type = 'monthly-calendar'
 
     nox_flux_monthly_input%filename     = 'unknown'
     nox_flux_monthly_input%file_varname = 'nox_flux'
@@ -659,8 +637,7 @@ contains
       call marbl_status_log%log_error("error reading &ecosys_nml", subname)
       return
     else
-      ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire
-      !                     ecosys_nml
+      ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire ecosys_nml
       call marbl_status_log%log_namelist('ecosys_nml', tmp_nl_buffer, subname)
     end if
 
@@ -791,18 +768,16 @@ contains
   !*****************************************************************************
 
   subroutine marbl_init_surface_forcing_fields(&
-       ciso_on, num_elements, marbl_surface_forcing_fields)
+       ciso_on, num_elements, num_surface_forcing_fields, &
+       surface_forcing_indices, surface_forcing_fields)
 
-    ! !DESCRIPTION:
     !  Initialize the surface forcing_fields datatype with information from the
     !  namelist read
     !
-    use marbl_share_mod, only : marbl_surface_forcing_ind
     use marbl_share_mod, only : gas_flux_forcing_iopt_drv
     use marbl_share_mod, only : gas_flux_forcing_iopt_file
     use marbl_share_mod, only : gas_flux_forcing_iopt
     use marbl_share_mod, only : gas_flux_forcing_file
-    use marbl_share_mod, only : atm_alt_co2_const
     use marbl_share_mod, only : dust_flux_file
     use marbl_share_mod, only : iron_flux_file
     use marbl_share_mod, only : fice_file
@@ -819,240 +794,454 @@ contains
     use marbl_share_mod, only : dic_riv_flux_file
     use marbl_share_mod, only : alk_riv_flux_file
     use marbl_share_mod, only : doc_riv_flux_file
+    use marbl_share_mod, only : atm_co2_iopt
+    use marbl_share_mod, only : atm_co2_iopt_drv_prog
+    use marbl_share_mod, only : atm_co2_iopt_drv_diag
+    use marbl_share_mod, only : atm_co2_iopt_const
+    use marbl_share_mod, only : atm_co2_const
+    use marbl_share_mod, only : atm_alt_co2_const
+    use marbl_share_mod, only : atm_alt_co2_iopt
+    use marbl_share_mod, only : ndep_data_type 
+    use marbl_share_mod, only : ndep_shr_stream_year_first
+    use marbl_share_mod, only : ndep_shr_stream_year_last
+    use marbl_share_mod, only : ndep_shr_stream_year_align
+    use marbl_share_mod, only : ndep_shr_stream_file
+    use marbl_share_mod, only : ndep_shr_stream_scale_factor
+    use marbl_share_mod, only : lflux_gas_co2
+    use marbl_share_mod, only : lflux_gas_o2
 
     implicit none
 
-    logical (kind=log_kind),         intent(in)  :: ciso_on
-    integer (KIND=int_kind),         intent(in)  :: num_elements
-    type(marbl_forcing_fields_type), intent(out) :: marbl_surface_forcing_fields
+    logical (kind=log_kind)                   , intent(in)   :: ciso_on
+    integer (KIND=int_kind)                   , intent(in)   :: num_elements
+    integer (kind=int_kind)                   , intent(out)  :: num_surface_forcing_fields 
+    type(marbl_surface_forcing_indexing_type) , intent(out)  :: surface_forcing_indices         
+    type(marbl_forcing_fields_type)           , intent(out)  :: surface_forcing_fields
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'marbl_mod:marbl_sflux_forcing_fields_init'
     character(char_len) :: fsource                  
-    character(char_len) :: drivername               
     character(char_len) :: filename                 
     character(char_len) :: varname                  
+    character(char_len) :: file_varname                  
+    character(char_len) :: driver_varname               
     character(char_len) :: units                    
     real (kind=r8)      :: constant
+    logical             :: count_only ! true => count the diagnostics, false => add the diagnostics
+    integer             :: imode      ! imode = 1, count_only is true, otherwise count_only is false
     !-----------------------------------------------------------------------
 
-    !-----------------------------------------------------------------------
-    !  load namelist output into forcing field type
-    !-----------------------------------------------------------------------
-
-    associate(                                          &
-         ind            => marbl_surface_forcing_ind,   &
-         forcing_fields => marbl_surface_forcing_fields &
+    associate(                                    &
+         ind => surface_forcing_indices,          &
+         forcing_fields => surface_forcing_fields &
          )
 
-    ! Allocate memory for surface forcing fields  !FIXME - make max_surface_forcing_fields a run time variable
-    call forcing_fields%construct(num_elements, max_surface_forcing_fields)
+    ! First cound then allocate memory for surface forcing fields  
 
-    fsource    = 'none'
-    varname    = 'SURFACE_MASK'
-    units      = 'unknown' 
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         id=ind%surface_mask_id)
+    num_surface_forcing_fields = 0
+    do imode = 1,2
 
-    if (ciso_on) then
-       fsource    = 'none' !FIXME - is this correct?
-       varname    = 'D13C'
-       units      = 'unknown' 
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            id=ind%d13c_id)
+       if (imode == 1) then
+          count_only = .true.
+       else
+          count_only = .false.
+          call forcing_fields%construct(num_elements, num_surface_forcing_fields)
+       end if
 
-       fsource    = 'none'
-       varname    = 'D14C'
-       units      = 'unknown' 
-       call forcing_fields%add_forcing_field(fsource, varname, units,  &
-            id=ind%d14c_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'driver'
+          varname    = 'surface_mask'
+          driver_varname = 'SURFACE_MASK'
+          units      = 'unknown' 
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_driver_varname=varname, id=ind%surface_mask_id)
+       end if
 
-       fsource    = 'none'
-       varname    = 'D14C'
-       units      = 'unknown' 
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            id=ind%d14c_glo_avg_id)
-    end if
+       if (ciso_on) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'driver' 
+             varname    = 'd13c'
+             driver_varname = 'D13C'
+             units      = 'unknown' 
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  marbl_driver_varname=varname, id=ind%d13c_id)
+          end if
+       end if
 
-    fsource    = 'driver'
-    varname    = 'u10_sqr'
-    drivername = 'U10_SQR'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%u10_sqr_id)
+       if (ciso_on) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'driver'
+             varname    = 'd14c'
+             driver_varname = 'D14C'
+             units      = 'unknown' 
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  marbl_driver_varname=varname, id=ind%d14c_id)
+          end if
+       end if
 
-    fsource    = 'driver'
-    varname    = 'ifrac'
-    drivername = 'IFRAC'
-    units      = 'dimensionless'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%ifrac_id)
+       if (ciso_on) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'driver'
+             varname    = 'd14c_gloavg'
+             driver_varname = 'D14C_GLOAVG'
+             units      = 'unknown' 
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  marbl_driver_varname=varname, id=ind%d14c_glo_avg_id)
+          end if
+       end if
 
-    fsource    = 'driver'
-    varname    = 'sst'
-    drivername = 'SST'
-    units      = 'Temperature (C)'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%sst_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'driver'
+          varname    = 'u10_sqr'
+          driver_varname = 'U10_SQR'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_driver_varname=driver_varname, id=ind%u10_sqr_id)
+       end if
 
-    fsource    = 'driver'
-    varname    = 'sss'
-    drivername = 'SSS'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%sss_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'driver'
+          varname    = 'sst'
+          driver_varname = 'SST'
+          units      = 'Temperature (C)'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_driver_varname=driver_varname, id=ind%sst_id)
+       end if
 
-    fsource    = 'driver'
-    varname    = 'xco2'
-    drivername = 'XCO2'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%xco2_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'driver'
+          varname    = 'sss'
+          driver_varname = 'SSS'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_driver_varname=driver_varname, id=ind%sss_id)
+       end if
 
-    fsource    = 'constant'
-    varname    = 'xco2_alt_co2'
-    constant   = atm_alt_co2_const
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         field_constant=constant, id=ind%xco2_alt_co2_id)
+       if (lflux_gas_co2) then
+          if (atm_co2_iopt == atm_co2_iopt_const) then
+             if (count_only) then
+                num_surface_forcing_fields = num_surface_forcing_fields + 1
+             else
+                fsource    = 'constant'
+                varname    = 'xco2'
+                units      = 'unknown'
+                call forcing_fields%add_forcing_field(&
+                     field_source=fsource, marbl_varname=varname, field_units=units, &
+                     field_constant = atm_co2_const, id=ind%xco2_id)
+             end if
+          else if (atm_co2_iopt == atm_co2_iopt_drv_prog .or. atm_co2_iopt == atm_co2_iopt_drv_diag) then 
+             if (count_only) then
+                num_surface_forcing_fields = num_surface_forcing_fields + 1
+             else
+                fsource    = 'driver'
+                varname    = 'xco2'
+                if (atm_co2_iopt == atm_co2_iopt_drv_prog) then
+                   driver_varname = 'ATM_CO2_PROG'
+                else
+                   driver_varname = 'ATM_CO2_DIAG'
+                end if
+                units      = 'unknown'
+                call forcing_fields%add_forcing_field(&
+                     field_source=fsource, marbl_varname=varname, field_units=units,       &
+                     marbl_driver_varname=driver_varname, id=ind%xco2_id)
+             end if
+          end if
+       end if
 
-    fsource    = 'driver'
-    varname    = 'ph_input'
-    drivername = 'PH_INPUT'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%ph_input_id)
+       if (lflux_gas_co2) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'constant'
+             varname    = 'xco2_alt_co2'
+             constant   = atm_alt_co2_const
+             units      = 'unknown'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  field_constant=atm_alt_co2_const, id=ind%xco2_alt_co2_id)
+          end if
+       end if
 
-    fsource    = 'driver'
-    varname    = 'ph_input_alt_co2'
-    drivername = 'PH_INPUT_ALT_CO2'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_driver_varname=drivername, id=ind%ph_input_alt_co2_id)
+       if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'driver'
+             varname    = 'Ice Fraction'
+             driver_varname = 'ICE Fraction'
+             units      = 'unknown'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  marbl_driver_varname=driver_varname, id=ind%ifrac_id)
+          end if
+       elseif (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'POP monthly calendar'
+             varname    = 'Ice Fraction'
+             units      = 'unknown'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  marbl_forcing_calendar_name=fice_file, id=ind%ifrac_id)
+          end if
+       end if
 
-    if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+       if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'driver'
+             varname    = 'Piston Velocity'
+             driver_varname = 'XKW_ICE'
+             units      = 'unknown'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  marbl_driver_varname=driver_varname, id=ind%xkw_id)
+          end if
+       elseif (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'POP monthly calendar'
+             varname    = 'Piston Velocity'
+             units      = 'unknown'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  marbl_forcing_calendar_name=xkw_file, id=ind%xkw_id)
+          end if
+       end if
 
-       fsource    = 'driver'
-       varname    = 'Ice Fraction'
-       drivername = 'FICE_USED'
-       units      = 'unknown'
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            marbl_driver_varname=drivername,  id=ind%fice_id)
+       if (lflux_gas_o2 .or. lflux_gas_co2) then
+          if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+             if (count_only) then
+                num_surface_forcing_fields = num_surface_forcing_fields + 1
+             else
+                fsource    = 'driver'
+                varname    = 'Atmospheric Pressure'
+                driver_varname = 'AP_FILE_INPUT'
+                units      = 'unknown'
+                call forcing_fields%add_forcing_field(&
+                     field_source=fsource, marbl_varname=varname, field_units=units,       &
+                     marbl_driver_varname=driver_varname, id=ind%atm_pressure_id)
+             end if
+          end if
+       elseif (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'POP monthly calendar'
+             varname    = 'Atmospheric Pressure'
+             units      = 'unknown'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  marbl_forcing_calendar_name=ap_file, id=ind%atm_pressure_id)
+          end if
+       end if
 
-       fsource    = 'driver'
-       varname    = 'Piston Velocity'
-       drivername = 'XKW_ICE'
-       units      = 'unknown'
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            marbl_driver_varname=drivername,    id=ind%xkw_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'Dust Flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=dust_flux_file, id=ind%dust_flux_id)
+       end if
 
-       fsource    = 'driver'
-       varname    = 'Atmospheric Pressure'
-       drivername = 'AP_FILE_INPUT'
-       units      = 'unknown'
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            marbl_driver_varname=drivername, id=ind%atm_pressure_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'Iron Flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=iron_flux_file, id=ind%iron_flux_id)
+       end if
 
-    elseif (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'NOx Flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=nox_flux_monthly_file, id=ind%nox_flux_id)
+       end if
 
-       fsource    = 'POP monthly calendar'
-       varname    = 'Ice Fraction'
-       units      = 'unknown'
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            marbl_forcing_calendar_name=fice_file, id=ind%fice_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'NHy Flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=nhy_flux_monthly_file, id=ind%nhy_flux_id)
+       end if
 
-       fsource    = 'POP monthly calendar'
-       varname    = 'Piston Velocity'
-       units      = 'unknown'
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            marbl_forcing_calendar_name=xkw_file,    id=ind%xkw_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DIN river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=din_riv_flux_file, id=ind%din_riv_flux_id)
+       end if
 
-       fsource    = 'POP monthly calendar'
-       varname    = 'Atmospheric Pressure'
-       units      = 'unknown'
-       call forcing_fields%add_forcing_field(fsource, varname, units, &
-            marbl_forcing_calendar_name=ap_file, id=ind%atm_pressure_id)
-    endif
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DIP river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=dip_riv_flux_file, id=ind%dip_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'Dust Flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=dust_flux_file, id=ind%dust_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DON river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=don_riv_flux_file, id=ind%don_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'Iron Flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=iron_flux_file, id=ind%iron_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DOP river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=dop_riv_flux_file, id=ind%dop_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'NOx Flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=nox_flux_monthly_file, id=ind%nox_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DSI river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=dsi_riv_flux_file, id=ind%dsi_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'NHy Flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=nhy_flux_monthly_file, id=ind%nhy_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DFE river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=dfe_riv_flux_file, id=ind%dfe_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'DIN river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=din_riv_flux_file, id=ind%din_riv_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DIC river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=dic_riv_flux_file, id=ind%dic_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'DIP river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=dip_riv_flux_file, id=ind%dip_riv_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'ALK river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=alk_riv_flux_file, id=ind%alk_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'DON river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=don_riv_flux_file, id=ind%don_riv_flux_id)
+       if (count_only) then
+          num_surface_forcing_fields = num_surface_forcing_fields + 1
+       else
+          fsource    = 'POP monthly calendar'
+          varname    = 'DOC river flux'
+          units      = 'unknown'
+          call forcing_fields%add_forcing_field(&
+               field_source=fsource, marbl_varname=varname, field_units=units, &
+               marbl_forcing_calendar_name=doc_riv_flux_file, id=ind%doc_riv_flux_id)
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'DOP river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=dop_riv_flux_file, id=ind%dop_riv_flux_id)
+       if (ndep_data_type == 'shr_stream') then
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'file'
+             varname    = 'NO3 flux'
+             units      = 'unknown'
+             file_varname = 'NOy_deposition'
+             ! stream_index = stream_index + 1 - line in forcing field routine
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  file_varname = file_varname, &
+                  year_first = ndep_shr_stream_year_first, &
+                  year_last  = ndep_shr_stream_year_last, &
+                  year_align = ndep_shr_stream_year_align, &
+                  filename   = ndep_shr_stream_file, &
+                  id=ind%no3_flux_id)
+          end if
+             
+          if (count_only) then
+             num_surface_forcing_fields = num_surface_forcing_fields + 1
+          else
+             fsource    = 'file'
+             varname    = 'NH4 flux'
+             file_varname = 'NHx_deposition'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  file_varname = file_varname, &
+                  year_first = ndep_shr_stream_year_first, &
+                  year_last  = ndep_shr_stream_year_last, &
+                  year_align = ndep_shr_stream_year_align, &
+                  filename   = ndep_shr_stream_file, &
+                  id=ind%nh4_flux_id)
+          end if
+       end if
 
-    fsource    = 'POP monthly calendar'
-    varname    = 'DSI river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=dsi_riv_flux_file, id=ind%dsi_riv_flux_id)
-
-    fsource    = 'POP monthly calendar'
-    varname    = 'DFE river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=dfe_riv_flux_file, id=ind%dfe_riv_flux_id)
-
-    fsource    = 'POP monthly calendar'
-    varname    = 'DIC river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=dic_riv_flux_file, id=ind%dic_riv_flux_id)
-
-    fsource    = 'POP monthly calendar'
-    varname    = 'ALK river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=alk_riv_flux_file, id=ind%alk_riv_flux_id)
-
-    fsource    = 'POP monthly calendar'
-    varname    = 'DOC river flux'
-    units      = 'unknown'
-    call forcing_fields%add_forcing_field(fsource, varname, units, &
-         marbl_forcing_calendar_name=doc_riv_flux_file, id=ind%doc_riv_flux_id)
+    end do
 
     end associate
 
@@ -1062,7 +1251,6 @@ contains
   
   subroutine marbl_init_tracer_metadata(marbl_tracer_metadata, marbl_status_log)
 
-    ! !DESCRIPTION:
     !  Set tracer and forcing metadata
 
     implicit none
@@ -1159,7 +1347,7 @@ contains
        ciso_on,                          &
        domain,                           &
        interior_forcing_input,           &
-       interior_forcing_saved,           &
+       saved_state,                      &
        interior_restore,                 &
        tracers,                          &
        dtracers,                         &
@@ -1172,8 +1360,10 @@ contains
        interior_restore_diags,           &
        marbl_status_log)
     
-    ! !DESCRIPTION:
     !  Compute time derivatives for ecosystem state variables
+
+    use marbl_sizes    , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
+    use marbl_ciso_mod , only : marbl_ciso_set_interior_forcing
 
     implicit none 
 
@@ -1183,7 +1373,7 @@ contains
     real    (r8)                                , intent(in)    :: interior_restore(:,:) ! (ecosys_used_tracer_cnt, km) local restoring terms for nutrients (mmol ./m^3/sec) 
     real    (r8)                                , intent(in)    :: tracers(:,: )         ! (ecosys_used_tracer_cnt, km) tracer values 
     type    (marbl_PAR_type)                    , intent(inout) :: marbl_PAR
-    type    (marbl_interior_forcing_saved_type) , intent(inout) :: interior_forcing_saved
+    type    (marbl_saved_state_type)            , intent(inout) :: saved_state
     real    (r8)                                , intent(out)   :: dtracers(:,:)          ! (ecosys_used_tracer_cnt, km) computed source/sink terms
     type    (marbl_interior_share_type)         , intent(inout) :: marbl_interior_share(domain%km)  !FIXME - intent is inout due to DIC_Loc
     type    (marbl_zooplankton_share_type)      , intent(inout) :: marbl_zooplankton_share(zooplankton_cnt, domain%km)
@@ -1255,26 +1445,26 @@ contains
        return
     endif
 
-    associate(                                                            &
-         km              => domain%km,                                    &
-         kmt             => domain%kmt,                                   &
-         num_PAR_subcols => domain%num_PAR_subcols,                       & 
-         delta_z1        => domain%delta_z(1),                            &           
+    associate(                                                      &
+         km                  => domain%km,                          &
+         kmt                 => domain%kmt,                         &
+         num_PAR_subcols     => domain%num_PAR_subcols,             & 
+         delta_z1            => domain%delta_z(1),                  &           
 
-         POC             => marbl_particulate_share%POC,                  &
-         P_CaCO3         => marbl_particulate_share%P_CaCO3,              &
-         P_SiO2          => marbl_particulate_share%P_SiO2,               &
-         dust            => marbl_particulate_share%dust,                 &
-         P_iron          => marbl_particulate_share%P_iron,               &
+         POC                 => marbl_particulate_share%POC,        &
+         P_CaCO3             => marbl_particulate_share%P_CaCO3,    &
+         P_SiO2              => marbl_particulate_share%P_SiO2,     &
+         dust                => marbl_particulate_share%dust,       &
+         P_iron              => marbl_particulate_share%P_iron,     &
 
-         ph_prev         => interior_forcing_saved%ph_prev,               &
-         ph_prev_alt_co2 => interior_forcing_saved%ph_prev_alt_co2,       &
+         ph_prev_col         => saved_state%ph_prev_col,            &
+         ph_prev_alt_co2_col => saved_state%ph_prev_alt_co2_col,    &
 
-         dust_flux_in    => interior_forcing_input%dust_flux,             &
-         temperature     => interior_forcing_input%temperature,           &
-         fesedflux       => interior_forcing_input%fesedflux,             &
+         dust_flux_in        => interior_forcing_input%dust_flux,   &
+         temperature         => interior_forcing_input%temperature, &
+         fesedflux           => interior_forcing_input%fesedflux,   &
 
-         PAR             => marbl_PAR                                     &
+         PAR                 => marbl_PAR                           &
          )
 
     !-----------------------------------------------------------------------
@@ -1295,8 +1485,7 @@ contains
     !FIXME (mvertens, 2015-11), new marbl timers need to be implemented to turn on timers here
     ! around this subroutine call
     call marbl_compute_carbonate_chemistry(domain, interior_forcing_input, &
-         tracer_local(:, :), carbonate(:), &
-         ph_prev(:), ph_prev_alt_co2(:), &
+         tracer_local(:, :), carbonate(:), ph_prev_col(:), ph_prev_alt_co2_col(:), &
          zsat_calcite(:), zsat_aragonite(:), marbl_status_log)
 
     if (marbl_status_log%labort_marbl) then
@@ -1426,6 +1615,7 @@ contains
 
     end do ! k
 
+    ! Compute interior diagnostics
     call marbl_diagnostics_set_interior_forcing(            &
          domain,                                            &
          interior_forcing_input,                            &
@@ -1443,10 +1633,31 @@ contains
          fe_scavenge, fe_scavenge_rate,                     &
          interior_forcing_diags)
 
-    ! store_diagnostics_restore
+    ! Compute resotre diagnostics
     do n = 1, ecosys_tracer_cnt
        interior_restore_diags%diags(n)%field_3d(:,1) = interior_restore(n,:)
     end do
+
+    !  Compute time derivatives for ecosystem carbon isotope state variables
+    if (ciso_on) then
+       call marbl_ciso_set_interior_forcing(                                                    &
+            marbl_domain                 = domain,                                              &
+            marbl_interior_forcing_input = interior_forcing_input,                              &
+            marbl_interior_share         = marbl_interior_share,                                &
+            marbl_zooplankton_share      = marbl_zooplankton_share,                             &
+            marbl_autotroph_share        = marbl_autotroph_share,                               &
+            marbl_particulate_share      = marbl_particulate_share,                             &
+            column_tracer                = tracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:),  &
+            column_dtracer               = dtracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:), &
+            marbl_interior_diags         = interior_forcing_diags,                              & 
+            marbl_status_log             = marbl_status_log)
+
+       if (marbl_status_log%labort_marbl) then
+          error_msg = "error code returned from marbl_ciso_set_interior_forcing"
+          call marbl_status_log%log_error(error_msg, "marbl_interface::set_interior_forcing")
+          return
+       end if
+    end if
 
     end associate
 
@@ -1457,7 +1668,6 @@ contains
   subroutine marbl_init_particulate_terms(k, &
        POC, P_CaCO3, P_SiO2, dust, P_iron, QA_dust_def, NET_DUST_IN)
 
-    ! !DESCRIPTION:
     !  Set incoming fluxes (put into outgoing flux for first level usage).
     !  Set dissolution length, production fraction and mass terms.
     !
@@ -1612,7 +1822,6 @@ contains
              temperature, tracer_local, carbonate, sed_denitrif, other_remin, &
              fesedflux, lexport_shared_vars, marbl_status_log)
 
-    ! !DESCRIPTION:
     !  Compute outgoing fluxes and remineralization terms. Assumes that
     !  production terms have been set. Incoming fluxes are assumed to be the
     !  outgoing fluxes from the previous level.
@@ -2191,16 +2400,17 @@ contains
   subroutine marbl_set_surface_forcing( &
        ciso_on,                         &
        num_elements,                    &
+       surface_forcing_ind,             &
        surface_input_forcings,          &
        surface_vals,                    &
        surface_tracer_fluxes,           &
+       saved_state,                     &
        surface_forcing_output,          &
        surface_forcing_internal,        &
        surface_forcing_share,           &
        surface_forcing_diags,           &
        marbl_status_log)
 
-    ! !DESCRIPTION:
     !  Compute surface forcing fluxes 
 
     use marbl_schmidt_number_mod , only : schmidt_co2_surf  
@@ -2208,21 +2418,13 @@ contains
     use marbl_co2calc_mod        , only : marbl_co2calc_surf
     use marbl_co2calc_mod        , only : thermodynamic_coefficients_type
     use marbl_oxygen             , only : o2sat_surf
-    use marbl_share_mod          , only : marbl_surface_forcing_ind
     use marbl_share_mod          , only : lflux_gas_o2
     use marbl_share_mod          , only : lflux_gas_co2
     use marbl_share_mod          , only : ndep_data_type
-    use marbl_share_mod          , only : ndep_shr_stream_scale_factor
     use marbl_share_mod          , only : gas_flux_forcing_iopt_drv
     use marbl_share_mod          , only : gas_flux_forcing_iopt_file
     use marbl_share_mod          , only : gas_flux_forcing_iopt
-    use marbl_share_mod          , only : ndep_shr_stream_year_first
-    use marbl_share_mod          , only : ndep_shr_stream_year_last
-    use marbl_share_mod          , only : ndep_shr_stream_year_align
-    use marbl_share_mod          , only : ndep_shr_stream_file
-    use marbl_share_mod          , only : ndep_shr_stream_var_cnt
-    use marbl_share_mod          , only : ndep_shr_stream_no_ind
-    use marbl_share_mod          , only : ndep_shr_stream_nh_ind
+    use marbl_share_mod          , only : ndep_shr_stream_scale_factor
     use marbl_share_mod          , only : nox_flux_monthly_file 
     use marbl_share_mod          , only : nhy_flux_monthly_file 
     use marbl_share_mod          , only : fice_file        
@@ -2241,14 +2443,19 @@ contains
     use marbl_share_mod          , only : dic_riv_flux_file    
     use marbl_share_mod          , only : alk_riv_flux_file    
     use marbl_share_mod          , only : doc_riv_flux_file    
+    use marbl_sizes              , only : ecosys_ciso_tracer_cnt
+    use marbl_sizes              , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
+    use marbl_ciso_mod           , only : marbl_ciso_set_surface_forcing
 
     implicit none
 
     integer (int_kind)                        , intent(in)    :: num_elements
     logical (log_kind)                        , intent(in)    :: ciso_on ! flag to save shared_vars or not
+    type(marbl_surface_forcing_indexing_type) , intent(in)    :: surface_forcing_ind         
     real(r8)                                  , intent(in)    :: surface_input_forcings(:,:)
     real (r8)                                 , intent(in)    :: surface_vals(:,:)            
     real (r8)                                 , intent(out)   :: surface_tracer_fluxes(:,:)
+    type(marbl_saved_state_type)              , intent(inout) :: saved_state
     type(marbl_surface_forcing_internal_type) , intent(inout) :: surface_forcing_internal
     type(marbl_surface_forcing_output_type)   , intent(inout) :: surface_forcing_output
     type(marbl_surface_forcing_share_type)    , intent(inout) :: surface_forcing_share
@@ -2270,66 +2477,65 @@ contains
     type(thermodynamic_coefficients_type), dimension(num_elements) :: co3_coeffs
     !-----------------------------------------------------------------------
 
-    associate(                                                                                            &
-         ind                  => marbl_surface_forcing_ind,                                               &
+    associate(                                                                                      &
+         ind                  => surface_forcing_ind,                                               &
   
-         surface_mask         => surface_input_forcings(:,marbl_surface_forcing_ind%surface_mask_id),     &
-         ifrac                => surface_input_forcings(:,marbl_surface_forcing_ind%ifrac_id),            &
-         sst                  => surface_input_forcings(:,marbl_surface_forcing_ind%sst_id),              &
-         sss                  => surface_input_forcings(:,marbl_surface_forcing_ind%sss_id),              &
-         xco2                 => surface_input_forcings(:,marbl_surface_forcing_ind%xco2_id),             &
-         xco2_alt_co2         => surface_input_forcings(:,marbl_surface_forcing_ind%xco2_alt_co2_id),     & 
-         ap_used              => surface_input_forcings(:,marbl_surface_forcing_ind%atm_pressure_id),     &
-         xkw                  => surface_input_forcings(:,marbl_surface_forcing_ind%xkw_id),              &
-         dust_flux_in         => surface_input_forcings(:,marbl_surface_forcing_ind%dust_flux_id),        &
-         iron_flux_in         => surface_input_forcings(:,marbl_surface_forcing_ind%iron_flux_id),        &
-         nox_flux             => surface_input_forcings(:,marbl_surface_forcing_ind%nox_flux_id),         &
-         nhy_flux             => surface_input_forcings(:,marbl_surface_forcing_ind%nhy_flux_id),         &
-         no3_flux             => surface_input_forcings(:,marbl_surface_forcing_ind%no3_flux_id),         &
-         nh4_flux             => surface_input_forcings(:,marbl_surface_forcing_ind%nh4_flux_id),         &
-         din_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%din_riv_flux_id),     & 
-         dip_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%dip_riv_flux_id),     & 
-         don_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%don_riv_flux_id),     & 
-         dop_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%dop_riv_flux_id),     & 
-         dsi_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%dsi_riv_flux_id),     & 
-         dfe_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%dfe_riv_flux_id),     & 
-         dic_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%dic_riv_flux_id),     & 
-         doc_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%doc_riv_flux_id),     & 
-         alk_riv_flux         => surface_input_forcings(:,marbl_surface_forcing_ind%alk_riv_flux_id),     & 
-         ph_input             => surface_input_forcings(:,marbl_surface_forcing_ind%ph_input_id),         &
-         ph_input_alt_co2     => surface_input_forcings(:,marbl_surface_forcing_ind%ph_input_alt_co2_id), &
+         surface_mask         => surface_input_forcings(:,surface_forcing_ind%surface_mask_id),     &
+         ifrac                => surface_input_forcings(:,surface_forcing_ind%ifrac_id),            &
+         sst                  => surface_input_forcings(:,surface_forcing_ind%sst_id),              &
+         sss                  => surface_input_forcings(:,surface_forcing_ind%sss_id),              &
+         xco2                 => surface_input_forcings(:,surface_forcing_ind%xco2_id),             &
+         xco2_alt_co2         => surface_input_forcings(:,surface_forcing_ind%xco2_alt_co2_id),     & 
+         ap_used              => surface_input_forcings(:,surface_forcing_ind%atm_pressure_id),     &
+         xkw                  => surface_input_forcings(:,surface_forcing_ind%xkw_id),              &
+         dust_flux_in         => surface_input_forcings(:,surface_forcing_ind%dust_flux_id),        &
+         iron_flux_in         => surface_input_forcings(:,surface_forcing_ind%iron_flux_id),        &
+         nox_flux             => surface_input_forcings(:,surface_forcing_ind%nox_flux_id),         &
+         nhy_flux             => surface_input_forcings(:,surface_forcing_ind%nhy_flux_id),         &
+         no3_flux             => surface_input_forcings(:,surface_forcing_ind%no3_flux_id),         &
+         nh4_flux             => surface_input_forcings(:,surface_forcing_ind%nh4_flux_id),         &
+         din_riv_flux         => surface_input_forcings(:,surface_forcing_ind%din_riv_flux_id),     & 
+         dip_riv_flux         => surface_input_forcings(:,surface_forcing_ind%dip_riv_flux_id),     & 
+         don_riv_flux         => surface_input_forcings(:,surface_forcing_ind%don_riv_flux_id),     & 
+         dop_riv_flux         => surface_input_forcings(:,surface_forcing_ind%dop_riv_flux_id),     & 
+         dsi_riv_flux         => surface_input_forcings(:,surface_forcing_ind%dsi_riv_flux_id),     & 
+         dfe_riv_flux         => surface_input_forcings(:,surface_forcing_ind%dfe_riv_flux_id),     & 
+         dic_riv_flux         => surface_input_forcings(:,surface_forcing_ind%dic_riv_flux_id),     & 
+         doc_riv_flux         => surface_input_forcings(:,surface_forcing_ind%doc_riv_flux_id),     & 
+         alk_riv_flux         => surface_input_forcings(:,surface_forcing_ind%alk_riv_flux_id),     & 
 
-         iron_flux_in_new     => surface_forcing_internal%iron_flux(:),                                   &
-         co2star              => surface_forcing_internal%co2star(:),                                     & 
-         dco2star             => surface_forcing_internal%dco2star(:),                                    & 
-         pco2surf             => surface_forcing_internal%pco2surf(:),                                    & 
-         dpco2                => surface_forcing_internal%dpco2(:),                                       & 
-         co3                  => surface_forcing_internal%co3(:),                                         & 
-         co2star_alt          => surface_forcing_internal%co2star_alt(:),                                 & 
-         dco2star_alt         => surface_forcing_internal%dco2star_alt(:),                                & 
-         pco2surf_alt         => surface_forcing_internal%pco2surf_alt(:),                                & 
-         dpco2_alt            => surface_forcing_internal%dpco2_alt(:),                                   & 
-         schmidt_co2          => surface_forcing_internal%schmidt_co2(:),                                 & 
-         schmidt_o2           => surface_forcing_internal%schmidt_o2(:),                                  & 
-         pv_o2                => surface_forcing_internal%pv_o2(:),                                       & 
-         pv_co2               => surface_forcing_internal%pv_co2(:),                                      & 
-         o2sat                => surface_forcing_internal%o2sat(:),                                       & 
-         flux_alt_co2         => surface_forcing_internal%flux_alt_co2(:),                                & 
+         iron_flux_in_new     => surface_forcing_internal%iron_flux(:),                             &
+         co2star              => surface_forcing_internal%co2star(:),                               & 
+         dco2star             => surface_forcing_internal%dco2star(:),                              & 
+         pco2surf             => surface_forcing_internal%pco2surf(:),                              & 
+         dpco2                => surface_forcing_internal%dpco2(:),                                 & 
+         co3                  => surface_forcing_internal%co3(:),                                   & 
+         co2star_alt          => surface_forcing_internal%co2star_alt(:),                           & 
+         dco2star_alt         => surface_forcing_internal%dco2star_alt(:),                          & 
+         pco2surf_alt         => surface_forcing_internal%pco2surf_alt(:),                          & 
+         dpco2_alt            => surface_forcing_internal%dpco2_alt(:),                             & 
+         schmidt_co2          => surface_forcing_internal%schmidt_co2(:),                           & 
+         schmidt_o2           => surface_forcing_internal%schmidt_o2(:),                            & 
+         pv_o2                => surface_forcing_internal%pv_o2(:),                                 & 
+         pv_co2               => surface_forcing_internal%pv_co2(:),                                & 
+         o2sat                => surface_forcing_internal%o2sat(:),                                 & 
+         flux_alt_co2         => surface_forcing_internal%flux_alt_co2(:),                          & 
 
-         stf                  => surface_tracer_fluxes(:,:),                                              &
+         stf                  => surface_tracer_fluxes(:,:),                                        &
 
-         flux_o2              => surface_forcing_output%flux_o2(:),                                       &
-         flux_co2             => surface_forcing_output%flux_co2(:),                                      &
-         ph_output            => surface_forcing_output%ph_output(:),                                     &
-         ph_output_alt_co2    => surface_forcing_output%ph_output_alt_co2(:),                             &
+         flux_o2              => surface_forcing_output%flux_o2(:),                                 &
+         flux_co2             => surface_forcing_output%flux_co2(:),                                &
 
-         pv_surf_fields       => surface_forcing_share%pv_surf_fields(:),                                 & ! out
-         dic_surf_fields      => surface_forcing_share%dic_surf_fields(:),                                & ! out
-         co2star_surf_fields  => surface_forcing_share%co2star_surf_fields(:),                            & ! out
-         dco2star_surf_fields => surface_forcing_share%dco2star_surf_fields(:),                           & ! out
-         co3_surf_fields      => surface_forcing_share%co3_surf_fields(:),                                & ! out
-         dic_riv_flux_fields  => surface_forcing_share%dic_riv_flux_fields(:),                            & ! out
-         doc_riv_flux_fields  => surface_forcing_share%doc_riv_flux_fields(:)                             & ! out
+         ph_prev_surf         => saved_state%ph_prev_surf,                                          &
+         ph_prev_alt_co2_surf => saved_state%ph_prev_alt_co2_surf,                                  &
+
+         pv_surf_fields       => surface_forcing_share%pv_surf_fields(:),                           & ! out
+         dic_surf_fields      => surface_forcing_share%dic_surf_fields(:),                          & ! out
+         co2star_surf_fields  => surface_forcing_share%co2star_surf_fields(:),                      & ! out
+         dco2star_surf_fields => surface_forcing_share%dco2star_surf_fields(:),                     & ! out
+         co3_surf_fields      => surface_forcing_share%co3_surf_fields(:),                          & ! out
+         dic_riv_flux_fields  => surface_forcing_share%dic_riv_flux_fields(:),                      & ! out
+         doc_riv_flux_fields  => surface_forcing_share%doc_riv_flux_fields(:)                       & ! out
          )
 
     !-----------------------------------------------------------------------
@@ -2396,9 +2602,9 @@ contains
           !  Set FLUX_CO2
           !-----------------------------------------------------------------------
 
-          where (ph_input(:) /= c0)
-             phlo(:) = ph_input(:) - del_ph
-             phhi(:) = ph_input(:) + del_ph
+          where (ph_prev_surf(:) /= c0)
+             phlo(:) = ph_prev_surf(:) - del_ph
+             phhi(:) = ph_prev_surf(:) + del_ph
           elsewhere
              phlo(:) = phlo_surf_init
              phhi(:) = phhi_surf_init
@@ -2410,6 +2616,7 @@ contains
              mask(:) = .false.
           end where
 
+          ! Note the following computes a new ph_prev_surf
           call marbl_co2calc_surf(                                         &
                num_elements     = num_elements,                            &
                lcomp_co3_coeffs = .true.,                                  &
@@ -2430,7 +2637,7 @@ contains
                dpco2      = surface_forcing_internal%dpco2,                &
                phlo       = phlo,                                          &
                phhi       = phhi,                                          &
-               ph         = ph_output,                                     &
+               ph         = ph_prev_surf,                                  &
                marbl_status_log = marbl_status_log)
 
           if (marbl_status_log%labort_marbl) then
@@ -2458,14 +2665,15 @@ contains
           !  Set flux_alt_co2
           !-----------------------------------------------------------------------
 
-          where (ph_input_alt_co2(:) /= c0)
-             phlo(:) = ph_input_alt_co2(:) - del_ph
-             phhi(:) = ph_input_alt_co2(:) + del_ph
+          where (ph_prev_alt_co2_surf(:) /= c0)
+             phlo(:) = ph_prev_alt_co2_surf(:) - del_ph
+             phhi(:) = ph_prev_alt_co2_surf(:) + del_ph
           elsewhere
              phlo(:) = phlo_surf_init
              phhi(:) = phhi_surf_init
           end where
 
+          ! Note the following computes a new ph_prev_alt_co2
           call marbl_co2calc_surf(                                         &
                num_elements     = num_elements,                            &
                lcomp_co3_coeffs = .false.,                                 &
@@ -2486,7 +2694,7 @@ contains
                dpco2      = surface_forcing_internal%dpco2_alt,            &
                phlo       = phlo,                                          &
                phhi       = phhi,                                          &
-               ph         = ph_output_alt_co2,                             &
+               ph         = ph_prev_alt_co2_surf,                          &
                marbl_status_log = marbl_status_log)
 
             if (marbl_status_log%labort_marbl) then
@@ -2612,13 +2820,33 @@ contains
     ! Set surface forcing diagnostics
     !-----------------------------------------------------------------------
 
-    call marbl_diagnostics_set_surface_forcing(                     &
-         ind_forcing = ind,                      &
-         surface_input_forcings         = surface_input_forcings,   &
-         surface_forcing_internal       = surface_forcing_internal, &
-         surface_tracer_fluxes          = stf,                      &
-         surface_forcing_output         = surface_forcing_output,   &
-         surface_forcing_diags          = surface_forcing_diags)
+    call marbl_diagnostics_set_surface_forcing(               &
+         surface_forcing_ind      = ind,                      &
+         surface_input_forcings   = surface_input_forcings,   &
+         surface_forcing_internal = surface_forcing_internal, &
+         surface_tracer_fluxes    = stf,                      &
+         saved_state              = saved_state,              & 
+         surface_forcing_output   = surface_forcing_output,   &
+         surface_forcing_diags    = surface_forcing_diags)
+
+    !-----------------------------------------------------------------------
+    ! Compute carbon isotopes surface fluxes
+    !-----------------------------------------------------------------------
+
+    if (ciso_on) then
+       call marbl_ciso_set_surface_forcing(                                                                  &
+            num_tracers                 = ecosys_ciso_tracer_cnt,                                            &
+            num_elements                = num_elements,                                                      &
+            surface_mask                = surface_input_forcings(:,ind%surface_mask_id),                     &
+            sst                         = surface_input_forcings(:,ind%sst_id),                              &
+            d13c                        = surface_input_forcings(:,ind%d13c_id),                             &
+            d14c                        = surface_input_forcings(:,ind%d14c_id),                             &
+            d14c_glo_avg                = surface_input_forcings(:,ind%d14c_glo_avg_id),                     &
+            surface_vals                = surface_vals(:,ecosys_ciso_ind_beg: ecosys_ciso_ind_end),          &
+            stf                         = surface_tracer_fluxes(:,ecosys_ciso_ind_beg: ecosys_ciso_ind_end), &
+            marbl_surface_forcing_share = surface_forcing_share,                                             &
+            marbl_surface_forcing_diags = surface_forcing_diags)
+    end if
 
     end associate
 
@@ -2648,7 +2876,6 @@ contains
     use marbl_share_mod , only : dic_riv_flux_file     
     use marbl_share_mod , only : alk_riv_flux_file     
     use marbl_share_mod , only : doc_riv_flux_file     
-
 
     implicit none
 
@@ -3351,7 +3578,7 @@ contains
 
   subroutine marbl_compute_carbonate_chemistry(domain, interior_forcing_input, &
        tracer_local, carbonate, &
-       ph_prev, ph_prev_alt_co2, &
+       ph_prev_col, ph_prev_alt_co2_col, &
        zsat_calcite, zsat_aragonite, marbl_status_log)
 
     use marbl_co2calc_mod, only : marbl_comp_co3terms         
@@ -3362,8 +3589,8 @@ contains
     type(marbl_interior_forcing_input_type) , intent(in)    :: interior_forcing_input
     real (r8)                               , intent(in)    :: tracer_local(ecosys_tracer_cnt,domain%km) ! local copies of model tracer concentrations
     type(carbonate_type)                    , intent(out)   :: carbonate(domain%km)
-    real(r8)                                , intent(inout) :: ph_prev(domain%km)
-    real(r8)                                , intent(inout) :: ph_prev_alt_co2(domain%km)
+    real(r8)                                , intent(inout) :: ph_prev_col(domain%km)
+    real(r8)                                , intent(inout) :: ph_prev_alt_co2_col(domain%km)
     real(r8)                                , intent(inout) :: zsat_calcite(domain%km)                   ! Calcite Saturation Depth
     real(r8)                                , intent(inout) :: zsat_aragonite(domain%km)                 ! Aragonite Saturation Depth
     type(marbl_log_type)                    , intent(inout) :: marbl_status_log
@@ -3379,35 +3606,35 @@ contains
     real(r8)          , dimension(domain%km) :: ph_lower_bound
     real(r8)          , dimension(domain%km) :: ph_upper_bound
     real(r8)          , dimension(domain%km) :: press_bar ! pressure at level (bars)
-    real(r8)          , dimension(domain%km) :: DIC_loc
-    real(r8)          , dimension(domain%km) :: DIC_ALT_CO2_loc
-    real(r8)          , dimension(domain%km) :: ALK_loc
-    real(r8)          , dimension(domain%km) :: PO4_loc
-    real(r8)          , dimension(domain%km) :: SiO3_loc
+    real(r8)          , dimension(domain%km) :: dic_loc
+    real(r8)          , dimension(domain%km) :: dic_alt_co2_loc
+    real(r8)          , dimension(domain%km) :: alk_loc
+    real(r8)          , dimension(domain%km) :: po4_loc
+    real(r8)          , dimension(domain%km) :: sio3_loc
     !-----------------------------------------------------------------------
 
     ! make local copies instead of using associate construct because of gnu fortran bug
     ! https://gcc.gnu.org/bugzilla/show_bug.cgi?id=68546
 
-    DIC_loc(:)         = tracer_local(dic_ind,:)
-    DIC_ALT_CO2_loc(:) = tracer_local(dic_alt_co2_ind,:)
-    ALK_loc(:)         = tracer_local(alk_ind,:)
-    PO4_loc(:)         = tracer_local(po4_ind,:)
-    SiO3_loc(:)        = tracer_local(sio3_ind,:)
+    dic_loc(:)         = tracer_local(dic_ind,:)
+    dic_alt_co2_loc(:) = tracer_local(dic_alt_co2_ind,:)
+    alk_loc(:)         = tracer_local(alk_ind,:)
+    po4_loc(:)         = tracer_local(po4_ind,:)
+    sio3_loc(:)        = tracer_local(sio3_ind,:)
 
     associate(                                                    &
          dkm               => domain%km,                          &
          column_kmt        => domain%kmt,                         &
-         CO3               => carbonate(:)%CO3,                   &
-         HCO3              => carbonate(:)%HCO3,                  &
-         H2CO3             => carbonate(:)%H2CO3,                 &
-         pH                => carbonate(:)%pH,                    &
-         CO3_sat_calcite   => carbonate(:)%CO3_sat_calcite,       &
-         CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite,     &
-         CO3_ALT_CO2       => carbonate(:)%CO3_ALT_CO2,           &
-         HCO3_ALT_CO2      => carbonate(:)%HCO3_ALT_CO2,          &
-         H2CO3_ALT_CO2     => carbonate(:)%H2CO3_ALT_CO2,         &
-         pH_ALT_CO2        => carbonate(:)%pH_ALT_CO2,            &
+         co3               => carbonate(:)%CO3,                   &
+         hco3              => carbonate(:)%HCO3,                  &
+         h2co3             => carbonate(:)%H2CO3,                 &
+         ph                => carbonate(:)%pH,                    &
+         co3_sat_calcite   => carbonate(:)%CO3_sat_calcite,       &
+         co3_sat_aragonite => carbonate(:)%CO3_sat_aragonite,     &
+         co3_alt_co2       => carbonate(:)%CO3_ALT_CO2,           &
+         hco3_alt_co2      => carbonate(:)%HCO3_ALT_CO2,          &
+         h2co3_alt_co2     => carbonate(:)%H2CO3_ALT_CO2,         &
+         ph_alt_co2        => carbonate(:)%pH_ALT_CO2,            &
          temperature       => interior_forcing_input%temperature, &
          press_bar         => interior_forcing_input%pressure,    &
          salinity          => interior_forcing_input%salinity     &
@@ -3420,9 +3647,9 @@ contains
       mask(k) = (k <= column_kmt)
 
        ! -------------------
-       if (ph_prev(k)  /= c0) then
-          ph_lower_bound(k) = ph_prev(k) - del_ph
-          ph_upper_bound(k) = ph_prev(k) + del_ph
+       if (ph_prev_col(k)  /= c0) then
+          ph_lower_bound(k) = ph_prev_col(k) - del_ph
+          ph_upper_bound(k) = ph_prev_col(k) + del_ph
        else
           ph_lower_bound(k) = phlo_3d_init
           ph_upper_bound(k) = phhi_3d_init
@@ -3432,8 +3659,8 @@ contains
 
     call marbl_comp_CO3terms(&
          dkm, mask, pressure_correct, .true., co3_coeffs, temperature, &
-         salinity, press_bar, DIC_loc, ALK_loc, PO4_loc, SiO3_loc, &
-         ph_lower_bound, ph_upper_bound, pH, H2CO3, HCO3, CO3,     &
+         salinity, press_bar, dic_loc, alk_loc, po4_loc, sio3_loc, &
+         ph_lower_bound, ph_upper_bound, ph, h2co3, hco3, co3,     &
          marbl_status_log)
 
     if (marbl_status_log%labort_marbl) then
@@ -3444,12 +3671,12 @@ contains
 
     do k=1,dkm
 
-       ph_prev(k) = pH(k)
+       ph_prev_col(k) = pH(k)
        
        ! -------------------
-       if (ph_prev_alt_co2(k) /= c0) then
-          ph_lower_bound(k) = ph_prev_alt_co2(k) - del_ph
-          ph_upper_bound(k) = ph_prev_alt_co2(k) + del_ph
+       if (ph_prev_alt_co2_col(k) /= c0) then
+          ph_lower_bound(k) = ph_prev_alt_co2_col(k) - del_ph
+          ph_upper_bound(k) = ph_prev_alt_co2_col(k) + del_ph
        else
           ph_lower_bound(k) = phlo_3d_init
           ph_upper_bound(k) = phhi_3d_init
@@ -3459,9 +3686,9 @@ contains
 
     call marbl_comp_CO3terms(&
          dkm, mask, pressure_correct, .false., co3_coeffs, temperature,    &
-         salinity, press_bar, DIC_ALT_CO2_loc, ALK_loc, PO4_loc, SiO3_loc, &
-         ph_lower_bound, ph_upper_bound, pH_ALT_CO2, H2CO3_ALT_CO2,        &
-         HCO3_ALT_CO2, CO3_ALT_CO2, marbl_status_log)
+         salinity, press_bar, dic_alt_co2_loc, alk_loc, po4_loc, sio3_loc, &
+         ph_lower_bound, ph_upper_bound, ph_alt_co2, h2co3_alt_co2,        &
+         hco3_alt_co2, co3_alt_co2, marbl_status_log)
 
     if (marbl_status_log%labort_marbl) then
       error_msg = "error code returned from comp_CO3terms"
@@ -3469,11 +3696,11 @@ contains
       return
     end if
        
-    ph_prev_alt_co2 = pH_ALT_CO2
+    ph_prev_alt_co2_col = ph_alt_co2
 
     call marbl_comp_co3_sat_vals(&
          dkm, mask, pressure_correct, temperature, salinity, &
-         press_bar, CO3_sat_calcite, CO3_sat_aragonite)
+         press_bar, co3_sat_calcite, co3_sat_aragonite)
        
     end associate
 

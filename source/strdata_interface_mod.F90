@@ -40,8 +40,7 @@ module strdata_interface_mod
     ! Contains arguments for shr_strdata_* that are unique to variable being
     ! read
     type(shr_strdata_type)  :: sdat
-    character(len=char_len) :: field_name
-    character(len=char_len) :: short_name
+    character(len=char_len) :: timer_label
     integer(int_kind)       :: year_first
     integer(int_kind)       :: year_last
     integer(int_kind)       :: year_align
@@ -57,7 +56,7 @@ contains
 
     type(strdata_input_type), intent(inout) :: inputlist
 
-    call shr_strdata_create(inputlist%sdat,name=trim(inputlist%field_name),   &
+    call shr_strdata_create(inputlist%sdat, name='not_used',                  &
                             mpicom=POP_communicator,                          &
                             compid=POP_MCT_OCNID,                             &
                             gsmap=POP_MCT_gsMap_o, ggrid=POP_MCT_dom_o,       &
@@ -93,7 +92,7 @@ contains
                              inputlist%date,                                  &
                              inputlist%time,                                  &
                              POP_communicator,                                &
-                             trim(inputlist%short_name))
+                             trim(inputlist%timer_label))
 
   end subroutine POP_strdata_advance
 

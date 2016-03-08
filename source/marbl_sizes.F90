@@ -30,9 +30,10 @@ module marbl_sizes
   integer (int_kind) :: ecosys_used_tracer_cnt
 
   !-----------------------------------------------------------------------------
-  ! FIXME - the following should be counted and not be parameters
+  ! number of surface forcing fields
   !-----------------------------------------------------------------------------
-  integer, public, parameter :: max_surface_forcing_fields  = 40
+
+  integer :: num_surface_forcing_fields 
 
   !-----------------------------------------------------------------------------
   ! array bounds 

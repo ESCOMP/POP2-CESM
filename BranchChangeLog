@@ -1,3 +1,67 @@
+Tag Creator: mvertens/mlevy
+Developers:  mvertens/mlevy
+Tag Date:    7 march 2016
+Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n13_cesm_pop_2_1_20160114
+Tag Summary: dynamically allocate number of surface forcing fields, rather than using a parameter
+	     (num_surface_forcing_fields rather than max_surface_forcing_fields) - remove semantic
+	     content from surface forcing fields computation
+
+M       passive_tracer_tools.F90
+	- minor formatting
+
+M       marbl_interface_types.F90
+	- initialized all of marbl_surface_forcing_indexing_type components to 0
+	- introduced new marbl_saved_state_type that now contains both ph_prev_surf
+	  and ph_prev_col  (also removed ph_input and ph_input_alt_co2 from marbl_forcing_indexing_type)
+	- removed DATA from marbl_forcing_monthly_every_ts_type
+	- made marbl_forcing_monthly_calendar_type public
+	- removed conditional block "if (trim(field_source) .NE. "none") then" from marbl_single_forcing_field_init
+	- added new case('constant') to marbl_single forcing_field_init
+
+M       marbl_interface.F90
+	- added marbl_saved_state_type and removed marbl_interior_forcing_saved_type
+	- obtain number of surface forcing fields from call to init_surface_forcing_fields then add a statement to 
+          allocate this%this%surface_input_forcings
+	- moved call to marbl_ciso_set_interior_forcing and marbl_ciso_set_surface_forcing in the marbl_set_interior_forcing
+	  and marbl_set_surface_forcing in marbl_mod
+	- put in explicit keyword/value argument lists to all subroutine calls
+
+M       marbl_share_mod.F90
+	- removed use of marbl_surface_forcing_indexing_type
+	- removed parameter settings of ndep_shr_stream_xxx and moved these to module variables in ecosys_driver
+
+M       marbl_diagnostics_mod.F90
+	- added saved_state as an argument to marbl_diagnostics_set_surface_forcing
+	- bug fix for daigs(ind_diag%NHy_FLUX) from Mike Levy
+
+M       marbl_mod.F90
+	- removed a large number of module variables that are no longer needed at the module level
+	- change to marbl_init_surface_forcing_fields to determine number of forcing fields at run time and
+	  construct the forcing_fields data type accordingly
+	- addition of new variables from 'driver' - surface_mask_id, d13c_id, d14c_id, d14c_gloavg_id
+	- simplification of the calculation of ifrac_id (removal of fice_id)
+	- call to marbl_ciso_set_interior_forcing from marbl_set_interior_forcing
+	- call to marbl_ciso_set_surface_forcing from marbl_set_surface_forcing
+
+M       marbl_sizes.F90
+	- removal of parameter max_surface_forcing_fields and addition of variable num_surface_forcing_fields
+
+M       ecosys_driver.F90
+	- refactoring of ecosys_driver_set_input_forcing_data to have much
+          less semantic content and leverage the new
+	  surface_forcing_fields_data type
+	- removal of dust_flux_in from ecosys_saved_state_type and introduction as a module variable
+	- moved marbl_surface_forcing_fields as a member of marbl_instances
+	- addition of shr_stream_var_cnt, shr_stream_no_ind,
+	  shr_stream_nh_ind and strdata_inputlist(:) as module variables
+	- removed argument of marbl_surface_forcing_fields from call to
+  	  marbl_instances(iblock)%init
+	- removed routine ecosys_driver_init_input_forcing_data (this code
+  	  is now been incorporated into ecosys_driver_set_input_forcing_data at the first call
+
+M       strdata_interface_mod.F90
+        - changes needed for new shr_strdata functionality in ecosys_driver
+
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
