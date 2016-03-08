@@ -1626,8 +1626,8 @@ contains
              if (trim(ndep_data_type) == 'shr_stream') then
 
                 stream_index = 0
-                if (index == ind%no3_flux_id) stream_index = shr_stream_no_ind
-                if (index == ind%nh4_flux_id) stream_index = shr_stream_nh_ind
+                if (index == ind%nox_flux_id) stream_index = shr_stream_no_ind
+                if (index == ind%nhy_flux_id) stream_index = shr_stream_nh_ind
 
                 if (stream_index /= 0) then
                    strdata_inputlist(stream_index)%timer_label = 'marbl_file'
@@ -1780,8 +1780,8 @@ contains
 
           ! FIXME - move stream_index in marbl_forcing_field_file_type 
           stream_index = 0
-          if (index == ind%no3_flux_id) stream_index = shr_stream_no_ind
-          if (index == ind%nh4_flux_id) stream_index = shr_stream_nh_ind
+          if (index == ind%nox_flux_id) stream_index = shr_stream_no_ind
+          if (index == ind%nhy_flux_id) stream_index = shr_stream_nh_ind
 
           if (stream_index /= 0) then
              n = 0

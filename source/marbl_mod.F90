@@ -1221,7 +1221,7 @@ contains
                   year_last  = ndep_shr_stream_year_last, &
                   year_align = ndep_shr_stream_year_align, &
                   filename   = ndep_shr_stream_file, &
-                  id=ind%no3_flux_id)
+                  id=ind%nox_flux_id)
           end if
              
           if (count_only) then
@@ -1237,7 +1237,7 @@ contains
                   year_last  = ndep_shr_stream_year_last, &
                   year_align = ndep_shr_stream_year_align, &
                   filename   = ndep_shr_stream_file, &
-                  id=ind%nh4_flux_id)
+                  id=ind%nhy_flux_id)
           end if
        end if
 
@@ -2492,8 +2492,6 @@ contains
          iron_flux_in         => surface_input_forcings(:,surface_forcing_ind%iron_flux_id),        &
          nox_flux             => surface_input_forcings(:,surface_forcing_ind%nox_flux_id),         &
          nhy_flux             => surface_input_forcings(:,surface_forcing_ind%nhy_flux_id),         &
-         no3_flux             => surface_input_forcings(:,surface_forcing_ind%no3_flux_id),         &
-         nh4_flux             => surface_input_forcings(:,surface_forcing_ind%nh4_flux_id),         &
          din_riv_flux         => surface_input_forcings(:,surface_forcing_ind%din_riv_flux_id),     & 
          dip_riv_flux         => surface_input_forcings(:,surface_forcing_ind%dip_riv_flux_id),     & 
          don_riv_flux         => surface_input_forcings(:,surface_forcing_ind%don_riv_flux_id),     & 
@@ -2753,8 +2751,8 @@ contains
        
     if (trim(ndep_data_type) == 'shr_stream') then
        where (surface_mask(:) /= c0) 
-          stf(:, no3_ind) = stf(:, no3_ind) + ndep_shr_stream_scale_factor * no3_flux(:)
-          stf(:, nh4_ind) = stf(:, nh4_ind) + ndep_shr_stream_scale_factor * nh4_flux(:)
+          stf(:, no3_ind) = stf(:, no3_ind) + ndep_shr_stream_scale_factor * nox_flux(:)
+          stf(:, nh4_ind) = stf(:, nh4_ind) + ndep_shr_stream_scale_factor * nhy_flux(:)
        endwhere
     endif
 

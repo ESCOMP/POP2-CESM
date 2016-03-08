@@ -25,8 +25,6 @@ module marbl_interface_types
      integer(int_kind) :: iron_flux_id        = 0
      integer(int_kind) :: nox_flux_id         = 0
      integer(int_kind) :: nhy_flux_id         = 0
-     integer(int_kind) :: no3_flux_id         = 0
-     integer(int_kind) :: nh4_flux_id         = 0
      integer(int_kind) :: din_riv_flux_id     = 0
      integer(int_kind) :: dip_riv_flux_id     = 0
      integer(int_kind) :: don_riv_flux_id     = 0
