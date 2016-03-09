@@ -1087,23 +1087,50 @@ contains
        if (count_only) then
           num_surface_forcing_fields = num_surface_forcing_fields + 1
        else
-          fsource    = 'POP monthly calendar'
           varname    = 'NOx Flux'
           units      = 'unknown'
-          call forcing_fields%add_forcing_field(&
-               field_source=fsource, marbl_varname=varname, field_units=units, &
-               marbl_forcing_calendar_name=nox_flux_monthly_file, id=ind%nox_flux_id)
+          if (ndep_data_type == 'shr_stream') then
+             fsource    = 'file'
+             file_varname = 'NOy_deposition'
+             ! stream_index = stream_index + 1 - line in forcing field routine
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  file_varname = file_varname, &
+                  year_first = ndep_shr_stream_year_first, &
+                  year_last  = ndep_shr_stream_year_last, &
+                  year_align = ndep_shr_stream_year_align, &
+                  filename   = ndep_shr_stream_file, &
+                  id=ind%nox_flux_id)
+          else
+             fsource    = 'POP monthly calendar'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  marbl_forcing_calendar_name=nox_flux_monthly_file, id=ind%nox_flux_id)
+          end if
        end if
 
        if (count_only) then
           num_surface_forcing_fields = num_surface_forcing_fields + 1
        else
-          fsource    = 'POP monthly calendar'
           varname    = 'NHy Flux'
           units      = 'unknown'
-          call forcing_fields%add_forcing_field(&
-               field_source=fsource, marbl_varname=varname, field_units=units, &
-               marbl_forcing_calendar_name=nhy_flux_monthly_file, id=ind%nhy_flux_id)
+          if (ndep_data_type == 'shr_stream') then
+             fsource    = 'file'
+             file_varname = 'NHx_deposition'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  file_varname = file_varname, &
+                  year_first = ndep_shr_stream_year_first, &
+                  year_last  = ndep_shr_stream_year_last, &
+                  year_align = ndep_shr_stream_year_align, &
+                  filename   = ndep_shr_stream_file, &
+                  id=ind%nhy_flux_id)
+          else
+             fsource    = 'POP monthly calendar'
+             call forcing_fields%add_forcing_field(&
+                  field_source=fsource, marbl_varname=varname, field_units=units, &
+                  marbl_forcing_calendar_name=nhy_flux_monthly_file, id=ind%nhy_flux_id)
+          end if
        end if
 
        if (count_only) then
@@ -1203,42 +1230,6 @@ contains
           call forcing_fields%add_forcing_field(&
                field_source=fsource, marbl_varname=varname, field_units=units, &
                marbl_forcing_calendar_name=doc_riv_flux_file, id=ind%doc_riv_flux_id)
-       end if
-
-       if (ndep_data_type == 'shr_stream') then
-          if (count_only) then
-             num_surface_forcing_fields = num_surface_forcing_fields + 1
-          else
-             fsource    = 'file'
-             varname    = 'NO3 flux'
-             units      = 'unknown'
-             file_varname = 'NOy_deposition'
-             ! stream_index = stream_index + 1 - line in forcing field routine
-             call forcing_fields%add_forcing_field(&
-                  field_source=fsource, marbl_varname=varname, field_units=units, &
-                  file_varname = file_varname, &
-                  year_first = ndep_shr_stream_year_first, &
-                  year_last  = ndep_shr_stream_year_last, &
-                  year_align = ndep_shr_stream_year_align, &
-                  filename   = ndep_shr_stream_file, &
-                  id=ind%nox_flux_id)
-          end if
-             
-          if (count_only) then
-             num_surface_forcing_fields = num_surface_forcing_fields + 1
-          else
-             fsource    = 'file'
-             varname    = 'NH4 flux'
-             file_varname = 'NHx_deposition'
-             call forcing_fields%add_forcing_field(&
-                  field_source=fsource, marbl_varname=varname, field_units=units,    &
-                  file_varname = file_varname, &
-                  year_first = ndep_shr_stream_year_first, &
-                  year_last  = ndep_shr_stream_year_last, &
-                  year_align = ndep_shr_stream_year_align, &
-                  filename   = ndep_shr_stream_file, &
-                  id=ind%nhy_flux_id)
-          end if
        end if
 
     end do
