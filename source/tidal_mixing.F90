@@ -37,6 +37,7 @@
    use global_reductions
    use broadcast
    use tavg
+   use cvmix_tidal
 
    implicit none
    private
@@ -55,6 +56,12 @@
       TIDAL_COEF           ! time-independent part of the 
                            ! tidal mixing coefficients
 
+   ! FIXME(mnl,2016-01) -- moved from init -> module level for use by cvmix
+   !                       branch of vmix_kpp; refactoring CVMix will let
+   !                       this go back to init (and get deallocated there)
+   real (r8), dimension(:,:,:), allocatable, public ::  &
+      TIDAL_ENERGY_FLUX      ! input tidal energy flux at T-grid points 
+                             ! (W/m^2)
    real (r8),public ::  &
      tidal_mix_max
 
@@ -121,8 +128,6 @@
       coef 
 
    real (r8), dimension(:,:,:), allocatable ::  &
-      TIDAL_ENERGY_FLUX,    &! input tidal energy flux at T-grid points 
-                             ! (W/m^2)
       VERTICAL_FUNC,        &! vertical redistribution function (1/cm)
       WORK1                  ! WORK array
 
@@ -226,6 +231,19 @@
       call exit_POP(SigAbort,  &
           'ERROR: partial bottom cells not implemented with tidal_mixing option')
 
+!-----------------------------------------------------------------------
+!
+!     Set up CVMix
+!
+!-----------------------------------------------------------------------
+
+   call cvmix_init_tidal(mix_scheme='Simmons',                                &
+                         efficiency=mixing_efficiency,                        &
+                         vertical_decay_scale=vertical_decay_scale*1.0e-2_r8, &
+                         max_coefficient=tidal_mix_max*1.0e-4_r8,             &
+                         local_mixing_frac=local_mixing_fraction,             &
+                         depth_cutoff=0.0_r8)
+
    allocate ( TIDAL_ENERGY_FLUX(nx_block,ny_block,nblocks_clinic), &
               VERTICAL_FUNC    (nx_block,ny_block,nblocks_clinic), &
               WORK1            (nx_block,ny_block,nblocks_clinic), &
@@ -317,7 +335,7 @@
 
    enddo ! iblock
 
-   deallocate ( TIDAL_ENERGY_FLUX,VERTICAL_FUNC,WORK1)
+   deallocate ( VERTICAL_FUNC,WORK1)
 
 
 

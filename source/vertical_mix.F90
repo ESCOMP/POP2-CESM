@@ -421,7 +421,7 @@
    case(vmix_type_kpp)
       allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
                 VVC(nx_block,ny_block,km,      nblocks_clinic))
-      call init_vmix_kpp(CVmix_vars, VDC,VVC)
+      call init_vmix_kpp(CVmix_vars, VDC, VVC, convect_diff, convect_visc)
       call get_timer(timer_vmix_coeffs,'VMIX_COEFFICIENTS_KPP', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
