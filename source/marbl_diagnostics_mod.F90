@@ -3059,12 +3059,8 @@ contains
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
 
-    use marbl_share_mod       , only : ndep_data_type
-    use marbl_share_mod       , only : ndep_shr_stream_scale_factor
     use marbl_share_mod       , only : lflux_gas_o2
     use marbl_share_mod       , only : lflux_gas_co2
-    use marbl_share_mod       , only : nox_flux_monthly_file 
-    use marbl_share_mod       , only : nhy_flux_monthly_file 
     use marbl_share_mod       , only : iron_flux_file     
     use marbl_share_mod       , only : din_riv_flux_file     
     use marbl_share_mod       , only : dip_riv_flux_file          
@@ -3205,18 +3201,11 @@ contains
     !  calculate nox and nhy fluxes if necessary
     !-----------------------------------------------------------------------
 
-    if (nox_flux_monthly_file%has_data) then
+    if (ind_forc%nox_flux_id.ne.0) then
        diags(ind_diag%NOx_FLUX)%field_2d(:) = surface_input_forcings(:, ind_forc%nox_flux_id)
     endif
-    if (nhy_flux_monthly_file%has_data) then
+    if (ind_forc%nox_flux_id.ne.0) then
        diags(ind_diag%NHy_FLUX)%field_2d(:) = surface_input_forcings(:, ind_forc%nhy_flux_id)
-    endif
-
-    if (trim(ndep_data_type) == 'shr_stream') then
-       diags(ind_diag%NOx_FLUX)%field_2d(:) = &
-            ndep_shr_stream_scale_factor * surface_input_forcings(:, ind_forc%nox_flux_id)
-       diags(ind_diag%NHy_FLUX)%field_2d(:) = &
-            ndep_shr_stream_scale_factor * surface_input_forcings(:, ind_forc%nhy_flux_id)
     endif
 
     !-----------------------------------------------------------------------

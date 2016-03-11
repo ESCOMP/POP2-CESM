@@ -1095,6 +1095,7 @@ contains
              ! stream_index = stream_index + 1 - line in forcing field routine
              call forcing_fields%add_forcing_field(&
                   field_source=fsource, marbl_varname=varname, field_units=units, &
+                  unit_conv_factor = ndep_shr_stream_scale_factor, &
                   file_varname = file_varname, &
                   year_first = ndep_shr_stream_year_first, &
                   year_last  = ndep_shr_stream_year_last, &
@@ -1119,6 +1120,7 @@ contains
              file_varname = 'NHx_deposition'
              call forcing_fields%add_forcing_field(&
                   field_source=fsource, marbl_varname=varname, field_units=units,    &
+                  unit_conv_factor = ndep_shr_stream_scale_factor, &
                   file_varname = file_varname, &
                   year_first = ndep_shr_stream_year_first, &
                   year_last  = ndep_shr_stream_year_last, &
@@ -1235,6 +1237,9 @@ contains
     end do
 
     end associate
+
+    ! FIXME: do we have any forcing fields that are required to be set? If so,
+    !        check to make sure those indices are not zero here.
 
   end subroutine marbl_init_surface_forcing_fields
 
@@ -2415,16 +2420,11 @@ contains
     use marbl_share_mod          , only : gas_flux_forcing_iopt_drv
     use marbl_share_mod          , only : gas_flux_forcing_iopt_file
     use marbl_share_mod          , only : gas_flux_forcing_iopt
-    use marbl_share_mod          , only : ndep_shr_stream_scale_factor
-    use marbl_share_mod          , only : nox_flux_monthly_file 
-    use marbl_share_mod          , only : nhy_flux_monthly_file 
     use marbl_share_mod          , only : fice_file        
     use marbl_share_mod          , only : xkw_file         
     use marbl_share_mod          , only : ap_file          
     use marbl_share_mod          , only : dust_flux_file       
     use marbl_share_mod          , only : iron_flux_file          
-    use marbl_share_mod          , only : nox_flux_monthly_file 
-    use marbl_share_mod          , only : nhy_flux_monthly_file     
     use marbl_share_mod          , only : din_riv_flux_file      
     use marbl_share_mod          , only : dip_riv_flux_file    
     use marbl_share_mod          , only : don_riv_flux_file    
@@ -2732,21 +2732,18 @@ contains
     !  calculate nox and nhy fluxes if necessary
     !-----------------------------------------------------------------------
        
-    if (nox_flux_monthly_file%has_data) then
-       stf(:, no3_ind) = stf(:, no3_ind) + nox_flux(:)
+    if (surface_forcing_ind%nox_flux_id.ne.0) then
+       where (surface_mask(:).ne.c0)
+         stf(:, no3_ind) = stf(:, no3_ind) + nox_flux(:)
+       end where
     endif
        
-    if (nhy_flux_monthly_file%has_data) then
-       stf(:, nh4_ind) = stf(:, nh4_ind) + nhy_flux(:)
+    if (surface_forcing_ind%nhy_flux_id.ne.0) then
+       where (surface_mask(:).ne.c0)
+         stf(:, nh4_ind) = stf(:, nh4_ind) + nhy_flux(:)
+       end where
     endif
        
-    if (trim(ndep_data_type) == 'shr_stream') then
-       where (surface_mask(:) /= c0) 
-          stf(:, no3_ind) = stf(:, no3_ind) + ndep_shr_stream_scale_factor * nox_flux(:)
-          stf(:, nh4_ind) = stf(:, nh4_ind) + ndep_shr_stream_scale_factor * nhy_flux(:)
-       endwhere
-    endif
-
     !-----------------------------------------------------------------------
     !  calculate river bgc fluxes if necessary
     !-----------------------------------------------------------------------

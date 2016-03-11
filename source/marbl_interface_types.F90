@@ -691,9 +691,8 @@ contains
     end if
     num_elem = this%num_elements
 
-    call marbl_single_forcing_field_init(&
-         this%forcing_fields(id), &
-         num_elem, field_source, marbl_varname, &
+    call this%forcing_fields(id)%initialize(             &
+         num_elem, field_source, marbl_varname,          &
          field_units, unit_conv_factor=unit_conv_factor, &
          temporal_interp=temporal_interp,                &
          field_constant=field_constant,                  &

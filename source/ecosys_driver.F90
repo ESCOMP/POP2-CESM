@@ -1669,6 +1669,7 @@ contains
     !  loop throught forcing fields 
     !-----------------------------------------------------------------------
 
+    ! FIXME: apply unit_conv_factor in all cases, not just 'file'
     do index = 1, num_surface_forcing_fields
 
        select case (fields(index)%field_source)
@@ -1809,7 +1810,7 @@ contains
              
              do iblock = 1, nblocks_clinic
                 where (land_mask(:, :, iblock))
-                   input_forcing_data(:,:,index,iblock) = shr_stream(:, :, iblock)
+                   input_forcing_data(:,:,index,iblock) = fields(index)%unit_conv_factor*shr_stream(:, :, iblock)
                 endwhere
              enddo
           end if
