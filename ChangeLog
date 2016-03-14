@@ -1,4 +1,23 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  dbailey, jet
+Tag Date:    14 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160314
+Tag Summary: This modification allows the ocean to query a new share function to
+             retreive the freezing point temperature.
+
+	     ie. TFRZ(:,:) = shr_frz_freezetemp(SALT(:,:)*salt_to_ppt)
+
+	     The freezing temperature is calculated from one of three algorithms
+	     set via the driver namelist variable tfreeze_option [minus1p8, linear_salt, mushy].
+	     The new share funtion shr_frz_freezetemp was added to cime and this pop update is
+	     dependent on that tag.
+
+Testing:    all aux_pop tests pass.  BFB with previous tag when using default tfreeze_option=minus1p8
+
+M       source/ice.F90
+M       ChangeLog
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    7 Mar 2016
