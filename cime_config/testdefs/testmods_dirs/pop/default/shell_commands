@@ -10,3 +10,4 @@
 cp user_nl_pop  user_nl_pop_0001
 cp user_nl_pop  user_nl_pop_0002
 ./xmlchange POP_TAVG_R8=TRUE
+./xmlchange PIO_VERSION=2
