@@ -3076,6 +3076,8 @@ contains
        write (status_msg, "(3A,I0)") 'C_ind(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%C_ind
        call marbl_status_log%log_noerror(status_msg, subname)
     end do
+    write (status_msg, "(A,I0)") 'zooplankton_cnt = ', zooplankton_cnt
+    call marbl_status_log%log_noerror(status_msg, subname)
     write (status_msg, "(A)") '------------------------------------'
     call marbl_status_log%log_noerror(status_msg, subname)
 
@@ -3167,6 +3169,8 @@ contains
        write (status_msg, "(3A,I0)") 'CaCO3_ind(', trim(autotrophs(auto_ind)%sname), ') = ' , autotrophs(auto_ind)%CaCO3_ind
        call marbl_status_log%log_noerror(status_msg, subname)
     end do
+    write (status_msg, "(A,I0)") 'autotroph_cnt = ', autotroph_cnt
+    call marbl_status_log%log_noerror(status_msg, subname)
     write (status_msg, "(A)") '------------------------------------'
     call marbl_status_log%log_noerror(status_msg, subname)
     
