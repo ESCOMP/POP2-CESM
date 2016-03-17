@@ -1,48 +1,48 @@
 module marbl_parms
 
   !-----------------------------------------------------------------------------
-  !   This module manages the parameter variables for the module ecosys_mod.
+  !   This module manages marbl parameter 
   !   Most of the variables are not parameters in the Fortran sense. In the
   !   the Fortran sense, they are vanilla module variables.
   !
   !   This modules handles initializing the variables to default values and
   !   reading them from the namelist marbl_parms. The values used are echoed
   !   to stdout for record keeping purposes.
-  !
-  !   CVS:$Id: marbl_parms.F90 941 2006-05-12 21:36:48Z klindsay $
-  !   CVS:$Name$
-  !-----------------------------------------------------------------------------
-  !   Modified to include parameters for diazotrophs, JKM  4/2002
-  !-----------------------------------------------------------------------------
-  !   variables/subroutines/function used from other modules
-  !   The following are used extensively in this ecosys, so are used at
-  !   the module level. The use statements for variables that are only needed
-  !   locally are located at the module subprogram level.
   !-----------------------------------------------------------------------------
 
   use marbl_kinds_mod, only : r8
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : log_kind
 
-  use marbl_share_mod, only : zooplankton
-  use marbl_share_mod, only : autotrophs
-  use marbl_share_mod, only : grazing
-  use marbl_share_mod, only : sp_ind
-  use marbl_share_mod, only : diaz_ind
-  use marbl_share_mod, only : diat_ind
-  use marbl_share_mod, only : zooplankton_cnt
-  use marbl_share_mod, only : autotroph_cnt
-  use marbl_share_mod, only : grazer_prey_cnt
+  use marbl_internal_types, only : zooplankton_type
+  use marbl_internal_types, only : autotroph_type
+  use marbl_internal_types, only : grazing_type
 
-  IMPLICIT NONE
+  use marbl_sizes, only : autotroph_cnt
+  use marbl_sizes, only : zooplankton_cnt
+  use marbl_sizes, only : grazer_prey_cnt
+
+  implicit none
 
   !-----------------------------------------------------------------------------
   !   public/private declarations
   !   all module variables are public and should have their values preserved
   !-----------------------------------------------------------------------------
 
-  PUBLIC
-  SAVE
+  public
+  save
+
+  !-----------------------------------------------------------------------------
+  ! marbl zooplankton, autotrophs and grazing arrays
+  !-----------------------------------------------------------------------------
+
+  integer (KIND=int_kind), parameter :: sp_ind   = 1  ! small phytoplankton
+  integer (KIND=int_kind), parameter :: diat_ind = 2  ! diatoms
+  integer (KIND=int_kind), parameter :: diaz_ind = 3  ! diazotrophs
+
+  type(zooplankton_type) :: zooplankton(zooplankton_cnt)
+  type(autotroph_type)   :: autotrophs(autotroph_cnt)
+  type(grazing_type)     :: grazing(grazer_prey_cnt, zooplankton_cnt)
 
   !---------------------------------------------------------------------
   !  isotope standards
@@ -87,32 +87,20 @@ module marbl_parms
   !  common formats for formatted output
   !-----------------------------------------------------------------------
 
-   character (1), parameter :: char_delim = ','
-   character (9), parameter :: delim_fmt  = "(72('-'))"
-   character (9), parameter :: ndelim_fmt = "(72('='))"
-   character (5), parameter :: blank_fmt  = "(' ')"
+  character (1), parameter :: char_delim = ','
+  character (9), parameter :: delim_fmt  = "(72('-'))"
+  character (9), parameter :: ndelim_fmt = "(72('='))"
+  character (5), parameter :: blank_fmt  = "(' ')"
 
   !-----------------------------------------------------------------------
-  !  MARBL indices for surface fluxes
+  !  MARBL indices 
   !-----------------------------------------------------------------------
 
-  integer (int_kind), parameter :: &
-       ind_nox_flux     =  1,  &
-       ind_nhy_flux     =  2,  &
-       ind_din_riv_flux =  3,  &
-       ind_dip_riv_flux =  4,  &
-       ind_don_riv_flux =  5,  &
-       ind_dop_riv_flux =  6,  &
-       ind_dsi_riv_flux =  7,  &
-       ind_dfe_riv_flux =  8,  &
-       ind_dic_riv_flux =  9,  &
-       ind_alk_riv_flux = 10,  &
-       ind_doc_riv_flux = 11
+  ! incidices for input forcing
 
-  !-----------------------------------------------------------------------
-  !  non-autotroph relative tracer indices
-  !  autotroph relative tracer indices are in autotroph derived type and are determined at run time
-  !-----------------------------------------------------------------------
+  ! non-autotroph relative tracer indices
+  ! autotroph relative tracer indices are in autotroph derived type and 
+  ! are determined at run time
 
   integer (int_kind), parameter :: &
        po4_ind         =  1,  & ! dissolved inorganic phosphate
@@ -148,7 +136,7 @@ module marbl_parms
       epsTinv   = 3.17e-8    ! small inverse time scale (1/year) (1/sec)
 
   !-----------------------------------------------------------------------------
-  !   floating point constants used across ecosystem module
+  !   floating point constants used across marbl
   !-----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
@@ -177,7 +165,7 @@ module marbl_parms
                                                            ! for diazotrophs
 
   !----------------------------------------------------------------------------
-  !   ecosystem parameters accessible via namelist input
+  !   marbl parameters accessible via namelist input
   !----------------------------------------------------------------------------
 
   REAL(KIND=r8) :: &
@@ -346,7 +334,11 @@ contains
 
     implicit none
 
+    !---------------------------------------------------------------------------
+    !   local variables
+    !---------------------------------------------------------------------------
     integer :: auto_ind, zoo_ind, prey_ind
+    !---------------------------------------------------------------------------
     
     parm_Fe_bioavail       = 1.0_r8
     parm_o2_min            = 5.0_r8
@@ -464,9 +456,9 @@ contains
     grazing(prey_ind,zoo_ind)%sname            = 'grz_' // autotrophs(prey_ind)%sname // '_' // zooplankton(zoo_ind)%sname
     grazing(prey_ind,zoo_ind)%lname            = 'Grazing of ' // autotrophs(prey_ind)%sname // ' by ' // zooplankton(zoo_ind)%sname
     grazing(prey_ind,zoo_ind)%auto_ind(1)      = prey_ind
-    grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
+    grazing(prey_ind,zoo_ind)%auto_ind_cnt     = 1
     grazing(prey_ind,zoo_ind)%zoo_ind          = -1
-    grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
+    grazing(prey_ind,zoo_ind)%zoo_ind_cnt      = 0
     grazing(prey_ind,zoo_ind)%z_umax_0         = 3.25_r8 * dps
     grazing(prey_ind,zoo_ind)%z_grz            = 1.15_r8              
     grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
@@ -479,9 +471,9 @@ contains
     grazing(prey_ind,zoo_ind)%sname            = 'grz_' // autotrophs(prey_ind)%sname // '_' // zooplankton(zoo_ind)%sname
     grazing(prey_ind,zoo_ind)%lname            = 'Grazing of ' // autotrophs(prey_ind)%sname // ' by ' // zooplankton(zoo_ind)%sname
     grazing(prey_ind,zoo_ind)%auto_ind(1)      = prey_ind
-    grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
+    grazing(prey_ind,zoo_ind)%auto_ind_cnt     = 1
     grazing(prey_ind,zoo_ind)%zoo_ind          = -1
-    grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
+    grazing(prey_ind,zoo_ind)%zoo_ind_cnt      = 0
     grazing(prey_ind,zoo_ind)%z_umax_0         = 2.9_r8 * dps
     grazing(prey_ind,zoo_ind)%z_grz            = 1.15_r8              
     grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
@@ -494,9 +486,9 @@ contains
     grazing(prey_ind,zoo_ind)%sname            = 'grz_' // autotrophs(prey_ind)%sname // '_' // zooplankton(zoo_ind)%sname
     grazing(prey_ind,zoo_ind)%lname            = 'Grazing of ' // autotrophs(prey_ind)%sname // ' by ' // zooplankton(zoo_ind)%sname
     grazing(prey_ind,zoo_ind)%auto_ind(1)      = prey_ind
-    grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
+    grazing(prey_ind,zoo_ind)%auto_ind_cnt     = 1
     grazing(prey_ind,zoo_ind)%zoo_ind          = -1
-    grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
+    grazing(prey_ind,zoo_ind)%zoo_ind_cnt      = 0
     grazing(prey_ind,zoo_ind)%z_umax_0         = 1.85_r8 * dps
     grazing(prey_ind,zoo_ind)%z_grz            = 1.15_r8              
     grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
@@ -505,28 +497,25 @@ contains
     grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.1_r8
     grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
 
-    
   end subroutine marbl_params_set_defaults
 
   !*****************************************************************************
 
-  subroutine marbl_params_init(nl_buffer, marbl_status)
+  subroutine marbl_params_init(nl_buffer, marbl_status_log)
 
-    use marbl_namelist_mod       , only : marbl_nl_cnt
-    use marbl_namelist_mod       , only : marbl_nl_buffer_size
-    use marbl_namelist_mod       , only : marbl_namelist
-    use marbl_interface_constants, only: marbl_status_ok, marbl_status_could_not_read_namelist
-    use marbl_interface_types, only: marbl_status_type
+    use marbl_namelist_mod, only : marbl_nl_cnt
+    use marbl_namelist_mod, only : marbl_nl_buffer_size
+    use marbl_namelist_mod, only : marbl_namelist
+    use marbl_logging     , only: marbl_log_type
 
     implicit none
 
     character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
-    type(marbl_status_type), intent(inout) :: marbl_status
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !---------------------------------------------------------------------------
     !   local variables
     !---------------------------------------------------------------------------
-
     CHARACTER(LEN=*), PARAMETER :: subname = 'marbl_parms:marbl_parms_init'
     character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
@@ -553,20 +542,23 @@ contains
          zooplankton, &
          grazing
 
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
+    !---------------------------------------------------------------------------
+    ! set defaults for namelist variables before reading them
+    !---------------------------------------------------------------------------
 
     call marbl_params_set_defaults()
 
     !---------------------------------------------------------------------------
     ! read in namelist to override some defaults
     !---------------------------------------------------------------------------
+
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_parms_nml')
     read(tmp_nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
     if (io_error /= 0) then
-       marbl_status%status = marbl_status_could_not_read_namelist
-       marbl_status%message = "ERROR: marbl_parmams_read_namelist(): could not read namelist 'ecosys_parms_nml'."
+       call marbl_status_log%log_error("Error reading ecosys_parms_nml", subname)
        return
+    else
+      call marbl_status_log%log_namelist('ecosys_parms_nml', tmp_nl_buffer, subname)
     end if
 
   end subroutine marbl_params_init
@@ -641,18 +633,18 @@ contains
     do prey_ind = 1, grazer_prey_cnt
        do zoo_ind = 1, zooplankton_cnt
           associate(grazer => grazing(prey_ind, zoo_ind))
-             write(stdout, *) 'lname(', trim(grazer%sname), ') = ', grazer%lname
-             write(stdout, *) 'auto_ind(', trim(grazer%sname), ') = ', grazer%auto_ind
-             write(stdout, *) 'auto_ind_cnt(', trim(grazer%sname), ') = ', grazer%auto_ind_cnt
-             write(stdout, *) 'zoo_ind(', trim(grazer%sname), ') = ', grazer%zoo_ind
-             write(stdout, *) 'zoo_ind_cnt(', trim(grazer%sname), ') = ', grazer%zoo_ind_cnt
-             write(stdout, *) 'z_umax_0(', trim(grazer%sname), ') = ', grazer%z_umax_0
-             write(stdout, *) 'z_grz(', trim(grazer%sname), ') = ', grazer%z_grz
-             write(stdout, *) 'graze_zoo(', trim(grazer%sname), ') = ', grazer%graze_zoo
-             write(stdout, *) 'graze_poc(', trim(grazer%sname), ') = ', grazer%graze_poc
-             write(stdout, *) 'graze_doc(', trim(grazer%sname), ') = ', grazer%graze_doc
-             write(stdout, *) 'f_zoo_detr(', trim(grazer%sname), ') = ', grazer%f_zoo_detr
-             write(stdout, *) 'grazing_function(', trim(grazer%sname), ') = ', grazer%grazing_function
+            write(stdout, *) 'lname(', trim(grazer%sname), ') = '            , grazer%lname
+            write(stdout, *) 'auto_ind(', trim(grazer%sname), ') = '         , grazer%auto_ind
+            write(stdout, *) 'auto_ind_cnt(', trim(grazer%sname), ') = '     , grazer%auto_ind_cnt
+            write(stdout, *) 'zoo_ind(', trim(grazer%sname), ') = '          , grazer%zoo_ind
+            write(stdout, *) 'zoo_ind_cnt(', trim(grazer%sname), ') = '      , grazer%zoo_ind_cnt
+            write(stdout, *) 'z_umax_0(', trim(grazer%sname), ') = '         , grazer%z_umax_0
+            write(stdout, *) 'z_grz(', trim(grazer%sname), ') = '            , grazer%z_grz
+            write(stdout, *) 'graze_zoo(', trim(grazer%sname), ') = '        , grazer%graze_zoo
+            write(stdout, *) 'graze_poc(', trim(grazer%sname), ') = '        , grazer%graze_poc
+            write(stdout, *) 'graze_doc(', trim(grazer%sname), ') = '        , grazer%graze_doc
+            write(stdout, *) 'f_zoo_detr(', trim(grazer%sname), ') = '       , grazer%f_zoo_detr
+            write(stdout, *) 'grazing_function(', trim(grazer%sname), ') = ' , grazer%grazing_function
           end associate
        end do
     end do
