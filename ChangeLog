@@ -1,5 +1,86 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    17 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160317a
+Tag Summary: Move MARBL source code into its own directory
+
+M       cime_config/buildlib
+A       source/marbl
+A  +    source/marbl/marbl_ciso_mod.F90
+        > moved from source/marbl_ciso_mod.F90
+A  +    source/marbl/marbl_co2calc_mod.F90
+        > moved from source/marbl_co2calc_mod.F90
+A  +    source/marbl/marbl_constants_mod.F90
+        > moved from source/marbl_constants_mod.F90
+A  +    source/marbl/marbl_diagnostics_mod.F90
+        > moved from source/marbl_diagnostics_mod.F90
+A  +    source/marbl/marbl_interface.F90
+        > moved from source/marbl_interface.F90
+A  +    source/marbl/marbl_interface_constants.F90
+        > moved from source/marbl_interface_constants.F90
+A  +    source/marbl/marbl_interface_types.F90
+        > moved from source/marbl_interface_types.F90
+A  +    source/marbl/marbl_internal_types.F90
+        > moved from source/marbl_internal_types.F90
+A  +    source/marbl/marbl_kinds_mod.F90
+        > moved from source/marbl_kinds_mod.F90
+A  +    source/marbl/marbl_logging.F90
+        > moved from source/marbl_logging.F90
+A  +    source/marbl/marbl_mod.F90
+        > moved from source/marbl_mod.F90
+A  +    source/marbl/marbl_namelist_mod.F90
+        > moved from source/marbl_namelist_mod.F90
+A  +    source/marbl/marbl_oxygen.F90
+        > moved from source/marbl_oxygen.F90
+A  +    source/marbl/marbl_parms.F90
+        > moved from source/marbl_parms.F90
+A  +    source/marbl/marbl_restore_mod.F90
+        > moved from source/marbl_restore_mod.F90
+A  +    source/marbl/marbl_schmidt_number_mod.F90
+        > moved from source/marbl_schmidt_number_mod.F90
+A  +    source/marbl/marbl_share_mod.F90
+        > moved from source/marbl_share_mod.F90
+A  +    source/marbl/marbl_sizes.F90
+        > moved from source/marbl_sizes.F90
+D       source/marbl_ciso_mod.F90
+        > moved to source/marbl/marbl_ciso_mod.F90
+D       source/marbl_co2calc_mod.F90
+        > moved to source/marbl/marbl_co2calc_mod.F90
+D       source/marbl_constants_mod.F90
+        > moved to source/marbl/marbl_constants_mod.F90
+D       source/marbl_diagnostics_mod.F90
+        > moved to source/marbl/marbl_diagnostics_mod.F90
+D       source/marbl_interface.F90
+        > moved to source/marbl/marbl_interface.F90
+D       source/marbl_interface_constants.F90
+        > moved to source/marbl/marbl_interface_constants.F90
+D       source/marbl_interface_types.F90
+        > moved to source/marbl/marbl_interface_types.F90
+D       source/marbl_internal_types.F90
+        > moved to source/marbl/marbl_internal_types.F90
+D       source/marbl_kinds_mod.F90
+        > moved to source/marbl/marbl_kinds_mod.F90
+D       source/marbl_logging.F90
+        > moved to source/marbl/marbl_logging.F90
+D       source/marbl_mod.F90
+        > moved to source/marbl/marbl_mod.F90
+D       source/marbl_namelist_mod.F90
+        > moved to source/marbl/marbl_namelist_mod.F90
+D       source/marbl_oxygen.F90
+        > moved to source/marbl/marbl_oxygen.F90
+D       source/marbl_parms.F90
+        > moved to source/marbl/marbl_parms.F90
+D       source/marbl_restore_mod.F90
+        > moved to source/marbl/marbl_restore_mod.F90
+D       source/marbl_schmidt_number_mod.F90
+        > moved to source/marbl/marbl_schmidt_number_mod.F90
+D       source/marbl_share_mod.F90
+        > moved to source/marbl/marbl_share_mod.F90
+D       source/marbl_sizes.F90
+        > moved to source/marbl/marbl_sizes.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, mvertens (along with jwolfe and klindsay)
 Tag Date:    17 Mar 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160317

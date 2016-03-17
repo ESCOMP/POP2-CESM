@@ -44,6 +44,9 @@ print " -----------------------------------------------------------------\n";
 my $sysmod = "cp -fp $SRCROOT/components/pop/source/*.F90  .";
 system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
+my $sysmod = "cp -fp $SRCROOT/components/pop/source/marbl/*.F90  .";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+
 my $sysmod = "cp -fp $SRCROOT/components/pop/mpi/*.F90  .";
 system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
