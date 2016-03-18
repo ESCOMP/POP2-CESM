@@ -1,4 +1,184 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    17 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160317b
+Tag Summary: Move MARBL source code into its own repository, bring in as
+             external
+
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+D       source/marbl
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    17 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160317a
+Tag Summary: Move MARBL source code into its own directory
+
+M       cime_config/buildlib
+A       source/marbl
+A  +    source/marbl/marbl_ciso_mod.F90
+        > moved from source/marbl_ciso_mod.F90
+A  +    source/marbl/marbl_co2calc_mod.F90
+        > moved from source/marbl_co2calc_mod.F90
+A  +    source/marbl/marbl_constants_mod.F90
+        > moved from source/marbl_constants_mod.F90
+A  +    source/marbl/marbl_diagnostics_mod.F90
+        > moved from source/marbl_diagnostics_mod.F90
+A  +    source/marbl/marbl_interface.F90
+        > moved from source/marbl_interface.F90
+A  +    source/marbl/marbl_interface_constants.F90
+        > moved from source/marbl_interface_constants.F90
+A  +    source/marbl/marbl_interface_types.F90
+        > moved from source/marbl_interface_types.F90
+A  +    source/marbl/marbl_internal_types.F90
+        > moved from source/marbl_internal_types.F90
+A  +    source/marbl/marbl_kinds_mod.F90
+        > moved from source/marbl_kinds_mod.F90
+A  +    source/marbl/marbl_logging.F90
+        > moved from source/marbl_logging.F90
+A  +    source/marbl/marbl_mod.F90
+        > moved from source/marbl_mod.F90
+A  +    source/marbl/marbl_namelist_mod.F90
+        > moved from source/marbl_namelist_mod.F90
+A  +    source/marbl/marbl_oxygen.F90
+        > moved from source/marbl_oxygen.F90
+A  +    source/marbl/marbl_parms.F90
+        > moved from source/marbl_parms.F90
+A  +    source/marbl/marbl_restore_mod.F90
+        > moved from source/marbl_restore_mod.F90
+A  +    source/marbl/marbl_schmidt_number_mod.F90
+        > moved from source/marbl_schmidt_number_mod.F90
+A  +    source/marbl/marbl_share_mod.F90
+        > moved from source/marbl_share_mod.F90
+A  +    source/marbl/marbl_sizes.F90
+        > moved from source/marbl_sizes.F90
+D       source/marbl_ciso_mod.F90
+        > moved to source/marbl/marbl_ciso_mod.F90
+D       source/marbl_co2calc_mod.F90
+        > moved to source/marbl/marbl_co2calc_mod.F90
+D       source/marbl_constants_mod.F90
+        > moved to source/marbl/marbl_constants_mod.F90
+D       source/marbl_diagnostics_mod.F90
+        > moved to source/marbl/marbl_diagnostics_mod.F90
+D       source/marbl_interface.F90
+        > moved to source/marbl/marbl_interface.F90
+D       source/marbl_interface_constants.F90
+        > moved to source/marbl/marbl_interface_constants.F90
+D       source/marbl_interface_types.F90
+        > moved to source/marbl/marbl_interface_types.F90
+D       source/marbl_internal_types.F90
+        > moved to source/marbl/marbl_internal_types.F90
+D       source/marbl_kinds_mod.F90
+        > moved to source/marbl/marbl_kinds_mod.F90
+D       source/marbl_logging.F90
+        > moved to source/marbl/marbl_logging.F90
+D       source/marbl_mod.F90
+        > moved to source/marbl/marbl_mod.F90
+D       source/marbl_namelist_mod.F90
+        > moved to source/marbl/marbl_namelist_mod.F90
+D       source/marbl_oxygen.F90
+        > moved to source/marbl/marbl_oxygen.F90
+D       source/marbl_parms.F90
+        > moved to source/marbl/marbl_parms.F90
+D       source/marbl_restore_mod.F90
+        > moved to source/marbl/marbl_restore_mod.F90
+D       source/marbl_schmidt_number_mod.F90
+        > moved to source/marbl/marbl_schmidt_number_mod.F90
+D       source/marbl_share_mod.F90
+        > moved to source/marbl/marbl_share_mod.F90
+D       source/marbl_sizes.F90
+        > moved to source/marbl/marbl_sizes.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, mvertens (along with jwolfe and klindsay)
+Tag Date:    17 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160317
+Tag Summary: Bring MARBL branch to the trunk - MARBL has reached a point where
+             it can be compiled independently of POP, so we will start the
+             process of moving it to a new repository.
+
+             Restructuring tracer restoring for the ecosystem has led to
+             changes in the namelist, and there is a new test for the test
+             suite that uses shr_stream instead of internal pop routines to
+             read nitrogen deposition data for the ecosystem. We also updated
+             the interface between POP and csm_share, strdata_interface_mod.F90,
+             to give more descriptive names to the data being passed to
+             shr_stream (and to omit a field that wasn't being used in
+             shr_stream to begin with). Lastly, the interface between the
+             MARBL driver and POP changed slightly, so we updated
+             passive_tracers.F90. Other than that, all changes were in the
+             ecosystem to source files that are now marbl_*.F90
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream
+D       source/co2calc_column.F90
+D       source/ecosys_ciso_mod.F90
+D       source/ecosys_constants.F90
+D       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+D       source/ecosys_mod.F90
+D       source/ecosys_restore.F90
+D       source/ecosys_restore_timescale_file.F90
+D       source/ecosys_restore_timescale_interp.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_ciso_mod.F90
+A  +    source/marbl_co2calc_mod.F90
+A  +    source/marbl_constants_mod.F90
+A  +    source/marbl_diagnostics_mod.F90
+M       source/marbl_interface.F90
+M       source/marbl_interface_constants.F90
+M       source/marbl_interface_types.F90
+A  +    source/marbl_internal_types.F90
+D       source/marbl_kinds.F90
+A  +    source/marbl_kinds_mod.F90
+A  +    source/marbl_logging.F90
+A  +    source/marbl_mod.F90
+M       source/marbl_namelist_mod.F90
+M       source/marbl_oxygen.F90
+M       source/marbl_parms.F90
+A  +    source/marbl_restore_mod.F90
+A  +    source/marbl_schmidt_number_mod.F90
+D       source/marbl_share.F90
+A  +    source/marbl_share_mod.F90
+A  +    source/marbl_sizes.F90
+M       source/passive_tracers.F90
+M       source/strdata_interface_mod.F90
+===============================================================================
+Tag Creator: jet
+Developers:  dbailey, jet
+Tag Date:    14 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160314
+Tag Summary: This modification allows the ocean to query a new share function to
+             retreive the freezing point temperature.
+
+	     ie. TFRZ(:,:) = shr_frz_freezetemp(SALT(:,:)*salt_to_ppt)
+
+	     The freezing temperature is calculated from one of three algorithms
+	     set via the driver namelist variable tfreeze_option [minus1p8, linear_salt, mushy].
+	     The new share funtion shr_frz_freezetemp was added to cime and this pop update is
+	     dependent on that tag.
+
+Testing:    all aux_pop tests pass.  BFB with previous tag when using default tfreeze_option=minus1p8
+
+M       source/ice.F90
+M       ChangeLog
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    7 Mar 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160307
+Tag Summary: Bugfix - somewhere along the line, merging MARBL to trunk broke
+	           the ability to read ndep file via shr_stream; that is now fixed
+
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_parms.F90
+===============================================================================
 Tag Creator: jet
 Developers:  mlevy
 Tag Date:    22 Feb 2016

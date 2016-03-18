@@ -38,6 +38,7 @@
    use prognostic
    use passive_tracers, only: tracer_ref_val
    use grid, only: sfc_layer_varthick, sfc_layer_type
+   use shr_frz_mod, only: shr_frz_freezetemp
 
    implicit none
    private
@@ -724,12 +725,12 @@
 !BOC
 !-----------------------------------------------------------------------
 !
-!  use only the first salinity term in the expansion
+!  call shr function to return freezing temp based on drv namelist choice
+!  of minus1p8, linear_salt, or mushy algorithms.
 !
 !-----------------------------------------------------------------------
 
-   !TFRZ = -0.0544_r8*SALT*salt_to_ppt
-   TFRZ = -1.8_r8
+   TFRZ(:,:) = shr_frz_freezetemp(SALT(:,:)*salt_to_ppt)
 
 !-----------------------------------------------------------------------
 !EOC
