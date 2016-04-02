@@ -196,7 +196,9 @@ module ecosys_driver
   real      (r8)       , allocatable, target :: iron_patch_flux(:, :, :)              ! related to ph computation
   real      (r8)       , allocatable, target :: fesedflux(:, :, :, :)                 !  sedimentary Fe inputs 
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
-  real      (r8)       , allocatable         :: surface_forcing_outputs(:, :, :, :)
+  real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
+  integer :: flux_co2_id
+  integer :: totalChl_id
 
   ! Named tables 
   type      (ind_name_pair) :: ind_name_table(ecosys_tracer_cnt)     ! derived type & parameter for tracer index lookup
@@ -604,6 +606,37 @@ contains
     ! Register and set fco2, the  air-sea co2 gas flux
     !--------------------------------------------------------------------
 
+    do iblock=1, nblocks_clinic
+       ! Register flux_co2 with MARBL surface forcing outputs
+       call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
+              num_elements = num_elements,                                    &
+              field_name   = "flux_co2",                                      &
+              sfo_id       = flux_co2_id,                                     &
+              marbl_status_log = marbl_instances(iblock)%StatusLog)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                     ")%surface_forcing_output%add_sfo(flux_co2)"
+         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
+              "ecosys_driver::ecosys_driver_init()")
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+
+       ! Register totalChl with MARBL surface forcing outputs
+       call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
+              num_elements = num_elements,                                    &
+              field_name   = "totalChl",                                      &
+              sfo_id       = totalChl_id,                                     &
+              marbl_status_log = marbl_instances(iblock)%StatusLog)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                     ")%surface_forcing_output%add_sfo(totalChl)"
+         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
+              "ecosys_driver::ecosys_driver_init()")
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+    end do
     call named_field_register('SFLUX_CO2'        , sflux_co2_nf_ind)
     call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
 
@@ -1016,8 +1049,6 @@ contains
     !-----------------------------------------------------------------------
     integer (int_kind) :: index_marbl                                 ! marbl index
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
-    real    (r8)       :: flux_co2(nx_block, ny_block, max_blocks_clinic)
-    real    (r8)       :: totalChl(nx_block, ny_block, max_blocks_clinic)
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
     !-----------------------------------------------------------------------
 
@@ -1128,11 +1159,10 @@ contains
              ecosys_saved_state%ph_prev_surf_alt_co2 (i,j,iblock) = &
                   marbl_instances(iblock)%saved_state%ph_prev_alt_co2_surf(index_marbl)
 
-             flux_co2(i,j,iblock) = &
-                  marbl_instances(iblock)%surface_forcing_output%flux_co2(index_marbl)
-             
-             totalChl(i,j,iblock) = &
-                  marbl_instances(iblock)%surface_forcing_output%totalChl(index_marbl)
+             do n=1,2
+               surface_forcing_outputs(i,j,iblock,n) = &
+                  marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
+             end do
              
              do n = 1,ecosys_used_tracer_cnt
                 stf_module(i,j,n,iblock) = &
@@ -1155,12 +1185,12 @@ contains
     !-----------------------------------------------------------------------
 
     do iblock = 1, nblocks_clinic
-       call named_field_set(totChl_surf_nf_ind, iblock, totalChl(:,:,iblock))
+       call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, iblock, totalChl_id))
        
        !  set air-sea co2 gas flux named field, converting units from
        !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
        if (lflux_gas_co2) then
-          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * flux_co2(:, :, iblock))
+          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, iblock, flux_co2_id))
        end if
     end do
     
