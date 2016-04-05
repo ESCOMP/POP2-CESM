@@ -1,7 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    2 Mar 2016
+Tag Date:    5 Apr 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n02_cesm_pop_2_1_20160317b
+Tag Summary: Update to newer version of MARBL that includes generalized
+             surface forcing output data type (requires driver update as
+             well). Note that we now zero out named fields when they are
+             registered instead of requiring POP to call named_field_set with
+             an array of zeros after registering new fields.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       source/ecosys_driver.F90
+M       source/named_field_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 Mar 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n01_cesm_pop_2_1_20160317b
 Tag Summary: Merge latest trunk tag
 

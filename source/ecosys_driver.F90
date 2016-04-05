@@ -31,7 +31,6 @@ module ecosys_driver
   use marbl_sizes               , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
   use marbl_sizes               , only : num_surface_forcing_fields 
 
-  use marbl_parms               , only : autotrophs
   use marbl_parms               , only : f_qsw_par
   use marbl_parms               , only : dic_ind
   use marbl_parms               , only : alk_ind
@@ -143,7 +142,6 @@ module ecosys_driver
   private :: ecosys_driver_read_restore_data
   private :: ecosys_driver_set_input_forcing_data
   private :: ecosys_driver_write_ecosys_restart
-  private :: ecosys_driver_compute_totalChl
 
   ! this struct is necessary because there is some global state
   ! that needs to be preserved for from one time step to the next
@@ -198,6 +196,9 @@ module ecosys_driver
   real      (r8)       , allocatable, target :: iron_patch_flux(:, :, :)              ! related to ph computation
   real      (r8)       , allocatable, target :: fesedflux(:, :, :, :)                 !  sedimentary Fe inputs 
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
+  real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
+  integer :: flux_co2_id
+  integer :: totalChl_id
 
   ! Named tables 
   type      (ind_name_pair) :: ind_name_table(ecosys_tracer_cnt)     ! derived type & parameter for tracer index lookup
@@ -319,7 +320,6 @@ contains
     character(char_len_long)            :: ioerror_msg
     integer (int_kind)                  :: auto_ind                           ! autotroph functional group index
     integer (int_kind)                  :: iblock                             ! index for looping over blocks
-    real(r8)                            :: work(nx_block, ny_block)           
     real (r8)                           :: surface_vals(ecosys_tracer_cnt)
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)                :: init_ecosys_init_file_fmt          ! file format for option 'file'
@@ -605,26 +605,39 @@ contains
     ! Register and set fco2, the  air-sea co2 gas flux
     !--------------------------------------------------------------------
 
+    do iblock=1, nblocks_clinic
+       ! Register flux_co2 with MARBL surface forcing outputs
+       call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
+              num_elements = num_elements,                                    &
+              field_name   = "flux_co2",                                      &
+              sfo_id       = flux_co2_id,                                     &
+              marbl_status_log = marbl_instances(iblock)%StatusLog)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                     ")%surface_forcing_output%add_sfo(flux_co2)"
+         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
+              "ecosys_driver::ecosys_driver_init()")
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+
+       ! Register totalChl with MARBL surface forcing outputs
+       call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
+              num_elements = num_elements,                                    &
+              field_name   = "totalChl",                                      &
+              sfo_id       = totalChl_id,                                     &
+              marbl_status_log = marbl_instances(iblock)%StatusLog)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                     ")%surface_forcing_output%add_sfo(totalChl)"
+         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
+              "ecosys_driver::ecosys_driver_init()")
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+    end do
     call named_field_register('SFLUX_CO2'        , sflux_co2_nf_ind)
     call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
-
-    !$OMP PARALLEL DO PRIVATE(iblock, work, surface_vals, i, j)
-    do iblock=1, nblocks_clinic
-       work = c0
-       call named_field_set(sflux_co2_nf_ind, iblock, work)
-
-       do i = 1, nx_block
-         do j = 1, ny_block
-            surface_vals(1:ecosys_tracer_cnt) =p5*( &
-                 tracer_module(i, j, 1, 1:ecosys_ind_end, oldtime, iblock) +   &
-                 tracer_module(i, j, 1, 1:ecosys_ind_end, curtime, iblock))
-
-           work(i,j) = ecosys_driver_compute_totalChl( tracer_in=surface_vals(:), nb=1, ne=ecosys_ind_end )
-         end do
-       end do
-       call named_field_set(totChl_surf_nf_ind, iblock, work)
-    enddo
-    !$OMP END PARALLEL DO
 
   end subroutine ecosys_driver_init
 
@@ -1027,10 +1040,7 @@ contains
     !-----------------------------------------------------------------------
     integer (int_kind) :: index_marbl                                 ! marbl index
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
-    real    (r8)       :: work1(nx_block, ny_block)                   ! temporaries for averages
-    real    (r8)       :: flux_co2(nx_block, ny_block, max_blocks_clinic)
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
-    real    (r8)       :: surface_vals(ecosys_used_tracer_cnt)
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -1140,8 +1150,10 @@ contains
              ecosys_saved_state%ph_prev_surf_alt_co2 (i,j,iblock) = &
                   marbl_instances(iblock)%saved_state%ph_prev_alt_co2_surf(index_marbl)
 
-             flux_co2(i,j,iblock) = &
-                  marbl_instances(iblock)%surface_forcing_output%flux_co2(index_marbl)
+             do n=1,2
+               surface_forcing_outputs(i,j,iblock,n) = &
+                  marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
+             end do
              
              do n = 1,ecosys_used_tracer_cnt
                 stf_module(i,j,n,iblock) = &
@@ -1164,19 +1176,12 @@ contains
     !-----------------------------------------------------------------------
 
     do iblock = 1, nblocks_clinic
-       do i = 1, nx_block
-          do j = 1, ny_block
-             surface_vals(1:ecosys_tracer_cnt) =p5*( surface_vals_old(i,j,1:ecosys_tracer_cnt,iblock) + &
-                                                     surface_vals_cur(i,j,1:ecosys_tracer_cnt,iblock))
-             work1(i,j) = ecosys_driver_compute_totalChl( tracer_in=surface_vals(:), nb=1, ne=ecosys_tracer_cnt )
-          end do
-       end do
-       call named_field_set(totChl_surf_nf_ind, iblock, work1)
+       call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, iblock, totalChl_id))
        
        !  set air-sea co2 gas flux named field, converting units from
        !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
        if (lflux_gas_co2) then
-          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * flux_co2(:, :, iblock))
+          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, iblock, flux_co2_id))
        end if
     end do
     
@@ -2678,27 +2683,6 @@ contains
     end do
 
   end subroutine ecosys_driver_ciso_comp_varying_D14C
-
-  !*****************************************************************************
-
-  function ecosys_driver_compute_totalChl(tracer_in, nb, ne) result(compute_totalChl)
-
-    ! use specified indices because that is what autotrophs(:)%Chl_ind uses
-
-    integer       , intent(in) :: nb, ne
-    real(kind=r8) , intent(in) :: tracer_in(nb:ne)
-
-    real(kind=r8) :: compute_totalChl
-
-    integer :: auto_ind, n
-
-    compute_totalChl = c0
-    do auto_ind = 1, size(autotrophs)
-       n = autotrophs(auto_ind)%Chl_ind
-       compute_totalChl = compute_totalChl + max(c0, tracer_in(n))
-    end do
-
-  end function ecosys_driver_compute_totalChl
 
   !*****************************************************************************
 
