@@ -320,7 +320,6 @@ contains
     character(char_len_long)            :: ioerror_msg
     integer (int_kind)                  :: auto_ind                           ! autotroph functional group index
     integer (int_kind)                  :: iblock                             ! index for looping over blocks
-    real(r8)                            :: work(nx_block, ny_block)           
     real (r8)                           :: surface_vals(ecosys_tracer_cnt)
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)                :: init_ecosys_init_file_fmt          ! file format for option 'file'
@@ -639,14 +638,6 @@ contains
     end do
     call named_field_register('SFLUX_CO2'        , sflux_co2_nf_ind)
     call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
-
-    !$OMP PARALLEL DO PRIVATE(iblock, work, surface_vals, i, j)
-    do iblock=1, nblocks_clinic
-       work = c0
-       call named_field_set(sflux_co2_nf_ind, iblock, work)
-       call named_field_set(totChl_surf_nf_ind, iblock, work)
-    enddo
-    !$OMP END PARALLEL DO
 
   end subroutine ecosys_driver_init
 
