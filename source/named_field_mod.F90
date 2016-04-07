@@ -27,6 +27,7 @@
    use exit_mod, only: exit_POP, sigAbort
    use blocks, only: nx_block, ny_block
    use domain, only: nblocks_clinic
+   use constants, only : c0
 
    implicit none
    private
@@ -144,6 +145,7 @@
    index = named_field_cnt
    named_field_array(named_field_cnt)%name = name
    allocate(named_field_array(named_field_cnt)%field(nx_block,ny_block,nblocks_clinic))
+   named_field_array(named_field_cnt)%field = c0
 
 !-----------------------------------------------------------------------
 !EOC
