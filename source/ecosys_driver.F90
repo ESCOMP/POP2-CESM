@@ -32,11 +32,6 @@ module ecosys_driver
   use marbl_sizes               , only : num_surface_forcing_fields 
 
   use marbl_parms               , only : f_qsw_par
-  use marbl_parms               , only : dic_ind
-  use marbl_parms               , only : alk_ind
-  use marbl_parms               , only : dic_alt_co2_ind
-  use marbl_parms               , only : di13c_ind
-  use marbl_parms               , only : di14c_ind
   use marbl_parms               , only : parm_Fe_bioavail
 
   use marbl_logging             , only : marbl_log_type
@@ -563,6 +558,7 @@ contains
        init_ts_file_fmt,                             &
        read_restart_filename,                        &
        tracer_d_module(1:ecosys_ind_end),            &
+       marbl_instances(1)%tracer_indices,            &
        tracer_module(:,:,:,1:ecosys_ind_end,:,:),    &
        ecosys_restart_filename,                      &
        errorCode)       
@@ -578,6 +574,7 @@ contains
             read_restart_filename,                                              &
             tracer_d_module(ecosys_ciso_ind_beg:ecosys_ciso_ind_end),         &
             tracer_module(:,:,:,ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:,:), &
+            marbl_instances(1)%tracer_indices,                                &
             errorCode)
 
        if (errorCode /= POP_Success) then
@@ -644,8 +641,8 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine ecosys_driver_init_tracers_and_saved_state(&
-       init_ts_file_fmt, read_restart_filename, tracer_d_module, TRACER_MODULE, &
-       ecosys_restart_filename, errorCode)       
+       init_ts_file_fmt, read_restart_filename, tracer_d_module,              &
+       marbl_tracer_indices, TRACER_MODULE, ecosys_restart_filename, errorCode)       
 
     use passive_tracer_tools  , only : extract_surf_avg
     use passive_tracer_tools  , only : comp_surf_avg
@@ -664,12 +661,14 @@ contains
     use grid                  , only : fill_points
     use grid                  , only : n_topo_smooth
     use grid                  , only : KMT
+    use marbl_interface_types , only : marbl_tracer_index_type
 
     implicit none
     
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
+    type(marbl_tracer_index_type) , intent(in)    :: marbl_tracer_indices
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
     character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file
     integer (POP_i4)        , intent(out)   :: errorCode
@@ -688,14 +687,14 @@ contains
     ! initialize module variable - virtual flux flag array
     ! FIXME(mnl,2016-01): do these really belong here, or should they be in MARBL?
     vflux_flag(:) = .false.
-    vflux_flag(dic_ind) = .true.
-    vflux_flag(alk_ind) = .true.
-    vflux_flag(dic_alt_co2_ind) = .true.
+    vflux_flag(marbl_tracer_indices%dic_ind) = .true.
+    vflux_flag(marbl_tracer_indices%alk_ind) = .true.
+    vflux_flag(marbl_tracer_indices%dic_alt_co2_ind) = .true.
 
     if (ecosys_ciso_tracer_cnt > 0) then
        ciso_vflux_flag(:) = .false.
-       ciso_vflux_flag(di13c_ind) = .true.
-       ciso_vflux_flag(di14c_ind) = .true.
+       ciso_vflux_flag(marbl_tracer_indices%di13c_ind) = .true.
+       ciso_vflux_flag(marbl_tracer_indices%di14c_ind) = .true.
     end if
 
     select case (init_ecosys_option)
@@ -761,9 +760,9 @@ contains
 
        if (use_nml_surf_vals) then
           surf_avg(:)               = c0
-          surf_avg(dic_ind)         = surf_avg_dic_const
-          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
-          surf_avg(alk_ind)         = surf_avg_alk_const
+          surf_avg(marbl_tracer_indices%dic_ind)         = surf_avg_dic_const
+          surf_avg(marbl_tracer_indices%dic_alt_co2_ind) = surf_avg_dic_const
+          surf_avg(marbl_tracer_indices%alk_ind)         = surf_avg_alk_const
        else
           call extract_surf_avg(&
                init_ecosys_init_file_fmt,     &
@@ -822,9 +821,9 @@ contains
 
        if (use_nml_surf_vals) then
           surf_avg                  = c0
-          surf_avg(dic_ind)         = surf_avg_dic_const
-          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
-          surf_avg(alk_ind)         = surf_avg_alk_const
+          surf_avg(marbl_tracer_indices%dic_ind)         = surf_avg_dic_const
+          surf_avg(marbl_tracer_indices%dic_alt_co2_ind) = surf_avg_dic_const
+          surf_avg(marbl_tracer_indices%alk_ind)         = surf_avg_alk_const
        else
           call comp_surf_avg(&
                TRACER_MODULE(:, :, 1, :, oldtime, :), &
@@ -1881,6 +1880,7 @@ contains
        read_restart_filename, &
        tracer_d_module, &
        tracer_module, &
+       marbl_tracer_indices, &
        errorCode)
 
     !---------------------------------------------------------------------
@@ -1905,6 +1905,7 @@ contains
     use prognostic            , only : oldtime
     use prognostic            , only : tracer_field_type => tracer_field
     use io_tools              , only : document
+    use marbl_interface_types , only : marbl_tracer_index_type
 
     implicit none
 
@@ -1912,12 +1913,13 @@ contains
     character (*)           , intent(in)    :: read_restart_filename ! file name for restart file
     type (tracer_field_type), intent(inout) :: tracer_d_module(:)    ! descriptors for each tracer
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
+    type(marbl_tracer_index_type) , intent(in)    :: marbl_tracer_indices
     integer (POP_i4)        , intent(out)   :: errorCode
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ciso_mod:ecosys_ciso_init'
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_ciso_init_tracers'
     integer (int_kind)   :: auto_ind                     ! autotroph functional group index
     integer (int_kind)   :: n                            ! index for looping over tracers
     integer (int_kind)   :: k                            ! index for looping over depth levels
@@ -1958,8 +1960,8 @@ contains
             tracer_module)
 
        if (ciso_use_nml_surf_vals) then
-          surf_avg(di13c_ind) = ciso_surf_avg_di13c_const
-          surf_avg(di14c_ind) = ciso_surf_avg_di14c_const
+          surf_avg(marbl_tracer_indices%di13c_ind) = ciso_surf_avg_di13c_const
+          surf_avg(marbl_tracer_indices%di14c_ind) = ciso_surf_avg_di14c_const
        else
           call extract_surf_avg(               &
                ciso_init_ecosys_init_file_fmt, &
@@ -2018,8 +2020,8 @@ contains
        endif
 
        if (ciso_use_nml_surf_vals) then
-          ciso_surf_avg(di13c_ind) = ciso_surf_avg_di13c_const
-          ciso_surf_avg(di14c_ind) = ciso_surf_avg_di14c_const
+          ciso_surf_avg(marbl_tracer_indices%di13c_ind) = ciso_surf_avg_di13c_const
+          ciso_surf_avg(marbl_tracer_indices%di14c_ind) = ciso_surf_avg_di14c_const
        else
           call comp_surf_avg(&
                tracer_module(:,:,1,:,oldtime,:), &
