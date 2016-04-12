@@ -28,7 +28,6 @@ module ecosys_driver
   use marbl_sizes               , only : ecosys_tracer_cnt, ecosys_ciso_tracer_cnt
   use marbl_sizes               , only : ecosys_used_tracer_cnt
   use marbl_sizes               , only : ecosys_ind_beg, ecosys_ind_end
-  use marbl_sizes               , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
   use marbl_sizes               , only : num_surface_forcing_fields 
 
   use marbl_parms               , only : f_qsw_par
@@ -172,6 +171,8 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
+  integer :: ecosys_ciso_ind_beg
+  integer :: ecosys_ciso_ind_end
 
   integer (int_kind)  :: totChl_surf_nf_ind = 0                ! total chlorophyll in surface layer 
   integer (int_kind)  :: sflux_co2_nf_ind   = 0                ! air-sea co2 gas flux 
@@ -693,8 +694,8 @@ contains
 
     if (ecosys_ciso_tracer_cnt > 0) then
        ciso_vflux_flag(:) = .false.
-       ciso_vflux_flag(marbl_tracer_indices%di13c_ind) = .true.
-       ciso_vflux_flag(marbl_tracer_indices%di14c_ind) = .true.
+       ciso_vflux_flag(marbl_tracer_indices%di13c_ind-ecosys_ciso_ind_beg+1) = .true.
+       ciso_vflux_flag(marbl_tracer_indices%di14c_ind-ecosys_ciso_ind_beg+1) = .true.
     end if
 
     select case (init_ecosys_option)
@@ -1960,8 +1961,8 @@ contains
             tracer_module)
 
        if (ciso_use_nml_surf_vals) then
-          surf_avg(marbl_tracer_indices%di13c_ind) = ciso_surf_avg_di13c_const
-          surf_avg(marbl_tracer_indices%di14c_ind) = ciso_surf_avg_di14c_const
+          surf_avg(marbl_tracer_indices%di13c_ind-ecosys_ciso_ind_beg+1) = ciso_surf_avg_di13c_const
+          surf_avg(marbl_tracer_indices%di14c_ind-ecosys_ciso_ind_beg+1) = ciso_surf_avg_di14c_const
        else
           call extract_surf_avg(               &
                ciso_init_ecosys_init_file_fmt, &
@@ -2020,8 +2021,8 @@ contains
        endif
 
        if (ciso_use_nml_surf_vals) then
-          ciso_surf_avg(marbl_tracer_indices%di13c_ind) = ciso_surf_avg_di13c_const
-          ciso_surf_avg(marbl_tracer_indices%di14c_ind) = ciso_surf_avg_di14c_const
+          ciso_surf_avg(marbl_tracer_indices%di13c_ind-ecosys_ciso_ind_beg+1) = ciso_surf_avg_di13c_const
+          ciso_surf_avg(marbl_tracer_indices%di14c_ind-ecosys_ciso_ind_beg+1) = ciso_surf_avg_di14c_const
        else
           call comp_surf_avg(&
                tracer_module(:,:,1,:,oldtime,:), &
