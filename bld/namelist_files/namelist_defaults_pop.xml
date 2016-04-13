@@ -1452,6 +1452,24 @@
 <irf_tracer_file_ind_start>1</irf_tracer_file_ind_start>
 
 <!----------------------------------->
+<!--estuary_nml-->
+<!----------------------------------->
+
+<estuary_option>off</estuary_option>
+<estuary_type>vsf</estuary_type>
+<ebm_param_option>internal</ebm_param_option>
+<ebm_param_filename>unknown-file</ebm_param_filename>
+<ebm_param_file_fmt>nc</ebm_param_file_fmt>
+<tide_amp>1.0</tide_amp>
+<W_h>2000.0</W_h> >
+<H>10.0</H>
+<a1>0.876</a1>
+<a2>0.0</a2>
+<h0>0.5</h0>
+<h_upper>15.0</h_upper>
+<h_lower>25.0</h_lower>
+
+<!----------------------------------->
 <!--derived - thare are temporary --->
 <!--names for variables with the  --->
 <!--same name in multiple groups  --->

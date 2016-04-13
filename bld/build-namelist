@@ -1211,6 +1211,22 @@ add_default($nl, "ecosys_on");
 add_default($nl, "moby_on");
 add_default($nl, "irf_on");
 
+##########################################
+### namelist group: estuary_nml            #
+############################################
+add_default($nl, 'estuary_option');
+add_default($nl, 'estuary_type');
+add_default($nl, 'ebm_param_option');
+add_default($nl, 'ebm_param_filename');
+add_default($nl, 'ebm_param_file_fmt');
+add_default($nl, 'tide_amp');
+add_default($nl, 'W_h');
+add_default($nl, 'H');
+add_default($nl, 'a1');
+add_default($nl, 'a2');
+add_default($nl, 'h0');
+add_default($nl, 'h_upper');
+add_default($nl, 'h_lower');
 
 ##########################################
 # namelist group: iage_nml               #
@@ -2050,7 +2066,8 @@ my @groups = qw(domain_nml
                 niw_nml
                 se_nml
                 mcog_nml
-                passive_tracers_on_nml);
+                passive_tracers_on_nml
+                estuary_nml);
 
 if ($iage_on eq "TRUE") {
     push @groups, qw(iage_nml);

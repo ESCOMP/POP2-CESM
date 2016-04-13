@@ -6848,4 +6848,111 @@ group="ecosys_restore_nml" >
 Default: none provided
 </entry>
 
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: estuary_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="estuary_option"
+type="char*256"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="estuary_type"
+type="char*256"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="ebm_param_option"
+type="char*256"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="ebm_param_filename"
+type="char*256"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="ebm_param_file_fmt"
+type="char*256"
+category="pop2"
+group="estuary_nml" >
+Default: none
+
+<entry
+id="tide_amp"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="W_h"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="H"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="a1"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="a2"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="h0"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="h_upper"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
+<entry
+id="h_lower"
+type="real"
+category="pop2"
+group="estuary_nml" >
+Default: none
+</entry>
+
 </namelist_definition>
