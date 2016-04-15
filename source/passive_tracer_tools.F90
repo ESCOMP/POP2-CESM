@@ -314,7 +314,8 @@
 ! !INTERFACE:
 
  subroutine file_read_tracer_block(init_filename_fmt, init_filename, &
-   tracer_d_module, ind_name_table, tracer_init_ext, TRACER_MODULE)
+   tracer_d_module, ind_name_table, tracer_init_ext, TRACER_MODULE,  &
+   offset)
 
 ! !DESCRIPTION:
 !  read from a file all tracers for a tracer module
@@ -336,6 +337,8 @@
 
    type(ind_name_pair), dimension(:) :: &
       ind_name_table
+
+   integer, optional, intent(in) :: offset
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -388,6 +391,7 @@
    do n = 1,tracer_cnt
       if (trim(tracer_init_ext(n)%mod_varname) /= 'unknown') then
          ind = name_to_ind(tracer_init_ext(n)%mod_varname, ind_name_table)
+         if (present(offset)) ind = ind-offset
          if (ind == 0) then
             call document(subname, 'unknown external varname = ', &
                           trim(tracer_init_ext(n)%mod_varname))
