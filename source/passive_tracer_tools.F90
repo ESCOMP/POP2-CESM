@@ -82,6 +82,7 @@
       init_forcing_monthly_every_ts,         &
       field_exists_in_file,                  &
       file_read_tracer_block,                &
+      file_read_single_tracer,               &
       rest_read_tracer_block,                &
       read_field,                            &
       name_to_ind,                           &
@@ -422,46 +423,8 @@
 !-----------------------------------------------------------------------
 
    do n = 1,tracer_cnt
-      if (trim(tracer_init_int(n)%filename) == 'none' .or. &
-          trim(tracer_init_int(n)%filename) == 'unknown') then
-         call document(subname, 'initializing ' /&
-                             &/ trim(tracer_init_int(n)%mod_varname) /&
-                             &/ ' to default_val')
-         do iblock = 1,nblocks_clinic
-            TRACER_MODULE(:,:,:,n,curtime,iblock) =  &
-               tracer_init_int(n)%default_val
-         enddo
-      else
-         call document(subname, 'initializing ' /&
-                             &/ trim(tracer_init_int(n)%mod_varname) /&
-                             &/ ' with ' /&
-                             &/ trim(tracer_init_int(n)%file_varname) /&
-                             &/ ' from ' /&
-                             &/ trim(tracer_init_int(n)%filename))
-
-         call read_field(tracer_init_int(n)%file_fmt,        &
-                         tracer_init_int(n)%filename,        &
-                         tracer_init_int(n)%file_varname,    &
-                         TRACER_MODULE(:,:,:,n,curtime,:))
-
-         do iblock=1,nblocks_clinic
-            TRACER_MODULE(:,:,:,n,curtime,iblock) = &
-               TRACER_MODULE(:,:,:,n,curtime,iblock)*tracer_init_int(n)%scale_factor
-            where (TRACER_MODULE(:,:,:,n,curtime,iblock) < c0) &
-               TRACER_MODULE(:,:,:,n,curtime,iblock) = c0
-         end do
-
-         if (my_task == master_task) then
-            write(stdout,blank_fmt)
-            write(stdout,'(a12,a)') ' file read: ', &
-               trim(tracer_init_int(n)%filename)
-         endif
-
-      end if
-      do iblock=1,nblocks_clinic
-         TRACER_MODULE(:,:,:,n,oldtime,iblock) = &
-            TRACER_MODULE(:,:,:,n,curtime,iblock)
-      enddo
+      call file_read_single_tracer(tracer_init_int(n), &
+                                   TRACER_MODULE(:,:,:,n,:,:))
    end do
 
    deallocate(tracer_init_int)
@@ -470,6 +433,81 @@
 !EOC
 
  end subroutine file_read_tracer_block
+
+!***********************************************************************
+!BOP
+! !IROUTINE: file_read_single_tracer
+! !INTERFACE:
+
+ subroutine file_read_single_tracer(tracer_init_int, TRACER_MODULE)
+
+! !DESCRIPTION:
+!  read from a single tracer from a file
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   type(tracer_read), intent(in) :: &
+      tracer_init_int
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real(r8), dimension(:,:,:,:,:), intent(inout) :: &
+      TRACER_MODULE          ! tracers to be read in
+
+! !LOCAL VARIABLES
+  character(*), parameter :: subname = 'passive_tracer_tools:file_read_single_tracer'
+  integer :: iblock
+
+!EOP
+!BOC
+  if (trim(tracer_init_int%filename) == 'none' .or. &
+      trim(tracer_init_int%filename) == 'unknown') then
+     call document(subname, 'initializing ' /&
+                         &/ trim(tracer_init_int%mod_varname) /&
+                         &/ ' to default_val')
+     do iblock = 1,nblocks_clinic
+        TRACER_MODULE(:,:,:,curtime,iblock) =  &
+           tracer_init_int%default_val
+     enddo
+  else
+     call document(subname, 'initializing ' /&
+                         &/ trim(tracer_init_int%mod_varname) /&
+                         &/ ' with ' /&
+                         &/ trim(tracer_init_int%file_varname) /&
+                         &/ ' from ' /&
+                         &/ trim(tracer_init_int%filename))
+
+     call read_field(tracer_init_int%file_fmt,        &
+                     tracer_init_int%filename,        &
+                     tracer_init_int%file_varname,    &
+                     TRACER_MODULE(:,:,:,curtime,:))
+
+     do iblock=1,nblocks_clinic
+        TRACER_MODULE(:,:,:,curtime,iblock) = &
+           TRACER_MODULE(:,:,:,curtime,iblock)*tracer_init_int%scale_factor
+        where (TRACER_MODULE(:,:,:,curtime,iblock) < c0) &
+           TRACER_MODULE(:,:,:,curtime,iblock) = c0
+     end do
+
+     if (my_task == master_task) then
+        write(stdout,blank_fmt)
+        write(stdout,'(a12,a)') ' file read: ', trim(tracer_init_int%filename)
+     endif
+
+  end if
+
+  do iblock=1,nblocks_clinic
+     TRACER_MODULE(:,:,:,oldtime,iblock) = &
+        TRACER_MODULE(:,:,:,curtime,iblock)
+  enddo
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine file_read_single_tracer
 
 !***********************************************************************
 !BOP
