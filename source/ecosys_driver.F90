@@ -26,8 +26,6 @@ module ecosys_driver
   use communicate               , only : my_task, master_task
 
   use marbl_sizes               , only : num_surface_forcing_fields 
-  use marbl_sizes               , only : ecosys_ciso_ind_beg ! delete ASAP
-  use marbl_sizes               , only : ecosys_ciso_ind_end ! delete ASAP
 
   use marbl_parms               , only : f_qsw_par
   use marbl_parms               , only : parm_Fe_bioavail
@@ -43,15 +41,11 @@ module ecosys_driver
   use marbl_share_mod           , only : init_ecosys_option
   use marbl_share_mod           , only : init_ecosys_init_file
   use marbl_share_mod           , only : init_ecosys_init_file_fmt
-  ! put these surf_avg_*_const in ecosys_driver_nml
-  use marbl_share_mod           , only : surf_avg_dic_const
-  use marbl_share_mod           , only : surf_avg_alk_const
   use marbl_share_mod           , only : gas_flux_forcing_iopt
   use marbl_share_mod           , only : gas_flux_forcing_iopt_drv
   use marbl_share_mod           , only : gas_flux_forcing_iopt_file
   use marbl_share_mod           , only : gas_flux_forcing_file
   use marbl_share_mod           , only : fesedflux_input
-  use marbl_share_mod           , only : lflux_gas_o2
   use marbl_share_mod           , only : lflux_gas_co2
   use marbl_share_mod           , only : liron_patch  
   use marbl_share_mod           , only : atm_co2_iopt
@@ -65,9 +59,6 @@ module ecosys_driver
   use marbl_share_mod           , only : iron_patch_month  
   use marbl_share_mod           , only : ndep_data_type 
 
-  ! put these surf_avg_*_const in ecosys_driver_nml
-  use marbl_share_mod           , only : ciso_surf_avg_di13c_const
-  use marbl_share_mod           , only : ciso_surf_avg_di14c_const
   use marbl_share_mod           , only : ciso_lecovars_full_depth_tavg
   use marbl_share_mod           , only : ciso_init_ecosys_option
   use marbl_share_mod           , only : ciso_init_ecosys_init_file
@@ -124,7 +115,6 @@ module ecosys_driver
   private :: ecosys_driver_init_tracers_and_saved_state
   private :: ecosys_driver_read_restore_data
   private :: ecosys_driver_set_input_forcing_data
-  private :: ecosys_driver_write_ecosys_restart
 
   ! this struct is necessary because there is some global state
   ! that needs to be preserved for from one time step to the next
@@ -160,8 +150,6 @@ module ecosys_driver
   integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_set_sflux_timer
   integer (int_kind) :: ecosys_comp_CO3terms_timer
-  integer (int_kind) :: ecosys_ciso_interior_timer
-  integer (int_kind) :: ecosys_ciso_set_sflux_timer
   
   !-----------------------------------------------------------------------
   ! module variables 
@@ -197,6 +185,11 @@ module ecosys_driver
   ! Virtual fluxes
   logical(log_kind), allocatable, dimension(:) :: vflux_flag           ! which tracers get virtual fluxes applied
   real(r8), allocatable, dimension(:) :: surf_avg                      ! average surface tracer values
+  ! Virtual fluxes set in namelist
+  real(r8) :: surf_avg_dic_const
+  real(r8) :: surf_avg_alk_const
+  real(r8) :: surf_avg_di13c_const
+  real(r8) :: surf_avg_di14c_const
 
   ! Set by surface flux and used by interior
   ! FIXME - this should be moved to be read in by set_interior if possible
@@ -287,7 +280,9 @@ contains
     !-----------------------------------------------------------------------
 
     namelist /ecosys_driver_nml/ &
-         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
+         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const,       &
+         surf_avg_alk_const, surf_avg_dic_const, surf_avg_di13c_const,        &
+         surf_avg_di14c_const
 
     errorCode = POP_Success
     ciso_on   = ciso_active_flag
@@ -295,6 +290,10 @@ contains
     lmarginal_seas        = .true.
     ecosys_tadvect_ctype  = 'base_model'
     ecosys_qsw_distrb_const = .true.
+    surf_avg_alk_const   = 2225.0_r8
+    surf_avg_dic_const   = 1944.0_r8
+    surf_avg_di13c_const = 1944.0_r8
+    surf_avg_di14c_const = 1944.0_r8
 
     nl_buffer(:) = ''
     nl_str    = ''
@@ -375,10 +374,6 @@ contains
     if (ndep_data_type == 'shr_stream') then
        call get_timer(ecosys_shr_strdata_advance_timer, 'ecosys_shr_strdata_advance', 1, distrb_clinic%nprocs)
     endif
-    if (ciso_on) then
-       call get_timer(ecosys_ciso_interior_timer , 'ECOSYS_CISO_INTERIOR' , nblocks_clinic, distrb_clinic%nprocs)
-       call get_timer(ecosys_ciso_set_sflux_timer, 'ECOSYS_CISO_SET_SFLUX', 1             , distrb_clinic%nprocs)
-    end if
 
     !--------------------------------------------------------------------
     !  Initialize module variable land mask
@@ -538,7 +533,6 @@ contains
        module_name, marbl_tracer_indices, TRACER_MODULE,                      &
        ecosys_restart_filename, errorCode)       
 
-    use passive_tracer_tools  , only : extract_surf_avg
     use passive_tracer_tools  , only : rest_read_tracer_block
     use passive_tracer_tools  , only : file_read_single_tracer
     use passive_tracer_tools  , only : field_exists_in_file
@@ -574,7 +568,7 @@ contains
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_driver_mod:ecosys_driver_init_tracers_and_saved_state'
     integer :: n, k, bid, tracer_cnt
-    character(char_len) :: ecosys_option, init_file_fmt
+    character(char_len) :: init_option, init_file_fmt
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -653,7 +647,6 @@ contains
     !-----------------------------------------------------------------------
 
     ! initialize module variable - virtual flux flag array
-    ! FIXME(mnl,2016-01): do these really belong here, or should they be in MARBL?
     vflux_flag(:) = .false.
     vflux_flag(marbl_tracer_indices%dic_ind) = .true.
     vflux_flag(marbl_tracer_indices%alk_ind) = .true.
@@ -667,10 +660,10 @@ contains
     do n=1,tracer_cnt
       select case (trim(module_name(n)))
         case('ecosys')
-          ecosys_option = init_ecosys_option
+          init_option = init_ecosys_option
           init_file_fmt = init_ecosys_init_file_fmt
 
-          select case (ecosys_option)
+          select case (init_option)
             case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
               ecosys_restart_filename = char_blank
               if (init_ecosys_init_file == 'same_as_TS') then
@@ -687,10 +680,10 @@ contains
           end select
        
         case('ciso')
-          ecosys_option = ciso_init_ecosys_option
+          init_option = ciso_init_ecosys_option
           init_file_fmt = ciso_init_ecosys_init_file_fmt
 
-          select case (ecosys_option)
+          select case (init_option)
             case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
               ecosys_restart_filename = char_blank
               if (ciso_init_ecosys_init_file == 'same_as_TS') then
@@ -707,8 +700,7 @@ contains
        
       end select
 
-      ! FIXME: ecosys_option -> init_option
-      select case (ecosys_option)
+      select case (init_option)
 
         case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
            call rest_read_tracer_block(init_file_fmt,        &
@@ -723,9 +715,9 @@ contains
            elseif (n.eq.marbl_tracer_indices%alk_ind) then
               surf_avg(n) = surf_avg_alk_const
            elseif (n.eq.marbl_tracer_indices%di13c_ind) then
-              surf_avg(n) = ciso_surf_avg_di13c_const
+              surf_avg(n) = surf_avg_di13c_const
            elseif (n.eq.marbl_tracer_indices%di14c_ind) then
-              surf_avg(n) = ciso_surf_avg_di14c_const
+              surf_avg(n) = surf_avg_di14c_const
            else
               surf_avg(n) = c0
            end if
@@ -762,16 +754,16 @@ contains
            elseif (n.eq.marbl_tracer_indices%alk_ind) then
               surf_avg(n) = surf_avg_alk_const
            elseif (n.eq.marbl_tracer_indices%di13c_ind) then
-              surf_avg(n) = ciso_surf_avg_di13c_const
+              surf_avg(n) = surf_avg_di13c_const
            elseif (n.eq.marbl_tracer_indices%di14c_ind) then
-              surf_avg(n) = ciso_surf_avg_di14c_const
+              surf_avg(n) = surf_avg_di14c_const
            else
               surf_avg(n) = c0
            end if
 
         case default
-         call document(subname, 'init_ecosys_option', init_ecosys_option)
-         call exit_POP(sigAbort, 'unknown init_ecosys_option')
+         call document(subname, 'init_option', init_option)
+         call exit_POP(sigAbort, 'unknown init_option')
       end select
     end do
 
@@ -1104,28 +1096,6 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_write_restart(restart_file, action)
-
-    ! !DESCRIPTION:
-    !  call restart routines for each tracer module that
-    !  write fields besides the tracers themselves
-
-    use io_types, only : datafile
-
-    implicit none 
-
-    character(*)            , intent(in)     :: action
-    type (datafile)         , intent (inout) :: restart_file
-
-    call ecosys_driver_write_ecosys_restart(restart_file, action)
-    if (ciso_on) then
-       call ecosys_driver_ciso_write_restart(restart_file, action)
-    end if
-
-  end subroutine ecosys_driver_write_restart
-
-  !***********************************************************************
-
   subroutine ecosys_driver_tavg_forcing()
 
     ! !DESCRIPTION:
@@ -1172,7 +1142,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_driver_write_ecosys_restart(restart_file, action)
+  subroutine ecosys_driver_write_restart(restart_file, action)
 
     ! !DESCRIPTION:
     !  write auxiliary fields & scalars to restart files
@@ -1265,46 +1235,7 @@ contains
 
     endif
 
-  end subroutine ecosys_driver_write_ecosys_restart
-
-  !*****************************************************************************
-
-  subroutine ecosys_driver_ciso_write_restart(restart_file, action)
-
-    !-----------------------------------------------------------------------
-    ! !DESCRIPTION:
-    !  write auxiliary fields & scalars to restart files
-    !-----------------------------------------------------------------------
-
-    use constants , only : char_blank
-    use constants , only : field_loc_center
-    use constants , only : field_type_scalar
-    use io        , only : datafile
-    use io_types  , only : add_attrib_file
-
-    implicit none
-
-    character(*)   , intent(in)     :: action
-    type (datafile), intent (inout) :: restart_file
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character (char_len) :: short_name   ! tracer name temporaries
-    integer (int_kind)   :: n
-    !-----------------------------------------------------------------------
-    
-    if (trim(action) == 'add_attrib_file') then
-       short_name = char_blank
-       do n = ecosys_ciso_ind_beg,ecosys_ciso_ind_end
-          if (vflux_flag(n)) then
-             short_name = 'surf_avg_' // ind_name_table(n)%name
-             call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
-          endif
-       end do
-    endif
-    
-  end subroutine ecosys_driver_ciso_write_restart
+  end subroutine ecosys_driver_write_restart
 
   !*****************************************************************************
 
@@ -1764,11 +1695,6 @@ contains
     call timer_stop(ecosys_pre_sflux_timer)
 
     end associate
-
-    ! FIXME(mnl,2016-01): marbl_mod::ecosys_update_surface_forcing_fields()
-    ! applies this fix and also multiplies iron_flux_in by parm_Fe_bioavail  
-    ! similar multiplication of dust_flux by 0.98 in set_input_forcing_data should also be moved
-    ! Is this still needed?
 
   end subroutine ecosys_driver_set_input_forcing_data
 

@@ -442,7 +442,7 @@
  subroutine file_read_single_tracer(tracer_init_int, TRACER_MODULE)
 
 ! !DESCRIPTION:
-!  read from a single tracer from a file
+!  read a single tracer from a file
 !
 ! !REVISION HISTORY:
 !  same as module
