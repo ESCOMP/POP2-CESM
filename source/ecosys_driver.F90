@@ -26,9 +26,6 @@ module ecosys_driver
   use communicate               , only : my_task, master_task
 
   use marbl_sizes               , only : num_surface_forcing_fields 
-  use marbl_sizes               , only : ecosys_ciso_tracer_cnt ! delete ASAP
-  use marbl_sizes               , only : ecosys_ind_beg ! delete ASAP
-  use marbl_sizes               , only : ecosys_ind_end ! delete ASAP
   use marbl_sizes               , only : ecosys_ciso_ind_beg ! delete ASAP
   use marbl_sizes               , only : ecosys_ciso_ind_end ! delete ASAP
 
@@ -43,14 +40,6 @@ module ecosys_driver
   use marbl_interface_types     , only : marbl_forcing_fields_type
   use marbl_interface_types     , only : marbl_forcing_monthly_every_ts_type
 
-  ! remove use_nml_surf_vals from marbl_share (and the driver)
-  use marbl_share_mod           , only : use_nml_surf_vals
-  ! tracer_init_ext is not needed in driver any more (leave in MARBL)
-  use marbl_share_mod           , only : tracer_init_ext
-  ! remove comp_surf_avg_* from marbl_share (and the driver)
-  use marbl_share_mod           , only : comp_surf_avg_flag 
-  use marbl_share_mod           , only : comp_surf_avg_freq_iopt
-  use marbl_share_mod           , only : comp_surf_avg_freq
   use marbl_share_mod           , only : init_ecosys_option
   use marbl_share_mod           , only : init_ecosys_init_file
   use marbl_share_mod           , only : init_ecosys_init_file_fmt
@@ -76,22 +65,13 @@ module ecosys_driver
   use marbl_share_mod           , only : iron_patch_month  
   use marbl_share_mod           , only : ndep_data_type 
 
-  ! remove ciso_comp_surf_avg_* from marbl_share (and the driver)
-  use marbl_share_mod           , only : ciso_comp_surf_avg_flag 
-  use marbl_share_mod           , only : ciso_comp_surf_avg_freq_iopt
-  use marbl_share_mod           , only : ciso_comp_surf_avg_freq
-  ! remove ciso_use_nml_surf_vals from marbl_share (and the driver)
-  use marbl_share_mod           , only : ciso_use_nml_surf_vals
   ! put these surf_avg_*_const in ecosys_driver_nml
   use marbl_share_mod           , only : ciso_surf_avg_di13c_const
   use marbl_share_mod           , only : ciso_surf_avg_di14c_const
-  ! ciso_tracer_init_ext is not needed in driver any more (leave in MARBL)
-  use marbl_share_mod           , only : ciso_tracer_init_ext
   use marbl_share_mod           , only : ciso_lecovars_full_depth_tavg
   use marbl_share_mod           , only : ciso_init_ecosys_option
   use marbl_share_mod           , only : ciso_init_ecosys_init_file
   use marbl_share_mod           , only : ciso_init_ecosys_init_file_fmt
-  use marbl_share_mod           , only : ciso_comp_surf_avg_flag
   use marbl_share_mod           , only : ciso_atm_model_year                                                            
   use marbl_share_mod           , only : ciso_atm_data_year                                                             
   use marbl_share_mod           , only : ciso_atm_d13c_opt          
@@ -168,7 +148,8 @@ module ecosys_driver
   ! public variables
   !-----------------------------------------------------------------------
 
-  integer(int_kind), public :: ecosys_tracer_cnt
+  ! Since this is total number of MARBL tracers, it should be marbl_tracer_cnt
+  integer(int_kind), public :: ecosys_tracer_cnt  ! # of tracers in MARBL
 
   !-----------------------------------------------------------------------
   ! timers
@@ -295,7 +276,6 @@ contains
     character(char_len_long)            :: ioerror_msg
     integer (int_kind)                  :: auto_ind                           ! autotroph functional group index
     integer (int_kind)                  :: iblock                             ! index for looping over blocks
-    real (r8)                           :: surface_vals(ecosys_tracer_cnt)
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)                :: init_file_fmt                      ! file format for option 'file'
     logical   (log_kind)                :: lmarginal_seas                     ! is ecosystem active in marginal seas?
@@ -475,28 +455,6 @@ contains
     end do
 
     !--------------------------------------------------------------------
-    !  Initialize surface average times
-    !--------------------------------------------------------------------
-
-    ! FIXME - get rid of freq and freq_opt arguments
-
-    call init_time_flag('ecosys_comp_surf_avg', &
-         comp_surf_avg_flag,                    &
-         default=.false.,                       &
-         freq_opt=comp_surf_avg_freq_iopt,      &
-         freq=comp_surf_avg_freq,               &
-         owner='ecosys_init')
-
-    if (ciso_on) then
-       call init_time_flag('ciso_ecosys_comp_surf_avg', &
-            ciso_comp_surf_avg_flag,                    &
-            default=.false.,                            &
-            freq_opt=ciso_comp_surf_avg_freq_iopt,      &
-            freq=ciso_comp_surf_avg_freq,               &
-            owner='ciso_ecosys_init')
-    end if
-
-    !--------------------------------------------------------------------
     !  Initialize ecosys tracers
     !--------------------------------------------------------------------
 
@@ -581,7 +539,6 @@ contains
        ecosys_restart_filename, errorCode)       
 
     use passive_tracer_tools  , only : extract_surf_avg
-    use passive_tracer_tools  , only : comp_surf_avg
     use passive_tracer_tools  , only : rest_read_tracer_block
     use passive_tracer_tools  , only : file_read_single_tracer
     use passive_tracer_tools  , only : field_exists_in_file
@@ -798,20 +755,18 @@ contains
              enddo
            endif
 
-           if (use_nml_surf_vals) then
-              if (n.eq.marbl_tracer_indices%dic_ind) then
-                 surf_avg(n) = surf_avg_dic_const
-              elseif (n.eq.marbl_tracer_indices%dic_alt_co2_ind) then
-                 surf_avg(n) = surf_avg_dic_const
-              elseif (n.eq.marbl_tracer_indices%alk_ind) then
-                 surf_avg(n) = surf_avg_alk_const
-              elseif (n.eq.marbl_tracer_indices%di13c_ind) then
-                 surf_avg(n) = ciso_surf_avg_di13c_const
-              elseif (n.eq.marbl_tracer_indices%di14c_ind) then
-                 surf_avg(n) = ciso_surf_avg_di14c_const
-              else
-                 surf_avg(n) = c0
-              end if
+           if (n.eq.marbl_tracer_indices%dic_ind) then
+              surf_avg(n) = surf_avg_dic_const
+           elseif (n.eq.marbl_tracer_indices%dic_alt_co2_ind) then
+              surf_avg(n) = surf_avg_dic_const
+           elseif (n.eq.marbl_tracer_indices%alk_ind) then
+              surf_avg(n) = surf_avg_alk_const
+           elseif (n.eq.marbl_tracer_indices%di13c_ind) then
+              surf_avg(n) = ciso_surf_avg_di13c_const
+           elseif (n.eq.marbl_tracer_indices%di14c_ind) then
+              surf_avg(n) = ciso_surf_avg_di14c_const
+           else
+              surf_avg(n) = c0
            end if
 
         case default
@@ -1002,7 +957,6 @@ contains
     ! compute surface tracer fluxes
 
     use named_field_mod      , only : named_field_set
-    use passive_tracer_tools , only : comp_surf_avg
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
 
@@ -1024,31 +978,6 @@ contains
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
     !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    ! Set surf_avg (module variable)
-    !-----------------------------------------------------------------------
-
-    ! FIXME - do these two check-times need to be different? If not - then
-    ! the following could be put in one block
-
-    if (check_time_flag(comp_surf_avg_flag))  then
-       call comp_surf_avg( &
-            surface_vals_old(:, :, 1:ecosys_ind_end, :), &
-            surface_vals_cur(:, :, 1:ecosys_ind_end, :), &
-            ecosys_tracer_cnt, vflux_flag(ecosys_ind_beg:ecosys_ind_end), surf_avg)
-    end if
-
-    if (ciso_on) then
-       if (check_time_flag(ciso_comp_surf_avg_flag)) then
-          call comp_surf_avg( &
-               surface_vals_old(:, :, ecosys_ciso_ind_beg:ecosys_ciso_ind_end, :), &
-               surface_vals_cur(:, :, ecosys_ciso_ind_beg:ecosys_ciso_ind_end, :), &
-               ecosys_ciso_tracer_cnt, &
-               vflux_flag(ecosys_ciso_ind_beg:ecosys_ciso_ind_end),                &
-               surf_avg(ecosys_ciso_ind_beg:ecosys_ciso_ind_end))
-       end if
-    end if
 
     !-----------------------------------------------------------------------
     ! Set input surface forcing data and surface saved state data
@@ -1224,24 +1153,9 @@ contains
     !  default value for reference value is 0
 
     ecosys_driver_tracer_ref_val = c0
-
-    if (ind >= 1 .and. ind <= ecosys_ind_end) then
-       if (vflux_flag(ind)) then
-          ecosys_driver_tracer_ref_val = surf_avg(ind)
-       else
-          ecosys_driver_tracer_ref_val = c0
-       endif
+    if (vflux_flag(ind)) then
+       ecosys_driver_tracer_ref_val = surf_avg(ind)
     endif
-
-    if (ciso_on) then
-       if (ind >= ecosys_ciso_ind_beg .and. ind <= ecosys_ciso_ind_end) then
-          if (vflux_flag(ind)) then
-             ecosys_driver_tracer_ref_val = surf_avg(ind)
-          else
-             ecosys_driver_tracer_ref_val = c0
-          endif
-       end if
-    end if
        
   end function ecosys_driver_tracer_ref_val
 

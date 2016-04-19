@@ -5024,30 +5024,6 @@ Default:
 </entry>
 
 <entry 
-id="ciso_comp_surf_avg_freq_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_comp_surf_avg_freq"
-type="integer" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_use_nml_surf_vals"
-type="logical" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
 id="ciso_surf_avg_di13c_const"
 type="real"
 category="ecosys"
@@ -5967,30 +5943,6 @@ type="char*256"
 category="ecosys"
 group="ecosys_nml" >
 Default: 'unknown'
-</entry>
-
-<entry 
-id="comp_surf_avg_freq_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'never'
-</entry>
-
-<entry 
-id="comp_surf_avg_freq"
-type="integer" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1
-</entry>
-
-<entry 
-id="use_nml_surf_vals"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true. for startup runs, otherwise .false.
 </entry>
 
 <entry 

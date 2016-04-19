@@ -1055,14 +1055,6 @@
 
 <ciso_lsource_sink>.true.</ciso_lsource_sink>
 
-<ciso_comp_surf_avg_freq_opt>never</ciso_comp_surf_avg_freq_opt>
-
-<ciso_comp_surf_avg_freq>1</ciso_comp_surf_avg_freq>
-
-<ciso_use_nml_surf_vals>.false.</ciso_use_nml_surf_vals>
-
-<ciso_use_nml_surf_vals runtype="startup">.true.</ciso_use_nml_surf_vals>
-
 <ciso_surf_avg_di13c_const>1944</ciso_surf_avg_di13c_const>  
         
 <ciso_surf_avg_di14c_const>1944</ciso_surf_avg_di14c_const>          
@@ -1099,13 +1091,6 @@
 <gas_flux_forcing_opt>drv</gas_flux_forcing_opt>
 
 <lsource_sink>.true.</lsource_sink>
-
-<comp_surf_avg_freq_opt>never</comp_surf_avg_freq_opt>
-
-<comp_surf_avg_freq>1</comp_surf_avg_freq>
-
-<use_nml_surf_vals>.false.</use_nml_surf_vals>
-<use_nml_surf_vals runtype="startup">.true.</use_nml_surf_vals>
 
 <surf_avg_dic_const>1944.0</surf_avg_dic_const>          
 
