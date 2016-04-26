@@ -1,4 +1,22 @@
 ===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    26 Apr 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160426
+Tag Summary: Fix threading bug, allowing non-ciso CECO and GECO compsets to run with gnu
+
+Testing:
+aux_pop: (baseline comparison to cesm_pop_2_1_20160407 tag)
+   tests pass with following exceptions
+      nlcomp fails because of nl changes in cesm_pop_2_1_20160413
+
+aux_pop (gnu): (no baseline comparison)
+   non-ciso tests pass
+
+M       ChangeLog
+M       source/ecosys_tavg.F90
+
+===============================================================================
 Tag Creator: jet
 Developers:  yu-heng
 Tag Date:    13 Apr 2016
