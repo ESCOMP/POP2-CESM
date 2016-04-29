@@ -190,6 +190,13 @@ module ecosys_driver
   real(r8) :: surf_avg_di13c_const
   real(r8) :: surf_avg_di14c_const
 
+  ! Indices of tracers needed for virtual flux
+  integer(int_kind) :: dic_ind
+  integer(int_kind) :: alk_ind
+  integer(int_kind) :: dic_alt_co2_ind
+  integer(int_kind) :: di13c_ind
+  integer(int_kind) :: di14c_ind
+
   ! Set by surface flux and used by interior
   ! FIXME - this should be moved to be read in by set_interior if possible
   real (r8) :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)     ! dust flux not stored in STF since dust is not prognostic
@@ -413,6 +420,25 @@ contains
        call marbl_instances(iblock)%StatusLog%erase()
     end do
 
+    ! Set up marbl tracer indices for virtual fluxes
+    dic_ind   = marbl_instances(1)%tracer_indices%get_index('dic',            &
+                    marbl_status_log = marbl_instances(1)%StatusLog)
+    alk_ind   = marbl_instances(1)%tracer_indices%get_index('alk',            &
+                    marbl_status_log = marbl_instances(1)%StatusLog)
+    dic_alt_co2_ind = marbl_instances(1)%tracer_indices%get_index('dic_alt_co2', &
+                    marbl_status_log = marbl_instances(1)%StatusLog)
+    di13c_ind = marbl_instances(1)%tracer_indices%get_index('di13c',          &
+                    marbl_status_log = marbl_instances(1)%StatusLog)
+    di14c_ind = marbl_instances(1)%tracer_indices%get_index('di14c',          &
+                    marbl_status_log = marbl_instances(1)%StatusLog)
+    if (marbl_instances(1)%StatusLog%labort_marbl) then
+      write(error_msg,"(A)") "error code returned from tracer_indices%get_index"
+      call marbl_instances(1)%StatusLog%log_error(error_msg,                  &
+           "ecosys_driver::ecosys_driver_init()")
+    end if
+    call print_marbl_log(marbl_instances(1)%StatusLog, 1)
+    call marbl_instances(1)%StatusLog%erase()
+
     allocate(ecosys_tracer_restore_data_3D(marbl_tracer_cnt))
     allocate(ind_name_table(marbl_tracer_cnt))
     allocate(vflux_flag(marbl_tracer_cnt))
@@ -458,7 +484,6 @@ contains
        marbl_instances(1)%tracer_read(:),            &
        tracer_d_module(:),                           &
        marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
-       marbl_instances(1)%tracer_indices,            &
        tracer_module(:,:,:,:,:,:),                   &
        ecosys_restart_filename,                      &
        errorCode)       
@@ -529,8 +554,7 @@ contains
 
   subroutine ecosys_driver_init_tracers_and_saved_state(&
        init_ts_file_fmt, read_restart_filename, tracer_read, tracer_d_module, &
-       module_name, marbl_tracer_indices, TRACER_MODULE,                      &
-       ecosys_restart_filename, errorCode)       
+       module_name, TRACER_MODULE, ecosys_restart_filename, errorCode)       
 
     use passive_tracer_tools  , only : rest_read_tracer_block
     use passive_tracer_tools  , only : file_read_single_tracer
@@ -547,7 +571,6 @@ contains
     use grid                  , only : fill_points
     use grid                  , only : n_topo_smooth
     use grid                  , only : KMT
-    use marbl_interface_types , only : marbl_tracer_index_type
     use marbl_interface_types , only : marbl_tracer_read_type
 
     implicit none
@@ -557,7 +580,6 @@ contains
     type(marbl_tracer_read_type), intent(in)    :: tracer_read(:)          ! metadata about file to read
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
     character(*), dimension(:),  intent(in)    :: module_name
-    type(marbl_tracer_index_type) , intent(in)    :: marbl_tracer_indices
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
     character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file
     integer (POP_i4)        , intent(out)   :: errorCode
@@ -645,14 +667,14 @@ contains
 
     ! initialize module variable - virtual flux flag array
     vflux_flag(:) = .false.
-    vflux_flag(marbl_tracer_indices%dic_ind) = .true.
-    vflux_flag(marbl_tracer_indices%alk_ind) = .true.
-    vflux_flag(marbl_tracer_indices%dic_alt_co2_ind) = .true.
+    vflux_flag(dic_ind) = .true.
+    vflux_flag(alk_ind) = .true.
+    vflux_flag(dic_alt_co2_ind) = .true.
 
-    if (marbl_tracer_indices%di13c_ind.ne.0) &
-       vflux_flag(marbl_tracer_indices%di13c_ind) = .true.
-    if (marbl_tracer_indices%di14c_ind.ne.0) &
-       vflux_flag(marbl_tracer_indices%di14c_ind) = .true.
+    if (di13c_ind.ne.0) &
+       vflux_flag(di13c_ind) = .true.
+    if (di14c_ind.ne.0) &
+       vflux_flag(di14c_ind) = .true.
 
     do n=1,marbl_tracer_cnt
 
@@ -721,15 +743,15 @@ contains
       end select
 
       ! Set surf_avg for all tracers
-      if (n.eq.marbl_tracer_indices%dic_ind) then
+      if (n.eq.dic_ind) then
          surf_avg(n) = surf_avg_dic_const
-      elseif (n.eq.marbl_tracer_indices%dic_alt_co2_ind) then
+      elseif (n.eq.dic_alt_co2_ind) then
          surf_avg(n) = surf_avg_dic_const
-      elseif (n.eq.marbl_tracer_indices%alk_ind) then
+      elseif (n.eq.alk_ind) then
          surf_avg(n) = surf_avg_alk_const
-      elseif (n.eq.marbl_tracer_indices%di13c_ind) then
+      elseif (n.eq.di13c_ind) then
          surf_avg(n) = surf_avg_di13c_const
-      elseif (n.eq.marbl_tracer_indices%di14c_ind) then
+      elseif (n.eq.di14c_ind) then
          surf_avg(n) = surf_avg_di14c_const
       else
          surf_avg(n) = c0

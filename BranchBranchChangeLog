@@ -4,7 +4,10 @@ Developers:  mlevy, klindsay
 Tag Date:    29 Apr 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n10_marbl_dev_n03_cesm_pop_2_1_20160407
 Tag Summary: Minor code clean up following second review of tracer_update work
-             in MARBL
+             in MARBL. Biggest change is that the driver uses a new
+             get_index() function to retrieve tracer indices from MARBL and
+             store them as module variables (we do not need all the indices,
+             just the ones corresponding to tracers with virtual fluxes).
 
 Files Modified:
  M      .
