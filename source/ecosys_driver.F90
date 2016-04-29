@@ -138,8 +138,7 @@ module ecosys_driver
   ! public variables
   !-----------------------------------------------------------------------
 
-  ! Since this is total number of MARBL tracers, it should be marbl_tracer_cnt
-  integer(int_kind), public :: ecosys_tracer_cnt = MARBL_NT ! # of tracers in MARBL
+  integer(int_kind), public :: marbl_tracer_cnt = MARBL_NT ! # of tracers in MARBL
 
   !-----------------------------------------------------------------------
   ! timers
@@ -395,7 +394,7 @@ contains
        call marbl_instances(iblock)%init(                                        &
             gcm_nl_buffer = nl_buffer,                                           &
             gcm_ciso_on = ciso_on,                                               &
-            gcm_tracer_cnt = ecosys_tracer_cnt,                                  &
+            gcm_tracer_cnt = marbl_tracer_cnt,                                   &
             gcm_num_levels = km,                                                 & 
             gcm_num_PAR_subcols = mcog_nbins,                                    &
             gcm_num_elements_interior_forcing = 1,                               & 
@@ -414,16 +413,16 @@ contains
        call marbl_instances(iblock)%StatusLog%erase()
     end do
 
-    allocate(ecosys_tracer_restore_data_3D(ecosys_tracer_cnt))
-    allocate(ind_name_table(ecosys_tracer_cnt))
-    allocate(vflux_flag(ecosys_tracer_cnt))
-    allocate(surf_avg(ecosys_tracer_cnt))
+    allocate(ecosys_tracer_restore_data_3D(marbl_tracer_cnt))
+    allocate(ind_name_table(marbl_tracer_cnt))
+    allocate(vflux_flag(marbl_tracer_cnt))
+    allocate(surf_avg(marbl_tracer_cnt))
 
     !--------------------------------------------------------------------
     ! Initialize tracer_d_module input argument
     !--------------------------------------------------------------------
 
-    do n = 1, ecosys_tracer_cnt
+    do n = 1, marbl_tracer_cnt
        tracer_d_module(n)%short_name       = marbl_instances(1)%tracer_metadata(n)%short_name      
        tracer_d_module(n)%long_name        = marbl_instances(1)%tracer_metadata(n)%long_name       
        tracer_d_module(n)%units            = marbl_instances(1)%tracer_metadata(n)%units           
@@ -441,11 +440,11 @@ contains
     allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, max_blocks_clinic))
     end associate
 
-    tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
+    tadvect_ctype(1:marbl_tracer_cnt) = ecosys_tadvect_ctype
 
     surf_avg(:) = 0._r8
 
-    do n = 1, ecosys_tracer_cnt
+    do n = 1, marbl_tracer_cnt
        ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
     end do
 
@@ -575,8 +574,6 @@ contains
     !  initialize saved state
     !-----------------------------------------------------------------------
 
-    ecosys_tracer_cnt = size(tracer_d_module)
-
     select case (init_ecosys_option)
        
     case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
@@ -657,7 +654,7 @@ contains
     if (marbl_tracer_indices%di14c_ind.ne.0) &
        vflux_flag(marbl_tracer_indices%di14c_ind) = .true.
 
-    do n=1,ecosys_tracer_cnt
+    do n=1,marbl_tracer_cnt
 
       ! Is tracer read from restart file or initial condition?
       ! What is the file name and format?
@@ -741,7 +738,7 @@ contains
     end do
 
     do bid=1, nblocks_clinic
-       do n = 1, ecosys_tracer_cnt
+       do n = 1, marbl_tracer_cnt
           do k = 1, km
              where (.not. land_mask(:, :, bid) .or. k > KMT(:, :, bid))
                 TRACER_MODULE(:, :, k, n, curtime, bid) = c0
@@ -845,14 +842,14 @@ contains
              
              ! --- set column tracers ---
 
-             do n = 1, ecosys_tracer_cnt
+             do n = 1, marbl_tracer_cnt
                 marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
              end do 
 
              ! --- set tracer restore fields ---
 
              if (marbl_instances(bid)%restoring%lrestore_any) then
-                do n=1, ecosys_tracer_cnt
+                do n=1, marbl_tracer_cnt
                    if (allocated(ecosys_tracer_restore_data_3D(n)%climatology)) then
                       marbl_instances(bid)%restoring%tracer_restore(n)%climatology(:) = &
                            ecosys_tracer_restore_data_3D(n)%climatology(i,c,:,bid)
@@ -883,7 +880,7 @@ contains
                 ecosys_saved_state%ph_prev_3d(i, c, :, bid)         = marbl_instances(bid)%saved_state%ph_prev_col(:)
                 ecosys_saved_state%ph_prev_alt_co2_3d(i, c, :, bid) = marbl_instances(bid)%saved_state%ph_prev_alt_co2_col(:)
                 
-                do n = 1, ecosys_tracer_cnt
+                do n = 1, marbl_tracer_cnt
                    dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
                 end do
              end if ! end if domain%kmt > 0
@@ -984,7 +981,7 @@ contains
                      input_forcing_data(i,j,n,iblock)
              end do
 
-             do n = 1,ecosys_tracer_cnt
+             do n = 1,marbl_tracer_cnt
                 marbl_instances(iblock)%surface_vals(index_marbl,n) = &
                      p5*(surface_vals_old(i,j,n,iblock) + surface_vals_cur(i,j,n,iblock))
 
@@ -1033,7 +1030,7 @@ contains
                   marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
              end do
              
-             do n = 1,ecosys_tracer_cnt
+             do n = 1,marbl_tracer_cnt
                 stf_module(i,j,n,iblock) = &
                      marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)  
              end do
@@ -1220,7 +1217,7 @@ contains
     !-----------------------------------------------------------------------
 
     if (ecosys_restore%lrestore_any) then
-       do n=1,ecosys_tracer_cnt
+       do n=1,marbl_tracer_cnt
           associate(&
                marbl_tracer => ecosys_restore%tracer_restore(n), &
                global_field => ecosys_tracer_restore_data_3D(n)  &
