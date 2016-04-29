@@ -139,7 +139,7 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   ! Since this is total number of MARBL tracers, it should be marbl_tracer_cnt
-  integer(int_kind), public :: ecosys_tracer_cnt  ! # of tracers in MARBL
+  integer(int_kind), public :: ecosys_tracer_cnt = MARBL_NT ! # of tracers in MARBL
 
   !-----------------------------------------------------------------------
   ! timers
@@ -567,7 +567,7 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_driver_mod:ecosys_driver_init_tracers_and_saved_state'
-    integer :: n, k, bid, tracer_cnt
+    integer :: n, k, bid
     character(char_len) :: init_option, init_file_fmt
     !-----------------------------------------------------------------------
 
@@ -575,7 +575,7 @@ contains
     !  initialize saved state
     !-----------------------------------------------------------------------
 
-    tracer_cnt = size(tracer_d_module)
+    ecosys_tracer_cnt = size(tracer_d_module)
 
     select case (init_ecosys_option)
        
@@ -657,74 +657,44 @@ contains
     if (marbl_tracer_indices%di14c_ind.ne.0) &
        vflux_flag(marbl_tracer_indices%di14c_ind) = .true.
 
-    do n=1,tracer_cnt
+    do n=1,ecosys_tracer_cnt
+
+      ! Is tracer read from restart file or initial condition?
+      ! What is the file name and format?
       select case (trim(module_name(n)))
         case('ecosys')
           init_option = init_ecosys_option
+          ecosys_restart_filename = trim(init_ecosys_init_file)
           init_file_fmt = init_ecosys_init_file_fmt
 
-          select case (init_option)
-            case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
-              ecosys_restart_filename = char_blank
-              if (init_ecosys_init_file == 'same_as_TS') then
-                 if (read_restart_filename == 'undefined') then
-                    call document(subname, 'no restart file to read ecosys from')
-                    call exit_POP(sigAbort, 'stopping in ' // subname)
-                 endif
-                 ecosys_restart_filename = read_restart_filename
-                 init_file_fmt = init_ts_file_fmt
-              else  ! do not read from TS restart file
-                 ecosys_restart_filename = trim(init_ecosys_init_file)
-              endif
-
-          end select
-       
         case('ciso')
           init_option = ciso_init_ecosys_option
+          ecosys_restart_filename = trim(ciso_init_ecosys_init_file)
           init_file_fmt = ciso_init_ecosys_init_file_fmt
 
-          select case (init_option)
-            case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
-              ecosys_restart_filename = char_blank
-              if (ciso_init_ecosys_init_file == 'same_as_TS') then
-                 if (read_restart_filename == 'undefined') then
-                    call document(subname, 'no restart file to read ciso from')
-                    call exit_POP(sigAbort, 'stopping in ' // subname)
-                 endif
-                 ecosys_restart_filename = read_restart_filename
-                 init_file_fmt = init_ts_file_fmt
-              else  ! do not read from TS restart file
-                 ecosys_restart_filename = trim(ciso_init_ecosys_init_file)
-              endif
-          end select
-       
       end select
 
       select case (init_option)
 
+        ! For restart run, either read from specified file or TS restart file
         case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
+           if (ecosys_restart_filename == 'same_as_TS') then
+              if (read_restart_filename == 'undefined') then
+                 call document(subname, 'no restart file to read ',           &
+                      trim(module_name(n)))
+                 call exit_POP(sigAbort, 'stopping in ' // subname)
+              endif
+              ecosys_restart_filename = read_restart_filename
+              init_file_fmt = init_ts_file_fmt
+           endif
+
            call rest_read_tracer_block(init_file_fmt,        &
                                        ecosys_restart_filename,     &
                                        tracer_d_module(n:n),        &
                                        TRACER_MODULE(:,:,:,n:n,:,:))
 
-           if (n.eq.marbl_tracer_indices%dic_ind) then
-              surf_avg(n) = surf_avg_dic_const
-           elseif (n.eq.marbl_tracer_indices%dic_alt_co2_ind) then
-              surf_avg(n) = surf_avg_dic_const
-           elseif (n.eq.marbl_tracer_indices%alk_ind) then
-              surf_avg(n) = surf_avg_alk_const
-           elseif (n.eq.marbl_tracer_indices%di13c_ind) then
-              surf_avg(n) = surf_avg_di13c_const
-           elseif (n.eq.marbl_tracer_indices%di14c_ind) then
-              surf_avg(n) = surf_avg_di14c_const
-           else
-              surf_avg(n) = c0
-           end if
-
         case ('file', 'ccsm_startup')
-           call file_read_single_tracer(tracer_read(n),                       &
-                                        TRACER_MODULE(:,:,:,n,:,:))
+           call file_read_single_tracer(tracer_read, TRACER_MODULE, n)
 
            if (n_topo_smooth > 0) then
              do k=1, km
@@ -747,24 +717,27 @@ contains
              enddo
            endif
 
-           if (n.eq.marbl_tracer_indices%dic_ind) then
-              surf_avg(n) = surf_avg_dic_const
-           elseif (n.eq.marbl_tracer_indices%dic_alt_co2_ind) then
-              surf_avg(n) = surf_avg_dic_const
-           elseif (n.eq.marbl_tracer_indices%alk_ind) then
-              surf_avg(n) = surf_avg_alk_const
-           elseif (n.eq.marbl_tracer_indices%di13c_ind) then
-              surf_avg(n) = surf_avg_di13c_const
-           elseif (n.eq.marbl_tracer_indices%di14c_ind) then
-              surf_avg(n) = surf_avg_di14c_const
-           else
-              surf_avg(n) = c0
-           end if
-
         case default
          call document(subname, 'init_option', init_option)
          call exit_POP(sigAbort, 'unknown init_option')
+
       end select
+
+      ! Set surf_avg for all tracers
+      if (n.eq.marbl_tracer_indices%dic_ind) then
+         surf_avg(n) = surf_avg_dic_const
+      elseif (n.eq.marbl_tracer_indices%dic_alt_co2_ind) then
+         surf_avg(n) = surf_avg_dic_const
+      elseif (n.eq.marbl_tracer_indices%alk_ind) then
+         surf_avg(n) = surf_avg_alk_const
+      elseif (n.eq.marbl_tracer_indices%di13c_ind) then
+         surf_avg(n) = surf_avg_di13c_const
+      elseif (n.eq.marbl_tracer_indices%di14c_ind) then
+         surf_avg(n) = surf_avg_di14c_const
+      else
+         surf_avg(n) = c0
+      end if
+
     end do
 
     do bid=1, nblocks_clinic
@@ -1178,17 +1151,7 @@ contains
     type (io_field_desc), save :: ph_3d_iodesc
     !-----------------------------------------------------------------------
 
-    if (trim(action) == 'add_attrib_file') then
-
-       short_name = char_blank
-       do n=1, ecosys_tracer_cnt
-          if (vflux_flag(n)) then   
-             short_name = 'surf_avg_' // ind_name_table(n)%name
-             call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
-          endif
-       end do
-
-    else if (trim(action) == 'define') then
+    if (trim(action) == 'define') then
 
        i_dim = construct_io_dim('i', nx_global)
        j_dim = construct_io_dim('j', ny_global)

@@ -327,11 +327,6 @@
    cumulative_nt = 2
 
    if (ecosys_on) then
-      if (ciso_on) then
-        ecosys_tracer_cnt = 41
-      else
-        ecosys_tracer_cnt = 27
-      end if
       call set_tracer_indices('ECOSYS_DRIVER', ecosys_tracer_cnt, cumulative_nt,  &
                               ecosys_driver_ind_begin, ecosys_driver_ind_end)
    end if
