@@ -421,23 +421,19 @@ contains
     end do
 
     ! Set up marbl tracer indices for virtual fluxes
-    dic_ind   = marbl_instances(1)%tracer_indices%get_index('dic',            &
-                    marbl_status_log = marbl_instances(1)%StatusLog)
-    alk_ind   = marbl_instances(1)%tracer_indices%get_index('alk',            &
-                    marbl_status_log = marbl_instances(1)%StatusLog)
-    dic_alt_co2_ind = marbl_instances(1)%tracer_indices%get_index('dic_alt_co2', &
-                    marbl_status_log = marbl_instances(1)%StatusLog)
-    di13c_ind = marbl_instances(1)%tracer_indices%get_index('di13c',          &
-                    marbl_status_log = marbl_instances(1)%StatusLog)
-    di14c_ind = marbl_instances(1)%tracer_indices%get_index('di14c',          &
-                    marbl_status_log = marbl_instances(1)%StatusLog)
-    if (marbl_instances(1)%StatusLog%labort_marbl) then
-      write(error_msg,"(A)") "error code returned from tracer_indices%get_index"
-      call marbl_instances(1)%StatusLog%log_error(error_msg,                  &
-           "ecosys_driver::ecosys_driver_init()")
+    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
+    call document(subname, 'dic_ind', dic_ind)
+    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
+    call document(subname, 'alk_ind', alk_ind)
+    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
+    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
+    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
+    call document(subname, 'di13c_ind', di13c_ind)
+    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
+    call document(subname, 'di14c_ind', di14c_ind)
+    if (any((/dic_ind, alk_ind, dic_alt_co2_ind/).eq.0)) then
+      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
     end if
-    call print_marbl_log(marbl_instances(1)%StatusLog, 1)
-    call marbl_instances(1)%StatusLog%erase()
 
     allocate(ecosys_tracer_restore_data_3D(marbl_tracer_cnt))
     allocate(ind_name_table(marbl_tracer_cnt))
