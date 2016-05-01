@@ -1383,11 +1383,6 @@ if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
     add_default($nl, 'ciso_atm_d14c_const');
     add_default($nl, 'ciso_lsource_sink');
-    add_default($nl, 'ciso_comp_surf_avg_freq_opt');
-    add_default($nl, 'ciso_comp_surf_avg_freq');
-    add_default($nl, 'ciso_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
-    add_default($nl, 'ciso_surf_avg_di13c_const');
-    add_default($nl, 'ciso_surf_avg_di14c_const');
     add_default($nl, 'ciso_atm_d13c_filename');
     add_default($nl, 'ciso_atm_d14c_filename(1)');
     add_default($nl, 'ciso_atm_d14c_filename(2)');
@@ -1443,14 +1438,6 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'gas_flux_forcing_opt');
 
     add_default($nl, 'lsource_sink');
-    add_default($nl, 'comp_surf_avg_freq_opt');
-    add_default($nl, 'comp_surf_avg_freq');
-
-    add_default($nl, 'use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
-
-    add_default($nl, 'surf_avg_dic_const');
-
-    add_default($nl, 'surf_avg_alk_const');
 
    #add_default($nl, 'iron_dust_flx_data_type');
     add_default($nl, 'dust_flux_input%filename');
@@ -1612,6 +1599,11 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
+
+    add_default($nl, 'surf_avg_dic_const');
+    add_default($nl, 'surf_avg_alk_const');
+    add_default($nl, 'surf_avg_di13c_const');
+    add_default($nl, 'surf_avg_di14c_const');
     }
  
 ##########################################

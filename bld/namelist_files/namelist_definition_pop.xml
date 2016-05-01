@@ -5024,47 +5024,6 @@ Default:
 </entry>
 
 <entry 
-id="ciso_comp_surf_avg_freq_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_comp_surf_avg_freq"
-type="integer" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_use_nml_surf_vals"
-type="logical" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_surf_avg_di13c_const"
-type="real"
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_surf_avg_di14c_const"
-type="real"
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-
-<entry 
 id="ciso_atm_d13c_filename"
 type="char*256" 
 category="ecosys"
@@ -5970,46 +5929,6 @@ Default: 'unknown'
 </entry>
 
 <entry 
-id="comp_surf_avg_freq_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'never'
-</entry>
-
-<entry 
-id="comp_surf_avg_freq"
-type="integer" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1
-</entry>
-
-<entry 
-id="use_nml_surf_vals"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true. for startup runs, otherwise .false.
-</entry>
-
-<entry 
-id="surf_avg_dic_const"
-type="real"
-category="ecosys"
-group="ecosys_nml" >
-Default: 1944.0
-</entry>
-
-<entry 
-id="surf_avg_alk_const"
-type="real"
-category="ecosys"
-group="ecosys_nml" >
-Default: 2225.0
-</entry>
-
-<entry 
 id="lsource_sink"
 type="logical"
 category="ecosys"
@@ -6513,6 +6432,38 @@ type="logical"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 
+</entry>
+
+<entry 
+id="surf_avg_dic_const"
+type="real"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 1944.0
+</entry>
+
+<entry 
+id="surf_avg_alk_const"
+type="real"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 2225.0
+</entry>
+
+<entry 
+id="surf_avg_di13c_const"
+type="real"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 1944.0
+</entry>
+
+<entry 
+id="surf_avg_di14c_const"
+type="real"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 1944.0
 </entry>
 
 

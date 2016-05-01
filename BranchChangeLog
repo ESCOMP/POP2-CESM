@@ -1,6 +1,41 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    1 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n04_cesm_pop_2_1_20160407
+Tag Summary: Merge changes from marbl_dev_levy (tracer_update branch of MARBL)
+
+             This cleans up the tracer indexing, especially for cases using
+             both the base ecosys and the ciso modules. Some namelist varibles
+             dealing with surface averages / virtual fluxes have been moved
+             from MARBL to the driver, and the POP routine that reads a block
+             of tracers from an initial condition file has been re-factored to
+             allow us to read ecosys tracers & ciso tracers one-by-one.
+             (Rather than needing to know which tracers come from the base
+             module and which come from ciso, each tracer now contains the
+             name of it's tracer module in the metadata.)
+
+Testing:
+             All aux_pop and aux_pop_MARBL tests pass on yellowstone_intel.
+             Baseline comparisons also pass, though some namelist comparisons
+             fail (due to variables being moved from MARBL namelist to POP /
+             driver namelist). Tested with CIME 4.4.8 and CICE 20160309. Will
+             bring in latest trunk next, and the generate baselines (running
+             hobart_nag on yellowstone with GNU compiler for wider testing).
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    7 Apr 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n03_cesm_pop_2_1_20160407
 Tag Summary: Merge latest trunk tag
