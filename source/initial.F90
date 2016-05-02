@@ -87,6 +87,7 @@
 #endif
    use overflows
    use overflow_type
+   use estuary_mod, only: init_estuary   
    use running_mean_mod, only: running_mean_init
    use mcog, only: init_mcog
    use software_eng_mod, only : lchange_ans, init_software_eng
@@ -565,6 +566,14 @@
 !-----------------------------------------------------------------------
 
    call init_sw_absorption
+
+!-----------------------------------------------------------------------
+!
+!  initialize estuary parameterization
+!
+!-----------------------------------------------------------------------
+
+   call init_estuary
 
 !-----------------------------------------------------------------------
 !
