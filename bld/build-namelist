@@ -1399,10 +1399,16 @@ if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
     add_default($nl, 'ciso_atm_d14c_const');
     add_default($nl, 'ciso_lsource_sink');
-    add_default($nl, 'ciso_atm_d13c_filename');
-    add_default($nl, 'ciso_atm_d14c_filename(1)');
-    add_default($nl, 'ciso_atm_d14c_filename(2)');
-    add_default($nl, 'ciso_atm_d14c_filename(3)');
+    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
+    if ($ciso_atm_opt eq '\'file\'') {
+      add_default($nl, 'ciso_atm_d13c_filename');
+    }
+    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+    if ($ciso_atm_opt eq '\'file\'') {
+      add_default($nl, 'ciso_atm_d14c_filename(1)');
+      add_default($nl, 'ciso_atm_d14c_filename(2)');
+      add_default($nl, 'ciso_atm_d14c_filename(3)');
+    }
     add_default($nl, 'ciso_fract_factors');
     add_default($nl, 'ciso_lecovars_full_depth_tavg');
     add_default($nl, 'ciso_atm_model_year');
