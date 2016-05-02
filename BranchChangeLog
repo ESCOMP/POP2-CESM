@@ -17,6 +17,13 @@ Tag Summary: Bring in latest MARBL tag, which fixes issue in ciso diagnostics
                 test fails in grid.F90, which is a known POP issue and not a
                 problem with MARBL or the driver.
 
+Testing:
+        aux_pop_MARBL tests passed and are bit-for-bit with baselines from
+        marbl_dev_n05 on yellowstone_intel. I added two new tests to the 
+        hobart_nag part of the suite; all 4 tests pass and the 2 old tests
+        were also bit-for-bit with baselines (on both hobart_nag and
+        yellowstone_gnu)
+
 Files Modified:
  M      .
 M       SVN_EXTERNAL_DIRECTORIES
