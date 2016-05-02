@@ -1,5 +1,90 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    2 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n06_cesm_pop_2_1_20160426
+Tag Summary: Bring in latest MARBL tag, which fixes issue in ciso diagnostics
+             for NAG and GNU (initializing a field_3d array that hasn't been
+             allocated - should be field_2d array, but really we don't need
+             to initialize at all because field is over-written in the
+             compute_vertical_integral routine). Also, a couple of updates to
+             get ciso running on hobart_nag out of the box:
+             1. Update build-namelist so we only write ciso_atm_d1[34ac]_filename
+                to namelist if ciso_atm_d1[34]c_opt is not 'const'
+             2. Add a couple of ciso tests to aux_pop_MARBL for hobart_nag.
+                I added SMS_Ld2 (2 day run) and SMS_Ld2_D (2 day run, with
+                DEBUG = TRUE), both at T62_g37 resolution. Note that the DEBUG
+                test fails in grid.F90, which is a known POP issue and not a
+                problem with MARBL or the driver.
+
+Testing:
+        aux_pop_MARBL tests passed and are bit-for-bit with baselines from
+        marbl_dev_n05 on yellowstone_intel. I added two new tests to the 
+        hobart_nag part of the suite; all 4 tests pass and the 2 old tests
+        were also bit-for-bit with baselines (on both hobart_nag and
+        yellowstone_gnu)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       cime_config/testdefs/testlist_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n05_cesm_pop_2_1_20160426
+Tag Summary: Merge latest trunk tag - brings in estuary box model and
+             work-around for gfortran bug that breaks build of ecosys_tavg
+
+Files Modified:
+ M      .
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/baroclinic.F90
+M       source/ecosys_tavg.F90
+A  +    source/estuary_vsf_mod.F90
+M       source/forcing_coupled.F90
+M       source/initial.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n04_cesm_pop_2_1_20160407
+Tag Summary: Merge changes from marbl_dev_levy (tracer_update branch of MARBL)
+
+             This cleans up the tracer indexing, especially for cases using
+             both the base ecosys and the ciso modules. Some namelist varibles
+             dealing with surface averages / virtual fluxes have been moved
+             from MARBL to the driver, and the POP routine that reads a block
+             of tracers from an initial condition file has been re-factored to
+             allow us to read ecosys tracers & ciso tracers one-by-one.
+             (Rather than needing to know which tracers come from the base
+             module and which come from ciso, each tracer now contains the
+             name of it's tracer module in the metadata.)
+
+Testing:
+             All aux_pop and aux_pop_MARBL tests pass on yellowstone_intel.
+             Baseline comparisons also pass, though some namelist comparisons
+             fail (due to variables being moved from MARBL namelist to POP /
+             driver namelist). Tested with CIME 4.4.8 and CICE 20160309. Will
+             bring in latest trunk next, and the generate baselines (running
+             hobart_nag on yellowstone with GNU compiler for wider testing).
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    7 Apr 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n03_cesm_pop_2_1_20160407

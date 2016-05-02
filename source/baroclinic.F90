@@ -65,6 +65,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
+   use estuary_mod   
    use running_mean_mod, only: running_mean_test_update_var
 
    implicit none
@@ -1980,6 +1981,8 @@
    !*** if sw flux available, add penetrative shortwave
    call add_sw_absorb(WORKN, SHF_QSW(:,:,bid), k, this_block)
 
+   !*** if estuary parameterization is turned on add its contribution
+   if ( lestuary_on) call add_estuary_vsf_tracer_tend(WORKN, k, this_block)
 
    FT = FT + WORKN
 
