@@ -1,0 +1,54 @@
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    2 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n02_marbl_dev_n03_cesm_pop_2_1_20160407
+Tag Summary: cleanup of marbl_dev_klindsay_n01
+
+remove unnecessary module use statement
+place contents of this file into BranchBranchChangeLog
+restore marbl_dev BranchChangeLog
+
+Testing: confirmed successful build of CECO testcase with gnu
+
+Files Modified:
+A       BranchBranchChangeLog
+M       BranchChangeLog
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    2 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n01_marbl_dev_n03_cesm_pop_2_1_20160407
+Tag Summary: pass dust flux from coupler into MARBL, if requested
+
+1) pack sum of dust flux fields from coupler into POP array
+2) make POP dust flux field available via tavg (DUST_FLUX_CPL)
+3) pass POP dust flux field to MARBL, if requested
+4) apply unit_conv_factor to all input_forcing_data fields
+
+Testing:
+MARBL commit cb10c64aaa87fa262cb9a42ca822478fffd9d8eb
+ecosys_tavg.F90 from cesm_pop_2_1_20160413 included in testing, but not in this tag
+
+aux_pop_MARBL: (baseline comparison to n00 tag)
+   tests pass with following exceptions
+
+aux_pop_MARBL (gnu): (baseline comparison to n00 tag)
+   all tests pass
+
+Files Modified:
+M       BranchChangeLog
+M       drivers/cpl/ocn_import_export.F90
+M       source/ecosys_driver.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    25 Apr 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n00_marbl_dev_n03_cesm_pop_2_1_20160407
+Tag Summary: Initial branch tag, identical to marbl_dev_klindsay_n00_marbl_dev_n03_cesm_pop_2_1_20160407 trunk tag
+===============================================================================

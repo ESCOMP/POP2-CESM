@@ -1529,7 +1529,6 @@ contains
     use strdata_interface_mod , only : POP_strdata_create
     use passive_tracer_tools  , only : read_field
     use forcing_tools         , only : find_forcing_times
-    use io_tools              , only : document
 
     implicit none
 
