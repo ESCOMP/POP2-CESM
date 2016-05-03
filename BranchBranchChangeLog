@@ -1,7 +1,17 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    1 May 2016
+Tag Date:    3 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n15_marbl_dev_n06_cesm_pop_2_1_20160426
+Tag Summary: Update SVN_EXTERNAL_DIRECTORIES to reflect new MARBL tag
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    2 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n14_marbl_dev_n06_cesm_pop_2_1_20160426
 Tag Summary: Merge latest marbl_dev_status branch (requires MARBL commit
              bcc9497)
