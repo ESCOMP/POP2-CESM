@@ -32,7 +32,6 @@ module ecosys_driver
 
   use marbl_logging             , only : marbl_log_type
   use marbl_logging             , only : marbl_status_log_entry_type
-  use marbl_logging             , only : error_msg
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface_types     , only : marbl_forcing_fields_type
@@ -264,6 +263,7 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
+    character(char_len)                 :: log_message
     integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
     integer (int_kind)                  :: nml_error                          ! error flag for nml read
     integer (int_kind)                  :: iostat                             ! io status flag
@@ -411,10 +411,8 @@ contains
             gcm_zt = zt)
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
-                                     ")%init()"
-         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
-              "ecosys_driver::ecosys_driver_init()")
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
@@ -518,10 +516,9 @@ contains
               sfo_id       = flux_co2_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+         write(log_message,"(A,I0,A)") "marbl(", iblock, &
                                      ")%surface_forcing_output%add_sfo(flux_co2)"
-         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
-              "ecosys_driver::ecosys_driver_init()")
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
@@ -533,10 +530,9 @@ contains
               sfo_id       = totalChl_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+         write(log_message,"(A,I0,A)") "marbl(", iblock, &
                                      ")%surface_forcing_output%add_sfo(totalChl)"
-         call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
-              "ecosys_driver::ecosys_driver_init()")
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
@@ -583,7 +579,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_driver_mod:ecosys_driver_init_tracers_and_saved_state'
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init_tracers_and_saved_state'
     integer :: n, k, bid
     character(char_len) :: init_option, init_file_fmt
     !-----------------------------------------------------------------------
@@ -954,6 +950,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_sflux'
+    character(char_len) :: log_message
     integer (int_kind) :: index_marbl                                 ! marbl index
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
@@ -1021,10 +1019,9 @@ contains
        call marbl_instances(iblock)%set_surface_forcing()
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-          write(error_msg,"(A,I0,A)") &
-               "error code returned from marbl_instances(", iblock, ")%set_surface_forcing()"
-          call marbl_instances(iblock)%StatusLog%log_error(error_msg, &
-               "ecosys_driver::ecosys_driver_set_sflux()")
+          write(log_message,"(A,I0,A)") "marbl_instances(", iblock, &
+                                        ")%set_surface_forcing()"
+          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
