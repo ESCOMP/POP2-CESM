@@ -1113,6 +1113,8 @@
 
 <iron_dust_flx_data_type>monthly</iron_dust_flx_data_type>     
 
+<dust_flux_source>monthly-calendar</dust_flux_source>    
+
 <dust_flux_input%file_fmt>nc</dust_flux_input%file_fmt>    
 
 <dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>

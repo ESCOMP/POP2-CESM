@@ -5199,6 +5199,15 @@ Default: 'nc'
 </entry>
 
 <entry 
+id="dust_flux_source"
+type="char*256" 
+category="ecosys"
+group="ecosys_nml"
+valid_values="monthly-calendar,driver" >
+Default: 'monthly-calendar'
+</entry>
+
+<entry 
 id="dust_flux_input%filename"
 type="char*256" 
 category="ecosys"

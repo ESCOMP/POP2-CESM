@@ -248,6 +248,7 @@
       <test name="ERS">
         <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_dust_flux_driver">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>

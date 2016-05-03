@@ -1453,6 +1453,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'surf_avg_alk_const');
 
    #add_default($nl, 'iron_dust_flx_data_type');
+    add_default($nl, 'dust_flux_source');
     add_default($nl, 'dust_flux_input%filename');
     add_default($nl, 'dust_flux_input%file_fmt');
     add_default($nl, 'dust_flux_input%file_varname');
