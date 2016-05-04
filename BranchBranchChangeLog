@@ -3,6 +3,22 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    4 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n05_marbl_dev_n07_cesm_pop_2_1_20160426
+Tag Summary: add testmods_dirs that were omitted in marbl_dev_klindsay_n03
+
+Testing: none
+MARBL commit 018d284ca4db1ecadbebccbe127fa665238a8bc8
+
+Files Modified:
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/user_nl_pop
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    4 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n04_marbl_dev_n07_cesm_pop_2_1_20160426
 Tag Summary: merge latest marbl_dev branch tag to this branch
 
@@ -35,7 +51,6 @@ M       source/initial.F90
 M       source/passive_tracer_tools.F90
 M       source/passive_tracers.F90
 
-Performing status on external item at 'source/cvmix':
 ===============================================================================
 
 Tag Creator: klindsay
