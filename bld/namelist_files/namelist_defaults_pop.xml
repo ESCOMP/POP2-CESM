@@ -1055,18 +1055,6 @@
 
 <ciso_lsource_sink>.true.</ciso_lsource_sink>
 
-<ciso_comp_surf_avg_freq_opt>never</ciso_comp_surf_avg_freq_opt>
-
-<ciso_comp_surf_avg_freq>1</ciso_comp_surf_avg_freq>
-
-<ciso_use_nml_surf_vals>.false.</ciso_use_nml_surf_vals>
-
-<ciso_use_nml_surf_vals runtype="startup">.true.</ciso_use_nml_surf_vals>
-
-<ciso_surf_avg_di13c_const>1944</ciso_surf_avg_di13c_const>  
-        
-<ciso_surf_avg_di14c_const>1944</ciso_surf_avg_di14c_const>          
-
 <ciso_atm_d13c_filename>ocn/pop/res_indpt/forcing/c13_HG09_20140912.dat</ciso_atm_d13c_filename>
 
 <ciso_atm_d14c_filename(1)>ocn/pop/res_indpt/forcing/c14sth_HG09_20140912.dat</ciso_atm_d14c_filename(1)>
@@ -1099,17 +1087,6 @@
 <gas_flux_forcing_opt>drv</gas_flux_forcing_opt>
 
 <lsource_sink>.true.</lsource_sink>
-
-<comp_surf_avg_freq_opt>never</comp_surf_avg_freq_opt>
-
-<comp_surf_avg_freq>1</comp_surf_avg_freq>
-
-<use_nml_surf_vals>.false.</use_nml_surf_vals>
-<use_nml_surf_vals runtype="startup">.true.</use_nml_surf_vals>
-
-<surf_avg_dic_const>1944.0</surf_avg_dic_const>          
-
-<surf_avg_alk_const>2225.0</surf_avg_alk_const>          
 
 <iron_dust_flx_data_type>monthly</iron_dust_flx_data_type>     
 
@@ -1386,6 +1363,11 @@
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
 <ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
 
+<surf_avg_dic_const>1944.0</surf_avg_dic_const>          
+<surf_avg_alk_const>2225.0</surf_avg_alk_const>          
+<surf_avg_di13c_const>1944.0</surf_avg_di13c_const>  
+<surf_avg_di14c_const>1944.0</surf_avg_di14c_const>          
+
 <!---------------------------->
 <!--moby_nml -->
 <!---------------------------->
@@ -1452,6 +1434,24 @@
 <irf_tracer_file irf_mode="offline_transport" ocn_grid="gx1v6">ocn/pop/gx1v6/ic/IRF_offline_transport_tracers_gx1v6_20150313.nc</irf_tracer_file>
 
 <irf_tracer_file_ind_start>1</irf_tracer_file_ind_start>
+
+<!----------------------------------->
+<!--estuary_nml-->
+<!----------------------------------->
+
+<estuary_option>off</estuary_option>
+<estuary_type>vsf</estuary_type>
+<ebm_param_option>internal</ebm_param_option>
+<ebm_param_filename>unknown-file</ebm_param_filename>
+<ebm_param_file_fmt>nc</ebm_param_file_fmt>
+<tide_amp>1.0</tide_amp>
+<W_h>2000.0</W_h> >
+<H>10.0</H>
+<a1>0.876</a1>
+<a2>0.0</a2>
+<h0>0.5</h0>
+<h_upper>15.0</h_upper>
+<h_lower>25.0</h_lower>
 
 <!----------------------------------->
 <!--derived - thare are temporary --->

@@ -235,7 +235,7 @@ contains
 
     nblocks_clinic = size(flux_diags,4)
 
-    !$OMP PARALLEL DO PRIVATE(iblock)
+    !$OMP PARALLEL DO PRIVATE(iblock,i)
     do iblock=1,nblocks_clinic
 
        associate (diag_cnt => marbl_instances(iblock)%surface_forcing_diags%diag_cnt)

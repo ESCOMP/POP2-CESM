@@ -51,6 +51,7 @@
    use named_field_mod, only: named_field_register, named_field_get_index, &
        named_field_set, named_field_get
    use forcing_fields
+   use estuary_mod   
    use mcog, only: tavg_mcog
    use mcog, only: FRAC_BIN, QSW_RAW_BIN
       
@@ -803,15 +804,44 @@
 !
 !-----------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblock)
-      do iblock = 1, nblocks_clinic
+      if ( lestuary_on) then
+!  Treat river runoff as the interior source
+         if (lvsf_river) call set_estuary_vsf_forcing
+!  Include estuary exchange flow as vertical salt flux
+         if (lebm_on) call set_estuary_exch_circ
+      endif
+
+      if ( lestuary_on ) then
+       !$OMP PARALLEL DO PRIVATE(iblock)
+       do iblock = 1, nblocks_clinic
+!  Add up the freshwater flux except river runoff
+        STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
+                     (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
+                      MELT_F(:,:,iblock)&
+                     +IOFF_F(:,:,iblock))*salinity_factor   &
+                    + SALT_F(:,:,iblock)*sflux_factor)
+       enddo
+       !$OMP END PARALLEL DO
+       if (lvsf_river) THEN
+        !$OMP PARALLEL DO PRIVATE(iblock)
+!  Add global correction for salt conservation with local river reference salinity
+        do iblock = 1, nblocks_clinic
+         STF(:,:,2,iblock) = &
+                & STF(:,:,2,iblock) + RCALCT(:,:,iblock)*vsf_river_correction
+        enddo
+        !$OMP END PARALLEL DO
+       endif
+      else
+       !$OMP PARALLEL DO PRIVATE(iblock)
+!  Estuary exchange flow is not on
+       do iblock = 1, nblocks_clinic
         STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
                      (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
                       MELT_F(:,:,iblock)+ROFF_F(:,:,iblock)+IOFF_F(:,:,iblock))*salinity_factor   &
                     + SALT_F(:,:,iblock)*sflux_factor)  
-      enddo
-      !$OMP END PARALLEL DO
- 
+       enddo
+       !$OMP END PARALLEL DO
+      endif
 !-----------------------------------------------------------------------
 !
 !  balance salt/freshwater in marginal seas

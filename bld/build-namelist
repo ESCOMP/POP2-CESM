@@ -1211,6 +1211,22 @@ add_default($nl, "ecosys_on");
 add_default($nl, "moby_on");
 add_default($nl, "irf_on");
 
+##########################################
+### namelist group: estuary_nml            #
+############################################
+add_default($nl, 'estuary_option');
+add_default($nl, 'estuary_type');
+add_default($nl, 'ebm_param_option');
+add_default($nl, 'ebm_param_filename');
+add_default($nl, 'ebm_param_file_fmt');
+add_default($nl, 'tide_amp');
+add_default($nl, 'W_h');
+add_default($nl, 'H');
+add_default($nl, 'a1');
+add_default($nl, 'a2');
+add_default($nl, 'h0');
+add_default($nl, 'h_upper');
+add_default($nl, 'h_lower');
 
 ##########################################
 # namelist group: iage_nml               #
@@ -1383,15 +1399,16 @@ if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
     add_default($nl, 'ciso_atm_d14c_const');
     add_default($nl, 'ciso_lsource_sink');
-    add_default($nl, 'ciso_comp_surf_avg_freq_opt');
-    add_default($nl, 'ciso_comp_surf_avg_freq');
-    add_default($nl, 'ciso_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
-    add_default($nl, 'ciso_surf_avg_di13c_const');
-    add_default($nl, 'ciso_surf_avg_di14c_const');
-    add_default($nl, 'ciso_atm_d13c_filename');
-    add_default($nl, 'ciso_atm_d14c_filename(1)');
-    add_default($nl, 'ciso_atm_d14c_filename(2)');
-    add_default($nl, 'ciso_atm_d14c_filename(3)');
+    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
+    if ($ciso_atm_opt eq '\'file\'') {
+      add_default($nl, 'ciso_atm_d13c_filename');
+    }
+    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+    if ($ciso_atm_opt eq '\'file\'') {
+      add_default($nl, 'ciso_atm_d14c_filename(1)');
+      add_default($nl, 'ciso_atm_d14c_filename(2)');
+      add_default($nl, 'ciso_atm_d14c_filename(3)');
+    }
     add_default($nl, 'ciso_fract_factors');
     add_default($nl, 'ciso_lecovars_full_depth_tavg');
     add_default($nl, 'ciso_atm_model_year');
@@ -1443,14 +1460,6 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'gas_flux_forcing_opt');
 
     add_default($nl, 'lsource_sink');
-    add_default($nl, 'comp_surf_avg_freq_opt');
-    add_default($nl, 'comp_surf_avg_freq');
-
-    add_default($nl, 'use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
-
-    add_default($nl, 'surf_avg_dic_const');
-
-    add_default($nl, 'surf_avg_alk_const');
 
    #add_default($nl, 'iron_dust_flx_data_type');
     add_default($nl, 'dust_flux_source');
@@ -1613,6 +1622,11 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
+
+    add_default($nl, 'surf_avg_dic_const');
+    add_default($nl, 'surf_avg_alk_const');
+    add_default($nl, 'surf_avg_di13c_const');
+    add_default($nl, 'surf_avg_di14c_const');
     }
  
 ##########################################
@@ -2051,7 +2065,8 @@ my @groups = qw(domain_nml
                 niw_nml
                 se_nml
                 mcog_nml
-                passive_tracers_on_nml);
+                passive_tracers_on_nml
+                estuary_nml);
 
 if ($iage_on eq "TRUE") {
     push @groups, qw(iage_nml);

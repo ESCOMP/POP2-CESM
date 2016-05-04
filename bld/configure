@@ -52,7 +52,7 @@ require Build::Config;
 require XML::Lite;
 
 # Determine tracer count and which modules are active
-my $NT, $ECOSYS_NT, $ZOOPLANKTON_CNT, $AUTOTROPH_CNT, $GRAZER_PREY_CNT;
+my $NT, $ECOSYS_NT, $MARBL_NT, $ZOOPLANKTON_CNT, $AUTOTROPH_CNT, $GRAZER_PREY_CNT;
 my $IRF_NT, $IRF_MODE;
 my $USE_IAGE, $USE_CFC, $USE_ABIO, $USE_CISO, $USE_ECOSYS, $USE_MOBY, $USE_IRF;
 determine_tracer_count();
@@ -163,6 +163,7 @@ sub determine_tracer_count {
   $USE_IRF    = "FALSE";
 
   $NT = 2;
+  $MARBL_NT = 0;
   foreach my $module ( @OCN_TRACER_MODULES )  {
     if ($module eq "iage" ) {
       $USE_IAGE = "TRUE";
@@ -175,10 +176,10 @@ sub determine_tracer_count {
       $NT       = $NT +  2;
     } elsif ($module eq "ciso" ) {
       $USE_CISO = "TRUE";
-      $NT       = $NT + 14;
+      $MARBL_NT = $MARBL_NT + 14;
     } elsif ($module eq "ecosys" ) {
       $USE_ECOSYS = "TRUE";
-      $NT         = $NT + $ECOSYS_NT;
+      $MARBL_NT   = $MARBL_NT + $ECOSYS_NT;
     } elsif ($module eq "moby" ) {
       $USE_MOBY = "TRUE";
       my $dir;
@@ -209,6 +210,7 @@ sub determine_tracer_count {
       die "POP configure: $module is not a valid value in OCN_TRACER_MODULES!";
     }
   }
+  $NT = $NT + $MARBL_NT;
 
 }
 
@@ -222,6 +224,7 @@ sub set_cppdefs {
   if ("$OCN_ICE_FORCING" eq 'inactive' ) {$cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";}
   if ("$POP_TAVG_R8" eq 'TRUE'         ) {$cppdefs = "$cppdefs -DTAVG_R8";}
   $cppdefs = "$cppdefs -DECOSYS_NT=$ECOSYS_NT";
+  $cppdefs = "$cppdefs -DMARBL_NT=$MARBL_NT";
   $cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT";
   $cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT";
   $cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
