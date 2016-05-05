@@ -903,6 +903,9 @@
 <cfc_on>.false.</cfc_on>
 <cfc_on use_cfc="TRUE">.true.</cfc_on>
 
+<sf6_on>.false.</sf6_on>
+<sf6_on use_sf6="TRUE">.true.</sf6_on>
+
 <abio_dic_dic14_on>.false.</abio_dic_dic14_on>
 <abio_dic_dic14_on use_abio="TRUE">.true.</abio_dic_dic14_on>
 
@@ -924,15 +927,32 @@
 
 <cfc_formulation>model</cfc_formulation>
 
-<data_year>1981</data_year>
-<data_year ocn_transient="1850-2000">1850</data_year>
+<data_year&cfc_nml>1981</data_year&cfc_nml>
+<data_year&cfc_nml ocn_transient="1850-2000">1850</data_year&cfc_nml>
 
 <init_cfc_init_file>same_as_TS</init_cfc_init_file>
 
-<model_year>1</model_year>
-<model_year ocn_transient="1850-2000">1850</model_year>
+<model_year&cfc_nml>1</model_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
 
 <pcfc_file>ocn/pop/res_indpt/forcing/pcfc1112_atm_20130410.nc</pcfc_file>
+
+<!---------------------------->
+<!--        sf6_nml         -->
+<!---------------------------->
+
+<sf6_formulation>model</sf6_formulation>
+
+<data_year&sf6_nml>1981</data_year&sf6_nml>
+<data_year&sf6_nml ocn_transient="1850-2000">1850</data_year&sf6_nml>
+
+<init_sf6_init_file>same_as_TS</init_sf6_init_file>
+
+<model_year&sf6_nml>1</model_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
+
+<psf6_file>ocn/pop/res_indpt/forcing/sf6_atm_20160311.nc</psf6_file>
+
 
 <!---------------------------->
 <!--    abio_dic_dic14_nml  -->
