@@ -1,4 +1,24 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  tcraig
+Tag Date:    04 May 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160504
+Tag Summary: bfb bug fix and land block elimination bug fixes
+	 The bug fix to restart appears very rarely and probably only
+	 with the land block elimination.
+
+Testing:
+aux_pop: (baseline comparison to cesm_pop_2_1_20160413 tag)
+   all tests pass
+
+M       ChangeLog
+M       source/POP_DistributionMod.F90
+M       source/POP_SpaceCurveMod.F90
+M       source/distribution.F90
+M       source/restart.F90
+M       source/domain.F90
+
+===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    26 Apr 2016
