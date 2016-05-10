@@ -31,7 +31,7 @@ module ocn_import_export
    use forcing_fields,    only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
    use forcing_fields,    only: IFRAC, U10_SQR, ATM_PRESS
    use forcing_fields,    only: LAMULT, USTOKES, VSTOKES
-   use forcing_fields,    only: DUST_FLUX
+   use forcing_fields,    only: DUST_FLUX, BLACK_CARBON_FLUX
    use mcog,              only: lmcog, mcog_ncols, import_mcog
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
@@ -262,6 +262,11 @@ contains
             x2o(index_x2o_Faxa_dstwet3,n) + x2o(index_x2o_Faxa_dstwet4,n) + &
             x2o(index_x2o_Faxa_dstdry1,n) + x2o(index_x2o_Faxa_dstdry2,n) + &
             x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n))
+
+         ! convert black carbon flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+         BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Faxa_bcphidry,n) + x2o(index_x2o_Faxa_bcphodry,n) + &
+            x2o(index_x2o_Faxa_bcphiwet,n))
       enddo
       enddo
 

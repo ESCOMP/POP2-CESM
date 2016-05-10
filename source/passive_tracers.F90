@@ -926,7 +926,7 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,STF)
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module that compute surface fluxes
@@ -940,7 +940,8 @@
       U10_SQR,  & ! 10m wind speed squared
       ICE_FRAC, & ! sea ice fraction (non-dimensional)
       PRESS,    & ! sea level atmospheric pressure (Pascals)
-      DUST_FLUX   ! dust flux (g/cm^2/s)
+      DUST_FLUX,& ! dust flux (g/cm^2/s)
+      BLACK_CARBON_FLUX  ! black carbon flux (g/cm^2/s)
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -985,7 +986,7 @@
 
    if (ecosys_on) then
       call ecosys_driver_set_sflux(                                             &
-         U10_SQR, ICE_FRAC, PRESS, DUST_FLUX,                                   &
+         U10_SQR, ICE_FRAC, PRESS, DUST_FLUX, BLACK_CARBON_FLUX,                &
          SST_FILT, SSS_FILT,                                                    &
          TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,:), &
          TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,:), &

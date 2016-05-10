@@ -5208,6 +5208,15 @@ Default: none provided
 </entry>
 
 <entry 
+id="iron_flux_source"
+type="char*256" 
+category="ecosys"
+group="ecosys_nml"
+valid_values="monthly-calendar,driver-derived" >
+Default: 'monthly-calendar'
+</entry>
+
+<entry 
 id="iron_flux_input%filename"
 type="char*256" 
 category="ecosys"
@@ -5246,6 +5255,26 @@ type="real"
 category="ecosys"
 group="ecosys_nml" >
 Default: none provided
+</entry>
+
+<entry
+id="iron_frac_in_dust"
+type="real"
+category="ecosys"
+group="ecosys_nml" >
+fraction, by weight, of iron in dust
+
+Default: 0.00035
+</entry>
+
+<entry
+id="iron_frac_in_bc"
+type="real"
+category="ecosys"
+group="ecosys_nml" >
+fraction, by weight, of iron in black carbon
+
+Default: 0.06
 </entry>
 
 <entry 
