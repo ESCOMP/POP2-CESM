@@ -118,18 +118,18 @@ module ecosys_driver
   ! this struct is necessary because there is some global state
   ! that needs to be preserved for from one time step to the next
   type :: ecosys_saved_state_type
-     logical, allocatable, dimension(:) :: is_2d
-     integer :: nvars
-     character(len=char_len), allocatable, dimension(:) :: short_name
-     character(len=char_len), allocatable, dimension(:) :: units
+     integer :: rank
+     logical :: is_2d
+     character(len=char_len) :: short_name
+     character(len=char_len) :: units
 
-     ! (nx_block, ny_block, max_blocks_clinic, num_fields)
-     real (r8), allocatable, dimension(:,:,:,:)   :: field_2d
-     ! (nx_block, ny_block, km, max_blocks_clinic, num_fields)
-     real (r8), allocatable, dimension(:,:,:,:,:) :: field_3d
+     ! (nx_block, ny_block, max_blocks_clinic)
+     real (r8), allocatable, dimension(:,:,:)   :: field_2d
+     ! (nx_block, ny_block, km, max_blocks_clinic)
+     real (r8), allocatable, dimension(:,:,:,:) :: field_3d
   end type ecosys_saved_state_type
-  type(ecosys_saved_state_type) :: ecosys_saved_state_surf
-  type(ecosys_saved_state_type) :: ecosys_saved_state_interior
+  type(ecosys_saved_state_type), allocatable, dimension(:) :: saved_state_surf
+  type(ecosys_saved_state_type), allocatable, dimension(:) :: saved_state_interior
 
   type :: ecosys_restoring_climatology_type
     real(r8), allocatable :: climatology(:,:,:,:)
@@ -425,37 +425,35 @@ contains
     end do
 
     ! Set up saved state data type
-    num_fields = marbl_instances(1)%surface_saved_state%saved_state_cnt
-    ecosys_saved_state_surf%nvars = num_fields
-    allocate(ecosys_saved_state_surf%is_2d(num_fields))
-    allocate(ecosys_saved_state_surf%short_name(num_fields))
-    allocate(ecosys_saved_state_surf%units(num_fields))
-    do n=1, num_fields
-      ecosys_saved_state_surf%is_2d(n) = (marbl_instances(1)%surface_saved_state%state(n)%vertical_grid.eq.'none')
-      ecosys_saved_state_surf%short_name(n) = trim(marbl_instances(1)%surface_saved_state%state(n)%short_name)
-      ecosys_saved_state_surf%units(n) = trim(marbl_instances(1)%surface_saved_state%state(n)%units)
-    end do
-    ! MNL MNL I am allocating the same number of fields for field_2d and
-    !         field_3d rather than including logic to know which one to populate
-    !         but that should change in the next code of code mods
-    allocate(ecosys_saved_state_surf%field_2d(nx_block, ny_block, max_blocks_clinic, num_fields))
-    allocate(ecosys_saved_state_surf%field_3d(nx_block, ny_block, km, max_blocks_clinic, num_fields))
+    associate(marbl_state => marbl_instances(1)%surface_saved_state)
+      num_fields = marbl_state%saved_state_cnt
+      allocate(saved_state_surf(num_fields))
+      do n=1, num_fields
+        saved_state_surf(n)%is_2d = (marbl_state%state(n)%vertical_grid.eq.'none')
+        if (saved_state_surf(n)%is_2d) then
+          allocate(saved_state_surf(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
+        else
+          allocate(saved_state_surf(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+        end if
+        saved_state_surf(n)%short_name = trim(marbl_state%state(n)%short_name)
+        saved_state_surf(n)%units = trim(marbl_state%state(n)%units)
+      end do
+    end associate
 
-    num_fields = marbl_instances(1)%interior_saved_state%saved_state_cnt
-    allocate(ecosys_saved_state_interior%is_2d(num_fields))
-    allocate(ecosys_saved_state_interior%short_name(num_fields))
-    allocate(ecosys_saved_state_interior%units(num_fields))
-    do n=1, num_fields
-      ecosys_saved_state_interior%is_2d(n) = (marbl_instances(1)%interior_saved_state%state(n)%vertical_grid.eq.'none')
-      ecosys_saved_state_interior%short_name(n) = trim(marbl_instances(1)%interior_saved_state%state(n)%short_name)
-      ecosys_saved_state_interior%units(n) = trim(marbl_instances(1)%interior_saved_state%state(n)%units)
-    end do
-    ecosys_saved_state_interior%nvars = num_fields
-    ! MNL MNL I am allocating the same number of fields for field_2d and
-    !         field_3d rather than including logic to know which one to populate
-    !         but that should change in the next code of code mods
-    allocate(ecosys_saved_state_interior%field_2d(nx_block, ny_block, max_blocks_clinic, num_fields))
-    allocate(ecosys_saved_state_interior%field_3d(nx_block, ny_block, km, max_blocks_clinic, num_fields))
+    associate(marbl_state => marbl_instances(1)%interior_saved_state)
+      num_fields = marbl_state%saved_state_cnt
+      allocate(saved_state_interior(num_fields))
+      do n=1, num_fields
+        saved_state_interior(n)%is_2d = (marbl_state%state(n)%vertical_grid.eq.'none')
+        if (saved_state_interior(n)%is_2d) then
+          allocate(saved_state_interior(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
+        else
+          allocate(saved_state_interior(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+        end if
+        saved_state_interior(n)%short_name = trim(marbl_state%state(n)%short_name)
+        saved_state_interior(n)%units = trim(marbl_state%state(n)%units)
+      end do
+    end associate
 
     ! Set up marbl tracer indices for virtual fluxes
     dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
@@ -644,15 +642,26 @@ contains
        endif
 
        call ecosys_driver_read_restart_saved_state(init_file_fmt,             &
-            ecosys_restart_filename, ecosys_saved_state_surf)
+            ecosys_restart_filename, saved_state_surf)
        call ecosys_driver_read_restart_saved_state(init_file_fmt,             &
-            ecosys_restart_filename, ecosys_saved_state_interior)
+            ecosys_restart_filename, saved_state_interior)
 
     case ('file', 'ccsm_startup')
-       ecosys_saved_state_surf%field_2d     = c0
-       ecosys_saved_state_surf%field_3d     = c0
-       ecosys_saved_state_interior%field_2d = c0
-       ecosys_saved_state_interior%field_3d = c0
+       do n=1,size(saved_state_surf)
+         if (saved_state_surf(n)%is_2d) then
+           saved_state_surf(n)%field_2d     = c0
+         else
+           saved_state_surf(n)%field_3d     = c0
+         end if
+       end do
+
+       do n=1,size(saved_state_interior)
+         if (saved_state_interior(n)%is_2d) then
+           saved_state_interior(n)%field_2d     = c0
+         else
+           saved_state_interior(n)%field_3d     = c0
+         end if
+       end do
 
     case default
        call document(subname, 'init_ecosys_option', init_ecosys_option)
@@ -879,9 +888,9 @@ contains
              end if
 
              ! --- copy data from slab to column for marbl_saved_state ---
-             do n=1,ecosys_saved_state_interior%nvars
+             do n=1,size(saved_state_interior)
                marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
-                 ecosys_saved_state_interior%field_3d(i,c,:,bid,n)
+                 saved_state_interior(n)%field_3d(i,c,:,bid)
              end do
 
              !-----------------------------------------------------------
@@ -897,8 +906,8 @@ contains
              !-----------------------------------------------------------
 
              if (marbl_instances(bid)%domain%kmt > 0) then 
-                  do n=1,ecosys_saved_state_interior%nvars
-                  ecosys_saved_state_interior%field_3d(i,c,:,bid,n) = &
+                  do n=1,size(saved_state_interior)
+                  saved_state_interior(n)%field_3d(i,c,:,bid) =               &
                     marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
                 end do
                 
@@ -977,10 +986,6 @@ contains
          sss,                                  &
          input_forcing_data)
 
-    !-----------------------------------------------------------------------
-    ! Update ecosys_saved_state if appropriate
-    !-----------------------------------------------------------------------
-
     ! The following is used in ecosys_driver_set_interior on the next timestep
     dust_flux_in(:,:,:) = input_forcing_data(:,:, marbl_instances(1)%surface_forcing_ind%dust_flux_id,:)
 
@@ -1011,9 +1016,9 @@ contains
 
              end do
 
-             do n=1,ecosys_saved_state_surf%nvars
+             do n=1,size(saved_state_surf)
                marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl) = &
-                 ecosys_saved_state_surf%field_2d(i,j,iblock,n)
+                 saved_state_surf(n)%field_2d(i,j,iblock)
              end do
 
           end do
@@ -1041,8 +1046,8 @@ contains
           do i = 1,nx_block
              index_marbl = i + (j-1)*nx_block
 
-             do n=1,ecosys_saved_state_surf%nvars
-               ecosys_saved_state_surf%field_2d(i,j,iblock,n) = &
+             do n=1,size(saved_state_surf)
+               saved_state_surf(n)%field_2d(i,j,iblock) = &
                  marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl)
              end do
 
@@ -1154,20 +1159,20 @@ contains
 
     if (trim(action) == 'define') then
 
-       allocate(surf_iodesc(ecosys_saved_state_surf%nvars))
+       allocate(surf_iodesc(size(saved_state_surf)))
        surf_iodesc = ecosys_driver_construct_saved_state_io_fields(restart_file, &
-            ecosys_saved_state_surf, ecosys_saved_state_surf%nvars)
+            saved_state_surf, size(saved_state_surf))
 
-       allocate(col_iodesc(ecosys_saved_state_interior%nvars))
+       allocate(col_iodesc(size(saved_state_interior)))
        col_iodesc = ecosys_driver_construct_saved_state_io_fields(restart_file, &
-           ecosys_saved_state_interior, ecosys_saved_state_interior%nvars)
+           saved_state_interior, size(saved_state_interior))
 
     else if (trim(action) == 'write') then
 
-       do n=1,ecosys_saved_state_surf%nvars
+       do n=1,size(saved_state_surf)
           call data_set (restart_file, 'write', surf_iodesc(n))
        end do
-       do n=1,ecosys_saved_state_interior%nvars
+       do n=1,size(saved_state_interior)
           call data_set (restart_file, 'write', col_iodesc(n))
        end do
        deallocate(surf_iodesc)
@@ -1198,7 +1203,7 @@ contains
     implicit none
 
     type (datafile), intent(inout) :: restart_file
-    type(ecosys_saved_state_type), intent(in) :: state
+    type(ecosys_saved_state_type), dimension(:), intent(in) :: state
     integer, intent(in) :: num_fields
     type(io_field_desc), dimension(num_fields) :: io_desc
     !-----------------------------------------------------------------------
@@ -1216,21 +1221,21 @@ contains
     k_dim = construct_io_dim('k', km)
 
     do n=1,num_fields
-      if (state%is_2d(n)) then
-        io_desc(n) = construct_io_field(trim(state%short_name(n)), i_dim, j_dim, &
-                     units = trim(state%units(n)), grid_loc = '2110',            &
+      if (state(n)%is_2d) then
+        io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
+                     units = trim(state(n)%units), grid_loc = '2110',            &
                      field_loc  = field_loc_center,                              &
                      field_type = field_type_scalar,                             &
-                     d2d_array  = state%field_2d(:,:,1:nblocks_clinic,n))
+                     d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
       else
-        io_desc(n) = construct_io_field(trim(state%short_name(n)), i_dim, j_dim, &
-                     k_dim, units = trim(state%units(n)), grid_loc = '3111',     &
+        io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
+                     k_dim, units = trim(state(n)%units), grid_loc = '3111',     &
                      field_loc  = field_loc_center,                              &
                      field_type = field_type_scalar,                             &
-                     d3d_array  = state%field_3d(:,:,:,1:nblocks_clinic,n))
+                     d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
       end if
       write(log_message, "(3A)") "Setting up IO field for ",                  &
-                                 trim(state%short_name(n)), " (in restart)"
+                                 trim(state(n)%short_name), " (in restart)"
       call document(subname, log_message)
       call data_set (restart_file, 'define', io_desc(n))
     end do
@@ -1247,29 +1252,29 @@ contains
 
     character(len=*), intent(in) :: file_fmt
     character(len=*), intent(in) :: filename
-    type(ecosys_saved_state_type), intent(inout) :: state
+    type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
 
     character(*), parameter :: subname='ecosys_driver:ecosys_driver_read_restart_saved_state'
     character(len=char_len) :: log_message
     integer :: n
 
-    do n=1,state%nvars
-      if (field_exists_in_file(file_fmt, filename, state%short_name(n))) then
-        if (state%is_2d(n)) then
-          call read_field(file_fmt, filename, state%short_name(n),            &
-               state%field_2d(:,:,:,n))
+    do n=1,size(state)
+      if (field_exists_in_file(file_fmt, filename, state(n)%short_name)) then
+        if (state(n)%is_2d) then
+          call read_field(file_fmt, filename, state(n)%short_name,            &
+               state(n)%field_2d(:,:,:))
         else
-          call read_field(file_fmt, filename, state%short_name(n),            &
-               state%field_3d(:,:,:,:,n))
+          call read_field(file_fmt, filename, state(n)%short_name,            &
+               state(n)%field_3d(:,:,:,:))
         end if
       else
-        write(log_message, "(4A)") trim(state%short_name(n)), ' does not exist in ', &
+        write(log_message, "(4A)") trim(state(n)%short_name), ' does not exist in ', &
                                    trim(filename), ', setting to 0'
         call document(subname, log_message)
-        if (state%is_2d(n)) then
-          state%field_2d(:,:,:,n) = c0
+        if (state(n)%is_2d) then
+          state(n)%field_2d(:,:,:) = c0
         else
-          state%field_3d(:,:,:,:,n) = c0
+          state(n)%field_3d(:,:,:,:) = c0
         end if
       end if
     end do
