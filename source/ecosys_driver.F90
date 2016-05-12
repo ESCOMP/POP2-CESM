@@ -1657,11 +1657,7 @@ contains
 
     do iblock = 1,nblocks_clinic
 
-       !  Reduce surface dust flux due to assumed instant surface dissolution
-       !  Can't use parm_fe_bioavail when using solFe input files
-       !  dust_flux_in = dust_flux_in * (c1 - parm_Fe_bioavail)
-
-       ! FIXME : is this scaling correct if dust_flux_source = 'driver' ?
+       ! Reduce surface dust flux due to assumed instant surface dissolution
        index = ind%dust_flux_id
        input_forcing_data(:,:, index,iblock) = input_forcing_data(:,:,index,iblock) * 0.98_r8
 
