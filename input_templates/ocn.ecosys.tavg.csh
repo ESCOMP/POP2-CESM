@@ -146,6 +146,8 @@ if ($lecosys_debug == ".true.") then
 1  ATM_ALT_CO2
 1  IRON_FLUX
 1  DUST_FLUX
+1  DUST_FLUX_CPL
+1  BLACK_CARBON_FLUX_CPL
 1  NOx_FLUX
 1  NHy_FLUX
 1  DIN_RIV_FLUX

@@ -1090,11 +1090,15 @@
 
 <iron_dust_flx_data_type>monthly</iron_dust_flx_data_type>     
 
+<dust_flux_source>monthly-calendar</dust_flux_source>    
+
 <dust_flux_input%file_fmt>nc</dust_flux_input%file_fmt>    
 
 <dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>
 
 <dust_flux_input%scale_factor>1.0e-1</dust_flux_input%scale_factor>
+
+<iron_flux_source>monthly-calendar</iron_flux_source>    
 
 <iron_flux_input%file_fmt>nc</iron_flux_input%file_fmt>
 
@@ -1104,6 +1108,10 @@
 <!-- 1.79e6 = kgFe/m^2/sec -> nmol/cm^2/sec, var. solFe file -->
 <iron_flux_input%scale_factor ocn_grid="gx3v7">1.79e6</iron_flux_input%scale_factor>
 <iron_flux_input%scale_factor ocn_grid="gx1v6">1.79e6</iron_flux_input%scale_factor>
+
+<iron_frac_in_dust>0.00035</iron_frac_in_dust>
+
+<iron_frac_in_bc>0.06</iron_frac_in_bc>
 
 <fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
 

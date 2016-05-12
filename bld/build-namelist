@@ -1462,14 +1462,18 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lsource_sink');
 
    #add_default($nl, 'iron_dust_flx_data_type');
+    add_default($nl, 'dust_flux_source');
     add_default($nl, 'dust_flux_input%filename');
     add_default($nl, 'dust_flux_input%file_fmt');
     add_default($nl, 'dust_flux_input%file_varname');
     add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
+    add_default($nl, 'iron_flux_source');
     add_default($nl, 'iron_flux_input%filename');
     add_default($nl, 'iron_flux_input%file_fmt');
     add_default($nl, 'iron_flux_input%file_varname');
     add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
+    add_default($nl, 'iron_frac_in_dust');
+    add_default($nl, 'iron_frac_in_bc');
     add_default($nl, 'fesedflux_input%filename');
     add_default($nl, 'fesedflux_input%file_varname');
     add_default($nl, 'fesedflux_input%file_fmt');
