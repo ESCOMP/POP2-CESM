@@ -939,6 +939,8 @@ contains
        u10_sqr,                       &
        ifrac,                         &
        press,                         &
+       dust_flux,                     &
+       black_carbon_flux,             &
        sst,                           &
        sss,                           &
        surface_vals_old,              &
@@ -955,13 +957,15 @@ contains
 
     implicit none
 
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: u10_sqr ! 10m wind speed squared (cm/s)**2
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: ifrac   ! sea ice fraction (non-dimensional)
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: press   ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sst     ! sea surface temperature (c)
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sss     ! sea surface salinity (psu)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: u10_sqr           ! 10m wind speed squared (cm/s)**2
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: ifrac             ! sea ice fraction (non-dimensional)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: press             ! sea level atmospheric pressure (dyne/cm**2)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: dust_flux         ! dust flux (g/cm**2/s)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: black_carbon_flux ! black carbon flux (g/cm**2/s)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sst               ! sea surface temperature (c)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sss               ! sea surface salinity (psu)
     real (r8), dimension(:,:,:,:)                             , intent(in)    :: surface_vals_old
-    real (r8), dimension(:,:,:,:)                             , intent(in)    :: surface_vals_cur ! module tracers
+    real (r8), dimension(:,:,:,:)                             , intent(in)    :: surface_vals_cur  ! module tracers
     real (r8), dimension(:,:,:,:)                             , intent(inout) :: stf_module
 
     !-----------------------------------------------------------------------
@@ -982,6 +986,8 @@ contains
          u10_sqr,                              &
          ifrac,                                &
          press,                                &
+         dust_flux,                            &
+         black_carbon_flux,                    &
          sst,                                  &
          sss,                                  &
          input_forcing_data)
@@ -1366,6 +1372,8 @@ contains
        u10_sqr,                                    &
        ifrac,                                      &
        press,                                      &
+       dust_flux,                                  &
+       black_carbon_flux,                          &
        sst,                                        &
        sss,                                        &
        input_forcing_data)
@@ -1404,6 +1412,8 @@ contains
     real (r8), intent(in)  :: u10_sqr              (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
     real (r8), intent(in)  :: ifrac                (nx_block,ny_block,max_blocks_clinic) ! sea ice fraction (non-dimensional)
     real (r8), intent(in)  :: press                (nx_block,ny_block,max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
+    real (r8), intent(in)  :: dust_flux            (nx_block,ny_block,max_blocks_clinic) ! dust flux (g/cm**2/s)
+    real (r8), intent(in)  :: black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux (g/cm**2/s)
     real (r8), intent(in)  :: sst                  (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
     real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)    
     real (r8), intent(out) :: input_forcing_data   (nx_block,ny_block,num_surface_forcing_fields, max_blocks_clinic)
@@ -1411,7 +1421,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character (*), parameter       :: subname = 'ecosys_driver:ecosys_driver_read_sflux'
+    character (*), parameter       :: subname = 'ecosys_driver:ecosys_driver_set_input_forcing_data'
     logical   (log_kind)           :: first_call = .true.
     type      (block)              :: this_block                                            ! block info for the current block
     integer   (int_kind)           :: index                                                 ! field index
@@ -1547,7 +1557,6 @@ contains
     !  loop throught forcing fields 
     !-----------------------------------------------------------------------
 
-    ! FIXME: apply unit_conv_factor in all cases, not just 'file'
     do index = 1, num_surface_forcing_fields
 
        select case (fields(index)%field_source)
@@ -1644,6 +1653,12 @@ contains
              else if (index == ind%u10_sqr_id) then
                 input_forcing_data(:,:,index,iblock) = u10_sqr(:,:,iblock)
 
+             else if (index == ind%dust_flux_id) then
+                input_forcing_data(:,:,index,iblock) = dust_flux(:,:,iblock)
+
+             else if (index == ind%black_carbon_flux_id) then
+                input_forcing_data(:,:,index,iblock) = black_carbon_flux(:,:,iblock)
+
              else if (index == ind%d13c_id) then
                 input_forcing_data(:,:,index,iblock) = d13c(:,:,iblock)
 
@@ -1688,12 +1703,20 @@ contains
              
              do iblock = 1, nblocks_clinic
                 where (land_mask(:, :, iblock))
-                   input_forcing_data(:,:,index,iblock) = fields(index)%unit_conv_factor*shr_stream(:, :, iblock)
+                   input_forcing_data(:,:,index,iblock) = shr_stream(:, :, iblock)
                 endwhere
              enddo
           end if
              
        end select ! file, constant, driver, shr_stream
+
+       if (fields(index)%unit_conv_factor /= c1) then
+          do iblock = 1, nblocks_clinic
+             where (land_mask(:, :, iblock))
+                input_forcing_data(:,:,index,iblock) = fields(index)%unit_conv_factor*input_forcing_data(:,:,index,iblock)
+             endwhere
+          enddo
+       end if
           
     end do ! fields(index)%field_source
 
@@ -1703,13 +1726,12 @@ contains
 
     do iblock = 1,nblocks_clinic
 
-       !  Reduce surface dust flux due to assumed instant surface dissolution
-       !  Can't use parm_fe_bioavail when using solFe input files
-       !  dust_flux_in = dust_flux_in * (c1 - parm_Fe_bioavail)
-
+       ! Reduce surface dust flux due to assumed instant surface dissolution
        index = ind%dust_flux_id
        input_forcing_data(:,:, index,iblock) = input_forcing_data(:,:,index,iblock) * 0.98_r8
 
+       ! FIXME : this won't work if iron_flux_source = 'driver-derived', fix this
+       ! when surface forcing source is selected in driver, instead of MARBL
        index = ind%iron_flux_id
        if (liron_patch .and. imonth == iron_patch_month) then
           input_forcing_data(:,:,index,iblock) = input_forcing_data(:,:,index,iblock) + iron_patch_flux(:,:,iblock)

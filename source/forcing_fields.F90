@@ -71,6 +71,10 @@ module forcing_fields
       USTOKES,           &! surface Stokes drift x component
       VSTOKES             ! surface Stokes drift y component
 
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+      public, target ::  &
+      DUST_FLUX,         &! dust flux from cpl (g/cm2/s)
+      BLACK_CARBON_FLUX   ! black carbon flux from cpl (g/cm2/s)
 
 !***********************************************************************
 

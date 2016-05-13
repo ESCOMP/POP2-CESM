@@ -54,7 +54,7 @@ require XML::Lite;
 # Determine tracer count and which modules are active
 my $NT, $ECOSYS_NT, $MARBL_NT, $ZOOPLANKTON_CNT, $AUTOTROPH_CNT, $GRAZER_PREY_CNT;
 my $IRF_NT, $IRF_MODE;
-my $USE_IAGE, $USE_CFC, $USE_ABIO, $USE_CISO, $USE_ECOSYS, $USE_MOBY, $USE_IRF;
+my $USE_IAGE, $USE_CFC, $USE_SF6, $USE_ABIO, $USE_CISO, $USE_ECOSYS, $USE_MOBY, $USE_IRF;
 determine_tracer_count();
 
 # Set up CPPDEFS
@@ -69,6 +69,7 @@ my $cfg = Build::Config->new("$cfg_def_file");
 $cfg->set('ocn_grid',   $OCN_GRID);
 $cfg->set('use_iage',   $USE_IAGE);
 $cfg->set('use_cfc',    $USE_CFC);
+$cfg->set('use_sf6',    $USE_SF6);
 $cfg->set('use_abio',   $USE_ABIO);
 $cfg->set('use_ciso',   $USE_CISO);
 $cfg->set('use_ecosys', $USE_ECOSYS);
@@ -156,6 +157,7 @@ sub determine_tracer_count {
 
   $USE_IAGE   = "FALSE";
   $USE_CFC    = "FALSE";
+  $USE_SF6    = "FALSE";
   $USE_ABIO   = "FALSE";
   $USE_CISO   = "FALSE";
   $USE_ECOSYS = "FALSE";
@@ -171,6 +173,9 @@ sub determine_tracer_count {
     } elsif ($module eq "cfc" ) {
       $USE_CFC = "TRUE";
       $NT      = $NT +  2;
+    } elsif ($module eq "sf6" ) {
+      $USE_SF6 = "TRUE";
+      $NT      = $NT +  1;
     } elsif ($module eq "abio_dic_dic14" ) {
       $USE_ABIO = "TRUE";
       $NT       = $NT +  2;

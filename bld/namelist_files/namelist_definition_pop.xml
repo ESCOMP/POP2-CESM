@@ -4357,6 +4357,16 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 </entry>
 
 <entry 
+id="sf6_on"
+type="logical" 
+category="passive_tracers"
+group="passive_tracers_on_nml" >
+Flag for using sf6 module.
+
+Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
+</entry>
+
+<entry 
 id="iage_on"
 type="logical" 
 category="passive_tracers"
@@ -4594,20 +4604,20 @@ Default: '$DIN_LOC_ROOT/ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc'
 </entry>
 
 <entry 
-id="model_year"
+id="model_year&cfc_nml"
 type="integer" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Arbitrary model year.
 
 Default: 1850 for 1850-2000 transient run, 1 otherwise. 
 </entry>
 
 <entry 
-id="data_year"
+id="data_year&cfc_nml"
 type="integer" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Year in data that corresponds to model_year.
 
 Default: 1850 for 1850-2000 transient run, 1981 otherwise. 
@@ -4742,6 +4752,260 @@ Default:
 
 <entry 
 id="gas_flux_ap%default_val&cfc_nml"
+type="real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: sf6_nml                  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="init_sf6_option"
+type="char*256"
+category="passive_tracers"
+group="sf6_nml"
+valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_branch,ccsm_hybrid,file" >
+Option for initialization of sf6.
+
+Valid Values: 'ccsm_startup', 'zero', 'ccsm_startup_spunup', 'restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid', 'file'
+Default: Set by CESM scripts ('zero' for starting 1850-2000 transient run, 'ccsm_$runtype'otherwise)
+</entry>
+
+<entry 
+id="init_sf6_init_file"
+type="char*256" 
+category="passive_tracers"
+group="sf6_nml"
+input_pathname="abs" >
+Filename for initializing sf6 (if init_sf6_option='file').
+
+Default: 'same_as_TS'
+</entry>
+
+<entry 
+id="init_sf6_init_file_fmt"
+type="char*256" 
+category="passive_tracers"
+group="sf6_nml"
+valid_values="bin,nc" >
+init_sf6_init_file format (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
+Default: 'bin'
+</entry>
+
+<entry 
+id="tracer_init_ext%mod_varname&sf6_nml"
+type="dtype(1)%char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%filename&sf6_nml"
+type="dtype(2)%char*256" 
+category="passive_tracers"
+group="derived"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%file_varname&sf6_nml"
+type="dtype(1)%char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%file_fmt&sf6_nml"
+type="dtype(1)%char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%scale_factor&sf6_nml"
+type="dtype(1)%real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%default_val&sf6_nml"
+type="dtype(1)%real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="psf6_file"
+type="char*256" 
+category="passive_tracers"
+group="sf6_nml"
+input_pathname="abs" >
+File name for ascii time series of atm sf6.
+
+Default: '/glade/p/work/mclong/cfc_atm_hist/cfc_sf6_n2o_atm_20160311.nc'
+</entry>
+
+<entry 
+id="model_year&sf6_nml"
+type="integer" 
+category="passive_tracers"
+group="derived" >
+Arbitrary model year.
+
+Default: 1850 for 1850-2000 transient run, 1 otherwise. 
+</entry>
+
+<entry 
+id="data_year&sf6_nml"
+type="integer" 
+category="passive_tracers"
+group="derived" >
+Year in data that corresponds to model_year.
+
+Default: 1850 for 1850-2000 transient run, 1981 otherwise. 
+</entry>
+
+<entry 
+id="sf6_formulation"
+type="char*256" 
+category="passive_tracers"
+group="sf6_nml"
+valid_values="ocmip,model" >
+Flux formulation.
+
+Valid Values: 'ocmip', 'model'
+Default: 'model'
+</entry>
+
+<entry 
+id="gas_flux_fice%filename&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%file_fmt&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%file_varname&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%scale_factor&sf6_nml"
+type="real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%default_val&sf6_nml"
+type="real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%filename&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%file_fmt&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%file_varname&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%scale_factor&sf6_nml"
+type="real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%default_val&sf6_nml"
+type="real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%filename&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%file_fmt&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%file_varname&sf6_nml"
+type="char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%scale_factor&sf6_nml"
+type="real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%default_val&sf6_nml"
 type="real" 
 category="passive_tracers"
 group="derived" >
@@ -5158,6 +5422,15 @@ Default: 'nc'
 </entry>
 
 <entry 
+id="dust_flux_source"
+type="char*256" 
+category="ecosys"
+group="ecosys_nml"
+valid_values="monthly-calendar,driver" >
+Default: 'monthly-calendar'
+</entry>
+
+<entry 
 id="dust_flux_input%filename"
 type="char*256" 
 category="ecosys"
@@ -5199,6 +5472,15 @@ Default: none provided
 </entry>
 
 <entry 
+id="iron_flux_source"
+type="char*256" 
+category="ecosys"
+group="ecosys_nml"
+valid_values="monthly-calendar,driver-derived" >
+Default: 'monthly-calendar'
+</entry>
+
+<entry 
 id="iron_flux_input%filename"
 type="char*256" 
 category="ecosys"
@@ -5237,6 +5519,26 @@ type="real"
 category="ecosys"
 group="ecosys_nml" >
 Default: none provided
+</entry>
+
+<entry
+id="iron_frac_in_dust"
+type="real"
+category="ecosys"
+group="ecosys_nml" >
+fraction, by weight, of iron in dust
+
+Default: 0.00035
+</entry>
+
+<entry
+id="iron_frac_in_bc"
+type="real"
+category="ecosys"
+group="ecosys_nml" >
+fraction, by weight, of iron in black carbon
+
+Default: 0.06
 </entry>
 
 <entry 

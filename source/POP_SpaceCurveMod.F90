@@ -1265,6 +1265,7 @@ contains
    allocate(res%used(tmp2))
 
    res%used = 0
+   res%factors = 1
    n=0
 
    !-----------------------

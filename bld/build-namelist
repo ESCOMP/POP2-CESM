@@ -1205,6 +1205,7 @@ add_default($nl, "lchange_ans");
 
 add_default($nl, "iage_on");
 add_default($nl, "cfc_on");
+add_default($nl, "sf6_on");
 add_default($nl, "ciso_on");
 add_default($nl, "abio_dic_dic14_on");
 add_default($nl, "ecosys_on");
@@ -1284,12 +1285,66 @@ if ($cfc_on eq "TRUE") {
     }
     add_default($nl, 'init_cfc_option', 'val'=>"$init_cfc_option");
 
-    add_default($nl, 'model_year', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
 
     add_default($nl, 'cfc_formulation');
     add_default($nl, 'pcfc_file');
     add_default($nl, 'init_cfc_init_file', 'noprepend'=>1);
+}
+
+##########################################
+# namelist group: sf6_nml                #
+##########################################
+
+my $sf6_on = $cfg->get("use_sf6");
+if ($sf6_on eq "TRUE") {
+
+#===============================================================================
+#  values of init_sf6_option for OCN_TRANSIENT == 1850-2000 are from following table
+#  runtype is set in $CASEROOT/env_run.xml
+#
+#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_sf6_option
+#  TRUE           any             any             continue    ccsm_continue
+#  FALSE          <= 1930         any             $RUN_TYPE   zero
+#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
+#  FALSE          > 1930          startup         $RUN_TYPE   abort
+#===============================================================================
+
+    my $init_sf6_option;
+    $init_sf6_option = "ccsm_${RUN_TYPE}";
+    if ($OCN_TRANSIENT eq "1850-2000") {
+      if ($RUN_TYPE ne "continue") {
+        my $RUN_DAY_ONE = $RUN_STARTDATE;
+        if ($RUN_TYPE eq "branch") {
+          $RUN_DAY_ONE = $RUN_REFDATE;
+        }
+        my @START_ARRAY = split('-',$RUN_DAY_ONE);
+        my $START_YEAR = @START_ARRAY[0];
+        print "Setting initial SF6 based on starting the run in $START_YEAR\n";
+        if ($START_YEAR le 1930) {
+          $init_sf6_option = "zero";
+        } else {
+          if ($RUN_TYPE eq "startup") {
+            # Check to see if init_sf6_option was set in user_nl_pop
+            $init_sf6_option = $nl->get_variable_value("sf6_nml", "init_sf6_option");
+            if ($init_sf6_option eq "") {
+              # If not, error out with message saying value must be specified 
+              print "ERROR: SF6 cannot be automatically initializd post 1930 in a startup run! Set init_sf6_option in user_nl_pop before building pop_in.\n";
+              die;
+            }
+          }
+        }
+      }
+    }
+    add_default($nl, 'init_sf6_option', 'val'=>"$init_sf6_option");
+
+    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+
+    add_default($nl, 'sf6_formulation');
+    add_default($nl, 'psf6_file');
+    add_default($nl, 'init_sf6_init_file', 'noprepend'=>1);
 }
 
 ##########################################
@@ -1462,14 +1517,18 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lsource_sink');
 
    #add_default($nl, 'iron_dust_flx_data_type');
+    add_default($nl, 'dust_flux_source');
     add_default($nl, 'dust_flux_input%filename');
     add_default($nl, 'dust_flux_input%file_fmt');
     add_default($nl, 'dust_flux_input%file_varname');
     add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
+    add_default($nl, 'iron_flux_source');
     add_default($nl, 'iron_flux_input%filename');
     add_default($nl, 'iron_flux_input%file_fmt');
     add_default($nl, 'iron_flux_input%file_varname');
     add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
+    add_default($nl, 'iron_frac_in_dust');
+    add_default($nl, 'iron_frac_in_bc');
     add_default($nl, 'fesedflux_input%filename');
     add_default($nl, 'fesedflux_input%file_varname');
     add_default($nl, 'fesedflux_input%file_fmt');
@@ -2072,6 +2131,9 @@ if ($iage_on eq "TRUE") {
 }    
 if ($cfc_on eq "TRUE" ) {
     push @groups, qw(cfc_nml);
+}    
+if ($sf6_on eq "TRUE" ) {
+    push @groups, qw(sf6_nml);
 }    
 if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml ecosys_restore_nml);
