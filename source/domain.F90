@@ -392,13 +392,8 @@
          if (this_block%j_glob(j) > 0) then
             do i=this_block%ib,this_block%ie
                if (this_block%i_glob(i) > 0) then
-#ifdef _HIRES
                   if(KMTG(this_block%i_glob(i), this_block%j_glob(j)) > 0)  &
                                 nocn(n) = nocn(n) + 1
-#else
-                  if (KMTG(this_block%i_glob(i),this_block%j_glob(j)) >= 0) &
-                                nocn(n) = nocn(n) + 1
-#endif
                endif
             end do
          endif

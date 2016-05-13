@@ -903,6 +903,9 @@
       return
    endif
 
+   newDistrb%blockLocation = 0
+   newDistrb%blockLocalID = 0
+
 !----------------------------------------------------------------------
 !
 !  distribute blocks linearly across processors in each direction
@@ -932,11 +935,11 @@
             petargetwork = totwork/float(numProcs-pe+1)
          endif
       endif
-      pecnt = pecnt + 1
-      pework = pework + float(workperblock(nblck))
-      totwork = totwork - float(workperblock(nblck))
 
       if (workperblock(nblck) /= 0) then
+         pecnt = pecnt + 1
+         pework = pework + float(workperblock(nblck))
+         totwork = totwork - float(workperblock(nblck))
          newDistrb%blockLocation(nblck) = pe
          newDistrb%blockLocalID(nblck) = pecnt
       else

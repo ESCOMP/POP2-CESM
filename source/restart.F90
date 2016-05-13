@@ -851,6 +851,8 @@
          where (k > KMU(:,:,iblock))
             UVEL(:,:,k,curtime,iblock) = c0
             VVEL(:,:,k,curtime,iblock) = c0
+            UVEL(:,:,k,oldtime,iblock) = c0
+            VVEL(:,:,k,oldtime,iblock) = c0
          endwhere
       enddo
       endif

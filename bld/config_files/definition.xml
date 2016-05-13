@@ -14,6 +14,9 @@ Use ideal age tracer module
 <entry id="use_cfc" valid_values="FALSE,TRUE" value="FALSE">
 Use cfc tracer module
 </entry>
+<entry id="use_sf6" valid_values="FALSE,TRUE" value="FALSE">
+Use sf6 tracer module
+</entry>
 <entry id="use_abio" valid_values="FALSE,TRUE" value="FALSE">
 Use abio tracer module
 </entry>

@@ -59,6 +59,12 @@
        cfc_set_sflux,              &
        cfc_tavg_forcing
 
+   use sf6_mod, only:              &
+       sf6_tracer_cnt,             &
+       sf6_init,                   &
+       sf6_set_sflux,              &
+       sf6_tavg_forcing
+
    use iage_mod, only:             &
        iage_tracer_cnt,            &
        iage_init,                  &
@@ -157,11 +163,11 @@
 !-----------------------------------------------------------------------
 
    logical (kind=log_kind) ::  &
-      ecosys_on, cfc_on, iage_on, moby_on, &
+      ecosys_on, cfc_on, sf6_on, iage_on, moby_on, &
       abio_dic_dic14_on, ciso_on, IRF_on
 
    namelist /passive_tracers_on_nml/  &
-      ecosys_on, cfc_on, iage_on, moby_on, &
+      ecosys_on, cfc_on, sf6_on, iage_on, moby_on, &
       abio_dic_dic14_on, ciso_on, IRF_on
 
 
@@ -173,6 +179,7 @@
       ecosys_driver_ind_begin,   ecosys_driver_ind_end,  &
       iage_ind_begin,            iage_ind_end,           &
       cfc_ind_begin,             cfc_ind_end,            &
+      sf6_ind_begin,             sf6_ind_end,            &
       moby_ind_begin,            moby_ind_end,           &
       abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end, &
       IRF_ind_begin,             IRF_ind_end
@@ -251,6 +258,7 @@
    ecosys_on         = .false.
    ciso_on           = .false.
    cfc_on            = .false.
+   sf6_on            = .false.
    iage_on           = .false.
    moby_on           = .false.
    abio_dic_dic14_on = .false.
@@ -289,6 +297,7 @@
    call broadcast_scalar(ecosys_on,         master_task)
    call broadcast_scalar(ciso_on,           master_task)
    call broadcast_scalar(cfc_on,            master_task)
+   call broadcast_scalar(sf6_on,            master_task)
    call broadcast_scalar(iage_on,           master_task)
    call broadcast_scalar(moby_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
@@ -308,6 +317,10 @@
 
    if (cfc_on .and. .not. registry_match('lcoupled')) then
       call exit_POP(sigAbort,'cfc module requires the flux coupler')
+   end if
+
+   if (sf6_on .and. .not. registry_match('lcoupled')) then
+      call exit_POP(sigAbort,'sf6 module requires the flux coupler')
    end if
 
    if (abio_dic_dic14_on .and. .not. registry_match('lcoupled')) then
@@ -334,6 +347,11 @@
    if (cfc_on) then
       call set_tracer_indices('CFC', cfc_tracer_cnt, cumulative_nt,  &
                               cfc_ind_begin, cfc_ind_end)
+   end if
+
+   if (sf6_on) then
+      call set_tracer_indices('SF6', sf6_tracer_cnt, cumulative_nt,  &
+                              sf6_ind_begin, sf6_ind_end)
    end if
 
    if (iage_on) then
@@ -419,6 +437,24 @@
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
             'init_passive_tracers: error in cfc_init')
+         return
+      endif
+
+   end if
+
+!-----------------------------------------------------------------------
+!  SF6 block
+!-----------------------------------------------------------------------
+
+   if (sf6_on) then
+      call sf6_init(init_ts_file_fmt, read_restart_filename, &
+                    tracer_d(sf6_ind_begin:sf6_ind_end), &
+                    TRACER(:,:,:,sf6_ind_begin:sf6_ind_end,:,:), &
+                    errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in sf6_init')
          return
       endif
 
@@ -676,7 +712,7 @@
 !  allocate space for filtered SST and SSS, if needed
 !-----------------------------------------------------------------------
 
-   filtered_SST_SSS_needed = ecosys_on .or. cfc_on .or. &
+   filtered_SST_SSS_needed = ecosys_on .or. cfc_on .or. sf6_on .or. &
                              abio_dic_dic14_on
 
    if (filtered_SST_SSS_needed) then
@@ -750,6 +786,10 @@
 
 !-----------------------------------------------------------------------
 !  CFC does not have source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  SF6 does not have source-sink terms
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -888,6 +928,10 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+!  SF6 does not compute and store 3D source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !  Ideal Age (IAGE) does not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
 
@@ -1006,6 +1050,18 @@
    end if
 
 !-----------------------------------------------------------------------
+!  SF6 block
+!-----------------------------------------------------------------------
+
+   if (sf6_on) then
+      call sf6_set_sflux(U10_SQR, ICE_FRAC, PRESS,                 &
+         SST_FILT, SSS_FILT,                                       &
+         TRACER(:,:,1,sf6_ind_begin:sf6_ind_end,oldtime,:),        &
+         TRACER(:,:,1,sf6_ind_begin:sf6_ind_end,curtime,:),        &
+         STF(:,:,sf6_ind_begin:sf6_ind_end,:))
+   end if
+
+!-----------------------------------------------------------------------
 !  IAGE does not have surface fluxes
 !-----------------------------------------------------------------------
 
@@ -1103,6 +1159,10 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+!  SF6 does not write additional restart fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !  IAGE does not write additional restart fields
 !-----------------------------------------------------------------------
 
@@ -1162,6 +1222,10 @@
 
 !-----------------------------------------------------------------------
 !  CFC does not reset values
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  SF6 does not reset values
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -1415,6 +1479,14 @@
    end if
 
 !-----------------------------------------------------------------------
+!  SF6 block
+!-----------------------------------------------------------------------
+
+   if (sf6_on) then
+      call sf6_tavg_forcing
+   end if
+
+!-----------------------------------------------------------------------
 !  IAGE does not have additional sflux tavg fields
 !-----------------------------------------------------------------------
 
@@ -1544,6 +1616,10 @@
 
 !-----------------------------------------------------------------------
 !  CFC does not use virtual fluxes
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  SF6 does not use virtual fluxes
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
