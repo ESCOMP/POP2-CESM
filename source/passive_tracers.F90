@@ -43,12 +43,9 @@
    use io_tools, only: document
    use passive_tracer_tools, only: set_tracer_indices
 
-   use marbl_sizes, only: &
-       ecosys_used_tracer_cnt
-
    use ecosys_driver, only:               &
+       marbl_tracer_cnt,                  &
        ecosys_driver_init,                &
-       ecosys_driver_tracer_cnt_init,     &
        ecosys_driver_tracer_ref_val,      &
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
@@ -337,22 +334,13 @@
    tadvect_ctype_passive_tracers(3:nt) = 'base_model'
 
 !-----------------------------------------------------------------------
-!  determine ecosys_driver tracer count, which is the sum of the tracer
-!  count in all ecosys modules --> done in ecosys_driver
-!-----------------------------------------------------------------------
-
-   if (ecosys_on) then
-      call ecosys_driver_tracer_cnt_init(ciso_on)
-   end if
-
-!-----------------------------------------------------------------------
 !  set up indices for passive tracer modules that are on
 !-----------------------------------------------------------------------
 
    cumulative_nt = 2
 
    if (ecosys_on) then
-      call set_tracer_indices('ECOSYS_DRIVER', ecosys_used_tracer_cnt, cumulative_nt,  &
+      call set_tracer_indices('ECOSYS_DRIVER', marbl_tracer_cnt, cumulative_nt, &
                               ecosys_driver_ind_begin, ecosys_driver_ind_end)
    end if
 
@@ -417,6 +405,7 @@
 
    if (ecosys_on) then
       call ecosys_driver_init(                                                           &
+           ciso_on,                                                                      &
            init_ts_file_fmt,                                                             &
            read_restart_filename,                                                        &
            tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end),                      &
@@ -981,7 +970,7 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,STF)
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module that compute surface fluxes
@@ -994,7 +983,9 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) ::   &
       U10_SQR,  & ! 10m wind speed squared
       ICE_FRAC, & ! sea ice fraction (non-dimensional)
-      PRESS       ! sea level atmospheric pressure (Pascals)
+      PRESS,    & ! sea level atmospheric pressure (Pascals)
+      DUST_FLUX,& ! dust flux (g/cm^2/s)
+      BLACK_CARBON_FLUX  ! black carbon flux (g/cm^2/s)
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1039,7 +1030,7 @@
 
    if (ecosys_on) then
       call ecosys_driver_set_sflux(                                             &
-         U10_SQR, ICE_FRAC, PRESS,                                              &
+         U10_SQR, ICE_FRAC, PRESS, DUST_FLUX, BLACK_CARBON_FLUX,                &
          SST_FILT, SSS_FILT,                                                    &
          TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,:), &
          TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,:), &

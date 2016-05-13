@@ -128,6 +128,12 @@
       <test name="SMS_D_Ld2">
         <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys">userdefined</machine>
       </test>
+      <test name="SMS_Ld2">
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
+      </test>
+      <test name="SMS_Ld2_D">
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
+      </test>
       <test name="SMS_P15x1_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
       </test>
@@ -248,6 +254,7 @@
       <test name="ERS">
         <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_dust_flux_driver">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>

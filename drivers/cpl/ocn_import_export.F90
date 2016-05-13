@@ -25,7 +25,13 @@ module ocn_import_export
    use exit_mod
    use forcing_shf,       only: SHF_QSW
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
-   use forcing_fields
+   use forcing_fields,    only: EVAP_F, PREC_F, SNOW_F, MELT_F, ROFF_F, IOFF_F
+   use forcing_fields,    only: SALT_F
+   use forcing_fields,    only: SENH_F, LWUP_F, LWDN_F, MELTH_F
+   use forcing_fields,    only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
+   use forcing_fields,    only: IFRAC, U10_SQR, ATM_PRESS
+   use forcing_fields,    only: LAMULT, USTOKES, VSTOKES
+   use forcing_fields,    only: DUST_FLUX, BLACK_CARBON_FLUX
    use mcog,              only: lmcog, mcog_ncols, import_mcog
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
@@ -250,6 +256,17 @@ contains
          WORKB(i,j       ) = x2o(index_x2o_Sw_vstokes,n)
          VSTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
 
+         ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+         DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Faxa_dstwet1,n) + x2o(index_x2o_Faxa_dstwet2,n) + &
+            x2o(index_x2o_Faxa_dstwet3,n) + x2o(index_x2o_Faxa_dstwet4,n) + &
+            x2o(index_x2o_Faxa_dstdry1,n) + x2o(index_x2o_Faxa_dstdry2,n) + &
+            x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n))
+
+         ! convert black carbon flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+         BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Faxa_bcphidry,n) + x2o(index_x2o_Faxa_bcphodry,n) + &
+            x2o(index_x2o_Faxa_bcphiwet,n))
       enddo
       enddo
 
