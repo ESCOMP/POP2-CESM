@@ -119,7 +119,6 @@ module ecosys_driver
   ! that needs to be preserved for from one time step to the next
   type :: ecosys_saved_state_type
      integer :: rank
-     logical :: is_2d
      character(len=char_len) :: short_name
      character(len=char_len) :: units
 
@@ -429,12 +428,17 @@ contains
       num_fields = marbl_state%saved_state_cnt
       allocate(saved_state_surf(num_fields))
       do n=1, num_fields
-        saved_state_surf(n)%is_2d = (marbl_state%state(n)%vertical_grid.eq.'none')
-        if (saved_state_surf(n)%is_2d) then
-          allocate(saved_state_surf(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
-        else
-          allocate(saved_state_surf(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
-        end if
+        saved_state_surf(n)%rank = marbl_state%state(n)%rank
+        select case (saved_state_surf(n)%rank)
+          case (2)
+            allocate(saved_state_surf(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
+          case (3)
+            allocate(saved_state_surf(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+          case DEFAULT
+            call document(subname, 'n', n)
+            call document(subname, 'saved_state_surf(n)%rank', saved_state_surf(n)%rank)
+            call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
+        end select
         saved_state_surf(n)%short_name = trim(marbl_state%state(n)%short_name)
         saved_state_surf(n)%units = trim(marbl_state%state(n)%units)
       end do
@@ -444,12 +448,17 @@ contains
       num_fields = marbl_state%saved_state_cnt
       allocate(saved_state_interior(num_fields))
       do n=1, num_fields
-        saved_state_interior(n)%is_2d = (marbl_state%state(n)%vertical_grid.eq.'none')
-        if (saved_state_interior(n)%is_2d) then
-          allocate(saved_state_interior(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
-        else
-          allocate(saved_state_interior(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
-        end if
+        saved_state_interior(n)%rank = marbl_state%state(n)%rank
+        select case (saved_state_interior(n)%rank)
+          case (2)
+            allocate(saved_state_interior(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
+          case (3)
+            allocate(saved_state_interior(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+          case DEFAULT
+            call document(subname, 'n', n)
+            call document(subname, 'saved_state_interior(n)%rank', saved_state_interior(n)%rank)
+            call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
+        end select
         saved_state_interior(n)%short_name = trim(marbl_state%state(n)%short_name)
         saved_state_interior(n)%units = trim(marbl_state%state(n)%units)
       end do
@@ -647,21 +656,8 @@ contains
             ecosys_restart_filename, saved_state_interior)
 
     case ('file', 'ccsm_startup')
-       do n=1,size(saved_state_surf)
-         if (saved_state_surf(n)%is_2d) then
-           saved_state_surf(n)%field_2d     = c0
-         else
-           saved_state_surf(n)%field_3d     = c0
-         end if
-       end do
-
-       do n=1,size(saved_state_interior)
-         if (saved_state_interior(n)%is_2d) then
-           saved_state_interior(n)%field_2d     = c0
-         else
-           saved_state_interior(n)%field_3d     = c0
-         end if
-       end do
+       call ecosys_driver_set_saved_state_zero(saved_state_surf)
+       call ecosys_driver_set_saved_state_zero(saved_state_interior)
 
     case default
        call document(subname, 'init_ecosys_option', init_ecosys_option)
@@ -1227,19 +1223,20 @@ contains
     k_dim = construct_io_dim('k', km)
 
     do n=1,num_fields
-      if (state(n)%is_2d) then
-        io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
-                     units = trim(state(n)%units), grid_loc = '2110',            &
-                     field_loc  = field_loc_center,                              &
-                     field_type = field_type_scalar,                             &
-                     d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
-      else
-        io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
-                     k_dim, units = trim(state(n)%units), grid_loc = '3111',     &
-                     field_loc  = field_loc_center,                              &
-                     field_type = field_type_scalar,                             &
-                     d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
-      end if
+      select case (state(n)%rank)
+        case (2)
+          io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
+                       units = trim(state(n)%units), grid_loc = '2110',            &
+                       field_loc  = field_loc_center,                              &
+                       field_type = field_type_scalar,                             &
+                       d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
+        case (3)
+          io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
+                       k_dim, units = trim(state(n)%units), grid_loc = '3111',     &
+                       field_loc  = field_loc_center,                              &
+                       field_type = field_type_scalar,                             &
+                       d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
+      end select
       write(log_message, "(3A)") "Setting up IO field for ",                  &
                                  trim(state(n)%short_name), " (in restart)"
       call document(subname, log_message)
@@ -1264,28 +1261,43 @@ contains
     character(len=char_len) :: log_message
     integer :: n
 
+    call ecosys_driver_set_saved_state_zero(state)
     do n=1,size(state)
       if (field_exists_in_file(file_fmt, filename, state(n)%short_name)) then
-        if (state(n)%is_2d) then
-          call read_field(file_fmt, filename, state(n)%short_name,            &
-               state(n)%field_2d(:,:,:))
-        else
-          call read_field(file_fmt, filename, state(n)%short_name,            &
-               state(n)%field_3d(:,:,:,:))
-        end if
+        select case (state(n)%rank)
+          case (2)
+            call read_field(file_fmt, filename, state(n)%short_name,          &
+                 state(n)%field_2d(:,:,:))
+          case (3)
+            call read_field(file_fmt, filename, state(n)%short_name,            &
+                 state(n)%field_3d(:,:,:,:))
+        end select
       else
         write(log_message, "(4A)") trim(state(n)%short_name), ' does not exist in ', &
                                    trim(filename), ', setting to 0'
         call document(subname, log_message)
-        if (state(n)%is_2d) then
-          state(n)%field_2d(:,:,:) = c0
-        else
-          state(n)%field_3d(:,:,:,:) = c0
-        end if
       end if
     end do
 
   end subroutine ecosys_driver_read_restart_saved_state
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_set_saved_state_zero(state)
+
+    type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
+    integer :: n
+
+    do n=1,size(state)
+      select case (state(n)%rank)
+        case (2)
+          state(n)%field_2d = c0
+        case (3)
+          state(n)%field_3d = c0
+      end select
+    end do
+
+  end subroutine
 
   !*****************************************************************************
 
