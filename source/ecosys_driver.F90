@@ -120,6 +120,7 @@ module ecosys_driver
   type :: ecosys_saved_state_type
      integer :: rank
      character(len=char_len) :: short_name
+     character(len=char_len) :: file_varname
      character(len=char_len) :: units
 
      ! (nx_block, ny_block, max_blocks_clinic)
@@ -424,45 +425,10 @@ contains
     end do
 
     ! Set up saved state data type
-    associate(marbl_state => marbl_instances(1)%surface_saved_state)
-      num_fields = marbl_state%saved_state_cnt
-      allocate(saved_state_surf(num_fields))
-      do n=1, num_fields
-        saved_state_surf(n)%rank = marbl_state%state(n)%rank
-        select case (saved_state_surf(n)%rank)
-          case (2)
-            allocate(saved_state_surf(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
-          case (3)
-            allocate(saved_state_surf(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
-          case DEFAULT
-            call document(subname, 'n', n)
-            call document(subname, 'saved_state_surf(n)%rank', saved_state_surf(n)%rank)
-            call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
-        end select
-        saved_state_surf(n)%short_name = trim(marbl_state%state(n)%short_name)
-        saved_state_surf(n)%units = trim(marbl_state%state(n)%units)
-      end do
-    end associate
-
-    associate(marbl_state => marbl_instances(1)%interior_saved_state)
-      num_fields = marbl_state%saved_state_cnt
-      allocate(saved_state_interior(num_fields))
-      do n=1, num_fields
-        saved_state_interior(n)%rank = marbl_state%state(n)%rank
-        select case (saved_state_interior(n)%rank)
-          case (2)
-            allocate(saved_state_interior(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
-          case (3)
-            allocate(saved_state_interior(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
-          case DEFAULT
-            call document(subname, 'n', n)
-            call document(subname, 'saved_state_interior(n)%rank', saved_state_interior(n)%rank)
-            call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
-        end select
-        saved_state_interior(n)%short_name = trim(marbl_state%state(n)%short_name)
-        saved_state_interior(n)%units = trim(marbl_state%state(n)%units)
-      end do
-    end associate
+    call ecosys_driver_setup_saved_state(saved_state_surf,                    &
+         marbl_instances(1)%surface_saved_state)
+    call ecosys_driver_setup_saved_state(saved_state_interior,                &
+         marbl_instances(1)%interior_saved_state)
 
     ! Set up marbl tracer indices for virtual fluxes
     dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
@@ -1213,7 +1179,6 @@ contains
     !-----------------------------------------------------------------------
     character(*), parameter :: subname='ecosys_driver:ecosys_driver_construct_saved_state_io_fields'
     character(len=char_len) :: log_message
-    character (char_len)       :: short_name   ! tracer name temporaries
     integer (int_kind)         :: n
     type (io_dim)              :: i_dim, j_dim ! dimension descriptors
     type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
@@ -1225,20 +1190,21 @@ contains
     do n=1,num_fields
       select case (state(n)%rank)
         case (2)
-          io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
-                       units = trim(state(n)%units), grid_loc = '2110',            &
-                       field_loc  = field_loc_center,                              &
-                       field_type = field_type_scalar,                             &
+          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                       j_dim, units = trim(state(n)%units), grid_loc = '2110',&
+                       field_loc  = field_loc_center,                         &
+                       field_type = field_type_scalar,                        &
                        d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
         case (3)
-          io_desc(n) = construct_io_field(trim(state(n)%short_name), i_dim, j_dim, &
-                       k_dim, units = trim(state(n)%units), grid_loc = '3111',     &
-                       field_loc  = field_loc_center,                              &
-                       field_type = field_type_scalar,                             &
+          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                       j_dim, k_dim,                                          &
+                       units = trim(state(n)%units), grid_loc = '3111',       &
+                       field_loc  = field_loc_center,                         &
+                       field_type = field_type_scalar,                        &
                        d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
       end select
       write(log_message, "(3A)") "Setting up IO field for ",                  &
-                                 trim(state(n)%short_name), " (in restart)"
+                                 trim(state(n)%file_varname), " (in restart)"
       call document(subname, log_message)
       call data_set (restart_file, 'define', io_desc(n))
     end do
@@ -1263,18 +1229,19 @@ contains
 
     call ecosys_driver_set_saved_state_zero(state)
     do n=1,size(state)
-      if (field_exists_in_file(file_fmt, filename, state(n)%short_name)) then
+      if (field_exists_in_file(file_fmt, filename, state(n)%file_varname)) then
         select case (state(n)%rank)
           case (2)
-            call read_field(file_fmt, filename, state(n)%short_name,          &
+            call read_field(file_fmt, filename, state(n)%file_varname,        &
                  state(n)%field_2d(:,:,:))
           case (3)
-            call read_field(file_fmt, filename, state(n)%short_name,            &
+            call read_field(file_fmt, filename, state(n)%file_varname,        &
                  state(n)%field_3d(:,:,:,:))
         end select
       else
-        write(log_message, "(4A)") trim(state(n)%short_name), ' does not exist in ', &
-                                   trim(filename), ', setting to 0'
+        write(log_message, "(4A)") trim(state(n)%file_varname),               &
+                                   ' does not exist in ', trim(filename),     &
+                                   ', setting to 0'
         call document(subname, log_message)
       end if
     end do
@@ -1297,7 +1264,51 @@ contains
       end select
     end do
 
-  end subroutine
+  end subroutine ecosys_driver_set_saved_state_zero
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_setup_saved_state(state, marbl_state)
+
+    use marbl_interface_types, only : marbl_saved_state_type
+    use io_tools             , only : document
+
+    type(ecosys_saved_state_type), allocatable, intent(out) :: state(:)
+    type(marbl_saved_state_type),               intent(in)  :: marbl_state
+
+    character(*), parameter :: subname =                                      &
+                  'ecosys_driver:ecosys_driver_setup_saved_state'
+    integer :: num_fields
+    integer :: n
+
+    num_fields = marbl_state%saved_state_cnt
+    allocate(state(num_fields))
+    do n=1, num_fields
+      state(n)%rank = marbl_state%state(n)%rank
+      select case (state(n)%rank)
+        case (2)
+          allocate(state(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
+        case (3)
+          select case (trim(marbl_state%state(n)%vertical_grid))
+            case ('layer_avg')
+              allocate(state(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+            case DEFAULT
+          call document(subname, 'n', n)
+          call document(subname, 'marbl_state(n)%vertical_grid',              &
+                        trim(marbl_state%state(n)%vertical_grid))
+          call exit_POP(sigAbort, 'Invalid vert grid from MARBL saved state')
+          end select
+        case DEFAULT
+          call document(subname, 'n', n)
+          call document(subname, 'state(n)%rank', state(n)%rank)
+          call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
+      end select
+      state(n)%short_name = trim(marbl_state%state(n)%short_name)
+      write(state(n)%file_varname, "(2A)") 'MARBL_', trim(state(n)%short_name)
+      state(n)%units = trim(marbl_state%state(n)%units)
+    end do
+
+  end subroutine ecosys_driver_setup_saved_state
 
   !*****************************************************************************
 
