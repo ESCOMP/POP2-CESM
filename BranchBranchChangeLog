@@ -2,6 +2,44 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    24 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n08_marbl_dev_n10_cesm_pop_2_1_20160513
+Tag Summary: merge marbl_dev n10 tag to this branch
+
+Testing:
+MARBL commit 8b3b1e9449d609a17a5cd0fba6bb0c2bb3791808
+
+aux_pop_MARBL (intel and gnu): (baseline comparison to n06 tag)
+   (stored n06 baselines were accidentally done with pre-tagged version of code, resulting in some baseline fails)
+   all tests pass, with the following exceptions 
+      some nlcomp tests fail because of added namelist variables
+      cice_ecosys_dust_flux_driver fails baseline compare because of changed test defn
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/config_files/definition.xml
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+ M      drivers/cpl
+A  +    input_templates/ocn.sf6.tavg.csh
+M       source/POP_DistributionMod.F90
+M       source/POP_SpaceCurveMod.F90
+M       source/distribution.F90
+M       source/domain.F90
+M       source/passive_tracers.F90
+M       source/restart.F90
+A  +    source/sf6_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    12 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n07_marbl_dev_n07_cesm_pop_2_1_20160426
 Tag Summary: clean up comments, add new _CPL fields to lecosys_debug tavg output
@@ -72,7 +110,7 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    4 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n04_marbl_dev_n07_cesm_pop_2_1_20160426
-Tag Summary: merge latest marbl_dev branch tag to this branch
+Tag Summary: merge marbl_dev n07 tag to this branch
 
 Testing:
 MARBL commit 018d284ca4db1ecadbebccbe127fa665238a8bc8

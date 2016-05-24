@@ -415,6 +415,9 @@
    allocate (dist%proc       (nblocks_tot), &
              dist%local_block(nblocks_tot))
 
+   dist%proc=0
+   dist%local_block=0
+
 !----------------------------------------------------------------------
 !
 !  distribute blocks linearly across processors in each direction
@@ -444,11 +447,11 @@
             petargetwork = totwork/float(nprocs-pe+1)
          endif
       endif
-      pecnt = pecnt + 1
-      pework = pework + float(work_per_block(nblck))
-      totwork = totwork - float(work_per_block(nblck))
 
       if (work_per_block(nblck) /= 0) then
+         pecnt = pecnt + 1
+         pework = pework + float(work_per_block(nblck))
+         totwork = totwork - float(work_per_block(nblck))
          dist%proc(nblck) = pe
          dist%local_block(nblck) = pecnt
       else
