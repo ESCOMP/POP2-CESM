@@ -118,12 +118,18 @@ module ecosys_driver
   ! this struct is necessary because there is some global state
   ! that needs to be preserved for from one time step to the next
   type :: ecosys_saved_state_type
-     real (r8) :: ph_prev_3d           (nx_block, ny_block, km, max_blocks_clinic) ! pH interior from previous time step
-     real (r8) :: ph_prev_alt_co2_3d   (nx_block, ny_block, km, max_blocks_clinic) ! pH interior from previous time step, alternative CO2
-     real (r8) :: ph_prev_surf         (nx_block, ny_block, max_blocks_clinic)     ! ph surf from previous time step
-     real (r8) :: ph_prev_surf_alt_co2 (nx_block, ny_block, max_blocks_clinic)     ! ph surf from previous time step, alternative CO2
+     integer :: rank
+     character(len=char_len) :: short_name
+     character(len=char_len) :: file_varname
+     character(len=char_len) :: units
+
+     ! (nx_block, ny_block, max_blocks_clinic)
+     real (r8), allocatable, dimension(:,:,:)   :: field_2d
+     ! (nx_block, ny_block, km, max_blocks_clinic)
+     real (r8), allocatable, dimension(:,:,:,:) :: field_3d
   end type ecosys_saved_state_type
-  type(ecosys_saved_state_type) :: ecosys_saved_state
+  type(ecosys_saved_state_type), allocatable, dimension(:) :: saved_state_surf
+  type(ecosys_saved_state_type), allocatable, dimension(:) :: saved_state_interior
 
   type :: ecosys_restoring_climatology_type
     real(r8), allocatable :: climatology(:,:,:,:)
@@ -236,7 +242,6 @@ contains
     use io_tools              , only : document
     use time_management       , only : init_time_flag
     use passive_tracer_tools  , only : set_tracer_indices
-    use passive_tracer_tools  , only : read_field
     use named_field_mod       , only : named_field_register
     use named_field_mod       , only : named_field_set
     use prognostic            , only : curtime
@@ -265,6 +270,7 @@ contains
     character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)                 :: log_message
     integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
+    integer (int_kind)                  :: num_fields
     integer (int_kind)                  :: nml_error                          ! error flag for nml read
     integer (int_kind)                  :: iostat                             ! io status flag
     character (char_len)                :: sname, lname, units, coordinates
@@ -418,6 +424,12 @@ contains
        call marbl_instances(iblock)%StatusLog%erase()
     end do
 
+    ! Set up saved state data type
+    call ecosys_driver_setup_saved_state(saved_state_surf,                    &
+         marbl_instances(1)%surface_saved_state)
+    call ecosys_driver_setup_saved_state(saved_state_interior,                &
+         marbl_instances(1)%interior_saved_state)
+
     ! Set up marbl tracer indices for virtual fluxes
     dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
     call document(subname, 'dic_ind', dic_ind)
@@ -550,7 +562,6 @@ contains
 
     use passive_tracer_tools  , only : rest_read_tracer_block
     use passive_tracer_tools  , only : file_read_single_tracer
-    use passive_tracer_tools  , only : field_exists_in_file
     use passive_tracer_tools  , only : read_field
     use passive_tracer_tools  , only : ind_name_pair
     use prognostic            , only : curtime
@@ -605,47 +616,14 @@ contains
           ecosys_restart_filename = trim(init_ecosys_init_file)
        endif
 
-       if (field_exists_in_file(init_file_fmt, ecosys_restart_filename, 'PH_SURF')) then
-          call read_field(init_file_fmt,  ecosys_restart_filename,   &
-               'PH_SURF', ecosys_saved_state%ph_prev_surf)
-       else
-          call document(subname, 'PH_SURF does not exist in ' // trim(ecosys_restart_filename) /&
-               &/ ', setting PH_SURF to 0')
-          ecosys_saved_state%ph_prev_surf = c0
-       endif
-
-       if (field_exists_in_file(init_file_fmt, ecosys_restart_filename, 'PH_SURF_ALT_CO2')) then
-          call read_field(init_file_fmt, ecosys_restart_filename,   &
-               'PH_SURF_ALT_CO2', ecosys_saved_state%ph_prev_surf_alt_co2)
-       else
-          call document(subname, 'PH_SURF_ALT_CO2 does not exist in ' /&
-               &/ trim(ecosys_restart_filename) // ', setting PH_PREV_ALT_CO2 to 0')
-          ecosys_saved_state%ph_prev_surf_alt_co2 = c0
-       endif
-
-       if (field_exists_in_file(init_file_fmt, ecosys_restart_filename, 'PH_3D')) then
-          call read_field(init_file_fmt, ecosys_restart_filename,   &
-               'PH_3D', ecosys_saved_state%ph_prev_3d)
-       else
-          call document(subname, 'PH_3D does not exist in ' // trim(ecosys_restart_filename) /&
-               &/ ', setting ph_prev_3d to 0')
-          ecosys_saved_state%ph_prev_3d  = c0
-       endif
-
-       if (field_exists_in_file(init_file_fmt, ecosys_restart_filename, 'PH_3D_ALT_CO2')) then
-          call read_field(init_file_fmt, ecosys_restart_filename,   &
-               'PH_3D_ALT_CO2', ecosys_saved_state%ph_prev_alt_co2_3d)
-       else
-          call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
-               &/ trim(ecosys_restart_filename) // ', setting PH_PREV_ALT_CO2_3D to 0')
-          ecosys_saved_state%ph_prev_alt_co2_3d = c0
-       endif
+       call ecosys_driver_read_restart_saved_state(init_file_fmt,             &
+            ecosys_restart_filename, saved_state_surf)
+       call ecosys_driver_read_restart_saved_state(init_file_fmt,             &
+            ecosys_restart_filename, saved_state_interior)
 
     case ('file', 'ccsm_startup')
-       ecosys_saved_state%ph_prev_surf         = c0
-       ecosys_saved_state%ph_prev_surf_alt_co2 = c0
-       ecosys_saved_state%ph_prev_3d           = c0
-       ecosys_saved_state%ph_prev_alt_co2_3d   = c0
+       call ecosys_driver_set_saved_state_zero(saved_state_surf)
+       call ecosys_driver_set_saved_state_zero(saved_state_interior)
 
     case default
        call document(subname, 'init_ecosys_option', init_ecosys_option)
@@ -872,11 +850,10 @@ contains
              end if
 
              ! --- copy data from slab to column for marbl_saved_state ---
-
-             if (marbl_instances(bid)%domain%kmt > 0) then 
-                marbl_instances(bid)%saved_state%ph_prev_col(:)         = ecosys_saved_state%ph_prev_3d(i, c, :, bid)
-                marbl_instances(bid)%saved_state%ph_prev_alt_co2_col(:) = ecosys_saved_state%ph_prev_alt_co2_3d(i, c, :, bid)
-             end if
+             do n=1,size(saved_state_interior)
+               marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
+                 saved_state_interior(n)%field_3d(i,c,:,bid)
+             end do
 
              !-----------------------------------------------------------
              !  compute time derivatives for ecosystem state variables
@@ -891,8 +868,10 @@ contains
              !-----------------------------------------------------------
 
              if (marbl_instances(bid)%domain%kmt > 0) then 
-                ecosys_saved_state%ph_prev_3d(i, c, :, bid)         = marbl_instances(bid)%saved_state%ph_prev_col(:)
-                ecosys_saved_state%ph_prev_alt_co2_3d(i, c, :, bid) = marbl_instances(bid)%saved_state%ph_prev_alt_co2_col(:)
+                  do n=1,size(saved_state_interior)
+                  saved_state_interior(n)%field_3d(i,c,:,bid) =               &
+                    marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
+                end do
                 
                 do n = 1, marbl_tracer_cnt
                    dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
@@ -975,10 +954,6 @@ contains
          sss,                                  &
          input_forcing_data)
 
-    !-----------------------------------------------------------------------
-    ! Update ecosys_saved_state if appropriate
-    !-----------------------------------------------------------------------
-
     ! The following is used in ecosys_driver_set_interior on the next timestep
     dust_flux_in(:,:,:) = input_forcing_data(:,:, marbl_instances(1)%surface_forcing_ind%dust_flux_id,:)
 
@@ -1009,11 +984,10 @@ contains
 
              end do
 
-             ! FIXME - Introduce a new saved state api
-             marbl_instances(iblock)%saved_state%ph_prev_surf(index_marbl) = &
-                  ecosys_saved_state%ph_prev_surf(i,j,iblock)
-             marbl_instances(iblock)%saved_state%ph_prev_alt_co2_surf(index_marbl) = &
-                  ecosys_saved_state%ph_prev_surf_alt_co2(i,j,iblock)
+             do n=1,size(saved_state_surf)
+               marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl) = &
+                 saved_state_surf(n)%field_2d(i,j,iblock)
+             end do
 
           end do
        end do
@@ -1040,11 +1014,10 @@ contains
           do i = 1,nx_block
              index_marbl = i + (j-1)*nx_block
 
-             ecosys_saved_state%ph_prev_surf(i,j,iblock) = &
-                  marbl_instances(iblock)%saved_state%ph_prev_surf(index_marbl)
-
-             ecosys_saved_state%ph_prev_surf_alt_co2 (i,j,iblock) = &
-                  marbl_instances(iblock)%saved_state%ph_prev_alt_co2_surf(index_marbl)
+             do n=1,size(saved_state_surf)
+               saved_state_surf(n)%field_2d(i,j,iblock) = &
+                 marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl)
+             end do
 
              do n=1,2
                surface_forcing_outputs(i,j,iblock,n) = &
@@ -1138,85 +1111,204 @@ contains
     ! !DESCRIPTION:
     !  write auxiliary fields & scalars to restart files
 
-    use domain_size           , only : nx_global
-    use domain_size           , only : ny_global
-    use constants             , only : field_loc_center
-    use constants             , only : field_type_scalar
-    use io                    , only : data_set
-    use io                    , only : datafile
-    use io_types              , only : io_dim
-    use io_types              , only : io_field_desc
-    use io_types              , only : add_attrib_file
-    use io_types              , only : construct_io_dim
-    use io_types              , only : construct_io_field
-    use passive_tracer_tools  , only : ind_name_pair
+    use io_types, only : io_field_desc
+    use io      , only : data_set
+    use io      , only : datafile
 
     implicit none
 
     character(*)                 , intent(in)    :: action
     type (datafile)              , intent(inout) :: restart_file
 
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character (char_len)       :: short_name   ! tracer name temporaries
-    integer (int_kind)         :: n
-    type (io_dim)              :: i_dim, j_dim ! dimension descriptors
-    type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
-    type (io_field_desc), save :: ph_surf_iodesc
-    type (io_field_desc), save :: ph_surf_alt_co2_iodesc
-    type (io_field_desc), save :: ph_3d_alt_co2_iodesc
-    type (io_field_desc), save :: ph_3d_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: surf_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: col_iodesc
+    integer :: n
     !-----------------------------------------------------------------------
 
     if (trim(action) == 'define') then
 
-       i_dim = construct_io_dim('i', nx_global)
-       j_dim = construct_io_dim('j', ny_global)
-       k_dim = construct_io_dim('k', km)
+       allocate(surf_iodesc(size(saved_state_surf)))
+       surf_iodesc = ecosys_driver_construct_saved_state_io_fields(restart_file, &
+            saved_state_surf, size(saved_state_surf))
 
-       ph_surf_iodesc = construct_io_field('PH_SURF', i_dim, j_dim,                    &
-            long_name  ='surface pH at current time',                                  &
-            units      ='pH', grid_loc='2110',                                         &
-            field_loc  = field_loc_center,                                             &
-            field_type = field_type_scalar,                                            &
-            d2d_array  = ecosys_saved_state%ph_prev_surf(:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', ph_surf_iodesc)
-
-       ph_surf_alt_co2_iodesc = construct_io_field('PH_SURF_ALT_CO2', i_dim, j_dim,    &
-            long_name  ='surface pH, alternate CO2, at current time',                  &
-            units      ='pH', grid_loc='2110',                                         &
-            field_loc  = field_loc_center,                                             &
-            field_type = field_type_scalar,                                            &
-            d2d_array  = ecosys_saved_state%ph_prev_surf_alt_co2(:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', ph_surf_alt_co2_iodesc)
-
-       ph_3d_alt_co2_iodesc = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
-            long_name  ='3D pH, alternate CO2, at current time',                       &
-            units      ='pH', grid_loc='3111',                                         &
-            field_loc  = field_loc_center,                                             &
-            field_type = field_type_scalar,                                            &
-            d3d_array  = ecosys_saved_state%ph_prev_alt_co2_3d(:,:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', ph_3d_alt_co2_iodesc)
-
-       ph_3d_iodesc = construct_io_field('PH_3D', i_dim, j_dim, k_dim,                 &
-            long_name  ='3D pH at current time',                                       &
-            units      ='pH', grid_loc='3111',                                         &
-            field_loc  = field_loc_center,                                             &
-            field_type = field_type_scalar,                                            &
-            d3d_array  = ecosys_saved_state%ph_prev_3d(:,:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', ph_3d_iodesc)
+       allocate(col_iodesc(size(saved_state_interior)))
+       col_iodesc = ecosys_driver_construct_saved_state_io_fields(restart_file, &
+           saved_state_interior, size(saved_state_interior))
 
     else if (trim(action) == 'write') then
 
-       call data_set (restart_file, 'write', ph_surf_iodesc)
-       call data_set (restart_file, 'write', ph_surf_alt_co2_iodesc)
-       call data_set (restart_file, 'write', ph_3d_iodesc)
-       call data_set (restart_file, 'write', ph_3d_alt_co2_iodesc)
+       do n=1,size(saved_state_surf)
+          call data_set (restart_file, 'write', surf_iodesc(n))
+       end do
+       do n=1,size(saved_state_interior)
+          call data_set (restart_file, 'write', col_iodesc(n))
+       end do
+       deallocate(surf_iodesc)
+       deallocate(col_iodesc)
 
     endif
 
   end subroutine ecosys_driver_write_restart
+
+  !*****************************************************************************
+
+  function ecosys_driver_construct_saved_state_io_fields(restart_file, state, num_fields) &
+    result(io_desc)
+
+    use domain_size, only : nx_global
+    use domain_size, only : ny_global
+    use constants  , only : field_loc_center
+    use constants  , only : field_type_scalar
+    use io         , only : data_set
+    use io         , only : datafile
+    use io_types   , only : io_dim
+    use io_types   , only : io_field_desc
+    use io_types   , only : add_attrib_file
+    use io_types   , only : construct_io_dim
+    use io_types   , only : construct_io_field
+    use io_tools   , only : document
+
+    implicit none
+
+    type (datafile), intent(inout) :: restart_file
+    type(ecosys_saved_state_type), dimension(:), intent(in) :: state
+    integer, intent(in) :: num_fields
+    type(io_field_desc), dimension(num_fields) :: io_desc
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname='ecosys_driver:ecosys_driver_construct_saved_state_io_fields'
+    character(len=char_len) :: log_message
+    integer (int_kind)         :: n
+    type (io_dim)              :: i_dim, j_dim ! dimension descriptors
+    type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
+
+    i_dim = construct_io_dim('i', nx_global)
+    j_dim = construct_io_dim('j', ny_global)
+    k_dim = construct_io_dim('k', km)
+
+    do n=1,num_fields
+      select case (state(n)%rank)
+        case (2)
+          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                       j_dim, units = trim(state(n)%units), grid_loc = '2110',&
+                       field_loc  = field_loc_center,                         &
+                       field_type = field_type_scalar,                        &
+                       d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
+        case (3)
+          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                       j_dim, k_dim,                                          &
+                       units = trim(state(n)%units), grid_loc = '3111',       &
+                       field_loc  = field_loc_center,                         &
+                       field_type = field_type_scalar,                        &
+                       d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
+      end select
+      write(log_message, "(3A)") "Setting up IO field for ",                  &
+                                 trim(state(n)%file_varname), " (in restart)"
+      call document(subname, log_message)
+      call data_set (restart_file, 'define', io_desc(n))
+    end do
+
+  end function ecosys_driver_construct_saved_state_io_fields
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_read_restart_saved_state(file_fmt, filename, state)
+
+    use passive_tracer_tools  , only : field_exists_in_file
+    use passive_tracer_tools  , only : read_field
+    use io_tools              , only : document
+
+    character(len=*), intent(in) :: file_fmt
+    character(len=*), intent(in) :: filename
+    type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
+
+    character(*), parameter :: subname='ecosys_driver:ecosys_driver_read_restart_saved_state'
+    character(len=char_len) :: log_message
+    integer :: n
+
+    call ecosys_driver_set_saved_state_zero(state)
+    do n=1,size(state)
+      if (field_exists_in_file(file_fmt, filename, state(n)%file_varname)) then
+        select case (state(n)%rank)
+          case (2)
+            call read_field(file_fmt, filename, state(n)%file_varname,        &
+                 state(n)%field_2d(:,:,:))
+          case (3)
+            call read_field(file_fmt, filename, state(n)%file_varname,        &
+                 state(n)%field_3d(:,:,:,:))
+        end select
+      else
+        write(log_message, "(4A)") trim(state(n)%file_varname),               &
+                                   ' does not exist in ', trim(filename),     &
+                                   ', setting to 0'
+        call document(subname, log_message)
+      end if
+    end do
+
+  end subroutine ecosys_driver_read_restart_saved_state
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_set_saved_state_zero(state)
+
+    type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
+    integer :: n
+
+    do n=1,size(state)
+      select case (state(n)%rank)
+        case (2)
+          state(n)%field_2d = c0
+        case (3)
+          state(n)%field_3d = c0
+      end select
+    end do
+
+  end subroutine ecosys_driver_set_saved_state_zero
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_setup_saved_state(state, marbl_state)
+
+    use marbl_interface_types, only : marbl_saved_state_type
+    use io_tools             , only : document
+
+    type(ecosys_saved_state_type), allocatable, intent(out) :: state(:)
+    type(marbl_saved_state_type),               intent(in)  :: marbl_state
+
+    character(*), parameter :: subname =                                      &
+                  'ecosys_driver:ecosys_driver_setup_saved_state'
+    integer :: num_fields
+    integer :: n
+
+    num_fields = marbl_state%saved_state_cnt
+    allocate(state(num_fields))
+    do n=1, num_fields
+      state(n)%rank = marbl_state%state(n)%rank
+      select case (state(n)%rank)
+        case (2)
+          allocate(state(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
+        case (3)
+          select case (trim(marbl_state%state(n)%vertical_grid))
+            case ('layer_avg')
+              allocate(state(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+            case DEFAULT
+          call document(subname, 'n', n)
+          call document(subname, 'marbl_state(n)%vertical_grid',              &
+                        trim(marbl_state%state(n)%vertical_grid))
+          call exit_POP(sigAbort, 'Invalid vert grid from MARBL saved state')
+          end select
+        case DEFAULT
+          call document(subname, 'n', n)
+          call document(subname, 'state(n)%rank', state(n)%rank)
+          call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
+      end select
+      state(n)%short_name = trim(marbl_state%state(n)%short_name)
+      write(state(n)%file_varname, "(2A)") 'MARBL_', trim(state(n)%short_name)
+      state(n)%units = trim(marbl_state%state(n)%units)
+    end do
+
+  end subroutine ecosys_driver_setup_saved_state
 
   !*****************************************************************************
 
