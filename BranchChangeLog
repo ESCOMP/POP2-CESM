@@ -1,6 +1,29 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    23 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n11_cesm_pop_2_1_20160513
+Tag Summary: merge in marbl_dev_levy_n20 (generalized saved state source
+             code), also includes MARBL tag to clean up some output
+
+Testing: Ran the following suites with cime4.5.8 and cice5_20160401
+         * aux_pop       (yellowstone_intel)
+         * aux_pop_MARBL (yellowstone_intel)
+         * aux_pop_MARBL (yellowstone_gnu)
+         * aux_pop_MARBL (hobart_nag)
+         All were bit-for-bit against baselines (cesm_pop_20160513)
+
+         Also generated new baselines with cime4.5.13 (sometime between May 21
+         and May 23, CISL broke netcdf module that was used by cime4.5.8)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+ M      drivers/cpl
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n10_cesm_pop_2_1_20160513
 Tag Summary: merge in latest trunk tag (book-keeping, merge, no change to
