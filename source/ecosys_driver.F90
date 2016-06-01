@@ -29,6 +29,48 @@ module ecosys_driver
 
   use marbl_parms               , only : f_qsw_par
   use marbl_parms               , only : parm_Fe_bioavail
+  use marbl_parms               , only : init_ecosys_option
+  use marbl_parms               , only : init_ecosys_init_file
+  use marbl_parms               , only : init_ecosys_init_file_fmt
+  use marbl_parms               , only : gas_flux_forcing_iopt
+  use marbl_parms               , only : gas_flux_forcing_iopt_drv
+  use marbl_parms               , only : gas_flux_forcing_iopt_file
+  use marbl_parms               , only : gas_flux_forcing_file
+  use marbl_parms               , only : fesedflux_input
+  use marbl_parms               , only : lflux_gas_co2
+  use marbl_parms               , only : liron_patch
+  use marbl_parms               , only : atm_co2_iopt
+  use marbl_parms               , only : atm_co2_iopt_drv_prog
+  use marbl_parms               , only : atm_co2_iopt_drv_diag
+  use marbl_parms               , only : atm_co2_iopt_const
+  use marbl_parms               , only : atm_co2_const
+  use marbl_parms               , only : atm_alt_co2_const
+  use marbl_parms               , only : atm_alt_co2_iopt
+  use marbl_parms               , only : iron_patch_flux_filename
+  use marbl_parms               , only : iron_patch_month
+  use marbl_parms               , only : ndep_data_type
+  use marbl_parms               , only : ciso_lecovars_full_depth_tavg
+  use marbl_parms               , only : ciso_init_ecosys_option
+  use marbl_parms               , only : ciso_init_ecosys_init_file
+  use marbl_parms               , only : ciso_init_ecosys_init_file_fmt
+  use marbl_parms               , only : ciso_atm_model_year
+  use marbl_parms               , only : ciso_atm_data_year
+  use marbl_parms               , only : ciso_atm_d13c_opt
+  use marbl_parms               , only : ciso_atm_d14c_opt
+  use marbl_parms               , only : ciso_atm_d13c_const
+  use marbl_parms               , only : ciso_atm_d14c_const
+  use marbl_parms               , only : ciso_atm_d13c_data_nbval
+  use marbl_parms               , only : ciso_atm_d14c_data_nbval
+  use marbl_parms               , only : ciso_atm_d13c_data
+  use marbl_parms               , only : ciso_atm_d14c_data
+  use marbl_parms               , only : ciso_atm_d13c_data_yr
+  use marbl_parms               , only : ciso_atm_d14c_data_yr
+  use marbl_parms               , only : ciso_atm_d13c_const
+  use marbl_parms               , only : ciso_atm_d14c_const
+  use marbl_parms               , only : ciso_atm_d13c_opt
+  use marbl_parms               , only : ciso_atm_d14c_opt
+  use marbl_parms               , only : ciso_atm_d13c_filename
+  use marbl_parms               , only : ciso_atm_d14c_filename
 
   use marbl_logging             , only : marbl_log_type
   use marbl_logging             , only : marbl_status_log_entry_type
@@ -36,50 +78,6 @@ module ecosys_driver
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface_types     , only : marbl_forcing_fields_type
   use marbl_interface_types     , only : marbl_forcing_monthly_every_ts_type
-
-  use marbl_share_mod           , only : init_ecosys_option
-  use marbl_share_mod           , only : init_ecosys_init_file
-  use marbl_share_mod           , only : init_ecosys_init_file_fmt
-  use marbl_share_mod           , only : gas_flux_forcing_iopt
-  use marbl_share_mod           , only : gas_flux_forcing_iopt_drv
-  use marbl_share_mod           , only : gas_flux_forcing_iopt_file
-  use marbl_share_mod           , only : gas_flux_forcing_file
-  use marbl_share_mod           , only : fesedflux_input
-  use marbl_share_mod           , only : lflux_gas_co2
-  use marbl_share_mod           , only : liron_patch  
-  use marbl_share_mod           , only : atm_co2_iopt
-  use marbl_share_mod           , only : atm_co2_iopt_drv_prog
-  use marbl_share_mod           , only : atm_co2_iopt_drv_diag
-  use marbl_share_mod           , only : atm_co2_iopt_const
-  use marbl_share_mod           , only : atm_co2_const
-  use marbl_share_mod           , only : atm_alt_co2_const
-  use marbl_share_mod           , only : atm_alt_co2_iopt
-  use marbl_share_mod           , only : iron_patch_flux_filename  
-  use marbl_share_mod           , only : iron_patch_month  
-  use marbl_share_mod           , only : ndep_data_type 
-
-  use marbl_share_mod           , only : ciso_lecovars_full_depth_tavg
-  use marbl_share_mod           , only : ciso_init_ecosys_option
-  use marbl_share_mod           , only : ciso_init_ecosys_init_file
-  use marbl_share_mod           , only : ciso_init_ecosys_init_file_fmt
-  use marbl_share_mod           , only : ciso_atm_model_year                                                            
-  use marbl_share_mod           , only : ciso_atm_data_year                                                             
-  use marbl_share_mod           , only : ciso_atm_d13c_opt          
-  use marbl_share_mod           , only : ciso_atm_d14c_opt          
-  use marbl_share_mod           , only : ciso_atm_d13c_const
-  use marbl_share_mod           , only : ciso_atm_d14c_const
-  use marbl_share_mod           , only : ciso_atm_d13c_data_nbval                                                       
-  use marbl_share_mod           , only : ciso_atm_d14c_data_nbval                                                       
-  use marbl_share_mod           , only : ciso_atm_d13c_data                                                             
-  use marbl_share_mod           , only : ciso_atm_d14c_data                                                             
-  use marbl_share_mod           , only : ciso_atm_d13c_data_yr                                                          
-  use marbl_share_mod           , only : ciso_atm_d14c_data_yr                                                          
-  use marbl_share_mod           , only : ciso_atm_d13c_const                                                            
-  use marbl_share_mod           , only : ciso_atm_d14c_const                                                            
-  use marbl_share_mod           , only : ciso_atm_d13c_opt                                                              
-  use marbl_share_mod           , only : ciso_atm_d14c_opt                                                              
-  use marbl_share_mod           , only : ciso_atm_d13c_filename                                                         
-  use marbl_share_mod           , only : ciso_atm_d14c_filename                                                         
 
   use marbl_namelist_mod        , only : marbl_nl_in_size
   use marbl_namelist_mod        , only : marbl_nl_cnt
@@ -422,6 +420,17 @@ contains
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
+
+      ! Log default parameters
+       call marbl_instances(iblock)%parameters%list_parms(                    &
+                                           marbl_instances(iblock)%StatusLog)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%parameters%list_parms"
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
+       end if
+        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+        call marbl_instances(iblock)%StatusLog%erase()
+
     end do
 
     ! Set up saved state data type
@@ -2433,7 +2442,12 @@ contains
     tmp => log_to_print%FullLog
     do while (associated(tmp))
       if (tmp%lall_tasks.or.iam_master) then
-        write(stdout, *) trim(tmp%LogMessage)
+        if (tmp%lall_tasks.and.(.not.iam_master)) then
+          write(stdout, "(A,I0,A,I0,2A)") "(Task ", my_task, ', block ', iblock, &
+                '): ', trim(tmp%LogMessage)
+        else
+          write(stdout, "(A)") trim(tmp%LogMessage)
+        end if
       end if
       tmp => tmp%next
     end do
