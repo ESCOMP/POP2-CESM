@@ -1573,6 +1573,19 @@ if ($ecosys_on eq "TRUE") {
     }
     add_default($nl, 'caco3_bury_thres_opt');
     add_default($nl, 'caco3_bury_thres_depth');
+    # FIXME : replace following with ladjust_bury_coeff=.true. branch
+    # when "restfile" is implemented for scalar saved state
+    if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
+      if ($RUN_TYPE eq "startup") {
+        add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
+      } else {
+        add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
+      }
+    } else {
+      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
+    }
+    add_default($nl, 'ladjust_bury_coeff');
+    add_default($nl, 'bury_coeff_rmean_timescale_years');
     add_default($nl, 'pon_bury_coeff');
     add_default($nl, 'lecovars_full_depth_tavg');
 
@@ -1590,8 +1603,9 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'parm_kappa_nitrif');
     add_default($nl, 'parm_nitrif_par_lim');
     add_default($nl, 'parm_labile_ratio');
-    add_default($nl, 'parm_POMbury');
-    add_default($nl, 'parm_BSIbury');
+    add_default($nl, 'parm_init_POC_bury_coeff');
+    add_default($nl, 'parm_init_POP_bury_coeff');
+    add_default($nl, 'parm_init_bSi_bury_coeff');
     add_default($nl, 'parm_fe_scavenge_rate0');
     add_default($nl, 'parm_f_prod_sp_CaCO3');
     add_default($nl, 'parm_POC_diss');

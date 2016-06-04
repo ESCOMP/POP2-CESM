@@ -2,6 +2,44 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    4 Jun 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n09_marbl_dev_n10_cesm_pop_2_1_20160513
+Tag Summary: implement global averages, scalar running means, ladjust_bury_coeff
+
+global averages and scalar running means are computed in POP
+   running means will be moved to MARBL later
+introduce set_global_scalars to MARBL interface
+introduce namelist vars for ladjust_bury_coeff
+add test for ladjust_bury_coeff=.true.
+
+Testing:
+MARBL commit edd328d3308818b55f6ebf53a3d6b741d7bed8df
+
+aux_pop_MARBL (intel and gnu): (baseline comparison to n08 tag)
+   all tests pass, with the following exceptions
+      some nlcomp tests fail because of added namelist variables
+      cice_ecosys_ladjust_bury_coeff fails baseline compare because of changed test defn
+
+aux_pop_MARBL on hobart (nag) will be done after commit
+   lack of subsequent tags indicates success
+
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff/user_nl_pop
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n08_marbl_dev_n10_cesm_pop_2_1_20160513
 Tag Summary: merge marbl_dev n10 tag to this branch

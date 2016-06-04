@@ -105,15 +105,19 @@ module ecosys_driver
 
   public :: ecosys_driver_init
   public :: ecosys_driver_set_interior
+  public :: ecosys_driver_set_global_scalars
+  public :: ecosys_driver_comp_global_averages
   public :: ecosys_driver_set_sflux
   public :: ecosys_driver_tracer_ref_val
   public :: ecosys_driver_tavg_forcing
   public :: ecosys_driver_write_restart
   public :: ecosys_driver_unpack_source_sink_terms
 
+  private :: ecosys_driver_init_rmean_var
   private :: ecosys_driver_init_tracers_and_saved_state
   private :: ecosys_driver_read_restore_data
   private :: ecosys_driver_set_input_forcing_data
+  private :: ecosys_driver_update_scalar_rmeans
 
   ! this struct is necessary because there is some global state
   ! that needs to be preserved for from one time step to the next
@@ -208,6 +212,20 @@ module ecosys_driver
   ! Note - ind_name_table is needed as a module variable because of interface
   !        to ecosys_write_restart
 
+  ! Variables related to global averages
+
+  real (r8), allocatable, target, dimension(:,:,:,:) :: glo_avg_fields_interior
+  real (r8), allocatable, target, dimension(:,:,:,:) :: glo_avg_fields_surface
+  real (r8), allocatable, dimension(:,:,:)           :: glo_avg_area_masked
+  real (r8)                                          :: glo_avg_norm_fact
+
+  ! FIXME : move the following variables into MARBL
+
+  integer (int_kind), allocatable, target, dimension(:) :: glo_avg_rmean_ind_interior
+  integer (int_kind), allocatable, target, dimension(:) :: glo_avg_rmean_ind_surface
+  integer (int_kind), allocatable, target, dimension(:) :: glo_scalar_rmean_ind_interior
+  integer (int_kind), allocatable, target, dimension(:) :: glo_scalar_rmean_ind_surface
+
   !***********************************************************************
 
 contains
@@ -232,6 +250,9 @@ contains
     use grid                  , only : zt
     use grid                  , only : zw
     use grid                  , only : region_mask
+    use grid                  , only : TAREA
+    use global_reductions     , only : global_sum
+    use constants             , only : field_loc_center
     use broadcast             , only : broadcast_scalar
     use io_tools              , only : document
     use time_management       , only : init_time_flag
@@ -248,6 +269,7 @@ contains
     use named_field_mod       , only : named_field_get
     use named_field_mod       , only : named_field_register
     use named_field_mod       , only : named_field_set
+    use running_mean_mod      , only : running_mean_get_var
 
     implicit none
 
@@ -278,6 +300,8 @@ contains
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)                :: init_file_fmt                      ! file format for option 'file'
     logical   (log_kind)                :: lmarginal_seas                     ! is ecosystem active in marginal seas?
+    integer (int_kind)                  :: glo_avg_field_cnt
+    real (r8)                           :: rmean_val
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -540,7 +564,113 @@ contains
     call named_field_register('SFLUX_CO2'        , sflux_co2_nf_ind)
     call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
 
+    !--------------------------------------------------------------------
+    ! allocate space for fields for which global averages are to be computed
+    !--------------------------------------------------------------------
+
+    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_interior, dim=1)
+    allocate(glo_avg_fields_interior(nx_block, ny_block, nblocks_clinic, glo_avg_field_cnt))
+
+    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_surface, dim=2)
+    allocate(glo_avg_fields_surface(nx_block, ny_block, nblocks_clinic, glo_avg_field_cnt))
+
+    ! initialize to zero so that values not set at runtime don't cause problems in global sum function
+    glo_avg_fields_interior(:,:,:,:) = c0
+    glo_avg_fields_surface(:,:,:,:) = c0
+
+    if ((size(glo_avg_fields_interior, dim=4) /= 0) .or. (size(glo_avg_fields_surface, dim=4) /= 0)) then
+       allocate(glo_avg_area_masked(nx_block, ny_block, nblocks_clinic))
+       where (land_mask(:,:,:))
+          glo_avg_area_masked(:,:,:) = TAREA(:,:,:)
+       else where
+          glo_avg_area_masked(:,:,:) = c0
+       end where
+
+       glo_avg_norm_fact = c1 / global_sum(glo_avg_area_masked(:,:,:), distrb_clinic, field_loc_center)
+    end if
+
+    ! FIXME : move the setup of running means of global averages into MARBL
+
+    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_avg_rmean_interior, &
+                                      ecosys_restart_filename, glo_avg_rmean_ind_interior)
+
+    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_avg_rmean_surface, &
+                                      ecosys_restart_filename, glo_avg_rmean_ind_surface)
+
+    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_scalar_rmean_interior, &
+                                      ecosys_restart_filename, glo_scalar_rmean_ind_interior)
+
+    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_scalar_rmean_surface, &
+                                      ecosys_restart_filename, glo_scalar_rmean_ind_surface)
+
+    ! copy values from POP's running mean to MARBL interface
+
+    do n = 1, size(glo_avg_rmean_ind_interior(:))
+       call running_mean_get_var(glo_avg_rmean_ind_interior(n), vals_0d=rmean_val)
+       do iblock = 1, nblocks_clinic
+          marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_val
+       end do
+    end do
+
+    do n = 1, size(glo_avg_rmean_ind_surface(:))
+       call running_mean_get_var(glo_avg_rmean_ind_surface(n), vals_0d=rmean_val)
+       do iblock = 1, nblocks_clinic
+          marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_val
+       end do
+    end do
+
+    do n = 1, size(glo_scalar_rmean_ind_interior(:))
+       call running_mean_get_var(glo_scalar_rmean_ind_interior(n), vals_0d=rmean_val)
+       do iblock = 1, nblocks_clinic
+          marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_val
+       end do
+    end do
+
+    do n = 1, size(glo_scalar_rmean_ind_surface(:))
+       call running_mean_get_var(glo_scalar_rmean_ind_surface(n), vals_0d=rmean_val)
+       do iblock = 1, nblocks_clinic
+          marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_val
+       end do
+    end do
+
   end subroutine ecosys_driver_init
+
+  !-----------------------------------------------------------------------
+
+  subroutine ecosys_driver_init_rmean_var(marbl_running_mean_var, ecosys_restart_filename, rmean_ind)
+
+    use marbl_interface_types, only : marbl_running_mean_0d_type
+    use running_mean_mod     , only : running_mean_define_var
+    use running_mean_mod     , only : running_mean_init_var
+
+    type(marbl_running_mean_0d_type), intent(in)  :: marbl_running_mean_var(:)
+    character(char_len)             , intent(out) :: ecosys_restart_filename
+    integer (int_kind), allocatable , intent(out) :: rmean_ind(:)
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    integer (int_kind) :: rmean_var_cnt
+    integer (int_kind) :: n
+
+    !-----------------------------------------------------------------------
+
+    rmean_var_cnt = size(marbl_running_mean_var, 1)
+    allocate(rmean_ind(rmean_var_cnt))
+
+    do n = 1, rmean_var_cnt
+       call running_mean_define_var(name=trim(marbl_running_mean_var(n)%sname), rank=0, &
+          timescale=marbl_running_mean_var(n)%timescale, index=rmean_ind(n))
+
+       if (marbl_running_mean_var(n)%linit_by_val) then
+          call running_mean_init_var(rmean_ind(n), vals_0d=marbl_running_mean_var(n)%init_val)
+       else
+          call running_mean_init_var(rmean_ind(n), filename=ecosys_restart_filename)
+       end if
+    end do
+
+  end subroutine ecosys_driver_init_rmean_var
 
   !-----------------------------------------------------------------------
 
@@ -783,6 +913,7 @@ contains
     use grid      , only : partial_bottom_cells
     use mcog      , only : mcog_nbins
     use state_mod , only : ref_pressure
+    use io_types  , only : stdout
 
     implicit none
 
@@ -897,6 +1028,10 @@ contains
                 do n = 1, marbl_tracer_cnt
                    dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
                 end do
+
+                ! copy values to be used in computing requested global averages
+                ! arrays have zero extent if none are requested
+                glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
              end if ! end if domain%kmt > 0
 
           end if ! end if land_mask > 0
@@ -937,6 +1072,7 @@ contains
     use named_field_mod      , only : named_field_set
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
+    use io_tools             , only : document
 
     implicit none
 
@@ -958,6 +1094,7 @@ contains
     character(char_len) :: log_message
     integer (int_kind) :: index_marbl                                 ! marbl index
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
+    integer (int_kind) :: glo_scalar_cnt
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
     !-----------------------------------------------------------------------
 
@@ -988,6 +1125,9 @@ contains
 
     call timer_start(ecosys_set_sflux_timer)
 
+    call ecosys_driver_set_global_scalars('surface')
+
+    ! FIXME : add OMP directive to this loop
     do iblock = 1, nblocks_clinic
 
        !-----------------------------------------------------------------------
@@ -1060,10 +1200,16 @@ contains
                 surface_forcing_diags(i,j,n,iblock) = &
                      marbl_instances(iblock)%surface_forcing_diags%diags(n)%field_2d(index_marbl)
              end do
+
+             ! copy values to be used in computing requested global averages
+             ! arrays have zero extent if none are requested
+             glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface(index_marbl,:)
           enddo
        end do
 
     enddo ! end loop over iblock
+
+    call ecosys_driver_comp_global_averages('surface')
 
     call timer_stop(ecosys_set_sflux_timer)
 
@@ -1084,6 +1230,161 @@ contains
     ! Note: out of this subroutine rest of pop needs stf_module, ph_prev_surf, named_state, diagnostics
 
   end subroutine ecosys_driver_set_sflux
+
+  !***********************************************************************
+
+  subroutine ecosys_driver_comp_global_averages(field_source)
+
+    ! DESCRIPTION: 
+    ! perform global operations
+
+    use global_reductions, only : global_sum_prod
+    use constants        , only : field_loc_center
+    use running_mean_mod , only : running_mean_update_var
+    use running_mean_mod , only : running_mean_get_var
+
+    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    real (r8), pointer          :: glo_avg_fields(:,:,:,:)
+    integer (int_kind), pointer :: glo_avg_rmean_ind(:)
+    real (r8), allocatable      :: glo_avg(:)
+    real (r8), allocatable      :: glo_avg_rmean(:)
+    integer (int_kind)          :: glo_avg_field_cnt
+    integer (int_kind)          :: n, iblock
+    !-----------------------------------------------------------------------
+
+    if (field_source .eq. 'interior') then
+       glo_avg_fields    => glo_avg_fields_interior(:,:,:,:)
+       glo_avg_rmean_ind => glo_avg_rmean_ind_interior(:)
+    else
+       glo_avg_fields    => glo_avg_fields_surface(:,:,:,:)
+       glo_avg_rmean_ind => glo_avg_rmean_ind_surface(:)
+    end if
+
+    glo_avg_field_cnt = size(glo_avg_fields, dim=4)
+
+    if (glo_avg_field_cnt /= 0) then
+       allocate(glo_avg(glo_avg_field_cnt))
+       allocate(glo_avg_rmean(glo_avg_field_cnt))
+
+       ! compute global means, and update their running means
+       do n = 1, glo_avg_field_cnt
+          glo_avg(n) = glo_avg_norm_fact * global_sum_prod(glo_avg_fields(:,:,:,n), &
+             glo_avg_area_masked(:,:,:), distrb_clinic, field_loc_center)
+          call running_mean_update_var(glo_avg_rmean_ind(n), vals_0d=glo_avg(n))
+          call running_mean_get_var(glo_avg_rmean_ind(n), vals_0d=glo_avg_rmean(n))
+       end do
+
+       ! store global means, and their running means, into appropriate component of marbl_instances
+       if (field_source .eq. 'interior') then
+          do iblock = 1, nblocks_clinic
+             marbl_instances(iblock)%glo_avg_averages_interior(:)    = glo_avg(:)
+             marbl_instances(iblock)%glo_avg_rmean_interior(:)%rmean = glo_avg_rmean(:)
+          end do
+       else
+          do iblock = 1, nblocks_clinic
+             marbl_instances(iblock)%glo_avg_averages_surface(:)    = glo_avg(:)
+             marbl_instances(iblock)%glo_avg_rmean_surface(:)%rmean = glo_avg_rmean(:)
+          end do
+       end if
+
+       deallocate(glo_avg_rmean)
+       deallocate(glo_avg)
+    end if
+
+  end subroutine ecosys_driver_comp_global_averages
+
+  !***********************************************************************
+
+  subroutine ecosys_driver_set_global_scalars(field_source)
+
+    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    integer (int_kind)          :: iblock
+
+    !-----------------------------------------------------------------------
+
+    do iblock = 1, nblocks_clinic
+       call marbl_instances(iblock)%set_global_scalars(field_source)
+    end do
+
+    call ecosys_driver_update_scalar_rmeans(field_source)
+
+  end subroutine ecosys_driver_set_global_scalars
+
+  !***********************************************************************
+
+  subroutine ecosys_driver_update_scalar_rmeans(field_source)
+
+    ! DESCRIPTION: 
+    ! update running means of scalar variables
+
+    use running_mean_mod , only : running_mean_update_var
+    use running_mean_mod , only : running_mean_get_var
+    use io_types         , only : stdout
+
+    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname   = 'ecosys_driver:ecosys_driver_update_scalar_rmeans'
+    character(*), parameter :: fmt_str   = '(A,X,A)'
+    character(*), parameter :: fmt_str_i = '(A,X,A,X,I0)'
+    character(*), parameter :: fmt_str_e = '(A,X,A,X,E23.16)'
+    real (r8)               :: rmean_val
+    integer (int_kind)      :: n, iblock
+    !-----------------------------------------------------------------------
+
+    if (field_source .eq. 'interior') then
+       do n = 1, size(glo_scalar_rmean_ind_interior(:))
+          ! verify that all instances have same value of glo_scalar_interior
+          do iblock = 2, nblocks_clinic
+             if (marbl_instances(iblock)%glo_scalar_interior(n) /= marbl_instances(1)%glo_scalar_interior(n)) then
+                write(stdout, fmt_str)   subname, 'mismatch in glo_scalar_interior values across MARBL instances'
+                write(stdout, fmt_str_i) subname, 'rmean index', n
+                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_interior(n)
+                write(stdout, fmt_str_i) subname, 'iblock', iblock
+                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_interior(n)
+                call exit_POP(sigAbort, 'stopping in ' // subname)
+             end if
+          end do
+
+          call running_mean_update_var(glo_scalar_rmean_ind_interior(n), vals_0d=marbl_instances(1)%glo_scalar_interior(n))
+          call running_mean_get_var(glo_scalar_rmean_ind_interior(n), vals_0d=rmean_val)
+          do iblock = 1, nblocks_clinic
+             marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_val
+          end do
+       end do
+    else
+       do n = 1, size(glo_scalar_rmean_ind_surface(:))
+          ! verify that all instances have same value of glo_scalar_surface
+          do iblock = 2, nblocks_clinic
+             if (marbl_instances(iblock)%glo_scalar_surface(n) /= marbl_instances(1)%glo_scalar_surface(n)) then
+                write(stdout, fmt_str)   subname, 'mismatch in glo_scalar_surface values across MARBL instances'
+                write(stdout, fmt_str_i) subname, 'rmean index', n
+                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_surface(n)
+                write(stdout, fmt_str_i) subname, 'iblock', iblock
+                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_surface(n)
+                call exit_POP(sigAbort, 'stopping in ' // subname)
+             end if
+          end do
+
+          call running_mean_update_var(glo_scalar_rmean_ind_surface(n), vals_0d=marbl_instances(1)%glo_scalar_surface(n))
+          call running_mean_get_var(glo_scalar_rmean_ind_surface(n), vals_0d=rmean_val)
+          do iblock = 1, nblocks_clinic
+             marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_val
+          end do
+       end do
+    end if
+
+  end subroutine ecosys_driver_update_scalar_rmeans
 
   !***********************************************************************
 
