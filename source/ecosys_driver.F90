@@ -913,7 +913,6 @@ contains
     use grid      , only : partial_bottom_cells
     use mcog      , only : mcog_nbins
     use state_mod , only : ref_pressure
-    use io_types  , only : stdout
 
     implicit none
 
@@ -1072,7 +1071,6 @@ contains
     use named_field_mod      , only : named_field_set
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
-    use io_tools             , only : document
 
     implicit none
 
@@ -1335,9 +1333,9 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname   = 'ecosys_driver:ecosys_driver_update_scalar_rmeans'
-    character(*), parameter :: fmt_str   = '(A,X,A)'
-    character(*), parameter :: fmt_str_i = '(A,X,A,X,I0)'
-    character(*), parameter :: fmt_str_e = '(A,X,A,X,E23.16)'
+    character(*), parameter :: fmt_str   = '(A,1X,A)'
+    character(*), parameter :: fmt_str_i = '(A,1X,A,1X,I0)'
+    character(*), parameter :: fmt_str_e = '(A,1X,A,1X,E23.16)'
     real (r8)               :: rmean_val
     integer (int_kind)      :: n, iblock
     !-----------------------------------------------------------------------

@@ -2,6 +2,49 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    9 Jun 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n10_marbl_dev_n10_cesm_pop_2_1_20160513
+Tag Summary: hobart/nag fix and cleanup from code review
+
+fix IO format strings for nag (X -> 1X)
+add valid_values to namelist vars in namelist_definition_pop.xml
+remove unneeded use statements
+refactor test definitions
+add CECO ecosys_ladjust_bury_coeff test to hobart/nag
+
+Testing:
+MARBL commit 48f9406b5a1a8ba3c6566488d31edfd0486b504f
+
+aux_pop_MARBL (intel and gnu): (baseline comparison to n09 tag)
+   all tests pass
+
+aux_pop_MARBL on hobart (nag) will be done after commit
+   lack of subsequent tags indicates success
+
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/user_nl_pop
+        > moved to cime_config/testdefs/testmods_dirs/pop/ecosys_dust_flux_driver/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff/user_nl_pop
+        > moved to cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_dust_flux_driver
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_dust_flux_driver/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_dust_flux_driver/user_nl_pop
+        > moved from cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/user_nl_pop
+        > moved from cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff/user_nl_pop
+M       source/ecosys_driver.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    4 Jun 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n09_marbl_dev_n10_cesm_pop_2_1_20160513
 Tag Summary: implement global averages, scalar running means, ladjust_bury_coeff
@@ -13,7 +56,7 @@ introduce namelist vars for ladjust_bury_coeff
 add test for ladjust_bury_coeff=.true.
 
 Testing:
-MARBL commit edd328d3308818b55f6ebf53a3d6b741d7bed8df
+MARBL commit 99dee6ac49767996e314343aa15d4e2996802e00
 
 aux_pop_MARBL (intel and gnu): (baseline comparison to n08 tag)
    all tests pass, with the following exceptions

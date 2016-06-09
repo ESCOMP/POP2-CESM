@@ -6362,7 +6362,9 @@ Default: 3000.0e2
 id="init_bury_coeff_opt"
 type="char*128"
 category="ecosys"
-group="ecosys_nml" >
+group="ecosys_nml"
+valid_values="nml,restfile" >
+Valid Values: 'nml', 'restfile'
 Default: 'nml' for startup runs, otherwise 'restfile'
 </entry>
 
