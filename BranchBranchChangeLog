@@ -3,6 +3,31 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    9 Jun 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n11_marbl_dev_n11_cesm_pop_2_1_20160513
+Tag Summary: merge marbl_dev n11 tag to this branch
+
+Testing:
+MARBL commit ec20fe2bacd93abd5126e2f9e2e49c42e1a5e998
+
+aux_pop_MARBL (intel and gnu): (baseline comparison to n10 tag)
+   all tests pass
+
+aux_pop_MARBL on hobart (nag) will be done after commit
+   lack of subsequent tags indicates success
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+ M      drivers/cpl
+M       source/ecosys_driver.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Jun 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n10_marbl_dev_n10_cesm_pop_2_1_20160513
 Tag Summary: hobart/nag fix and cleanup from code review
 
