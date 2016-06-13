@@ -2,6 +2,25 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    13 Jun 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n12_marbl_dev_n12_cesm_pop_2_1_20160513
+Tag Summary: merge marbl_dev n12 tag to this branch
+
+no code or script changes
+
+Testing: verified that code builds with ifort and gfortran
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+ M      drivers/cpl
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    9 Jun 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n11_marbl_dev_n11_cesm_pop_2_1_20160513
 Tag Summary: merge marbl_dev n11 tag to this branch
