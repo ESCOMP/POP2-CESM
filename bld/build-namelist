@@ -1386,7 +1386,7 @@ if ($abio_on eq "TRUE") {
  }
 
 ##########################################
-# namelist group: ecosys_ciso_nml        #
+# namelist group: marbl_ciso_nml         #
 ##########################################
 
 my $ciso_on = $cfg->get("use_ciso");
@@ -1470,7 +1470,7 @@ if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_atm_data_year');
 }
 ##########################################
-# namelist group: ecosys_nml             #
+# namelist group: marbl_ecosys_base_nml  #
 ##########################################
 
 my $ecosys_on = $cfg->get("use_ecosys");
@@ -1580,7 +1580,7 @@ if ($ecosys_on eq "TRUE") {
 }
 
 ##########################################
-# namelist group: ecosys_parms_nml       #
+# namelist group: marbl_parms_nml        #
 ##########################################
 
 if ($ecosys_on eq "TRUE") {
@@ -2136,7 +2136,7 @@ if ($sf6_on eq "TRUE" ) {
     push @groups, qw(sf6_nml);
 }    
 if ($ecosys_on eq "TRUE") {
-    push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml ecosys_restore_nml);
+    push @groups, qw(marbl_ecosys_base_nml marbl_parms_nml ecosys_driver_nml marbl_restore_nml);
 }    
 if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );
@@ -2145,7 +2145,7 @@ if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
 }
 if ($ciso_on eq "TRUE" ) {
-    push @groups, qw(ecosys_ciso_nml);
+    push @groups, qw(marbl_ciso_nml);
 }
 if ($IRF_on eq "TRUE" ) {
     push @groups, qw(irf_nml);

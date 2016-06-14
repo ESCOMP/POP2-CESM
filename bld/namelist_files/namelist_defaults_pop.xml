@@ -999,7 +999,7 @@
 <abio_dic_dic14_data_year>1</abio_dic_dic14_data_year>
 
 <!---------------------------->
-<!--       ecosys_ciso_nml  -->
+<!--       marbl_ciso_nml   -->
 <!---------------------------->
 
 <ciso_init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_Nov2012_corrO2.nc</ciso_init_ecosys_init_file>
@@ -1088,7 +1088,7 @@
 
 
 <!---------------------------->
-<!--       ecosys_nml       -->
+<!-- marbl_ecosys_base_nml  -->
 <!---------------------------->
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</init_ecosys_init_file>
@@ -1096,10 +1096,10 @@
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
-<tracer_init_ext(1)%mod_varname&ecosys_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_nml>
-<tracer_init_ext(2)%mod_varname&ecosys_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_nml>
-<tracer_init_ext(3)%mod_varname&ecosys_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_nml>
-<tracer_init_ext(4)%mod_varname&ecosys_nml>O2</tracer_init_ext(4)%mod_varname&ecosys_nml>
+<tracer_init_ext(1)%mod_varname&marbl_ecosys_base_nml>ALK</tracer_init_ext(1)%mod_varname&marbl_ecosys_base_nml>
+<tracer_init_ext(2)%mod_varname&marbl_ecosys_base_nml>DIC</tracer_init_ext(2)%mod_varname&marbl_ecosys_base_nml>
+<tracer_init_ext(3)%mod_varname&marbl_ecosys_base_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&marbl_ecosys_base_nml>
+<tracer_init_ext(4)%mod_varname&marbl_ecosys_base_nml>O2</tracer_init_ext(4)%mod_varname&marbl_ecosys_base_nml>
 
 <lflux_gas_o2 >.true.</lflux_gas_o2>
 <lflux_gas_co2>.true.</lflux_gas_co2>
@@ -1277,7 +1277,7 @@
 <pon_bury_coeff>0.5</pon_bury_coeff>
 
 <!---------------------------->
-<!--    ecosys_parms_nml    -->
+<!--    marbl_parms_nml     -->
 <!---------------------------->
 
 <parm_Fe_bioavail>    1.0        </parm_Fe_bioavail>
