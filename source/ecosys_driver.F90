@@ -32,45 +32,46 @@ module ecosys_driver
   use marbl_parms               , only : init_ecosys_option
   use marbl_parms               , only : init_ecosys_init_file
   use marbl_parms               , only : init_ecosys_init_file_fmt
-  use marbl_parms               , only : gas_flux_forcing_iopt
-  use marbl_parms               , only : gas_flux_forcing_iopt_drv
-  use marbl_parms               , only : gas_flux_forcing_iopt_file
-  use marbl_parms               , only : gas_flux_forcing_file
-  use marbl_parms               , only : fesedflux_input
-  use marbl_parms               , only : lflux_gas_co2
-  use marbl_parms               , only : liron_patch
-  use marbl_parms               , only : atm_co2_iopt
-  use marbl_parms               , only : atm_co2_iopt_drv_prog
-  use marbl_parms               , only : atm_co2_iopt_drv_diag
-  use marbl_parms               , only : atm_co2_iopt_const
-  use marbl_parms               , only : atm_co2_const
-  use marbl_parms               , only : atm_alt_co2_const
-  use marbl_parms               , only : atm_alt_co2_iopt
-  use marbl_parms               , only : iron_patch_flux_filename
-  use marbl_parms               , only : iron_patch_month
-  use marbl_parms               , only : ndep_data_type
-  use marbl_parms               , only : ciso_lecovars_full_depth_tavg
   use marbl_parms               , only : ciso_init_ecosys_option
   use marbl_parms               , only : ciso_init_ecosys_init_file
   use marbl_parms               , only : ciso_init_ecosys_init_file_fmt
-  use marbl_parms               , only : ciso_atm_model_year
-  use marbl_parms               , only : ciso_atm_data_year
-  use marbl_parms               , only : ciso_atm_d13c_opt
-  use marbl_parms               , only : ciso_atm_d14c_opt
-  use marbl_parms               , only : ciso_atm_d13c_const
-  use marbl_parms               , only : ciso_atm_d14c_const
-  use marbl_parms               , only : ciso_atm_d13c_data_nbval
-  use marbl_parms               , only : ciso_atm_d14c_data_nbval
-  use marbl_parms               , only : ciso_atm_d13c_data
-  use marbl_parms               , only : ciso_atm_d14c_data
-  use marbl_parms               , only : ciso_atm_d13c_data_yr
-  use marbl_parms               , only : ciso_atm_d14c_data_yr
-  use marbl_parms               , only : ciso_atm_d13c_const
-  use marbl_parms               , only : ciso_atm_d14c_const
-  use marbl_parms               , only : ciso_atm_d13c_opt
-  use marbl_parms               , only : ciso_atm_d14c_opt
-  use marbl_parms               , only : ciso_atm_d13c_filename
-  use marbl_parms               , only : ciso_atm_d14c_filename
+
+  use marbl_config_mod          , only : gas_flux_forcing_iopt
+  use marbl_config_mod          , only : gas_flux_forcing_iopt_drv
+  use marbl_config_mod          , only : gas_flux_forcing_iopt_file
+  use marbl_config_mod          , only : gas_flux_forcing_file
+  use marbl_config_mod          , only : fesedflux_input
+  use marbl_config_mod          , only : lflux_gas_co2
+  use marbl_config_mod          , only : liron_patch
+  use marbl_config_mod          , only : atm_co2_iopt
+  use marbl_config_mod          , only : atm_co2_iopt_drv_prog
+  use marbl_config_mod          , only : atm_co2_iopt_drv_diag
+  use marbl_config_mod          , only : atm_co2_iopt_const
+  use marbl_config_mod          , only : atm_co2_const
+  use marbl_config_mod          , only : atm_alt_co2_const
+  use marbl_config_mod          , only : atm_alt_co2_iopt
+  use marbl_config_mod          , only : iron_patch_flux_filename
+  use marbl_config_mod          , only : iron_patch_month
+  use marbl_config_mod          , only : ndep_data_type
+  use marbl_config_mod          , only : ciso_lecovars_full_depth_tavg
+  use marbl_config_mod          , only : ciso_atm_model_year
+  use marbl_config_mod          , only : ciso_atm_data_year
+  use marbl_config_mod          , only : ciso_atm_d13c_opt
+  use marbl_config_mod          , only : ciso_atm_d14c_opt
+  use marbl_config_mod          , only : ciso_atm_d13c_const
+  use marbl_config_mod          , only : ciso_atm_d14c_const
+  use marbl_config_mod          , only : ciso_atm_d13c_data_nbval
+  use marbl_config_mod          , only : ciso_atm_d14c_data_nbval
+  use marbl_config_mod          , only : ciso_atm_d13c_data
+  use marbl_config_mod          , only : ciso_atm_d14c_data
+  use marbl_config_mod          , only : ciso_atm_d13c_data_yr
+  use marbl_config_mod          , only : ciso_atm_d14c_data_yr
+  use marbl_config_mod          , only : ciso_atm_d13c_const
+  use marbl_config_mod          , only : ciso_atm_d14c_const
+  use marbl_config_mod          , only : ciso_atm_d13c_opt
+  use marbl_config_mod          , only : ciso_atm_d14c_opt
+  use marbl_config_mod          , only : ciso_atm_d13c_filename
+  use marbl_config_mod          , only : ciso_atm_d14c_filename
 
   use marbl_logging             , only : marbl_log_type
   use marbl_logging             , only : marbl_status_log_entry_type
@@ -397,6 +398,31 @@ contains
     endif
 
     !--------------------------------------------------------------------
+    !  MARBL setup is 3 steps:
+    !  1) Configure (set up parameters that affect tracer count / other
+    !     parms)
+    !  2) Initialize (set up rest of parameters)
+    !  3) Complete setup ("lock" parmameters so they aren't changed in time
+    !     step)
+    !--------------------------------------------------------------------
+
+    !--------------------------------------------------------------------
+    !  Configure marbl 
+    !--------------------------------------------------------------------
+
+    do iblock=1, nblocks_clinic
+
+       call marbl_instances(iblock)%config(gcm_nl_buffer = nl_buffer)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%config()"
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+
+    end do
+
+    !--------------------------------------------------------------------
     !  Initialize marbl 
     !--------------------------------------------------------------------
 
@@ -404,8 +430,6 @@ contains
 
        call marbl_instances(iblock)%init(                                        &
             gcm_nl_buffer = nl_buffer,                                           &
-            gcm_ciso_on = ciso_on,                                               &
-            gcm_tracer_cnt = marbl_tracer_cnt,                                   &
             gcm_num_levels = km,                                                 & 
             gcm_num_PAR_subcols = mcog_nbins,                                    &
             gcm_num_elements_interior_forcing = 1,                               & 
@@ -421,15 +445,21 @@ contains
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
 
-      ! Log default parameters
-       call marbl_instances(iblock)%parameters%list_parms(                    &
-                                           marbl_instances(iblock)%StatusLog)
+    end do
+
+    !--------------------------------------------------------------------
+    !  Complete marbl setup
+    !--------------------------------------------------------------------
+
+    do iblock=1, nblocks_clinic
+
+       call marbl_instances(iblock)%complete_config_and_init()
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%parameters%list_parms"
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%complete_init_and_config()"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
-        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
-        call marbl_instances(iblock)%StatusLog%erase()
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
 
     end do
 

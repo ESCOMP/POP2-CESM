@@ -1,6 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    15 June 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n22_marbl_dev_n11_cesm_pop_2_1_20160513
+Tag Summary: Update driver to handle new interfaces to marbl (%config,
+             %complete_config_and_init), update bld/ because all the namelists
+             changed. This requires MARBL 2d05250.
+Testing:     aux_pop_MARBL on yellowstone_intel and yellowstone_gnu; will
+             run hobart_nag after tag is made and make n23 if necessary.
+             Namelist comparisons fail due to reorganization of namelist
+             variables.
+Still to do: (1) MARBL expects the GCM to make sure it is returning the correct
+                 number of tracers, but POP doesn't do that check yet.
+             (2) Lots of clean-up in build-namelist and the namelist_defaults
+                 to account for new namelist generation.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    24 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n21_marbl_dev_n11_cesm_pop_2_1_20160513
 Tag Summary: Merge marbl_dev branch back into marbl_dev_levy

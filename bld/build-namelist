@@ -1477,6 +1477,8 @@ my $ecosys_on = $cfg->get("use_ecosys");
 if ($ecosys_on eq "TRUE") {
 
 	my $temp;
+  my $ciso_loc = $nl->get_value('ciso_on');
+  add_default($nl, 'ciso_on&marbl_config_nml', val=>"$ciso_loc");
 
     if (($OCN_TRANSIENT ne "unset") &&  ($OCN_TRANSIENT ne "1850-2000") &&
         ($OCN_TRANSIENT ne "rcp4.5") && ($OCN_TRANSIENT ne "rcp8.5")) {
@@ -1602,12 +1604,12 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'parm_scalelen_z');
     add_default($nl, 'parm_scalelen_vals');
 
-    add_default($nl, 'zooplankton(1)%sname');
+    add_default($nl, 'zooplankton_config(1)%sname');
     add_default($nl, 'zooplankton(1)%z_mort_0');
     add_default($nl,'zooplankton(1)%z_mort2_0');
     add_default($nl,'zooplankton(1)%loss_thres');
 
-    add_default($nl, 'autotrophs(1)%sname');
+    add_default($nl, 'autotrophs_config(1)%sname');
     add_default($nl, 'autotrophs(1)%kFe');
     add_default($nl, 'autotrophs(1)%kPO4');
     add_default($nl, 'autotrophs(1)%kDOP');
@@ -1615,7 +1617,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'autotrophs(1)%kNH4');
     add_default($nl, 'autotrophs(1)%kSiO3');
 
-    add_default($nl, 'autotrophs(2)%sname');
+    add_default($nl, 'autotrophs_config(2)%sname');
     add_default($nl, 'autotrophs(2)%kFe');
     add_default($nl, 'autotrophs(2)%kPO4');
     add_default($nl, 'autotrophs(2)%kDOP');
@@ -1623,7 +1625,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'autotrophs(2)%kNH4');
     add_default($nl, 'autotrophs(2)%kSiO3');
 
-    add_default($nl, 'autotrophs(3)%sname');
+    add_default($nl, 'autotrophs_config(3)%sname');
     add_default($nl, 'autotrophs(3)%kFe');
     add_default($nl, 'autotrophs(3)%kPO4');
     add_default($nl, 'autotrophs(3)%kDOP');
@@ -1631,11 +1633,11 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'autotrophs(3)%kNH4');
     add_default($nl, 'autotrophs(3)%kSiO3');
 
-    add_default($nl, 'grazing(1,1)%sname');
+    add_default($nl, 'grazing_config(1,1)%sname');
+    add_default($nl,'grazing_config(1,1)%auto_ind_cnt');
+    add_default($nl,'grazing_config(1,1)%zoo_ind_cnt');
     add_default($nl,'grazing(1,1)%auto_ind');
-    add_default($nl,'grazing(1,1)%auto_ind_cnt');
     add_default($nl,'grazing(1,1)%zoo_ind');
-    add_default($nl,'grazing(1,1)%zoo_ind_cnt');
     add_default($nl,'grazing(1,1)%z_umax_0');
     add_default($nl,'grazing(1,1)%z_grz');
     add_default($nl,'grazing(1,1)%graze_zoo');
@@ -1644,11 +1646,11 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl,'grazing(1,1)%f_zoo_detr');
     add_default($nl, 'grazing(1,1)%grazing_function');
 
-    add_default($nl, 'grazing(2,1)%sname');
+    add_default($nl, 'grazing_config(2,1)%sname');
+    add_default($nl,'grazing_config(2,1)%auto_ind_cnt');
+    add_default($nl,'grazing_config(2,1)%zoo_ind_cnt');
     add_default($nl,'grazing(2,1)%auto_ind');
-    add_default($nl,'grazing(2,1)%auto_ind_cnt');
     add_default($nl,'grazing(2,1)%zoo_ind');
-    add_default($nl,'grazing(2,1)%zoo_ind_cnt');
     add_default($nl,'grazing(2,1)%z_umax_0');
     add_default($nl,'grazing(2,1)%z_grz');
     add_default($nl,'grazing(2,1)%graze_zoo');
@@ -1657,11 +1659,11 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl,'grazing(2,1)%f_zoo_detr');
     add_default($nl, 'grazing(2,1)%grazing_function');
 
-    add_default($nl, 'grazing(3,1)%sname');
+    add_default($nl, 'grazing_config(3,1)%sname');
     add_default($nl,'grazing(3,1)%auto_ind');
-    add_default($nl,'grazing(3,1)%auto_ind_cnt');
+    add_default($nl,'grazing_config(3,1)%auto_ind_cnt');
     add_default($nl,'grazing(3,1)%zoo_ind');
-    add_default($nl,'grazing(3,1)%zoo_ind_cnt');
+    add_default($nl,'grazing_config(3,1)%zoo_ind_cnt');
     add_default($nl,'grazing(3,1)%z_umax_0');
     add_default($nl,'grazing(3,1)%z_grz');
     add_default($nl,'grazing(3,1)%graze_zoo');
@@ -2136,7 +2138,8 @@ if ($sf6_on eq "TRUE" ) {
     push @groups, qw(sf6_nml);
 }    
 if ($ecosys_on eq "TRUE") {
-    push @groups, qw(marbl_ecosys_base_nml marbl_parms_nml ecosys_driver_nml marbl_restore_nml);
+    push @groups, qw(ecosys_driver_nml marbl_config_nml marbl_parms_nml);
+    push @groups, qw(marbl_forcing_tmp_nml marbl_tracer_init_tmp_nml);
 }    
 if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );
