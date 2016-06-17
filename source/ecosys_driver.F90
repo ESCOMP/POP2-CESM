@@ -429,14 +429,14 @@ contains
     do iblock=1, nblocks_clinic
 
        call marbl_instances(iblock)%init(                                        &
-            gcm_nl_buffer = nl_buffer,                                           &
             gcm_num_levels = km,                                                 & 
             gcm_num_PAR_subcols = mcog_nbins,                                    &
             gcm_num_elements_interior_forcing = 1,                               & 
             gcm_num_elements_surface_forcing = num_elements,                     &
             gcm_dz = dz,                                                         &
             gcm_zw = zw,                                                         &
-            gcm_zt = zt)
+            gcm_zt = zt,                                                         &
+            gcm_nl_buffer = nl_buffer)
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
