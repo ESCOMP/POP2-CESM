@@ -1479,6 +1479,13 @@ if ($ecosys_on eq "TRUE") {
 	my $temp;
   my $ciso_loc = $nl->get_value('ciso_on');
   add_default($nl, 'ciso_on&marbl_config_nml', val=>"$ciso_loc");
+  my $ciso_marbl_loc = $nl->get_value('ciso_on&marbl_config_nml');
+  if ("$ciso_loc" ne "$ciso_marbl_loc") {
+    die << "EOF";
+** MARBL is running with ciso_on = $ciso_marbl_loc
+   POP is expecting ciso_on = $ciso_loc
+EOF
+  }
 
     if (($OCN_TRANSIENT ne "unset") &&  ($OCN_TRANSIENT ne "1850-2000") &&
         ($OCN_TRANSIENT ne "rcp4.5") && ($OCN_TRANSIENT ne "rcp8.5")) {
@@ -1578,7 +1585,6 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'pon_bury_coeff');
     add_default($nl, 'lecovars_full_depth_tavg');
 
-    add_default($nl, 'lecosys_debug');
 }
 
 ##########################################

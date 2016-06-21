@@ -142,7 +142,8 @@ module ecosys_driver
   ! public variables
   !-----------------------------------------------------------------------
 
-  integer(int_kind), public :: marbl_tracer_cnt = MARBL_NT ! # of tracers in MARBL
+  ! # of tracers expected from MARBL
+  integer(int_kind), parameter, public :: marbl_tracer_cnt = MARBL_NT
 
   !-----------------------------------------------------------------------
   ! timers
@@ -283,6 +284,7 @@ contains
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)                :: init_file_fmt                      ! file format for option 'file'
     logical   (log_kind)                :: lmarginal_seas                     ! is ecosystem active in marginal seas?
+    integer(int_kind)                   :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -428,22 +430,30 @@ contains
 
     do iblock=1, nblocks_clinic
 
-       call marbl_instances(iblock)%init(                                        &
-            gcm_num_levels = km,                                                 & 
-            gcm_num_PAR_subcols = mcog_nbins,                                    &
-            gcm_num_elements_interior_forcing = 1,                               & 
-            gcm_num_elements_surface_forcing = num_elements,                     &
-            gcm_dz = dz,                                                         &
-            gcm_zw = zw,                                                         &
-            gcm_zt = zt,                                                         &
-            gcm_nl_buffer = nl_buffer)
-
+       call marbl_instances(iblock)%init(                                     &
+            gcm_num_levels = km,                                              & 
+            gcm_num_PAR_subcols = mcog_nbins,                                 &
+            gcm_num_elements_interior_forcing = 1,                            & 
+            gcm_num_elements_surface_forcing = num_elements,                  &
+            gcm_dz = dz,                                                      &
+            gcm_zw = zw,                                                      &
+            gcm_zt = zt,                                                      &
+            gcm_nl_buffer = nl_buffer,                                        &
+            marbl_tracer_cnt = marbl_actual_tracer_cnt)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
+
+       ! Make sure MARBL tracer count lines up with what POP expects
+       if (marbl_actual_tracer_cnt.ne.marbl_tracer_cnt) then
+         write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
+                    marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
+                    marbl_tracer_cnt
+         call exit_POP(sigAbort, log_message)
+       end if
 
     end do
 
