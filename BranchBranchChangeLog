@@ -2,6 +2,29 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 June 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n24_marbl_dev_n12_cesm_pop_2_1_20160513
+Tag Summary: merge marbl_dev_n13 into marbl_dev_levy branch
+             -- adds adjustable bury coefficient
+
+Files Modified:
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_dust_flux_driver
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff
+ M      drivers/cpl
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 June 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n23_marbl_dev_n11_cesm_pop_2_1_20160513
 Tag Summary: Clean up comments in build-namelist and namelist_defaults
              -- last tag updated namelist names, this tag re-organizes variables

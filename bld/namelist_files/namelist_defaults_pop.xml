@@ -1013,6 +1013,9 @@
 <lflux_gas_o2 >.true.</lflux_gas_o2>
 <lflux_gas_co2>.true.</lflux_gas_co2>
 
+<ladjust_bury_coeff>.false.</ladjust_bury_coeff>
+<bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
+
 <autotrophs_config(1)%sname>sp</autotrophs_config(1)%sname>
 <autotrophs_config(2)%sname>diat</autotrophs_config(2)%sname>
 <autotrophs_config(3)%sname>diaz</autotrophs_config(3)%sname>
@@ -1259,11 +1262,14 @@
 <parm_nitrif_par_lim> 1.0        </parm_nitrif_par_lim>
 <parm_labile_ratio>   0.94       </parm_labile_ratio>
 
-<parm_POMbury ocn_grid="gx3v7">5.0</parm_POMbury>
-<parm_POMbury                 >1.1</parm_POMbury>
+<parm_init_POC_bury_coeff ocn_grid="gx3v7">5.0</parm_init_POC_bury_coeff>
+<parm_init_POC_bury_coeff                 >1.1</parm_init_POC_bury_coeff>
 
-<parm_BSIbury ocn_grid="gx3v7">1.1</parm_BSIbury>
-<parm_BSIbury                 >1.0</parm_BSIbury>
+<parm_init_POP_bury_coeff ocn_grid="gx3v7">5.0</parm_init_POP_bury_coeff>
+<parm_init_POP_bury_coeff                 >1.1</parm_init_POP_bury_coeff>
+
+<parm_init_bSi_bury_coeff ocn_grid="gx3v7">1.1</parm_init_bSi_bury_coeff>
+<parm_init_bSi_bury_coeff                 >1.0</parm_init_bSi_bury_coeff>
 
 <parm_fe_scavenge_rate0 ocn_grid="gx3v7">1.4</parm_fe_scavenge_rate0>
 <parm_fe_scavenge_rate0                 >1.9</parm_fe_scavenge_rate0>

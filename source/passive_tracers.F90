@@ -50,6 +50,8 @@
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
        ecosys_driver_set_interior,        &
+       ecosys_driver_set_global_scalars,  &
+       ecosys_driver_comp_global_averages,&
        ecosys_driver_write_restart,       &
        ecosys_driver_unpack_source_sink_terms
 
@@ -904,6 +906,8 @@
 !  ECOSYS DRIVER modules 3D source-sink terms
 !-----------------------------------------------------------------------
    if (ecosys_on) then
+      call ecosys_driver_set_global_scalars('interior')
+
       !$OMP PARALLEL DO PRIVATE(iblock, this_block, bid)
       do iblock = 1, nblocks_clinic
 
@@ -921,6 +925,8 @@
 
       end do
       !$OMP END PARALLEL DO
+
+      call ecosys_driver_comp_global_averages('interior')
    end if
 
 !-----------------------------------------------------------------------

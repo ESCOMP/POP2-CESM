@@ -5244,6 +5244,24 @@ group="marbl_config_nml" >
 Default: .true.
 </entry>
 
+<entry
+id="init_bury_coeff_opt"
+type="char*128"
+category="ecosys"
+group="marbl_config_nml"
+valid_values="nml,restfile" >
+Valid Values: 'nml', 'restfile'
+Default: 'nml' for startup runs, otherwise 'restfile'
+</entry>
+
+<entry
+id="ladjust_bury_coeff"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .false.
+</entry>
+
 <entry 
 id="autotrophs_config%sname"
 type="dtype(3)%char*256" 
@@ -6407,7 +6425,7 @@ Default: 0.94
 </entry>
 
 <entry 
-id="parm_POMbury"
+id="parm_init_POC_bury_coeff"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
@@ -6415,10 +6433,18 @@ Default: 5.0 for gx3v7, 1.1 otherwise
 </entry>
 
 <entry 
-id="parm_BSIbury"
+id="parm_init_POP_bury_coeff"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
+Default: 5.0 for gx3v7, 1.1 otherwise
+</entry>
+
+<entry 
+id="parm_init_bSi_bury_coeff"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
 Default: 1.1 for gx3v7, 1.0 otherwise
 </entry>
 
@@ -6468,6 +6494,14 @@ type="real"
 category="ecosys"
 group="marbl_parms_nml" >
 Default: 1600 for gx3v7, 2200 otherwise
+</entry>
+
+<entry 
+id="bury_coeff_rmean_timescale_years"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 10.0
 </entry>
 
 <entry 
