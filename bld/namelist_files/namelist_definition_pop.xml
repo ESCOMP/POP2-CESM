@@ -6444,7 +6444,7 @@ Default: 5.0 for gx3v7, 1.1 otherwise
 id="parm_init_bSi_bury_coeff"
 type="real" 
 category="ecosys"
-group="ecosys_parms_nml" >
+group="marbl_parms_nml" >
 Default: 1.1 for gx3v7, 1.0 otherwise
 </entry>
 
