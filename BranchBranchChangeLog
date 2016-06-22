@@ -5,6 +5,11 @@ Tag Date:    22 June 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n24_marbl_dev_n12_cesm_pop_2_1_20160513
 Tag Summary: merge marbl_dev_n13 into marbl_dev_levy branch
              -- adds adjustable bury coefficient
+Testing:     aux_pop_MARBL on yellowstone_intel and yellowstone_gnu; will
+             run hobart_nag after tag is made and make n25 if necessary.
+             Namelist comparisons fail because baseline does not include changes
+             from n22 (or this tag), but I generated new baselines for future
+             testing.
 
 Files Modified:
 M       BranchChangeLog
