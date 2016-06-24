@@ -142,7 +142,6 @@ contains
 !-----------------------------------------------------------------------
 
     integer(int_kind) ::  &
-       OCNID,       &
        mpicom_o,    &
        lsize,       &
        start_ymd,   &
@@ -156,12 +155,6 @@ contains
        pop_cpl_dt,  &
        shrlogunit,  &  ! old values
        shrloglev       ! old values
-
-    type(mct_gsMap), pointer :: &
-       gsMap_o
-
-    type(mct_gGrid), pointer :: &
-       dom_o
 
     integer (POP_i4) :: &
        errorCode         ! error code
@@ -180,22 +173,24 @@ contains
      integer :: lbnum
 
 !-----------------------------------------------------------------------
+
+    errorCode = POP_Success
+
+    call shr_file_getLogUnit (shrlogunit)
+    call shr_file_getLogLevel(shrloglev)
+
+#ifdef _OPENMP
+    nThreads = omp_get_max_threads()
+#endif
+
+!-----------------------------------------------------------------------
 !
 !  set cdata pointers
 !
 !-----------------------------------------------------------------------
 
-   errorCode = POP_Success
-
-#ifdef _OPENMP
-   nThreads = omp_get_max_threads()
-#endif
-   call seq_cdata_setptrs(cdata_o, ID=OCNID, mpicom=mpicom_o, &
-        gsMap=gsMap_o, dom=dom_o, infodata=infodata)
-
-   POP_MCT_OCNID   =  OCNID
-   POP_MCT_gsMap_o => gsMap_o
-   POP_MCT_dom_o   => dom_o
+    call seq_cdata_setptrs(cdata_o, ID=POP_MCT_OCNID, mpicom=mpicom_o, &
+         gsMap=POP_MCT_gsMap_o, dom=POP_MCT_dom_o, infodata=infodata)
 
 #if (defined _MEMTRACE)
     call MPI_comm_rank(mpicom_o,iam,ierr)
@@ -246,9 +241,9 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   inst_name   = seq_comm_name(OCNID)
-   inst_index  = seq_comm_inst(OCNID)
-   inst_suffix = seq_comm_suffix(OCNID)
+   inst_name   = seq_comm_name(POP_MCT_OCNID)
+   inst_index  = seq_comm_inst(POP_MCT_OCNID)
+   inst_suffix = seq_comm_suffix(POP_MCT_OCNID)
 
    call t_startf ('pop_init')
    call POP_Initialize1(errorCode)
@@ -289,12 +284,11 @@ contains
 !----------------------------------------------------------------------------
 !
 ! reset shr logging to my log file
+!  (tcraig, moved to io_types)
 !
 !----------------------------------------------------------------------------
 
-    call shr_file_getLogUnit (shrlogunit)
-    call shr_file_getLogLevel(shrloglev)
-    call shr_file_setLogUnit (stdout)
+!    call shr_file_setLogUnit (stdout)
    
 !-----------------------------------------------------------------------
 !
@@ -337,12 +331,13 @@ contains
 
    call t_startf ('pop_mct_init')
 
-   call ocn_SetGSMap_mct( mpicom_o, OCNID, GSMap_o ) 	
-   lsize = mct_gsMap_lsize(gsMap_o, mpicom_o)
+   call ocn_SetGSMap_mct( mpicom_o, POP_MCT_OCNID, POP_MCT_GSMap_o, POP_MCT_GSMap3d_o ) 	
+   lsize = mct_gsMap_lsize(POP_MCT_gsmap_o, mpicom_o)
 
    ! Initialize mct ocn domain (needs ocn initialization info)
    
-   call ocn_domain_mct( lsize, gsMap_o, dom_o )
+   call ocn_domain_mct( lsize, POP_MCT_gsmap_o, POP_MCT_dom_o)
+   call ocn_domain_mct( lsize*km, POP_MCT_gsmap3d_o, POP_MCT_dom3d_o)
    
    ! Inialize mct attribute vectors
    
@@ -414,15 +409,6 @@ contains
    call seq_infodata_PutData( infodata, &
 	ocn_prognostic=.true., ocnrof_prognostic=.true.)
 
-!----------------------------------------------------------------------------
-!
-! Reset shr logging to original values
-!
-!----------------------------------------------------------------------------
-
-    call shr_file_setLogUnit (shrlogunit)
-    call shr_file_setLogLevel(shrloglev)
-
 #if (defined _MEMTRACE)
     if(iam  == 0) then
 !        write(6,*) 'ocn_init_mct:end::'
@@ -474,6 +460,15 @@ contains
       call POP_IOUnitsFlush(stdout)
 #endif
    endif
+
+!----------------------------------------------------------------------------
+!
+! Reset shr logging to original values
+!
+!----------------------------------------------------------------------------
+
+    call shr_file_setLogUnit (shrlogunit)
+    call shr_file_setLogLevel(shrloglev)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -742,7 +737,7 @@ contains
 !IROUTINE: ocn_SetGSMap_mct
 ! !INTERFACE:
 
- subroutine ocn_SetGSMap_mct( mpicom_ocn, OCNID, gsMap_ocn )
+ subroutine ocn_SetGSMap_mct( mpicom_ocn, OCNID, gsMap_ocn, gsMap3d_ocn )
 
 ! !DESCRIPTION:
 !  This routine mct global seg maps for the pop decomposition
@@ -756,6 +751,7 @@ contains
     integer        , intent(in)    :: mpicom_ocn
     integer        , intent(in)    :: OCNID
     type(mct_gsMap), intent(inout) :: gsMap_ocn
+    type(mct_gsMap), intent(inout) :: gsMap3d_ocn
 
 !EOP
 !BOC
@@ -793,6 +789,8 @@ contains
     enddo
     lsize = n
 
+    !--- 2d ---
+
 ! not correct for padding, use "n" above
 !    lsize = block_size_x*block_size_y*nblocks_clinic
     gsize = nx_global*ny_global
@@ -813,6 +811,30 @@ contains
 
     deallocate(gindex)
 
+    !--- 3d ---
+
+    gsize = nx_global*ny_global*km
+    lsize = lsize*km
+    allocate(gindex(lsize),stat=ier)
+
+    n = 0
+    do k = 1,km
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+       do i=this_block%ib,this_block%ie
+          n=n+1
+          gindex(n) = (k-1)*(nx_global*ny_global) + &
+             (this_block%j_glob(j)-1)*(nx_global) + this_block%i_glob(i) 
+       enddo
+       enddo
+    enddo
+    enddo
+
+    call mct_gsMap_init( gsMap3d_ocn, gindex, mpicom_ocn, OCNID, lsize, gsize )
+
+    deallocate(gindex)
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -823,7 +845,7 @@ contains
 ! !IROUTINE: ocn_domain_mct
 ! !INTERFACE:
 
- subroutine ocn_domain_mct( lsize, gsMap_o, dom_o )
+ subroutine ocn_domain_mct( lsize, gsMap_o, dom_o)
 
 ! !DESCRIPTION:
 !  This routine mct global seg maps for the pop decomposition
@@ -853,11 +875,13 @@ contains
       data(:)
 
     integer (int_kind) ::   &
-      i,j, k, n, iblock, &
+      i,j, k, n, iblock, klev, &
       ier
 
     type (block) ::       &
       this_block          ! block information for current block
+    character(len=*), parameter  :: &
+         SubName = "ocn_domain_mct"
 
 !-------------------------------------------------------------------
 !
@@ -908,13 +932,35 @@ contains
        do j=this_block%jb,this_block%je
        do i=this_block%ib,this_block%ie
           n=n+1
+       enddo
+       enddo
+    enddo
+
+    ! check that the 2d size is an exact multiple of lsize
+
+    if (mod(lsize,n) /= 0) then
+       write(stdout,*) trim(subname),' ERROR: 2d/3d size ',lsize,n
+       call shr_sys_abort( SubName//":: 2d/3d size mismatch")
+    else 
+       klev = lsize/n
+    endif
+
+    n=0
+    do k = 1,klev
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+       do i=this_block%ib,this_block%ie
+          n=n+1
           data(n) = TLOND(i,j,iblock)
        enddo
        enddo
     enddo
+    enddo
     call mct_gGrid_importRattr(dom_o,"lon",data,lsize) 
 
     n=0
+    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j=this_block%jb,this_block%je
@@ -924,9 +970,11 @@ contains
        enddo
        enddo
     enddo
+    enddo
     call mct_gGrid_importRattr(dom_o,"lat",data,lsize) 
 
     n=0
+    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j=this_block%jb,this_block%je
@@ -936,9 +984,11 @@ contains
        enddo
        enddo
     enddo
+    enddo
     call mct_gGrid_importRattr(dom_o,"area",data,lsize) 
 
-    n=0
+    n=0 
+    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j=this_block%jb,this_block%je
@@ -948,6 +998,7 @@ contains
           if (data(n) > 1.0_r8) data(n) = 1.0_r8
        enddo
        enddo
+    enddo
     enddo
     call mct_gGrid_importRattr(dom_o,"mask",data,lsize) 
     call mct_gGrid_importRattr(dom_o,"frac",data,lsize) 

@@ -3260,10 +3260,10 @@ id="pt_interior_data_type"
 type="char*256"
 category="forcing"
 group="forcing_pt_interior_nml"
-valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour,shr_stream" >
 Type or periodicity of interior potential temperature forcing.
 
-Valid Values: 'none', 'annual', 'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
+Valid Values: 'none', 'annual', 'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour', 'shr_stream'
 Default: 'none'
 </entry>
 
@@ -3420,6 +3420,38 @@ PT interior restoring includes the surface layer
 Default: .false.
 </entry>
 
+<entry 
+id="pt_interior_shr_stream_year_first"
+type="integer" 
+category="forcing"
+group="forcing_pt_interior_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="pt_interior_shr_stream_year_last"
+type="integer" 
+category="forcing"
+group="forcing_pt_interior_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="pt_interior_shr_stream_year_align"
+type="integer" 
+category="forcing"
+group="forcing_pt_interior_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="pt_interior_shr_stream_file"
+type="char*256" 
+category="forcing"
+group="forcing_pt_interior_nml"
+Default: depends on grid
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: forcing_s_interior_nml   - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -3429,10 +3461,10 @@ id="s_interior_data_type"
 type="char*256"
 category="forcing"
 group="forcing_s_interior_nml"
-valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour,shr_stream" >
 Type or periodicity of interior salinity forcing.
 
-Valid Values: 'none', 'annual' ,'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
+Valid Values: 'none', 'annual' ,'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour', 'shr_stream'
 Default: 'none'
 </entry>
 
@@ -3588,6 +3620,39 @@ S interior restoring includes the surface layer
 
 Default: .false.
 </entry>
+
+<entry 
+id="s_interior_shr_stream_year_first"
+type="integer" 
+category="forcing"
+group="forcing_s_interior_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="s_interior_shr_stream_year_last"
+type="integer" 
+category="forcing"
+group="forcing_s_interior_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="s_interior_shr_stream_year_align"
+type="integer" 
+category="forcing"
+group="forcing_s_interior_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="s_interior_shr_stream_file"
+type="char*256" 
+category="forcing"
+group="forcing_s_interior_nml"
+Default: depends on grid
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: forcing_ap_nml           - -->

@@ -1,4 +1,29 @@
 ===============================================================================
+Tag Creator: tcraig
+Developers:  tcraig
+Tag Date:    24 June 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tc_tags/marbl_dev_tc_n01_marbl_dev_n12_cesm_pop_2_1_20160513
+Tag Summary: merge strm4d_n02_cesm_pop_2_1_20151123 to branch
+
+Tested with SMS.T62_g37.C.yellowstone_intel with user_nl_pop,
+ pt_interior_data_type = 'shr_stream'
+ pt_interior_shr_stream_file = '/glade/p/work/tcraig/PHC2_TEMP_gx3v7_time.nc'
+ s_interior_data_type = 'shr_stream'
+ s_interior_shr_stream_file = '/glade/p/work/tcraig/PHC2_SALT_gx3v7_time.nc'
+
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/io_types.F90
+M       source/strdata_interface_mod.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+M       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/POP_MCT_vars_mod.F90
+M       drivers/cpl/ocn_comp_mct.F90
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    10 June 2016

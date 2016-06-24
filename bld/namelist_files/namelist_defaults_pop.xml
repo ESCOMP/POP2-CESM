@@ -724,6 +724,10 @@
 <pt_interior_restore_file_fmt>'bin'</pt_interior_restore_file_fmt>
 <pt_interior_surface_restore>.false.</pt_interior_surface_restore>
 <pt_interior_surface_restore ocn_onedim="TRUE">.true.</pt_interior_surface_restore>
+<pt_interior_shr_stream_year_first>1</pt_interior_shr_stream_year_first>
+<pt_interior_shr_stream_year_last>1</pt_interior_shr_stream_year_last>
+<pt_interior_shr_stream_year_align>1</pt_interior_shr_stream_year_align>
+<pt_interior_shr_stream_file> 'unknown-pt_interior_shr_stream'</pt_interior_shr_stream_file>
 
 <!---------------------------->
 <!--forcing_s_interior_nml -->
@@ -745,6 +749,10 @@
 <s_interior_restore_file_fmt>'bin'</s_interior_restore_file_fmt>
 <s_interior_surface_restore>.false.</s_interior_surface_restore>
 <s_interior_surface_restore ocn_onedim="TRUE">.true.</s_interior_surface_restore>
+<s_interior_shr_stream_year_first>1</s_interior_shr_stream_year_first>
+<s_interior_shr_stream_year_last>1</s_interior_shr_stream_year_last>
+<s_interior_shr_stream_year_align>1</s_interior_shr_stream_year_align>
+<s_interior_shr_stream_file> 'unknown-s_interior_shr_stream'</s_interior_shr_stream_file>
 
 <!---------------------------->
 <!--forcing_ap_interior_nml -->
