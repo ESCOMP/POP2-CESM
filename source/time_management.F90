@@ -1687,7 +1687,7 @@
 ! !IROUTINE: time_manager
 ! !INTERFACE:
 
- subroutine time_manager (lcoupled, liceform)
+ subroutine time_manager (lcoupled, liceform, licecesm2)
 
 ! !DESCRIPTION:
 !  This routine updates various time-related variables to their 
@@ -1701,6 +1701,7 @@
 
    logical (log_kind), intent(in) :: &
       lcoupled,       &! flag for when model is coupled
+      licecesm2,      &! new cesm2 default for checking ice formation every timestep
       liceform         ! flag to determine when ice formation is on
 
 !EOP
@@ -1866,30 +1867,36 @@
 !
 !-----------------------------------------------------------------------
       
+!
+! adding licecesm2 is just for testing new cesm2 development.  This should
+! become the default and the complicated logic removed before release.
+!
    if (liceform) then
       if (lcoupled) then
-
-         if (check_time_flag(coupled_ts) ) then
-            if (lfit_ts_interval) then
-               ice_ts = .true.
-            else
-               exit_string = 'FATAL ERROR: Cannot use tmix_avg or tmix_avgbb with lcoupled and liceform'
-               call document ('time_manager', exit_string)
-               call exit_POP (sigAbort, exit_string, out_unit=stdout)
-            endif
+         if (licecesm2) then
+            ice_ts = .true.
+         else  ! .not. licecesm2
+            if (check_time_flag(coupled_ts) ) then
+               if (lfit_ts_interval) then
+                  ice_ts = .true.
+               else
+                  exit_string = 'FATAL ERROR: Cannot use tmix_avg or tmix_avgbb with lcoupled and liceform'
+                  call document ('time_manager', exit_string)
+                  call exit_POP (sigAbort, exit_string, out_unit=stdout)
+               endif
           
-            if (avg_ts) then
-               exit_string = 'FATAL ERROR: Cannot have coupled timestep and be an averaging timestep'
-               call document ('time_manager', exit_string)
-               call exit_POP (sigAbort, exit_string, out_unit=stdout)
+               if (avg_ts) then
+                  exit_string = 'FATAL ERROR: Cannot have coupled timestep and be an averaging timestep'
+                  call document ('time_manager', exit_string)
+                  call exit_POP (sigAbort, exit_string, out_unit=stdout)
+               endif
             endif
-         endif
-
-         if (lfit_ts_interval) then
-            if (mod(nsteps_this_interval+1,nsteps_per_interval) == 0) &
-               ice_ts = .true.
-         endif
-
+            
+            if (lfit_ts_interval) then
+               if (mod(nsteps_this_interval+1,nsteps_per_interval) == 0) &
+                    ice_ts = .true.
+            endif
+         end if  ! licecesm2
       else  ! .not. lcoupled
 
          if (tmix_iopt == tmix_matsuno) then

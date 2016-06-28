@@ -211,7 +211,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call time_manager(registry_match('lcoupled'), liceform)
+   call time_manager(registry_match('lcoupled'), liceform, licecesm2)
 
    lpre_time_manager = .false.
 

@@ -1700,7 +1700,7 @@ category="kpp"
 group="vmix_kpp_nml" >
 Flag for using CVMix for mixing instead of POP routines
 
-Default: .false.
+Default: .true.
 </entry>
 
 <!--QL, 150526, Langmuir mixing options-->
@@ -1712,7 +1712,7 @@ group="vmix_kpp_nml" >
 Langmuir mixing parameterization option.
 
 Valid Values: 'null', 'vr12-ma', 'vr12-en'
-Default: 'null'
+Default: 'vr12-ma'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -2209,6 +2209,28 @@ Background horizontal diffusivity at k = KMT
 
 Default: 0.0
 </entry>
+
+<entry 
+id="kappa_isop_deep"
+type="real"
+category="hmix"
+group="hmix_gm_nml" >
+specify isopcynal deep diffusivity as fraction of the reference value
+
+Default: 0.1
+</entry>
+
+<entry 
+id="kappa_thic_deep"
+type="real"
+category="hmix"
+group="hmix_gm_nml" >
+specify thickness deep diffusivity as fraction of the reference value
+
+Default: 0.1
+</entry>
+
+
 
 <entry 
 id="slm_r"
@@ -2722,6 +2744,16 @@ group="ice_nml" >
 Flag for whether POP is coupled to an active ice model.
 
 Default: Depends on $OCN_ICE_FORCING ("inactive" => .false.)
+</entry>
+
+<entry 
+id="licecesm2"
+type="logical"
+category="ice"
+group="ice_nml" >
+CESM2 default for forming ice every timestep when coupled
+
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

@@ -840,6 +840,9 @@ add_default($nl, 'ah&hmix_del4t_nml');
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
+add_default($nl, 'kappa_isop_deep');
+add_default($nl, 'kappa_thic_deep');
+
 # All namelist values are stored in exactly the format
 # that is required in a valid namelist.  So if that value 
 # is a string, then the quotes are stored as part of the value. 

@@ -1,4 +1,30 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  jet
+Tag Date:    28 Jun 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160628
+Tag Summary: WW3 interactive (Lang & CVMIX on) and add namelist control of ice formation and redi diffusion
+
+New Namelist Parameters:
+	licecesm2: controls when ice formation occurs.  This is just a
+	temporary and will be removed before release.
+
+	kappa_thic_deep and kappa_isop_deep: adjust minimum diffusion
+	The valid range for these variables is .1 to 1.0.  Anything below .1 is ignored.
+
+Testing: Ran aux_pop everything passes with exception of hybrid restarts because of WW3 problem
+         Baseline comparisons differ due to active WaveWatch.
+
+M       source/time_management.F90
+M       source/ice.F90
+M       source/step_mod.F90
+M       source/hmix_gm.F90
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_compsets.xml
+M       ChangeLog
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy,klindsay
 Tag Date:    04 May 2016
