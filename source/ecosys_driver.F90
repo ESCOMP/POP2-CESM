@@ -437,7 +437,8 @@ contains
 
     do iblock=1, nblocks_clinic
 
-       call marbl_instances(iblock)%config(gcm_nl_buffer = nl_buffer)
+       call marbl_instances(iblock)%config(lgcm_has_global_ops = .true.,      &
+                                           gcm_nl_buffer = nl_buffer)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%config()"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
