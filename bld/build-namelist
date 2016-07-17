@@ -1515,6 +1515,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'gas_flux_forcing_opt');
 
     add_default($nl, 'lsource_sink');
+    add_default($nl, 'lapply_nhx_surface_emis');
 
    #add_default($nl, 'iron_dust_flx_data_type');
     add_default($nl, 'dust_flux_source');
@@ -1546,11 +1547,11 @@ if ($ecosys_on eq "TRUE") {
 
     if ($OCN_TRANSIENT eq "unset") {
       add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'nox_flux_monthly_input%filename');
+      add_default($nl, 'nox_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$nl->get_value('lapply_nhx_surface_emis'));
       add_default($nl, 'nox_flux_monthly_input%file_fmt');
       add_default($nl, 'nox_flux_monthly_input%file_varname');
-      add_default($nl, 'nhy_flux_monthly_input%filename');
       add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+      add_default($nl, 'nhy_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$nl->get_value('lapply_nhx_surface_emis'));
       add_default($nl, 'nhy_flux_monthly_input%file_fmt');
       add_default($nl, 'nhy_flux_monthly_input%file_varname');
       add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec

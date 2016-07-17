@@ -6239,6 +6239,14 @@ Default: .true.
 </entry>
 
 <entry 
+id="lapply_nhx_surface_emis"
+type="logical" 
+category="ecosys"
+group="ecosys_nml" >
+Default: .false.
+</entry>
+
+<entry 
 id="lflux_gas_o2"
 type="logical" 
 category="ecosys"

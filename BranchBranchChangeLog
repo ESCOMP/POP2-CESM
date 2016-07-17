@@ -2,6 +2,39 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    17 Jul 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n13_marbl_dev_n12_cesm_pop_2_1_20160513
+Tag Summary: add support for NHx emissions from BGC
+
+new namelist variable lapply_nhx_surface_emis, default .false.
+add new aux_pop_MARBL test where lapply_nhx_surface_emis is .true.
+change NOx, NHy forcing datasets if lapply_nhx_surface_emis is .true.
+
+Testing:
+MARBL commit be96f6bf00672eb7c5b75da9abd23996f1d24971
+
+aux_pop_MARBL (yellowstone/intel yellowstone/gnu hobart/nag): (baseline comparison to n11 tag)
+   all tests pass
+      some nlcomp tests fail because of added namelist variables
+      new apply_nhx_surface_emis tests fail baseline compare
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_apply_nhx_surface_emis
+A       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_apply_nhx_surface_emis/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/user_nl_pop
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    13 Jun 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n12_marbl_dev_n12_cesm_pop_2_1_20160513
 Tag Summary: merge marbl_dev n12 tag to this branch

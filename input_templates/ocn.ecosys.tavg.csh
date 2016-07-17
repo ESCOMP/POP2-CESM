@@ -150,6 +150,7 @@ if ($lecosys_debug == ".true.") then
 1  BLACK_CARBON_FLUX_CPL
 1  NOx_FLUX
 1  NHy_FLUX
+1  NHx_SURFACE_EMIS
 1  DIN_RIV_FLUX
 1  DIP_RIV_FLUX
 1  DON_RIV_FLUX
@@ -250,6 +251,7 @@ $s1  SCHMIDT_CO2
 $s1  IRON_FLUX
 $s1  NOx_FLUX
 $s1  NHy_FLUX
+$s1  NHx_SURFACE_EMIS
 $s1  STF_ALK
 $s1  PH
 $s1  O2SAT
