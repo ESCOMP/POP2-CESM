@@ -2185,9 +2185,6 @@ if ($moby_on eq "TRUE" ) {
 if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
 }
-if ($ciso_on eq "TRUE" ) {
-    push @groups, qw(marbl_ciso_nml);
-}
 if ($IRF_on eq "TRUE" ) {
     push @groups, qw(irf_nml);
 }

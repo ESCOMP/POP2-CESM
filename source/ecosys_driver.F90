@@ -27,8 +27,6 @@ module ecosys_driver
 
   use marbl_sizes               , only : num_surface_forcing_fields 
 
-  use marbl_parms               , only : f_qsw_par
-  use marbl_parms               , only : parm_Fe_bioavail
   use marbl_parms               , only : init_ecosys_option
   use marbl_parms               , only : init_ecosys_init_file
   use marbl_parms               , only : init_ecosys_init_file_fmt
@@ -53,7 +51,6 @@ module ecosys_driver
   use marbl_config_mod          , only : iron_patch_flux_filename
   use marbl_config_mod          , only : iron_patch_month
   use marbl_config_mod          , only : ndep_data_type
-  use marbl_config_mod          , only : ciso_lecovars_full_depth_tavg
   use marbl_config_mod          , only : ciso_atm_model_year
   use marbl_config_mod          , only : ciso_atm_data_year
   use marbl_config_mod          , only : ciso_atm_d13c_opt
@@ -275,6 +272,7 @@ contains
     use named_field_mod       , only : named_field_register
     use named_field_mod       , only : named_field_set
     use running_mean_mod      , only : running_mean_get_var
+    use marbl_logging         , only : marbl_log_type
 
     implicit none
 
@@ -289,6 +287,12 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    ! FIXME (MNL): we should treat namelists in the driver in a POP-ish manner
+    !              rather than a MARBL-ish manner, but the MARBL process is
+    !              less error-prone (reading namelist on each task rather
+    !              than relying on broadcasts to ensure every task has every
+    !              namelist variable set correctly).
+    type(marbl_log_type)                :: marbl_status_log
     character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)                 :: log_message
     integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
@@ -378,7 +382,13 @@ contains
 
     ! now every process reads the namelist from the buffer
     ioerror_msg=''
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml')
+    call marbl_status_log%construct()
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml',marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      call marbl_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(marbl_status_log, 1)
+    end if
+
     read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
        write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
@@ -424,11 +434,11 @@ contains
 
     !--------------------------------------------------------------------
     !  MARBL setup is 3 steps:
-    !  1) Configure (set up parameters that affect tracer count / other
-    !     parms)
-    !  2) Initialize (set up rest of parameters)
-    !  3) Complete setup ("lock" parmameters so they aren't changed in time
-    !     step)
+    !  1) Configure (set variables that affect tracer count / other parms)
+    !  2) Initialize ("lock" config vars so the aren't changed during init
+    !     or in the time loop; write config vars to log; set parameters)
+    !  3) Complete setup ("lock" parmameters so they aren't changed during
+    !     time loop; write parameters to log)
     !--------------------------------------------------------------------
 
     !--------------------------------------------------------------------
