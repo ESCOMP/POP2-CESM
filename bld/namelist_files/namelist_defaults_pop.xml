@@ -999,13 +999,200 @@
 <abio_dic_dic14_data_year>1</abio_dic_dic14_data_year>
 
 <!---------------------------->
-<!--       ecosys_ciso_nml  -->
+<!--     marbl_config_nml   -->
 <!---------------------------->
+
+<lsource_sink>.true.</lsource_sink>
+
+<ciso_lsource_sink>.true.</ciso_lsource_sink>
+
+<lecovars_full_depth_tavg>.false.</lecovars_full_depth_tavg>    
+
+<ciso_lecovars_full_depth_tavg>.false.</ciso_lecovars_full_depth_tavg>    
+
+<lflux_gas_o2 >.true.</lflux_gas_o2>
+<lflux_gas_co2>.true.</lflux_gas_co2>
+
+<ladjust_bury_coeff>.false.</ladjust_bury_coeff>
+<bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
+
+<autotrophs_config(1)%sname>sp</autotrophs_config(1)%sname>
+<autotrophs_config(2)%sname>diat</autotrophs_config(2)%sname>
+<autotrophs_config(3)%sname>diaz</autotrophs_config(3)%sname>
+
+<zooplankton_config(1)%sname>zoo</zooplankton_config(1)%sname>
+
+<grazing_config(1,1)%sname       > grz_sp_zoo </grazing_config(1,1)%sname>
+<grazing_config(1,1)%auto_ind_cnt>1           </grazing_config(1,1)%auto_ind_cnt>
+<grazing_config(1,1)%zoo_ind_cnt >0           </grazing_config(1,1)%zoo_ind_cnt>
+<grazing_config(2,1)%sname       > grz_diat_zoo </grazing_config(2,1)%sname>
+<grazing_config(2,1)%auto_ind_cnt>1            </grazing_config(2,1)%auto_ind_cnt>
+<grazing_config(2,1)%zoo_ind_cnt >0            </grazing_config(2,1)%zoo_ind_cnt>
+<grazing_config(3,1)%sname       > grz_diaz_zoo </grazing_config(3,1)%sname>
+<grazing_config(3,1)%auto_ind_cnt>1            </grazing_config(3,1)%auto_ind_cnt>
+<grazing_config(3,1)%zoo_ind_cnt >0            </grazing_config(3,1)%zoo_ind_cnt>
+
+
+<!---------------------------->
+<!-- marbl_forcing_tmp_nml  -->
+<!---------------------------->
+
+<dust_flux_source>monthly-calendar</dust_flux_source>    
+
+<dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename> 
+<dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename> 
+<dust_flux_input%file_fmt>nc</dust_flux_input%file_fmt>    
+<dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>
+<dust_flux_input%scale_factor>1.0e-1</dust_flux_input%scale_factor>
+
+<iron_flux_source>monthly-calendar</iron_flux_source>    
+
+<iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7.nc</iron_flux_input%filename> 
+<iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6.nc</iron_flux_input%filename> 
+<iron_flux_input%file_fmt>nc</iron_flux_input%file_fmt>
+<iron_flux_input%file_varname>DSTSF</iron_flux_input%file_varname>
+<!-- 6.2668e4 = kg/m^2/sec -> nmol/cm^2/sec, 3.5%Fe Wt. Dust file -->
+<!-- 1.79e6 = kgFe/m^2/sec -> nmol/cm^2/sec, var. solFe file -->
+<iron_flux_input%scale_factor ocn_grid="gx3v7">1.79e6</iron_flux_input%scale_factor>
+<iron_flux_input%scale_factor ocn_grid="gx1v6">1.79e6</iron_flux_input%scale_factor>
+
+<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename> 
+<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename>
+<fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
+<fesedflux_input%file_fmt>nc</fesedflux_input%file_fmt>
+<fesedflux_input%scale_factor>1.1574e-6</fesedflux_input%scale_factor>
+
+<din_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</din_riv_flux_input%filename> 
+<din_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</din_riv_flux_input%filename> 
+<din_riv_flux_input%file_varname>din_riv_flux</din_riv_flux_input%file_varname>
+<din_riv_flux_input%file_fmt>nc</din_riv_flux_input%file_fmt>
+<din_riv_flux_input%scale_factor>1.0</din_riv_flux_input%scale_factor>
+
+<dip_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dip_riv_flux_input%filename> 
+<dip_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dip_riv_flux_input%filename> 
+<dip_riv_flux_input%file_varname>dip_riv_flux</dip_riv_flux_input%file_varname>
+<dip_riv_flux_input%file_fmt>nc</dip_riv_flux_input%file_fmt>
+<dip_riv_flux_input%scale_factor>1.0</dip_riv_flux_input%scale_factor>
+
+<don_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</don_riv_flux_input%filename> 
+<don_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</don_riv_flux_input%filename> 
+<don_riv_flux_input%file_varname>don_riv_flux</don_riv_flux_input%file_varname>
+<don_riv_flux_input%file_fmt>nc</don_riv_flux_input%file_fmt>
+<don_riv_flux_input%scale_factor>1.0</don_riv_flux_input%scale_factor>
+
+<dop_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dop_riv_flux_input%filename> 
+<dop_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dop_riv_flux_input%filename> 
+<dop_riv_flux_input%file_varname>dop_riv_flux</dop_riv_flux_input%file_varname>
+<dop_riv_flux_input%file_fmt>nc</dop_riv_flux_input%file_fmt>
+<dop_riv_flux_input%scale_factor>1.0</dop_riv_flux_input%scale_factor>
+
+<dsi_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dsi_riv_flux_input%filename> 
+<dsi_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dsi_riv_flux_input%filename> 
+<dsi_riv_flux_input%file_varname>dsi_riv_flux</dsi_riv_flux_input%file_varname>
+<dsi_riv_flux_input%file_fmt>nc</dsi_riv_flux_input%file_fmt>
+<dsi_riv_flux_input%scale_factor>1.0</dsi_riv_flux_input%scale_factor>
+
+<dfe_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dfe_riv_flux_input%filename> 
+<dfe_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dfe_riv_flux_input%filename> 
+<dfe_riv_flux_input%file_varname>dfe_riv_flux</dfe_riv_flux_input%file_varname>
+<dfe_riv_flux_input%file_fmt>nc</dfe_riv_flux_input%file_fmt>
+<dfe_riv_flux_input%scale_factor>1.0</dfe_riv_flux_input%scale_factor>
+
+<dic_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dic_riv_flux_input%filename> 
+<dic_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dic_riv_flux_input%filename> 
+<dic_riv_flux_input%file_varname>dic_riv_flux</dic_riv_flux_input%file_varname>
+<dic_riv_flux_input%file_fmt>nc</dic_riv_flux_input%file_fmt>
+<dic_riv_flux_input%scale_factor>1.0</dic_riv_flux_input%scale_factor>
+
+<alk_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</alk_riv_flux_input%filename> 
+<alk_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</alk_riv_flux_input%filename> 
+<alk_riv_flux_input%file_varname>alk_riv_flux</alk_riv_flux_input%file_varname>
+<alk_riv_flux_input%file_fmt>nc</alk_riv_flux_input%file_fmt>
+<alk_riv_flux_input%scale_factor>1.0</alk_riv_flux_input%scale_factor>
+
+<doc_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</doc_riv_flux_input%filename> 
+<doc_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</doc_riv_flux_input%filename> 
+<doc_riv_flux_input%file_varname>doc_riv_flux</doc_riv_flux_input%file_varname>
+<doc_riv_flux_input%file_fmt>nc</doc_riv_flux_input%file_fmt>
+<doc_riv_flux_input%scale_factor>1.0</doc_riv_flux_input%scale_factor>
+
+<ndep_data_type>monthly-calendar</ndep_data_type>
+<ndep_data_type ocn_transient="unset"    >monthly-calendar</ndep_data_type>
+<ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>              
+<ndep_data_type ocn_transient="rcp4.5">shr_stream</ndep_data_type>              
+<ndep_data_type ocn_transient="rcp8.5">shr_stream</ndep_data_type>              
+
+<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nox_flux_monthly_input%filename> 
+<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nox_flux_monthly_input%filename>  
+<nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
+<nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
+<nox_flux_monthly_input%scale_factor>7.1429e+06</nox_flux_monthly_input%scale_factor>
+
+<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nhy_flux_monthly_input%filename> 
+<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nhy_flux_monthly_input%filename>  
+<nhy_flux_monthly_input%file_fmt>nc</nhy_flux_monthly_input%file_fmt>    
+<nhy_flux_monthly_input%file_varname>NHx_deposition</nhy_flux_monthly_input%file_varname>
+<nhy_flux_monthly_input%scale_factor>7.1429e+06</nhy_flux_monthly_input%scale_factor>
+
+<ndep_shr_stream_year_first>1849</ndep_shr_stream_year_first>  
+<ndep_shr_stream_year_first ocn_transient="rcp4.5">2004</ndep_shr_stream_year_first>  
+<ndep_shr_stream_year_first ocn_transient="rcp8.5">2004</ndep_shr_stream_year_first>  
+
+<ndep_shr_stream_year_last>2006</ndep_shr_stream_year_last>   
+<ndep_shr_stream_year_last ocn_transient="rcp4.5">2101</ndep_shr_stream_year_last>   
+<ndep_shr_stream_year_last ocn_transient="rcp8.5">2101</ndep_shr_stream_year_last>   
+
+<ndep_shr_stream_year_align>1849</ndep_shr_stream_year_align>  
+<ndep_shr_stream_year_align ocn_transient="rcp4.5">2004</ndep_shr_stream_year_align>  
+<ndep_shr_stream_year_align ocn_transient="rcp8.5">2004</ndep_shr_stream_year_align>  
+
+<ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp4.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp45_gx3v7_c100816.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp8.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp85_gx3v7_c100816.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
+
+<ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
+
+<gas_flux_forcing_opt>drv</gas_flux_forcing_opt>
+
+<ciso_atm_d13c_opt>const</ciso_atm_d13c_opt>
+
+<ciso_atm_d13c_const>-6.379</ciso_atm_d13c_const>
+
+<ciso_atm_d14c_opt>const</ciso_atm_d14c_opt>
+
+<ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
+
+<ciso_atm_d13c_filename>ocn/pop/res_indpt/forcing/c13_HG09_20140912.dat</ciso_atm_d13c_filename>
+
+<ciso_atm_d14c_filename(1)>ocn/pop/res_indpt/forcing/c14sth_HG09_20140912.dat</ciso_atm_d14c_filename(1)>
+<ciso_atm_d14c_filename(2)>ocn/pop/res_indpt/forcing/c14equ_HG09_20140912.dat</ciso_atm_d14c_filename(2)>
+<ciso_atm_d14c_filename(3)>ocn/pop/res_indpt/forcing/c14nth_HG09_20140912.dat</ciso_atm_d14c_filename(3)>
+
+<ciso_atm_model_year>1</ciso_atm_model_year>
+<ciso_atm_data_year>1</ciso_atm_data_year>
+
+
+<!------------------------------->
+<!-- marbl_tracer_init_tmp_nml -->
+<!------------------------------->
+
+<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</init_ecosys_init_file>
+
+<init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
 <ciso_init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_Nov2012_corrO2.nc</ciso_init_ecosys_init_file>
 <ciso_init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_corrO2_Feb2013.nc</ciso_init_ecosys_init_file>
 
 <ciso_init_ecosys_init_file_fmt>nc</ciso_init_ecosys_init_file_fmt>
+
+<tracer_init_ext(1)%mod_varname&marbl_tracer_init_tmp_nml>ALK</tracer_init_ext(1)%mod_varname&marbl_tracer_init_tmp_nml>
+<tracer_init_ext(2)%mod_varname&marbl_tracer_init_tmp_nml>DIC</tracer_init_ext(2)%mod_varname&marbl_tracer_init_tmp_nml>
+<tracer_init_ext(3)%mod_varname&marbl_tracer_init_tmp_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&marbl_tracer_init_tmp_nml>
+<tracer_init_ext(4)%mod_varname&marbl_tracer_init_tmp_nml>O2</tracer_init_ext(4)%mod_varname&marbl_tracer_init_tmp_nml>
 
 <ciso_tracer_init_ext(1)%mod_varname>DI13C</ciso_tracer_init_ext(1)%mod_varname>
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>
@@ -1063,224 +1250,9 @@
 <ciso_tracer_init_ext(14)%file_varname>diazC</ciso_tracer_init_ext(14)%file_varname>
 <ciso_tracer_init_ext(14)%scale_factor>1.0</ciso_tracer_init_ext(14)%scale_factor>
 
-<ciso_lecovars_full_depth_tavg>.false.</ciso_lecovars_full_depth_tavg>    
-
-<ciso_atm_d13c_opt>const</ciso_atm_d13c_opt>
-
-<ciso_atm_d13c_const>-6.379</ciso_atm_d13c_const>
-
-<ciso_atm_d14c_opt>const</ciso_atm_d14c_opt>
-
-<ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
-
-<ciso_lsource_sink>.true.</ciso_lsource_sink>
-
-<ciso_atm_d13c_filename>ocn/pop/res_indpt/forcing/c13_HG09_20140912.dat</ciso_atm_d13c_filename>
-
-<ciso_atm_d14c_filename(1)>ocn/pop/res_indpt/forcing/c14sth_HG09_20140912.dat</ciso_atm_d14c_filename(1)>
-<ciso_atm_d14c_filename(2)>ocn/pop/res_indpt/forcing/c14equ_HG09_20140912.dat</ciso_atm_d14c_filename(2)>
-<ciso_atm_d14c_filename(3)>ocn/pop/res_indpt/forcing/c14nth_HG09_20140912.dat</ciso_atm_d14c_filename(3)>
-
-<ciso_fract_factors>Laws</ciso_fract_factors>
-
-<ciso_atm_model_year>1</ciso_atm_model_year>
-<ciso_atm_data_year>1</ciso_atm_data_year>
-
 
 <!---------------------------->
-<!--       ecosys_nml       -->
-<!---------------------------->
-
-<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</init_ecosys_init_file>
-
-<init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
-
-<tracer_init_ext(1)%mod_varname&ecosys_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_nml>
-<tracer_init_ext(2)%mod_varname&ecosys_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_nml>
-<tracer_init_ext(3)%mod_varname&ecosys_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_nml>
-<tracer_init_ext(4)%mod_varname&ecosys_nml>O2</tracer_init_ext(4)%mod_varname&ecosys_nml>
-
-<lflux_gas_o2 >.true.</lflux_gas_o2>
-<lflux_gas_co2>.true.</lflux_gas_co2>
-
-<gas_flux_forcing_opt>drv</gas_flux_forcing_opt>
-
-<lsource_sink>.true.</lsource_sink>
-
-<iron_dust_flx_data_type>monthly</iron_dust_flx_data_type>     
-
-<dust_flux_source>monthly-calendar</dust_flux_source>    
-
-<dust_flux_input%file_fmt>nc</dust_flux_input%file_fmt>    
-
-<dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>
-
-<dust_flux_input%scale_factor>1.0e-1</dust_flux_input%scale_factor>
-
-<iron_flux_source>monthly-calendar</iron_flux_source>    
-
-<iron_flux_input%file_fmt>nc</iron_flux_input%file_fmt>
-
-<iron_flux_input%file_varname>DSTSF</iron_flux_input%file_varname>
-
-<!-- 6.2668e4 = kg/m^2/sec -> nmol/cm^2/sec, 3.5%Fe Wt. Dust file -->
-<!-- 1.79e6 = kgFe/m^2/sec -> nmol/cm^2/sec, var. solFe file -->
-<iron_flux_input%scale_factor ocn_grid="gx3v7">1.79e6</iron_flux_input%scale_factor>
-<iron_flux_input%scale_factor ocn_grid="gx1v6">1.79e6</iron_flux_input%scale_factor>
-
-<iron_frac_in_dust>0.00035</iron_frac_in_dust>
-
-<iron_frac_in_bc>0.06</iron_frac_in_bc>
-
-<fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
-
-<fesedflux_input%file_fmt>nc</fesedflux_input%file_fmt>
-
-<fesedflux_input%scale_factor>1.1574e-6</fesedflux_input%scale_factor>
-
-<din_riv_flux_input%file_varname>din_riv_flux</din_riv_flux_input%file_varname>
-
-<din_riv_flux_input%file_fmt>nc</din_riv_flux_input%file_fmt>
-
-<din_riv_flux_input%scale_factor>1.0</din_riv_flux_input%scale_factor>
-
-<dip_riv_flux_input%file_varname>dip_riv_flux</dip_riv_flux_input%file_varname>
-
-<dip_riv_flux_input%file_fmt>nc</dip_riv_flux_input%file_fmt>
-
-<dip_riv_flux_input%scale_factor>1.0</dip_riv_flux_input%scale_factor>
-
-<don_riv_flux_input%file_varname>don_riv_flux</don_riv_flux_input%file_varname>
-
-<don_riv_flux_input%file_fmt>nc</don_riv_flux_input%file_fmt>
-
-<don_riv_flux_input%scale_factor>1.0</don_riv_flux_input%scale_factor>
-
-<dop_riv_flux_input%file_varname>dop_riv_flux</dop_riv_flux_input%file_varname>
-
-<dop_riv_flux_input%file_fmt>nc</dop_riv_flux_input%file_fmt>
-
-<dop_riv_flux_input%scale_factor>1.0</dop_riv_flux_input%scale_factor>
-
-<dsi_riv_flux_input%file_varname>dsi_riv_flux</dsi_riv_flux_input%file_varname>
-
-<dsi_riv_flux_input%file_fmt>nc</dsi_riv_flux_input%file_fmt>
-
-<dsi_riv_flux_input%scale_factor>1.0</dsi_riv_flux_input%scale_factor>
-
-<dfe_riv_flux_input%file_varname>dfe_riv_flux</dfe_riv_flux_input%file_varname>
-
-<dfe_riv_flux_input%file_fmt>nc</dfe_riv_flux_input%file_fmt>
-
-<dfe_riv_flux_input%scale_factor>1.0</dfe_riv_flux_input%scale_factor>
-
-<dic_riv_flux_input%file_varname>dic_riv_flux</dic_riv_flux_input%file_varname>
-
-<dic_riv_flux_input%file_fmt>nc</dic_riv_flux_input%file_fmt>
-
-<dic_riv_flux_input%scale_factor>1.0</dic_riv_flux_input%scale_factor>
-
-<alk_riv_flux_input%file_varname>alk_riv_flux</alk_riv_flux_input%file_varname>
-
-<alk_riv_flux_input%file_fmt>nc</alk_riv_flux_input%file_fmt>
-
-<alk_riv_flux_input%scale_factor>1.0</alk_riv_flux_input%scale_factor>
-
-<doc_riv_flux_input%file_varname>doc_riv_flux</doc_riv_flux_input%file_varname>
-
-<doc_riv_flux_input%file_fmt>nc</doc_riv_flux_input%file_fmt>
-
-<doc_riv_flux_input%scale_factor>1.0</doc_riv_flux_input%scale_factor>
-
-<nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
-
-<nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
-
-<nox_flux_monthly_input%scale_factor>7.1429e+06</nox_flux_monthly_input%scale_factor>
-
-<nhy_flux_monthly_input%file_fmt>nc</nhy_flux_monthly_input%file_fmt>    
-
-<nhy_flux_monthly_input%file_varname>NHx_deposition</nhy_flux_monthly_input%file_varname>
-
-<nhy_flux_monthly_input%scale_factor>7.1429e+06</nhy_flux_monthly_input%scale_factor>
-
-<ndep_data_type>monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="unset"    >monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>              
-<ndep_data_type ocn_transient="rcp4.5">shr_stream</ndep_data_type>              
-<ndep_data_type ocn_transient="rcp8.5">shr_stream</ndep_data_type>              
-
-<ndep_shr_stream_year_first>1849</ndep_shr_stream_year_first>  
-<ndep_shr_stream_year_first ocn_transient="rcp4.5">2004</ndep_shr_stream_year_first>  
-<ndep_shr_stream_year_first ocn_transient="rcp8.5">2004</ndep_shr_stream_year_first>  
-
-<ndep_shr_stream_year_last>2006</ndep_shr_stream_year_last>   
-<ndep_shr_stream_year_last ocn_transient="rcp4.5">2101</ndep_shr_stream_year_last>   
-<ndep_shr_stream_year_last ocn_transient="rcp8.5">2101</ndep_shr_stream_year_last>   
-
-<ndep_shr_stream_year_align>1849</ndep_shr_stream_year_align>  
-<ndep_shr_stream_year_align ocn_transient="rcp4.5">2004</ndep_shr_stream_year_align>  
-<ndep_shr_stream_year_align ocn_transient="rcp8.5">2004</ndep_shr_stream_year_align>  
-
-<ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
-
-<lecovars_full_depth_tavg>.false.</lecovars_full_depth_tavg>    
-
-<lecosys_debug>.false.</lecosys_debug>
-
-<dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename> 
-<dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename> 
-
-<iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7.nc</iron_flux_input%filename> 
-<iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6.nc</iron_flux_input%filename> 
-
-<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename> 
-<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename>
-
-<din_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</din_riv_flux_input%filename> 
-<dip_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dip_riv_flux_input%filename> 
-<don_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</don_riv_flux_input%filename> 
-<dop_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dop_riv_flux_input%filename> 
-<dsi_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dsi_riv_flux_input%filename> 
-<dfe_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dfe_riv_flux_input%filename> 
-<dic_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dic_riv_flux_input%filename> 
-<alk_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</alk_riv_flux_input%filename> 
-<doc_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</doc_riv_flux_input%filename> 
-
-<din_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</din_riv_flux_input%filename> 
-<dip_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dip_riv_flux_input%filename> 
-<don_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</don_riv_flux_input%filename> 
-<dop_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dop_riv_flux_input%filename> 
-<dsi_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dsi_riv_flux_input%filename> 
-<dfe_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dfe_riv_flux_input%filename> 
-<dic_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dic_riv_flux_input%filename> 
-<alk_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</alk_riv_flux_input%filename> 
-<doc_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</doc_riv_flux_input%filename> 
-
-<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nox_flux_monthly_input%filename> 
-<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nox_flux_monthly_input%filename>  
-
-<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nhy_flux_monthly_input%filename> 
-<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nhy_flux_monthly_input%filename>  
-
-<ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp4.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp45_gx3v7_c100816.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp8.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp85_gx3v7_c100816.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
-
-<caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>
-<caco3_bury_thres_depth>3000.0e2</caco3_bury_thres_depth>
-
-<ladjust_bury_coeff>.false.</ladjust_bury_coeff>
-<bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
-
-<pon_bury_coeff>0.5</pon_bury_coeff>
-
-<!---------------------------->
-<!--    ecosys_parms_nml    -->
+<!--    marbl_parms_nml     -->
 <!---------------------------->
 
 <parm_Fe_bioavail>    1.0        </parm_Fe_bioavail>
@@ -1317,12 +1289,10 @@
 <parm_scalelen_vals                 >    1.0,     3.3,     4.6,      5.0</parm_scalelen_vals>
 
 
-<zooplankton(1)%sname>zoo</zooplankton(1)%sname>
 <zooplankton(1)%z_mort_0>       1.15741e-06 </zooplankton(1)%z_mort_0>
 <zooplankton(1)%z_mort2_0>      4.62963e-06 </zooplankton(1)%z_mort2_0>
 <zooplankton(1)%loss_thres>0.075 </zooplankton(1)%loss_thres>
 
-<autotrophs(1)%sname>sp</autotrophs(1)%sname>
 <autotrophs(1)%kFe  >0.03e-3</autotrophs(1)%kFe>
 <autotrophs(1)%kPO4 >0.01   </autotrophs(1)%kPO4>
 <autotrophs(1)%kDOP >0.2    </autotrophs(1)%kDOP>
@@ -1330,7 +1300,6 @@
 <autotrophs(1)%kNH4 >0.0125 </autotrophs(1)%kNH4>
 <autotrophs(1)%kSiO3>0.0    </autotrophs(1)%kSiO3>
 
-<autotrophs(2)%sname>diat</autotrophs(2)%sname>
 <autotrophs(2)%kFe  >0.07e-3</autotrophs(2)%kFe>
 <autotrophs(2)%kPO4 >0.05   </autotrophs(2)%kPO4>
 <autotrophs(2)%kDOP >0.5    </autotrophs(2)%kDOP>
@@ -1338,7 +1307,6 @@
 <autotrophs(2)%kNH4 >0.05   </autotrophs(2)%kNH4>
 <autotrophs(2)%kSiO3>0.8    </autotrophs(2)%kSiO3>
 
-<autotrophs(3)%sname>diaz</autotrophs(3)%sname>
 <autotrophs(3)%kFe  >0.03e-3</autotrophs(3)%kFe>
 <autotrophs(3)%kPO4 >0.0125 </autotrophs(3)%kPO4>
 <autotrophs(3)%kDOP >0.05   </autotrophs(3)%kDOP>
@@ -1346,45 +1314,47 @@
 <autotrophs(3)%kNH4 >0.4    </autotrophs(3)%kNH4>
 <autotrophs(3)%kSiO3>0.0    </autotrophs(3)%kSiO3>
 
+<grazing(1,1)%auto_ind        >1           </grazing(1,1)%auto_ind> 
+<grazing(1,1)%zoo_ind         >-1          </grazing(1,1)%zoo_ind> 
+<grazing(1,1)%z_umax_0        >3.76157e-05 </grazing(1,1)%z_umax_0> 
+<grazing(1,1)%z_grz           >1.15        </grazing(1,1)%z_grz> 
+<grazing(1,1)%graze_zoo       >0.3         </grazing(1,1)%graze_zoo> 
+<grazing(1,1)%graze_poc       >0.0         </grazing(1,1)%graze_poc> 
+<grazing(1,1)%graze_doc       >0.06        </grazing(1,1)%graze_doc> 
+<grazing(1,1)%f_zoo_detr      >0.1         </grazing(1,1)%f_zoo_detr> 
+<grazing(1,1)%grazing_function>1           </grazing(1,1)%grazing_function> 
 
-<grazing(1,1)%sname                     > grz_sp_zoo </grazing(1,1)%sname>
-<grazing(1,1)%auto_ind                  >1           </grazing(1,1)%auto_ind> 
-<grazing(1,1)%auto_ind_cnt              >1           </grazing(1,1)%auto_ind_cnt> 
-<grazing(1,1)%zoo_ind                   >-1          </grazing(1,1)%zoo_ind> 
-<grazing(1,1)%zoo_ind_cnt               >0           </grazing(1,1)%zoo_ind_cnt> 
-<grazing(1,1)%z_umax_0                  >3.76157e-05 </grazing(1,1)%z_umax_0> 
-<grazing(1,1)%z_grz                     >1.15        </grazing(1,1)%z_grz> 
-<grazing(1,1)%graze_zoo                 >0.3         </grazing(1,1)%graze_zoo> 
-<grazing(1,1)%graze_poc                 >0.0         </grazing(1,1)%graze_poc> 
-<grazing(1,1)%graze_doc                 >0.06        </grazing(1,1)%graze_doc> 
-<grazing(1,1)%f_zoo_detr                >0.1         </grazing(1,1)%f_zoo_detr> 
-<grazing(1,1)%grazing_function          >1           </grazing(1,1)%grazing_function> 
+<grazing(2,1)%auto_ind        >2          </grazing(2,1)%auto_ind> 
+<grazing(2,1)%zoo_ind         >-1         </grazing(2,1)%zoo_ind> 
+<grazing(2,1)%z_umax_0        >3.35648e-05</grazing(2,1)%z_umax_0>
+<grazing(2,1)%z_grz           >1.15       </grazing(2,1)%z_grz> 
+<grazing(2,1)%graze_zoo       >0.3        </grazing(2,1)%graze_zoo> 
+<grazing(2,1)%graze_poc       >0.4        </grazing(2,1)%graze_poc> 
+<grazing(2,1)%graze_doc       >0.06       </grazing(2,1)%graze_doc> 
+<grazing(2,1)%f_zoo_detr      >0.2        </grazing(2,1)%f_zoo_detr> 
+<grazing(2,1)%grazing_function>1          </grazing(2,1)%grazing_function> 
 
-<grazing(2,1)%sname                    > grz_diat_zoo </grazing(2,1)%sname
-<grazing(2,1)%auto_ind                  >2            </grazing(2,1)%auto_ind> 
-<grazing(2,1)%auto_ind_cnt              >1            </grazing(2,1)%auto_ind_cnt> 
-<grazing(2,1)%zoo_ind                   >-1           </grazing(2,1)%zoo_ind> 
-<grazing(2,1)%zoo_ind_cnt               >0            </grazing(2,1)%zoo_ind_cnt> 
-<grazing(2,1)%z_umax_0                  >3.35648e-05  </grazing(2,1)%z_umax_0>
-<grazing(2,1)%z_grz                     >1.15         </grazing(2,1)%z_grz> 
-<grazing(2,1)%graze_zoo                 >0.3          </grazing(2,1)%graze_zoo> 
-<grazing(2,1)%graze_poc                 >0.4          </grazing(2,1)%graze_poc> 
-<grazing(2,1)%graze_doc                 >0.06         </grazing(2,1)%graze_doc> 
-<grazing(2,1)%f_zoo_detr                >0.2          </grazing(2,1)%f_zoo_detr> 
-<grazing(2,1)%grazing_function          >1            </grazing(2,1)%grazing_function> 
+<grazing(3,1)%auto_ind        >3          </grazing(3,1)%auto_ind> 
+<grazing(3,1)%zoo_ind         >-1         </grazing(3,1)%zoo_ind> 
+<grazing(3,1)%z_umax_0        >2.14120e-05</grazing(3,1)%z_umax_0>
+<grazing(3,1)%z_grz           >1.15       </grazing(3,1)%z_grz> 
+<grazing(3,1)%graze_zoo       >0.3        </grazing(3,1)%graze_zoo> 
+<grazing(3,1)%graze_poc       >0.08       </grazing(3,1)%graze_poc> 
+<grazing(3,1)%graze_doc       >0.06       </grazing(3,1)%graze_doc> 
+<grazing(3,1)%f_zoo_detr      >0.1        </grazing(3,1)%f_zoo_detr> 
+<grazing(3,1)%grazing_function>1          </grazing(3,1)%grazing_function> 
 
-<grazing(3,1)%sname                    > grz_diaz_zoo </grazing(3,1)%sname>
-<grazing(3,1)%auto_ind                  >3            </grazing(3,1)%auto_ind> 
-<grazing(3,1)%auto_ind_cnt              >1            </grazing(3,1)%auto_ind_cnt> 
-<grazing(3,1)%zoo_ind                   >-1           </grazing(3,1)%zoo_ind> 
-<grazing(3,1)%zoo_ind_cnt               >0            </grazing(3,1)%zoo_ind_cnt> 
-<grazing(3,1)%z_umax_0                  >2.14120e-05  </grazing(3,1)%z_umax_0>
-<grazing(3,1)%z_grz                     >1.15         </grazing(3,1)%z_grz> 
-<grazing(3,1)%graze_zoo                 >0.3          </grazing(3,1)%graze_zoo> 
-<grazing(3,1)%graze_poc                 >0.08         </grazing(3,1)%graze_poc> 
-<grazing(3,1)%graze_doc                 >0.06         </grazing(3,1)%graze_doc> 
-<grazing(3,1)%f_zoo_detr                >0.1          </grazing(3,1)%f_zoo_detr> 
-<grazing(3,1)%grazing_function          >1            </grazing(3,1)%grazing_function> 
+<iron_frac_in_dust>0.00035</iron_frac_in_dust>
+
+<iron_frac_in_bc>0.06</iron_frac_in_bc>
+
+<caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>
+
+<caco3_bury_thres_depth>3000.0e2</caco3_bury_thres_depth>
+
+<pon_bury_coeff>0.5</pon_bury_coeff>
+
+<ciso_fract_factors>Laws</ciso_fract_factors>
 
 
 <!---------------------------->

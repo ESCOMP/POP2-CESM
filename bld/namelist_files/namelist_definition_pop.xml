@@ -5183,73 +5183,990 @@ Default: 1
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
-<!-- Group: ecosys_ciso_nml          - -->
+<!-- Group: marbl_config_nml         - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
-id="ciso_init_ecosys_option"
-type="char*256" 
+id="ciso_on&marbl_config_nml"
+type="logical" 
 category="ecosys"
-group="ecosys_ciso_nml" >
+group="derived" >
+Flag for using ciso module.
+
+Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
+</entry>
+
+<entry 
+id="lsource_sink"
+type="logical"
+category="ecosys"
+group="marbl_config_nml" >
+Default: .true.
+</entry>
+
+<entry 
+id="ciso_lsource_sink"
+type="logical"
+category="ecosys"
+group="marbl_config_nml" >
 Default: 
 </entry>
 
 <entry 
-id="ciso_init_ecosys_init_file"
+id="lecovars_full_depth_tavg"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="ciso_lecovars_full_depth_tavg"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default:  
+</entry>
+
+<entry 
+id="lflux_gas_o2"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .true.
+</entry>
+
+<entry 
+id="lflux_gas_co2"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .true.
+</entry>
+
+<entry
+id="init_bury_coeff_opt"
+type="char*128"
+category="ecosys"
+group="marbl_config_nml"
+valid_values="nml,restfile" >
+Valid Values: 'nml', 'restfile'
+Default: 'nml' for startup runs, otherwise 'restfile'
+</entry>
+
+<entry
+id="ladjust_bury_coeff"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="autotrophs_config%sname"
+type="dtype(3)%char*256" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/'sp', diat', 'diaz'/)
+</entry>
+
+<entry 
+id="zooplankton_config%sname"
+type="dtype(1)%char*256" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/'sp', diat', 'diaz'/)
+</entry>
+
+<entry 
+id="zooplankton_config%sname"
+type="dtype(1)%char*256" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/'zoo'/)
+</entry>
+
+<entry 
+id="grazing_config%lname"
+type="dtype(3,1)%char*256" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/'Grazing of sp by zoo','Grazing of diat by zoo','Grazing of diaz by zoo'/)
+</entry>
+
+<entry 
+id="grazing_config%sname"
+type="dtype(3,1)%char*256" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/'grz_sp_zoo','grz_diat_zoo','grz_diaz_zoo'/)
+</entry>
+
+<entry 
+id="grazing_config%auto_ind_cnt"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/1,1,1/)
+</entry>
+
+<entry 
+id="grazing_config%zoo_ind_cnt"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: (/0,0,0/)
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: marbl_forcing_tmp_nml    - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="dust_flux_source"
 type="char*256" 
 category="ecosys"
-group="ecosys_ciso_nml"
+group="marbl_forcing_tmp_nml"
+valid_values="monthly-calendar,driver" >
+Default: 'monthly-calendar'
+</entry>
+
+<entry 
+id="dust_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
 input_pathname="abs" >
-Default: 
+Default: dst79gnx_gx3v7_20100305.nc or dst79gnx_gx1v6_090416.nc
 </entry>
 
 <entry 
-id="ciso_tracer_init_ext%mod_varname"
-type="dtype(14)%char*256" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_tracer_init_ext%file_varname"
-type="dtype(14)%char*256" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-
-<entry 
-id="ciso_tracer_init_ext%scale_factor"
-type="dtype(14)%real" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_tracer_init_ext%default_val"
-type="dtype(14)%real" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_init_ecosys_init_file_fmt"
+id="dust_flux_input%file_fmt"
 type="char*256" 
 category="ecosys"
-group="ecosys_ciso_nml" >
+group="marbl_forcing_tmp_nml" >
+Default: 'nc' 
+</entry>
+
+<entry 
+id="dust_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'DSTSF' 
+</entry>
+
+<entry 
+id="dust_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0e-1 
+</entry>
+
+<entry 
+id="dust_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="iron_flux_source"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+valid_values="monthly-calendar,driver-derived" >
+Default: 'monthly-calendar'
+</entry>
+
+<entry 
+id="iron_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: solFe_scenario4_current_gx3v7.nc or solFe_scenario4_current_gx1v6.nc
+</entry>
+
+<entry 
+id="iron_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
 Default: 'nc'
 </entry>
 
+<entry 
+id="iron_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'DSTSF'
+</entry>
+
+<entry 
+id="iron_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.79e6
+</entry>
+
+<entry 
+id="iron_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="fesedflux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc or fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc
+</entry>
+
+<entry 
+id="fesedflux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'FESEDFLUXIN'
+</entry>
+
+<entry 
+id="fesedflux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="fesedflux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.1574e-6
+</entry>
+
+<entry 
+id="fesedflux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="din_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="din_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'din_riv_flux'
+</entry>
+
+<entry 
+id="din_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="din_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: '1.0'
+</entry>
+
+<entry 
+id="din_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="dip_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="dip_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'dip_riv_flux'
+</entry>
+
+<entry 
+id="dip_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="dip_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="dip_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="don_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="don_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'don_riv_flux'
+</entry>
+
+<entry 
+id="don_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="don_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="don_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="dop_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="dop_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'dop_riv_flux'
+</entry>
+
+<entry 
+id="dop_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="dop_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="dop_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="dsi_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="dsi_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'dsi_riv_flux'
+</entry>
+
+<entry 
+id="dsi_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="dsi_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="dsi_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="dfe_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="dfe_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'dfe_riv_flux'
+</entry>
+
+<entry 
+id="dfe_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="dfe_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="dfe_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="dic_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="dic_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'dic_riv_flux'
+</entry>
+
+<entry 
+id="dic_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="dic_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="dic_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="alk_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="alk_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'alk_riv_flux'
+</entry>
+
+<entry 
+id="alk_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="alk_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="alk_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="doc_riv_flux_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
+</entry>
+
+<entry 
+id="doc_riv_flux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'doc_riv_flux'
+</entry>
+
+<entry 
+id="doc_riv_flux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="doc_riv_flux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="doc_riv_flux_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="ndep_data_type"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'monthly-calendar' or 'shr_stream'
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'NOy_deposition'
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 7.1429e6
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'NHx_deposition'
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 7.1429e6
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%default_val"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_first"
+type="integer" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1849 (2004 for rcp runs)
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_last"
+type="integer" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 2006 (2101 for rcp runs)
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_align"
+type="integer" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 1849 (2101 for rcp runs)
+</entry>
+
+<entry 
+id="ndep_shr_stream_file"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: depends on grid and OCN_TRANSIENT
+</entry>
+
+<entry 
+id="ndep_shr_stream_scale_factor"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 7.1429e6
+</entry>
+
+<entry 
+id="gas_flux_forcing_opt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: 'drv'
+</entry>
+
+<entry 
+id="gas_flux_forcing_file"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+path="abs" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_fice%filename&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived"
+input_pathname="abs" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_fice%file_fmt&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_fice%file_varname&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_fice%scale_factor&marbl_forcing_tmp_nml"
+type="real" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_fice%default_val&marbl_forcing_tmp_nml"
+type="real" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ws%filename&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived"
+input_pathname="abs" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ws%file_fmt&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ws%file_varname&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ws%scale_factor&marbl_forcing_tmp_nml"
+type="real" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ws%default_val&marbl_forcing_tmp_nml"
+type="real" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ap%filename&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived"
+input_pathname="abs" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ap%file_fmt&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ap%file_varname&marbl_forcing_tmp_nml"
+type="char*256" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ap%scale_factor&marbl_forcing_tmp_nml"
+type="real" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="gas_flux_ap%default_val&marbl_forcing_tmp_nml"
+type="real" 
+category="ecosys"
+group="derived" >
+Default: none provided
+</entry>
+
+<entry 
+id="atm_co2_opt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+valid_values="const,drv_prog,drv_diag" >
+Default: depends on OCN_CO2_TYPE in env_run.xml
+</entry>
+
+<entry 
+id="atm_co2_const"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: CCSM_CO2_PPMV value in env_conf.xml
+</entry>
+
+<entry 
+id="atm_alt_co2_opt"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+valid_values="const" >
+Default: 'const'
+</entry>
+
+<entry 
+id="atm_alt_co2_const"
+type="real" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: CCSM_CO2_PPMV value in env_conf.xml
+</entry>
+
+<entry 
+id="liron_patch"
+type="logical"
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="iron_patch_flux_filename"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml"
+input_pathname="abs" >
+Default: none provided
+</entry>
+
+<entry 
+id="iron_patch_month"
+type="char*256" 
+category="ecosys"
+group="marbl_forcing_tmp_nml" >
+Default: none provided
+</entry>
 
 <entry 
 id="ciso_atm_d13c_opt"
 type="char*256" 
 category="ecosys"
-group="ecosys_ciso_nml"
+group="marbl_forcing_tmp_nml"
 valid_values="const,file,coupled" >
 Default: 
 </entry>
@@ -5258,7 +6175,7 @@ Default:
 id="ciso_atm_d13c_const"
 type="real" 
 category="ecosys"
-group="ecosys_ciso_nml" >
+group="marbl_forcing_tmp_nml" >
 Default: 
 </entry>
 
@@ -5266,7 +6183,7 @@ Default:
 id="ciso_atm_d14c_opt"
 type="char*256" 
 category="ecosys"
-group="ecosys_ciso_nml"
+group="marbl_forcing_tmp_nml"
 valid_values="const,file,coupled" >
 Default: 
 </entry>
@@ -5275,15 +6192,7 @@ Default:
 id="ciso_atm_d14c_const"
 type="real" 
 category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_lsource_sink"
-type="logical"
-category="ecosys"
-group="ecosys_ciso_nml" >
+group="marbl_forcing_tmp_nml" >
 Default: 
 </entry>
 
@@ -5291,7 +6200,7 @@ Default:
 id="ciso_atm_d13c_filename"
 type="char*256" 
 category="ecosys"
-group="ecosys_ciso_nml"
+group="marbl_forcing_tmp_nml"
 input_pathname="abs" >
 Default:  
 </entry>
@@ -5300,25 +6209,8 @@ Default:
 id="ciso_atm_d14c_filename"
 type="char*256(3)" 
 category="ecosys"
-group="ecosys_ciso_nml"
+group="marbl_forcing_tmp_nml"
 input_pathname="abs" >
-Default:  
-</entry>
-
-
-<entry 
-id="ciso_fract_factors"
-type="char*256" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default:  
-</entry>
-
-<entry 
-id="ciso_lecovars_full_depth_tavg"
-type="logical" 
-category="ecosys"
-group="ecosys_ciso_nml" >
 Default:  
 </entry>
 
@@ -5326,7 +6218,7 @@ Default:
 id="ciso_atm_model_year"
 type="integer" 
 category="passive_tracers"
-group="ecosys_ciso_nml" >
+group="marbl_forcing_tmp_nml">
 Arbitrary model year.
 
 Default: 1
@@ -5336,7 +6228,7 @@ Default: 1
 id="ciso_atm_data_year"
 type="integer" 
 category="passive_tracers"
-group="ecosys_ciso_nml" >
+group="marbl_forcing_tmp_nml">
 Year in atm data that corresponds to ciso_atm_model_year.
 
 Default: 1
@@ -5344,14 +6236,14 @@ Default: 1
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
-<!-- Group: ecosys_nml               - -->
+<!-- Group: marbl_tracer_init_tmp_nml- -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="init_ecosys_option"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="marbl_tracer_init_tmp_nml" >
 Default: 'ccsm_RUNTYPE'
 </entry>
 
@@ -5359,13 +6251,13 @@ Default: 'ccsm_RUNTYPE'
 id="init_ecosys_init_file"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml"
+group="marbl_tracer_init_tmp_nml"
 input_pathname="abs" >
 Default: ecosys_jan_IC_gx3v7_20151210.nc or ecosys_jan_IC_gx1v6_20150108.nc (none provided for tripole grids)
 </entry>
 
 <entry 
-id="tracer_init_ext%mod_varname&ecosys_nml"
+id="tracer_init_ext%mod_varname&marbl_tracer_init_tmp_nml"
 type="dtype(27)%char*256" 
 category="ecosys"
 group="derived" >
@@ -5373,7 +6265,7 @@ Default: (/"ALK", "DIC", "DIC_ALT_CO2", "O2"/)
 </entry>
 
 <entry 
-id="tracer_init_ext%filename&ecosys_nml"
+id="tracer_init_ext%filename&marbl_tracer_init_tmp_nml"
 type="dtype(27)%char*256" 
 category="ecosys"
 group="derived"
@@ -5382,7 +6274,7 @@ Default: none provided
 </entry>
 
 <entry 
-id="tracer_init_ext%file_varname&ecosys_nml"
+id="tracer_init_ext%file_varname&marbl_tracer_init_tmp_nml"
 type="dtype(27)%char*256" 
 category="ecosys"
 group="derived" >
@@ -5390,7 +6282,7 @@ Default: none provided
 </entry>
 
 <entry 
-id="tracer_init_ext%file_fmt&ecosys_nml"
+id="tracer_init_ext%file_fmt&marbl_tracer_init_tmp_nml"
 type="dtype(27)%char*256" 
 category="ecosys"
 group="derived" >
@@ -5398,7 +6290,7 @@ Default: none provided
 </entry>
 
 <entry 
-id="tracer_init_ext%scale_factor&ecosys_nml"
+id="tracer_init_ext%scale_factor&marbl_tracer_init_tmp_nml"
 type="dtype(27)%real" 
 category="ecosys"
 group="derived" >
@@ -5406,7 +6298,7 @@ Default: (/1.025, 1.025, 1.025, 1.0/)
 </entry>
 
 <entry 
-id="tracer_init_ext%default_val&ecosys_nml"
+id="tracer_init_ext%default_val&marbl_tracer_init_tmp_nml"
 type="dtype(27)%real" 
 category="ecosys"
 group="derived" >
@@ -5417,115 +6309,367 @@ Default: none provided
 id="init_ecosys_init_file_fmt"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="marbl_tracer_init_tmp_nml" >
 Default: 'nc'
 </entry>
 
 <entry 
-id="dust_flux_source"
+id="ciso_init_ecosys_option"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml"
-valid_values="monthly-calendar,driver" >
-Default: 'monthly-calendar'
+group="marbl_tracer_init_tmp_nml" >
+Default: 
 </entry>
 
 <entry 
-id="dust_flux_input%filename"
+id="ciso_init_ecosys_init_file"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml"
+group="marbl_tracer_init_tmp_nml"
 input_pathname="abs" >
-Default: dst79gnx_gx3v7_20100305.nc or dst79gnx_gx1v6_090416.nc
+Default: 
 </entry>
 
 <entry 
-id="dust_flux_input%file_fmt"
+id="ciso_tracer_init_ext%mod_varname"
+type="dtype(14)%char*256" 
+category="ecosys"
+group="marbl_tracer_init_tmp_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_tracer_init_ext%file_varname"
+type="dtype(14)%char*256" 
+category="ecosys"
+group="marbl_tracer_init_tmp_nml" >
+Default: 
+</entry>
+
+
+<entry 
+id="ciso_tracer_init_ext%scale_factor"
+type="dtype(14)%real" 
+category="ecosys"
+group="marbl_tracer_init_tmp_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_tracer_init_ext%default_val"
+type="dtype(14)%real" 
+category="ecosys"
+group="marbl_tracer_init_tmp_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_init_ecosys_init_file_fmt"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
-Default: 'nc' 
-</entry>
-
-<entry 
-id="dust_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'DSTSF' 
-</entry>
-
-<entry 
-id="dust_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0e-1 
-</entry>
-
-<entry 
-id="dust_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="iron_flux_source"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-valid_values="monthly-calendar,driver-derived" >
-Default: 'monthly-calendar'
-</entry>
-
-<entry 
-id="iron_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: solFe_scenario4_current_gx3v7.nc or solFe_scenario4_current_gx1v6.nc
-</entry>
-
-<entry 
-id="iron_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
+group="marbl_tracer_init_tmp_nml" >
 Default: 'nc'
 </entry>
 
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: marbl_parms_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
 <entry 
-id="iron_flux_input%file_varname"
-type="char*256" 
+id="parm_Fe_bioavail"
+type="real" 
 category="ecosys"
-group="ecosys_nml" >
-Default: 'DSTSF'
+group="marbl_parms_nml" >
+Default: 1.0
 </entry>
 
 <entry 
-id="iron_flux_input%scale_factor"
+id="parm_o2_min"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
-Default: 1.79e6
+group="marbl_parms_nml" >
+Default: 5.0
 </entry>
 
 <entry 
-id="iron_flux_input%default_val"
+id="parm_o2_min_delta"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
-Default: none provided
+group="marbl_parms_nml" >
+Default: 5.0
 </entry>
+
+<entry 
+id="parm_kappa_nitrif"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 6.9444e-7
+</entry>
+
+<entry 
+id="parm_nitrif_par_lim"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="parm_labile_ratio"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 0.94
+</entry>
+
+<entry 
+id="parm_init_POC_bury_coeff"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 5.0 for gx3v7, 1.1 otherwise
+</entry>
+
+<entry 
+id="parm_init_POP_bury_coeff"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 5.0 for gx3v7, 1.1 otherwise
+</entry>
+
+<entry 
+id="parm_init_bSi_bury_coeff"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.1 for gx3v7, 1.0 otherwise
+</entry>
+
+<entry 
+id="parm_fe_scavenge_rate0"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.4 for gx3v7, 1.9 otherwise
+</entry>
+
+<entry 
+id="parm_f_prod_sp_CaCO3"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 0.08 for gx3v7, 0.065 otherwise
+</entry>
+
+<entry 
+id="parm_POC_diss"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 90.0e2
+</entry>
+
+<entry 
+id="parm_SiO2_diss"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 600.0e2
+</entry>
+
+<entry 
+id="parm_CaCO3_diss"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 450.0e2
+</entry>
+
+<entry 
+id="fe_max_scale2"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1600 for gx3v7, 2200 otherwise
+</entry>
+
+<entry 
+id="bury_coeff_rmean_timescale_years"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 10.0
+</entry>
+
+<entry 
+id="parm_scalelen_z"
+type="real(4)" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/100.0e2, 250.0e2, 500.0e2, 750.0e2/)
+</entry>
+
+<entry 
+id="parm_scalelen_vals"
+type="real(4)" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default:  (/1.0, 4.0, 4.5, 4.6/) for gx3v7, (/1.0, 3.3, 4.6, 5.0/) otherwise
+</entry>
+
+<entry 
+id="zooplankton%z_mort_0"
+type="dtype(1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/1.15741e-06/)
+</entry>
+
+<entry 
+id="zooplankton%z_mort2_0"
+type="dtype(1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/4.62963e-06/)
+</entry>
+
+<entry 
+id="zooplankton%loss_thres"
+type="dtype(1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.075/)
+</entry>
+
+<entry 
+id="autotrophs%kFe"
+type="dtype(3)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.03e-3, 0.07e-3, 0.03e-3/)
+</entry>
+
+<entry 
+id="autotrophs%kPO4"
+type="dtype(3)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.01, 0.05, 0.0125/)
+</entry>
+
+<entry 
+id="autotrophs%kDOP"
+type="dtype(3)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.2, 0.5, 0.05/)
+</entry>
+
+<entry 
+id="autotrophs%kNO3"
+type="dtype(3)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.25, 1.0, 4.0/)
+</entry>
+
+<entry 
+id="autotrophs%kNH4"
+type="dtype(3)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.0125, 0.05, 0.4/)
+</entry>
+
+<entry 
+id="autotrophs%kSiO3"
+type="dtype(3)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.0, 0.8, 0.0/)
+</entry>
+
+<entry 
+id="grazing%auto_ind"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/1,2,3/)
+</entry>
+
+<entry 
+id="grazing%zoo_ind"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/-1,-1,-1/)
+</entry>
+
+<entry 
+id="grazing%z_umax_0"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/3.76157e-05,3.35648e-05,2.14120e-05/)
+</entry>
+
+<entry 
+id="grazing%z_grz"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/1.15,1.15,1.15/)
+</entry>
+
+<entry 
+id="grazing%graze_zoo"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.3,0.3,0.3/)
+</entry>
+
+<entry 
+id="grazing%graze_poc"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.0,0.4,0.08/)
+</entry>
+
+<entry 
+id="grazing%graze_doc"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.06,0.06,0.06/)
+</entry>
+
+<entry 
+id="grazing%f_zoo_detr"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/0.1,0.2,0.1/)
+</entry>
+
+<entry 
+id="grazing%grazing_function"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: (/1,1,1/)
+</entry>
+
 
 <entry
 id="iron_frac_in_dust"
 type="real"
 category="ecosys"
-group="ecosys_nml" >
+group="marbl_parms_nml" >
 fraction, by weight, of iron in dust
 
 Default: 0.00035
@@ -5535,815 +6679,17 @@ Default: 0.00035
 id="iron_frac_in_bc"
 type="real"
 category="ecosys"
-group="ecosys_nml" >
+group="marbl_parms_nml" >
 fraction, by weight, of iron in black carbon
 
 Default: 0.06
-</entry>
-
-<entry 
-id="fesedflux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc or fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc
-</entry>
-
-<entry 
-id="fesedflux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'FESEDFLUXIN'
-</entry>
-
-<entry 
-id="fesedflux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="fesedflux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.1574e-6
-</entry>
-
-<entry 
-id="fesedflux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="din_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="din_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'din_riv_flux'
-</entry>
-
-<entry 
-id="din_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="din_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: '1.0'
-</entry>
-
-<entry 
-id="din_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dip_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dip_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'dip_riv_flux'
-</entry>
-
-<entry 
-id="dip_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dip_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dip_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="don_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="don_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'don_riv_flux'
-</entry>
-
-<entry 
-id="don_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="don_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="don_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dop_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dop_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'dop_riv_flux'
-</entry>
-
-<entry 
-id="dop_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dop_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dop_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'dsi_riv_flux'
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'dfe_riv_flux'
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dic_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dic_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'dic_riv_flux'
-</entry>
-
-<entry 
-id="dic_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dic_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dic_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="alk_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="alk_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'alk_riv_flux'
-</entry>
-
-<entry 
-id="alk_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="alk_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="alk_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="doc_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="doc_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'doc_riv_flux'
-</entry>
-
-<entry 
-id="doc_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="doc_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="doc_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="ndep_data_type"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'monthly-calendar' or 'shr_stream'
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'NOy_deposition'
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 7.1429e6
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'NHx_deposition'
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 7.1429e6
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="ndep_shr_stream_year_first"
-type="integer" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1849 (2004 for rcp runs)
-</entry>
-
-<entry 
-id="ndep_shr_stream_year_last"
-type="integer" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 2006 (2101 for rcp runs)
-</entry>
-
-<entry 
-id="ndep_shr_stream_year_align"
-type="integer" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 1849 (2101 for rcp runs)
-</entry>
-
-<entry 
-id="ndep_shr_stream_file"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: depends on grid and OCN_TRANSIENT
-</entry>
-
-<entry 
-id="ndep_shr_stream_scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 7.1429e6
-</entry>
-
-<entry 
-id="gas_flux_forcing_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'drv'
-</entry>
-
-<entry 
-id="gas_flux_forcing_file"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-path="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_fice%filename&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_fice%file_fmt&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_fice%file_varname&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_fice%scale_factor&ecosys_nml"
-type="real" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_fice%default_val&ecosys_nml"
-type="real" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ws%filename&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ws%file_fmt&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ws%file_varname&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ws%scale_factor&ecosys_nml"
-type="real" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ws%default_val&ecosys_nml"
-type="real" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ap%filename&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ap%file_fmt&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ap%file_varname&ecosys_nml"
-type="char*256" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ap%scale_factor&ecosys_nml"
-type="real" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="gas_flux_ap%default_val&ecosys_nml"
-type="real" 
-category="ecosys"
-group="derived" >
-Default: none provided
-</entry>
-
-<entry 
-id="nutr_rest_file"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'unknown'
-</entry>
-
-<entry 
-id="lsource_sink"
-type="logical"
-category="ecosys"
-group="ecosys_nml" >
-Default: .true.
-</entry>
-
-<entry 
-id="lflux_gas_o2"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true.
-</entry>
-
-<entry 
-id="lflux_gas_co2"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true.
-</entry>
-
-<entry 
-id="lnutr_variable_restore"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="nutr_variable_rest_file"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="nutr_variable_rest_file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="atm_co2_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-valid_values="const,drv_prog,drv_diag" >
-Default: depends on OCN_CO2_TYPE in env_run.xml
-</entry>
-
-<entry 
-id="atm_co2_const"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: CCSM_CO2_PPMV value in env_conf.xml
-</entry>
-
-<entry 
-id="atm_alt_co2_opt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-valid_values="const" >
-Default: 'const'
-</entry>
-
-<entry 
-id="atm_alt_co2_const"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: CCSM_CO2_PPMV value in env_conf.xml
-</entry>
-
-
-<entry 
-id="liron_patch"
-type="logical"
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="iron_patch_flux_filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="iron_patch_month"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
 </entry>
 
 <entry
 id="caco3_bury_thres_opt"
 type="char*256"
 category="ecosys"
-group="ecosys_nml"
+group="marbl_parms_nml"
 valid_values="fixed_depth,omega_calc" >
 option of threshold of caco3 burial
 Default: omega_calc
@@ -6353,394 +6699,83 @@ Default: omega_calc
 id="caco3_bury_thres_depth"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="marbl_parms_nml" >
 threshold depth for caco3_bury_thres_opt='fixed_depth'
 Default: 3000.0e2
-</entry>
-
-<entry
-id="init_bury_coeff_opt"
-type="char*128"
-category="ecosys"
-group="ecosys_nml"
-valid_values="nml,restfile" >
-Valid Values: 'nml', 'restfile'
-Default: 'nml' for startup runs, otherwise 'restfile'
-</entry>
-
-<entry
-id="ladjust_bury_coeff"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .false.
-</entry>
-
-<entry 
-id="bury_coeff_rmean_timescale_years"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 10.0
 </entry>
 
 <entry
 id="pon_bury_coeff"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="marbl_parms_nml" >
 PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
 Default: 0.5
 </entry>
 
 <entry 
-id="lecovars_full_depth_tavg"
-type="logical" 
+id="ciso_fract_factors"
+type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
-Default: .false.
-</entry>
-
-<entry
-id="lecosys_debug"
-type="logical"
-category="ecosys"
-group="derived">
-When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
-</entry>
-
-<!-- - - - - - - - - - - - - - - - - - -->
-<!-- Group: ecosys_parms_nml         - -->
-<!-- - - - - - - - - - - - - - - - - - -->
-
-<entry 
-id="parm_Fe_bioavail"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 1.0
+group="marbl_parms_nml" >
+Default:  
 </entry>
 
 <entry 
-id="parm_o2_min"
-type="real" 
+id="restore_short_names"
+type="char*256(100)"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 5.0
+group="marbl_parms_nml" >
+Default:
 </entry>
 
 <entry 
-id="parm_o2_min_delta"
-type="real" 
+id="restore_filenames"
+type="char*256(100)"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 5.0
+group="marbl_parms_nml" >
+Default:
 </entry>
 
 <entry 
-id="parm_kappa_nitrif"
-type="real" 
+id="restore_file_varnames"
+type="char*256(100)"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 6.9444e-7
+group="marbl_parms_nml" >
+Default:
 </entry>
 
 <entry 
-id="parm_nitrif_par_lim"
-type="real" 
+id="rest_time_inv_surf"
+type="real"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 1.0
+group="marbl_parms_nml" >
+Default: none provided
 </entry>
 
 <entry 
-id="parm_labile_ratio"
-type="real" 
+id="rest_time_inv_deep"
+type="real"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 0.94
+group="marbl_parms_nml" >
+Default: none provided
 </entry>
 
 <entry 
-id="parm_init_POC_bury_coeff"
-type="real" 
+id="rest_z0"
+type="real"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 5.0 for gx3v7, 1.1 otherwise
+group="marbl_parms_nml" >
+Default: none provided
 </entry>
 
 <entry 
-id="parm_init_POP_bury_coeff"
-type="real" 
+id="rest_z1"
+type="real"
 category="ecosys"
-group="ecosys_parms_nml" >
-Default: 5.0 for gx3v7, 1.1 otherwise
+group="marbl_parms_nml" >
+Default: none provided
 </entry>
-
-<entry 
-id="parm_init_bSi_bury_coeff"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 1.1 for gx3v7, 1.0 otherwise
-</entry>
-
-<entry 
-id="parm_fe_scavenge_rate0"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 1.4 for gx3v7, 1.9 otherwise
-</entry>
-
-<entry 
-id="parm_f_prod_sp_CaCO3"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 0.08 for gx3v7, 0.065 otherwise
-</entry>
-
-<entry 
-id="parm_POC_diss"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 90.0e2
-</entry>
-
-<entry 
-id="parm_SiO2_diss"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 600.0e2
-</entry>
-
-<entry 
-id="parm_CaCO3_diss"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 450.0e2
-</entry>
-
-<entry 
-id="fe_max_scale2"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 1600 for gx3v7, 2200 otherwise
-</entry>
-
-<entry 
-id="parm_scalelen_z"
-type="real(4)" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/100.0e2, 250.0e2, 500.0e2, 750.0e2/)
-</entry>
-
-<entry 
-id="parm_scalelen_vals"
-type="real(4)" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default:  (/1.0, 4.0, 4.5, 4.6/) for gx3v7, (/1.0, 3.3, 4.6, 5.0/) otherwise
-</entry>
-
-<entry 
-id="zooplankton%sname"
-type="dtype(1)%char*256" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/'zoo'/)
-</entry>
-
-<entry 
-id="zooplankton%z_mort_0"
-type="dtype(1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/1.15741e-06/)
-</entry>
-
-<entry 
-id="zooplankton%z_mort2_0"
-type="dtype(1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/4.62963e-06/)
-</entry>
-
-<entry 
-id="zooplankton%loss_thres"
-type="dtype(1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.075/)
-</entry>
-
-<entry 
-id="autotrophs%sname"
-type="dtype(3)%char*256" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/'sp', diat', 'diaz'/)
-</entry>
-
-<entry 
-id="autotrophs%kFe"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.03e-3, 0.07e-3, 0.03e-3/)
-</entry>
-
-<entry 
-id="autotrophs%kPO4"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.01, 0.05, 0.0125/)
-</entry>
-
-<entry 
-id="autotrophs%kDOP"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.2, 0.5, 0.05/)
-</entry>
-
-<entry 
-id="autotrophs%kNO3"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.25, 1.0, 4.0/)
-</entry>
-
-<entry 
-id="autotrophs%kNH4"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.0125, 0.05, 0.4/)
-</entry>
-
-<entry 
-id="autotrophs%kSiO3"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.0, 0.8, 0.0/)
-</entry>
-
-<entry 
-id="grazing%lname"
-type="dtype(3,1)%char*256" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/'Grazing of sp by zoo','Grazing of diat by zoo','Grazing of diaz by zoo'/)
-</entry>
-
-<entry 
-id="grazing%sname"
-type="dtype(3,1)%char*256" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/'grz_sp_zoo','grz_diat_zoo','grz_diaz_zoo'/)
-</entry>
-
-<entry 
-id="grazing%auto_ind"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/1,2,3/)
-</entry>
-
-<entry 
-id="grazing%auto_ind_cnt"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/1,1,1/)
-</entry>
-
-<entry 
-id="grazing%zoo_ind"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/-1,-1,-1/)
-</entry>
-
-<entry 
-id="grazing%zoo_ind_cnt"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0,0,0/)
-</entry>
-
-<entry 
-id="grazing%z_umax_0"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/3.76157e-05,3.35648e-05,2.14120e-05/)
-</entry>
-
-<entry 
-id="grazing%z_grz"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/1.15,1.15,1.15/)
-</entry>
-
-<entry 
-id="grazing%graze_zoo"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.3,0.3,0.3/)
-</entry>
-
-<entry 
-id="grazing%graze_poc"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.0,0.4,0.08/)
-</entry>
-
-<entry 
-id="grazing%graze_doc"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.06,0.06,0.06/)
-</entry>
-
-<entry 
-id="grazing%f_zoo_detr"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/0.1,0.2,0.1/)
-</entry>
-
-<entry 
-id="grazing%grazing_function"
-type="dtype(3,1)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/1,1,1/)
-</entry>
-
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_driver_nml        - -->
@@ -6800,6 +6835,14 @@ type="real"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 1944.0
+</entry>
+
+<entry
+id="lecosys_debug"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
 
 
@@ -7073,66 +7116,6 @@ type="integer"
 category="pop2"
 group="irf_nml" >
 Default: 1
-</entry>
-
-<!-- - - - - - - - - - - - - - - - - - -->
-<!-- Group: ecosys_restore_nml       - -->
-<!-- - - - - - - - - - - - - - - - - - -->
-
-<entry 
-id="restore_short_names"
-type="char*256(100)"
-category="ecosys_restore"
-group="ecosys_restore_nml" >
-Default:
-</entry>
-
-<entry 
-id="restore_filenames"
-type="char*256(100)"
-category="ecosys_restore"
-group="ecosys_restore_nml" >
-Default:
-</entry>
-
-<entry 
-id="restore_file_varnames"
-type="char*256(100)"
-category="ecosys_restore"
-group="ecosys_restore_nml" >
-Default:
-</entry>
-
-<entry 
-id="rest_time_inv_surf"
-type="real"
-category="ecosys"
-group="ecosys_restore_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_time_inv_deep"
-type="real"
-category="ecosys"
-group="ecosys_restore_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z0"
-type="real"
-category="ecosys"
-group="ecosys_restore_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z1"
-type="real"
-category="ecosys"
-group="ecosys_restore_nml" >
-Default: none provided
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

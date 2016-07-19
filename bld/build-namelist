@@ -1386,20 +1386,176 @@ if ($abio_on eq "TRUE") {
  }
 
 ##########################################
-# namelist group: ecosys_ciso_nml        #
+# namelist group: marbl_config_nml       #
 ##########################################
 
+my $ecosys_on = $cfg->get("use_ecosys");
 my $ciso_on = $cfg->get("use_ciso");
-if ($ciso_on eq "TRUE") {
 
-	my $temp;
+if ($ecosys_on eq "TRUE") {
+  my $ciso_loc = $nl->get_value('ciso_on');
+  add_default($nl, 'ciso_on&marbl_config_nml', val=>"$ciso_loc");
+  my $ciso_marbl_loc = $nl->get_value('ciso_on&marbl_config_nml');
+  if ("$ciso_loc" ne "$ciso_marbl_loc") {
+    die << "EOF";
+** MARBL is running with ciso_on = $ciso_marbl_loc
+   POP is expecting ciso_on = $ciso_loc
+EOF
+  }
 
-    if (($OCN_TRANSIENT ne "unset") &&  ($OCN_TRANSIENT ne "1850-2000") &&
-        ($OCN_TRANSIENT ne "rcp4.5") && ($OCN_TRANSIENT ne "rcp8.5")) {
-      print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ciso module \n";
-      die;
+  add_default($nl, 'lsource_sink');
+  add_default($nl, 'lecovars_full_depth_tavg');
+  add_default($nl, 'lflux_gas_o2');
+  add_default($nl, 'lflux_gas_co2');
+
+  # FIXME : replace following with ladjust_bury_coeff=.true. branch
+  # when "restfile" is implemented for scalar saved state
+  if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
+    if ($RUN_TYPE eq "startup") {
+      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
+    } else {
+      add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
+    }
+  } else {
+    add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
+  }
+  add_default($nl, 'ladjust_bury_coeff');
+
+  add_default($nl, 'autotrophs_config(1)%sname');
+  add_default($nl, 'autotrophs_config(2)%sname');
+  add_default($nl, 'autotrophs_config(3)%sname');
+  add_default($nl, 'zooplankton_config(1)%sname');
+  add_default($nl, 'grazing_config(1,1)%sname');
+  add_default($nl, 'grazing_config(1,1)%auto_ind_cnt');
+  add_default($nl, 'grazing_config(1,1)%zoo_ind_cnt');
+  add_default($nl, 'grazing_config(2,1)%sname');
+  add_default($nl, 'grazing_config(2,1)%auto_ind_cnt');
+  add_default($nl, 'grazing_config(2,1)%zoo_ind_cnt');
+  add_default($nl, 'grazing_config(3,1)%sname');
+  add_default($nl, 'grazing_config(3,1)%auto_ind_cnt');
+  add_default($nl, 'grazing_config(3,1)%zoo_ind_cnt');
+
+  if ($ciso_on eq "TRUE") {
+    add_default($nl, 'ciso_lsource_sink');
+    add_default($nl, 'ciso_lecovars_full_depth_tavg');
+  }
+}
+
+##########################################
+# namelist group: marbl_forcing_tmp_nml  #
+##########################################
+
+if ($ecosys_on eq "TRUE") {
+  add_default($nl, 'dust_flux_source');
+  add_default($nl, 'dust_flux_input%filename');
+  add_default($nl, 'dust_flux_input%file_fmt');
+  add_default($nl, 'dust_flux_input%file_varname');
+  add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
+
+  add_default($nl, 'iron_flux_source');
+  add_default($nl, 'iron_flux_input%filename');
+  add_default($nl, 'iron_flux_input%file_fmt');
+  add_default($nl, 'iron_flux_input%file_varname');
+  add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
+
+  add_default($nl, 'fesedflux_input%filename');
+  add_default($nl, 'fesedflux_input%file_varname');
+  add_default($nl, 'fesedflux_input%file_fmt');
+  add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
+
+  add_default($nl, 'din_riv_flux_input%filename');
+  add_default($nl, 'dip_riv_flux_input%filename');
+  add_default($nl, 'don_riv_flux_input%filename');
+  add_default($nl, 'dop_riv_flux_input%filename');
+  add_default($nl, 'dsi_riv_flux_input%filename');
+  add_default($nl, 'dfe_riv_flux_input%filename');
+  add_default($nl, 'dic_riv_flux_input%filename');
+  add_default($nl, 'alk_riv_flux_input%filename');
+  add_default($nl, 'doc_riv_flux_input%filename');
+
+  add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
+  if ($OCN_TRANSIENT eq "unset") {
+    add_default($nl, 'nox_flux_monthly_input%filename');
+    add_default($nl, 'nox_flux_monthly_input%file_fmt');
+    add_default($nl, 'nox_flux_monthly_input%file_varname');
+    add_default($nl, 'nhy_flux_monthly_input%filename');
+    add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+    add_default($nl, 'nhy_flux_monthly_input%file_fmt');
+    add_default($nl, 'nhy_flux_monthly_input%file_varname');
+    add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+  } elsif ($OCN_TRANSIENT eq "1850-2000") {
+    add_default($nl, 'ndep_shr_stream_year_first');
+    add_default($nl, 'ndep_shr_stream_year_last');
+    add_default($nl, 'ndep_shr_stream_year_align');
+    add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+    add_default($nl, 'ndep_shr_stream_file');
+  } elsif (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
+    add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+  } else {
+    print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosys module\n";
+    die;
+  }
+
+  add_default($nl, 'gas_flux_forcing_opt');
+
+  my $atm_co2_opt;
+  if ($OCN_CO2_TYPE eq "constant") {
+    $atm_co2_opt = "const";
+  } elsif ($OCN_CO2_TYPE eq "prognostic") {
+    $atm_co2_opt = "drv_prog";
+  } elsif ($OCN_CO2_TYPE eq "diagnostic") {
+    $atm_co2_opt = "drv_diag";
+  } else {
+    print "error specifying atm_co2_opt \n";
+    print "unknown OCN_CO2_TYPE:  $OCN_CO2_TYPE \n";
+    die;
+  }
+  add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
+  add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
+  add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
+  add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
+
+  if ($ciso_on eq "TRUE") {
+    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d13c_const');
+    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d14c_const');
+
+    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
+    if ($ciso_atm_opt eq '\'file\'') {
+      add_default($nl, 'ciso_atm_d13c_filename');
     }
 
+    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+    if ($ciso_atm_opt eq '\'file\'') {
+      add_default($nl, 'ciso_atm_d14c_filename(1)');
+      add_default($nl, 'ciso_atm_d14c_filename(2)');
+      add_default($nl, 'ciso_atm_d14c_filename(3)');
+    }
+
+    add_default($nl, 'ciso_atm_model_year');
+    add_default($nl, 'ciso_atm_data_year');
+  }
+}
+
+#############################################
+# namelist group: marbl_tracer_init_tmp_nml #
+#############################################
+
+if ($ecosys_on eq "TRUE") {
+  add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+  if ($RUN_TYPE eq "startup") {
+    add_default($nl, 'init_ecosys_init_file');
+  } else {
+    add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+  }
+  add_default($nl, 'init_ecosys_init_file_fmt');
+
+  if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
     if ($RUN_TYPE eq "startup") {
       add_default($nl, 'ciso_init_ecosys_init_file');
@@ -1407,282 +1563,154 @@ if ($ciso_on eq "TRUE") {
       add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }
     add_default($nl, 'ciso_init_ecosys_init_file_fmt');
+
     add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
+
     add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
-    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d14c_const');
-    add_default($nl, 'ciso_lsource_sink');
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d13c_filename');
-    }
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d14c_filename(1)');
-      add_default($nl, 'ciso_atm_d14c_filename(2)');
-      add_default($nl, 'ciso_atm_d14c_filename(3)');
-    }
+  }
+}
+
+##########################################
+# namelist group: marbl_parms_nml        #
+##########################################
+
+if ($ecosys_on eq "TRUE") {
+  add_default($nl, 'parm_Fe_bioavail');
+  add_default($nl, 'parm_o2_min');
+  add_default($nl, 'parm_o2_min_delta');
+  add_default($nl, 'parm_kappa_nitrif');
+  add_default($nl, 'parm_nitrif_par_lim');
+  add_default($nl, 'parm_labile_ratio');
+  add_default($nl, 'parm_init_POC_bury_coeff');
+  add_default($nl, 'parm_init_POP_bury_coeff');
+  add_default($nl, 'parm_init_bSi_bury_coeff');
+  add_default($nl, 'parm_fe_scavenge_rate0');
+  add_default($nl, 'parm_f_prod_sp_CaCO3');
+  add_default($nl, 'parm_POC_diss');
+  add_default($nl, 'parm_SiO2_diss');
+  add_default($nl, 'parm_CaCO3_diss');
+  add_default($nl, 'fe_max_scale2');
+  add_default($nl, 'bury_coeff_rmean_timescale_years');
+
+  add_default($nl, 'parm_scalelen_z');
+  add_default($nl, 'parm_scalelen_vals');
+
+  add_default($nl, 'zooplankton(1)%z_mort_0');
+  add_default($nl, 'zooplankton(1)%z_mort2_0');
+  add_default($nl, 'zooplankton(1)%loss_thres');
+
+  add_default($nl, 'autotrophs(1)%kFe');
+  add_default($nl, 'autotrophs(1)%kPO4');
+  add_default($nl, 'autotrophs(1)%kDOP');
+  add_default($nl, 'autotrophs(1)%kNO3');
+  add_default($nl, 'autotrophs(1)%kNH4');
+  add_default($nl, 'autotrophs(1)%kSiO3');
+
+  add_default($nl, 'autotrophs(2)%kFe');
+  add_default($nl, 'autotrophs(2)%kPO4');
+  add_default($nl, 'autotrophs(2)%kDOP');
+  add_default($nl, 'autotrophs(2)%kNO3');
+  add_default($nl, 'autotrophs(2)%kNH4');
+  add_default($nl, 'autotrophs(2)%kSiO3');
+
+  add_default($nl, 'autotrophs(3)%kFe');
+  add_default($nl, 'autotrophs(3)%kPO4');
+  add_default($nl, 'autotrophs(3)%kDOP');
+  add_default($nl, 'autotrophs(3)%kNO3');
+  add_default($nl, 'autotrophs(3)%kNH4');
+  add_default($nl, 'autotrophs(3)%kSiO3');
+
+  add_default($nl, 'grazing(1,1)%auto_ind');
+  add_default($nl, 'grazing(1,1)%zoo_ind');
+  add_default($nl, 'grazing(1,1)%z_umax_0');
+  add_default($nl, 'grazing(1,1)%z_grz');
+  add_default($nl, 'grazing(1,1)%graze_zoo');
+  add_default($nl, 'grazing(1,1)%graze_poc');
+  add_default($nl, 'grazing(1,1)%graze_doc');
+  add_default($nl, 'grazing(1,1)%f_zoo_detr');
+  add_default($nl, 'grazing(1,1)%grazing_function');
+
+  add_default($nl, 'grazing(2,1)%auto_ind');
+  add_default($nl, 'grazing(2,1)%zoo_ind');
+  add_default($nl, 'grazing(2,1)%z_umax_0');
+  add_default($nl, 'grazing(2,1)%z_grz');
+  add_default($nl, 'grazing(2,1)%graze_zoo');
+  add_default($nl, 'grazing(2,1)%graze_poc');
+  add_default($nl, 'grazing(2,1)%graze_doc');
+  add_default($nl, 'grazing(2,1)%f_zoo_detr');
+  add_default($nl, 'grazing(2,1)%grazing_function');
+
+  add_default($nl, 'grazing(3,1)%auto_ind');
+  add_default($nl, 'grazing(3,1)%zoo_ind');
+  add_default($nl, 'grazing(3,1)%z_umax_0');
+  add_default($nl, 'grazing(3,1)%z_grz');
+  add_default($nl, 'grazing(3,1)%graze_zoo');
+  add_default($nl, 'grazing(3,1)%graze_poc');
+  add_default($nl, 'grazing(3,1)%graze_doc');
+  add_default($nl, 'grazing(3,1)%f_zoo_detr');
+  add_default($nl, 'grazing(3,1)%grazing_function');
+
+  add_default($nl, 'iron_frac_in_dust');
+  add_default($nl, 'iron_frac_in_bc');
+  add_default($nl, 'caco3_bury_thres_opt');
+  add_default($nl, 'caco3_bury_thres_depth');
+  add_default($nl, 'pon_bury_coeff');
+
+  if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_fract_factors');
-    add_default($nl, 'ciso_lecovars_full_depth_tavg');
-    add_default($nl, 'ciso_atm_model_year');
-    add_default($nl, 'ciso_atm_data_year');
-}
-##########################################
-# namelist group: ecosys_nml             #
-##########################################
-
-my $ecosys_on = $cfg->get("use_ecosys");
-if ($ecosys_on eq "TRUE") {
-
-	my $temp;
-
-    if (($OCN_TRANSIENT ne "unset") &&  ($OCN_TRANSIENT ne "1850-2000") &&
-        ($OCN_TRANSIENT ne "rcp4.5") && ($OCN_TRANSIENT ne "rcp8.5")) {
-      print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosystem module \n";
-      die;
-    }
-
-    my $atm_co2_opt;
-    if ($OCN_CO2_TYPE eq "constant") {
-      $atm_co2_opt = "const";
-    } elsif ($OCN_CO2_TYPE eq "prognostic") {
-      $atm_co2_opt = "drv_prog";
-    } elsif ($OCN_CO2_TYPE eq "diagnostic") {
-      $atm_co2_opt = "drv_diag";
-    } else {
-      print "error specifying atm_co2_opt \n";
-      print "unknown OCN_CO2_TYPE:  $OCN_CO2_TYPE \n";
-      die;
-    }
-
-    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'init_ecosys_init_file');
-    } else {
-      add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
-    }
-    add_default($nl, 'init_ecosys_init_file_fmt');
-
-    add_default($nl, 'lflux_gas_o2');
-    add_default($nl, 'lflux_gas_co2');
-
-    add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
-    add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
-    add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
-    add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
-    add_default($nl, 'gas_flux_forcing_opt');
-
-    add_default($nl, 'lsource_sink');
-
-   #add_default($nl, 'iron_dust_flx_data_type');
-    add_default($nl, 'dust_flux_source');
-    add_default($nl, 'dust_flux_input%filename');
-    add_default($nl, 'dust_flux_input%file_fmt');
-    add_default($nl, 'dust_flux_input%file_varname');
-    add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
-    add_default($nl, 'iron_flux_source');
-    add_default($nl, 'iron_flux_input%filename');
-    add_default($nl, 'iron_flux_input%file_fmt');
-    add_default($nl, 'iron_flux_input%file_varname');
-    add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
-    add_default($nl, 'iron_frac_in_dust');
-    add_default($nl, 'iron_frac_in_bc');
-    add_default($nl, 'fesedflux_input%filename');
-    add_default($nl, 'fesedflux_input%file_varname');
-    add_default($nl, 'fesedflux_input%file_fmt');
-    add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
-
-    add_default($nl, 'din_riv_flux_input%filename');
-    add_default($nl, 'dip_riv_flux_input%filename');
-    add_default($nl, 'don_riv_flux_input%filename');
-    add_default($nl, 'dop_riv_flux_input%filename');
-    add_default($nl, 'dsi_riv_flux_input%filename');
-    add_default($nl, 'dfe_riv_flux_input%filename');
-    add_default($nl, 'dic_riv_flux_input%filename');
-    add_default($nl, 'alk_riv_flux_input%filename');
-    add_default($nl, 'doc_riv_flux_input%filename');
-
-    if ($OCN_TRANSIENT eq "unset") {
-      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'nox_flux_monthly_input%filename');
-      add_default($nl, 'nox_flux_monthly_input%file_fmt');
-      add_default($nl, 'nox_flux_monthly_input%file_varname');
-      add_default($nl, 'nhy_flux_monthly_input%filename');
-      add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-      add_default($nl, 'nhy_flux_monthly_input%file_fmt');
-      add_default($nl, 'nhy_flux_monthly_input%file_varname');
-      add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    }
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_year_first');
-      add_default($nl, 'ndep_shr_stream_year_last');
-      add_default($nl, 'ndep_shr_stream_year_align');
-      add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-      add_default($nl, 'ndep_shr_stream_file');
-    }
-    if (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
-      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    }
-    add_default($nl, 'caco3_bury_thres_opt');
-    add_default($nl, 'caco3_bury_thres_depth');
-    # FIXME : replace following with ladjust_bury_coeff=.true. branch
-    # when "restfile" is implemented for scalar saved state
-    if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
-      if ($RUN_TYPE eq "startup") {
-        add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-      } else {
-        add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
-      }
-    } else {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-    }
-    add_default($nl, 'ladjust_bury_coeff');
-    add_default($nl, 'bury_coeff_rmean_timescale_years');
-    add_default($nl, 'pon_bury_coeff');
-    add_default($nl, 'lecovars_full_depth_tavg');
-
-    add_default($nl, 'lecosys_debug');
-}
-
-##########################################
-# namelist group: ecosys_parms_nml       #
-##########################################
-
-if ($ecosys_on eq "TRUE") {
-    add_default($nl, 'parm_Fe_bioavail');
-    add_default($nl, 'parm_o2_min');
-    add_default($nl, 'parm_o2_min_delta');
-    add_default($nl, 'parm_kappa_nitrif');
-    add_default($nl, 'parm_nitrif_par_lim');
-    add_default($nl, 'parm_labile_ratio');
-    add_default($nl, 'parm_init_POC_bury_coeff');
-    add_default($nl, 'parm_init_POP_bury_coeff');
-    add_default($nl, 'parm_init_bSi_bury_coeff');
-    add_default($nl, 'parm_fe_scavenge_rate0');
-    add_default($nl, 'parm_f_prod_sp_CaCO3');
-    add_default($nl, 'parm_POC_diss');
-    add_default($nl, 'parm_SiO2_diss');
-    add_default($nl, 'parm_CaCO3_diss');
-    add_default($nl, 'fe_max_scale2');
-
-    add_default($nl, 'parm_scalelen_z');
-    add_default($nl, 'parm_scalelen_vals');
-
-    add_default($nl, 'zooplankton(1)%sname');
-    add_default($nl, 'zooplankton(1)%z_mort_0');
-    add_default($nl,'zooplankton(1)%z_mort2_0');
-    add_default($nl,'zooplankton(1)%loss_thres');
-
-    add_default($nl, 'autotrophs(1)%sname');
-    add_default($nl, 'autotrophs(1)%kFe');
-    add_default($nl, 'autotrophs(1)%kPO4');
-    add_default($nl, 'autotrophs(1)%kDOP');
-    add_default($nl, 'autotrophs(1)%kNO3');
-    add_default($nl, 'autotrophs(1)%kNH4');
-    add_default($nl, 'autotrophs(1)%kSiO3');
-
-    add_default($nl, 'autotrophs(2)%sname');
-    add_default($nl, 'autotrophs(2)%kFe');
-    add_default($nl, 'autotrophs(2)%kPO4');
-    add_default($nl, 'autotrophs(2)%kDOP');
-    add_default($nl, 'autotrophs(2)%kNO3');
-    add_default($nl, 'autotrophs(2)%kNH4');
-    add_default($nl, 'autotrophs(2)%kSiO3');
-
-    add_default($nl, 'autotrophs(3)%sname');
-    add_default($nl, 'autotrophs(3)%kFe');
-    add_default($nl, 'autotrophs(3)%kPO4');
-    add_default($nl, 'autotrophs(3)%kDOP');
-    add_default($nl, 'autotrophs(3)%kNO3');
-    add_default($nl, 'autotrophs(3)%kNH4');
-    add_default($nl, 'autotrophs(3)%kSiO3');
-
-    add_default($nl, 'grazing(1,1)%sname');
-    add_default($nl,'grazing(1,1)%auto_ind');
-    add_default($nl,'grazing(1,1)%auto_ind_cnt');
-    add_default($nl,'grazing(1,1)%zoo_ind');
-    add_default($nl,'grazing(1,1)%zoo_ind_cnt');
-    add_default($nl,'grazing(1,1)%z_umax_0');
-    add_default($nl,'grazing(1,1)%z_grz');
-    add_default($nl,'grazing(1,1)%graze_zoo');
-    add_default($nl,'grazing(1,1)%graze_poc');
-    add_default($nl,'grazing(1,1)%graze_doc');
-    add_default($nl,'grazing(1,1)%f_zoo_detr');
-    add_default($nl, 'grazing(1,1)%grazing_function');
-
-    add_default($nl, 'grazing(2,1)%sname');
-    add_default($nl,'grazing(2,1)%auto_ind');
-    add_default($nl,'grazing(2,1)%auto_ind_cnt');
-    add_default($nl,'grazing(2,1)%zoo_ind');
-    add_default($nl,'grazing(2,1)%zoo_ind_cnt');
-    add_default($nl,'grazing(2,1)%z_umax_0');
-    add_default($nl,'grazing(2,1)%z_grz');
-    add_default($nl,'grazing(2,1)%graze_zoo');
-    add_default($nl,'grazing(2,1)%graze_poc');
-    add_default($nl,'grazing(2,1)%graze_doc');
-    add_default($nl,'grazing(2,1)%f_zoo_detr');
-    add_default($nl, 'grazing(2,1)%grazing_function');
-
-    add_default($nl, 'grazing(3,1)%sname');
-    add_default($nl,'grazing(3,1)%auto_ind');
-    add_default($nl,'grazing(3,1)%auto_ind_cnt');
-    add_default($nl,'grazing(3,1)%zoo_ind');
-    add_default($nl,'grazing(3,1)%zoo_ind_cnt');
-    add_default($nl,'grazing(3,1)%z_umax_0');
-    add_default($nl,'grazing(3,1)%z_grz');
-    add_default($nl,'grazing(3,1)%graze_zoo');
-    add_default($nl,'grazing(3,1)%graze_poc');
-    add_default($nl,'grazing(3,1)%graze_doc');
-    add_default($nl,'grazing(3,1)%f_zoo_detr');
-    add_default($nl, 'grazing(3,1)%grazing_function');
+  }
 }
 
 ##########################################
@@ -1708,8 +1736,6 @@ if ($ecosys_on eq "TRUE") {
 my $moby_on = $cfg->get("use_moby");
 if ($moby_on eq "TRUE") {
     
-    my $temp;
-
     add_default($nl, 'moby_log_filename', 'val'=>"${RUNDIR}/moby${inst_string}.log.$LID"); 
     add_default($nl, "lmoby");
     add_default($nl, "ldarwin");
@@ -2150,16 +2176,14 @@ if ($sf6_on eq "TRUE" ) {
     push @groups, qw(sf6_nml);
 }    
 if ($ecosys_on eq "TRUE") {
-    push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml ecosys_restore_nml);
+    push @groups, qw(ecosys_driver_nml marbl_config_nml marbl_parms_nml);
+    push @groups, qw(marbl_forcing_tmp_nml marbl_tracer_init_tmp_nml);
 }    
 if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );
 }
 if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
-}
-if ($ciso_on eq "TRUE" ) {
-    push @groups, qw(ecosys_ciso_nml);
 }
 if ($IRF_on eq "TRUE" ) {
     push @groups, qw(irf_nml);
