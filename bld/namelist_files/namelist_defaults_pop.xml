@@ -1271,11 +1271,16 @@
 <nhy_flux_monthly_input%filename ocn_grid="gx3v7" lapply_nhx_surface_emis=".true.">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c160716.nc</nhy_flux_monthly_input%filename> 
 <nhy_flux_monthly_input%filename ocn_grid="gx1v6" lapply_nhx_surface_emis=".true.">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nhy_flux_monthly_input%filename>  
 
-<ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx3v7" lapply_nhx_surface_emis=".false.">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6" lapply_nhx_surface_emis=".false.">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
+
+<ndep_shr_stream_file ocn_grid="gx3v7" lapply_nhx_surface_emis=".true.">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx3v7_c160717.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6" lapply_nhx_surface_emis=".true.">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx1v6_c160717.nc</ndep_shr_stream_file> 
+
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp4.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp45_gx3v7_c100816.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp8.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp85_gx3v7_c100816.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
+
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp8.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp85_gx3v7_c100816.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
 
 <caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>

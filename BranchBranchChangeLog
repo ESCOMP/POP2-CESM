@@ -2,6 +2,28 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    20 Jul 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n14_marbl_dev_n12_cesm_pop_2_1_20160513
+Tag Summary: add datasets to namelist_defaults_pop.xml, incorporate suggestions from code review
+
+add lapply_nhx_surface_emis datasets for OCN_TRANSIENT eq "1850-2000"
+make lapply_nhx_surface_emis a local perl variable before passing to add_default
+
+Testing:
+MARBL commit 89e48440802f373015b66a531ee8fad2444bef82
+
+aux_pop_MARBL (yellowstone/intel yellowstone/gnu): (baseline comparison to n11 tag)
+   all tests pass
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    17 Jul 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n13_marbl_dev_n12_cesm_pop_2_1_20160513
 Tag Summary: add support for NHx emissions from BGC
