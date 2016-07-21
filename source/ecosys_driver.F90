@@ -27,8 +27,48 @@ module ecosys_driver
 
   use marbl_sizes               , only : num_surface_forcing_fields 
 
-  use marbl_parms               , only : f_qsw_par
-  use marbl_parms               , only : parm_Fe_bioavail
+  use marbl_parms               , only : init_ecosys_option
+  use marbl_parms               , only : init_ecosys_init_file
+  use marbl_parms               , only : init_ecosys_init_file_fmt
+  use marbl_parms               , only : ciso_init_ecosys_option
+  use marbl_parms               , only : ciso_init_ecosys_init_file
+  use marbl_parms               , only : ciso_init_ecosys_init_file_fmt
+
+  use marbl_config_mod          , only : gas_flux_forcing_iopt
+  use marbl_config_mod          , only : gas_flux_forcing_iopt_drv
+  use marbl_config_mod          , only : gas_flux_forcing_iopt_file
+  use marbl_config_mod          , only : gas_flux_forcing_file
+  use marbl_config_mod          , only : fesedflux_input
+  use marbl_config_mod          , only : lflux_gas_co2
+  use marbl_config_mod          , only : liron_patch
+  use marbl_config_mod          , only : atm_co2_iopt
+  use marbl_config_mod          , only : atm_co2_iopt_drv_prog
+  use marbl_config_mod          , only : atm_co2_iopt_drv_diag
+  use marbl_config_mod          , only : atm_co2_iopt_const
+  use marbl_config_mod          , only : atm_co2_const
+  use marbl_config_mod          , only : atm_alt_co2_const
+  use marbl_config_mod          , only : atm_alt_co2_iopt
+  use marbl_config_mod          , only : iron_patch_flux_filename
+  use marbl_config_mod          , only : iron_patch_month
+  use marbl_config_mod          , only : ndep_data_type
+  use marbl_config_mod          , only : ciso_atm_model_year
+  use marbl_config_mod          , only : ciso_atm_data_year
+  use marbl_config_mod          , only : ciso_atm_d13c_opt
+  use marbl_config_mod          , only : ciso_atm_d14c_opt
+  use marbl_config_mod          , only : ciso_atm_d13c_const
+  use marbl_config_mod          , only : ciso_atm_d14c_const
+  use marbl_config_mod          , only : ciso_atm_d13c_data_nbval
+  use marbl_config_mod          , only : ciso_atm_d14c_data_nbval
+  use marbl_config_mod          , only : ciso_atm_d13c_data
+  use marbl_config_mod          , only : ciso_atm_d14c_data
+  use marbl_config_mod          , only : ciso_atm_d13c_data_yr
+  use marbl_config_mod          , only : ciso_atm_d14c_data_yr
+  use marbl_config_mod          , only : ciso_atm_d13c_const
+  use marbl_config_mod          , only : ciso_atm_d14c_const
+  use marbl_config_mod          , only : ciso_atm_d13c_opt
+  use marbl_config_mod          , only : ciso_atm_d14c_opt
+  use marbl_config_mod          , only : ciso_atm_d13c_filename
+  use marbl_config_mod          , only : ciso_atm_d14c_filename
 
   use marbl_logging             , only : marbl_log_type
   use marbl_logging             , only : marbl_status_log_entry_type
@@ -36,50 +76,6 @@ module ecosys_driver
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface_types     , only : marbl_forcing_fields_type
   use marbl_interface_types     , only : marbl_forcing_monthly_every_ts_type
-
-  use marbl_share_mod           , only : init_ecosys_option
-  use marbl_share_mod           , only : init_ecosys_init_file
-  use marbl_share_mod           , only : init_ecosys_init_file_fmt
-  use marbl_share_mod           , only : gas_flux_forcing_iopt
-  use marbl_share_mod           , only : gas_flux_forcing_iopt_drv
-  use marbl_share_mod           , only : gas_flux_forcing_iopt_file
-  use marbl_share_mod           , only : gas_flux_forcing_file
-  use marbl_share_mod           , only : fesedflux_input
-  use marbl_share_mod           , only : lflux_gas_co2
-  use marbl_share_mod           , only : liron_patch  
-  use marbl_share_mod           , only : atm_co2_iopt
-  use marbl_share_mod           , only : atm_co2_iopt_drv_prog
-  use marbl_share_mod           , only : atm_co2_iopt_drv_diag
-  use marbl_share_mod           , only : atm_co2_iopt_const
-  use marbl_share_mod           , only : atm_co2_const
-  use marbl_share_mod           , only : atm_alt_co2_const
-  use marbl_share_mod           , only : atm_alt_co2_iopt
-  use marbl_share_mod           , only : iron_patch_flux_filename  
-  use marbl_share_mod           , only : iron_patch_month  
-  use marbl_share_mod           , only : ndep_data_type 
-
-  use marbl_share_mod           , only : ciso_lecovars_full_depth_tavg
-  use marbl_share_mod           , only : ciso_init_ecosys_option
-  use marbl_share_mod           , only : ciso_init_ecosys_init_file
-  use marbl_share_mod           , only : ciso_init_ecosys_init_file_fmt
-  use marbl_share_mod           , only : ciso_atm_model_year                                                            
-  use marbl_share_mod           , only : ciso_atm_data_year                                                             
-  use marbl_share_mod           , only : ciso_atm_d13c_opt          
-  use marbl_share_mod           , only : ciso_atm_d14c_opt          
-  use marbl_share_mod           , only : ciso_atm_d13c_const
-  use marbl_share_mod           , only : ciso_atm_d14c_const
-  use marbl_share_mod           , only : ciso_atm_d13c_data_nbval                                                       
-  use marbl_share_mod           , only : ciso_atm_d14c_data_nbval                                                       
-  use marbl_share_mod           , only : ciso_atm_d13c_data                                                             
-  use marbl_share_mod           , only : ciso_atm_d14c_data                                                             
-  use marbl_share_mod           , only : ciso_atm_d13c_data_yr                                                          
-  use marbl_share_mod           , only : ciso_atm_d14c_data_yr                                                          
-  use marbl_share_mod           , only : ciso_atm_d13c_const                                                            
-  use marbl_share_mod           , only : ciso_atm_d14c_const                                                            
-  use marbl_share_mod           , only : ciso_atm_d13c_opt                                                              
-  use marbl_share_mod           , only : ciso_atm_d14c_opt                                                              
-  use marbl_share_mod           , only : ciso_atm_d13c_filename                                                         
-  use marbl_share_mod           , only : ciso_atm_d14c_filename                                                         
 
   use marbl_namelist_mod        , only : marbl_nl_in_size
   use marbl_namelist_mod        , only : marbl_nl_cnt
@@ -147,7 +143,8 @@ module ecosys_driver
   ! public variables
   !-----------------------------------------------------------------------
 
-  integer(int_kind), public :: marbl_tracer_cnt = MARBL_NT ! # of tracers in MARBL
+  ! # of tracers expected from MARBL
+  integer(int_kind), parameter, public :: marbl_tracer_cnt = MARBL_NT
 
   !-----------------------------------------------------------------------
   ! timers
@@ -275,6 +272,7 @@ contains
     use named_field_mod       , only : named_field_register
     use named_field_mod       , only : named_field_set
     use running_mean_mod      , only : running_mean_get_var
+    use marbl_logging         , only : marbl_log_type
 
     implicit none
 
@@ -289,6 +287,12 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    ! FIXME (MNL): we should treat namelists in the driver in a POP-ish manner
+    !              rather than a MARBL-ish manner, but the MARBL process is
+    !              less error-prone (reading namelist on each task rather
+    !              than relying on broadcasts to ensure every task has every
+    !              namelist variable set correctly).
+    type(marbl_log_type)                :: marbl_status_log
     character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)                 :: log_message
     integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
@@ -306,9 +310,9 @@ contains
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)                :: init_file_fmt                      ! file format for option 'file'
     logical   (log_kind)                :: lmarginal_seas                     ! is ecosystem active in marginal seas?
+    integer(int_kind)                   :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
     integer (int_kind)                  :: glo_avg_field_cnt
     real (r8)                           :: rmean_val
-    !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -378,7 +382,13 @@ contains
 
     ! now every process reads the namelist from the buffer
     ioerror_msg=''
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml')
+    call marbl_status_log%construct()
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml',marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      call marbl_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(marbl_status_log, 1)
+    end if
+
     read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
        write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
@@ -423,29 +433,78 @@ contains
     endif
 
     !--------------------------------------------------------------------
+    !  MARBL setup is 3 steps:
+    !  1) Configure (set variables that affect tracer count / other parms)
+    !  2) Initialize ("lock" config vars so the aren't changed during init
+    !     or in the time loop; write config vars to log; set parameters)
+    !  3) Complete setup ("lock" parmameters so they aren't changed during
+    !     time loop; write parameters to log)
+    !--------------------------------------------------------------------
+
+    !--------------------------------------------------------------------
+    !  Configure marbl 
+    !--------------------------------------------------------------------
+
+    do iblock=1, nblocks_clinic
+
+       call marbl_instances(iblock)%config(lgcm_has_global_ops = .true.,      &
+                                           gcm_nl_buffer = nl_buffer)
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%config()"
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+
+    end do
+
+    !--------------------------------------------------------------------
     !  Initialize marbl 
     !--------------------------------------------------------------------
 
     do iblock=1, nblocks_clinic
 
-       call marbl_instances(iblock)%init(                                        &
-            gcm_nl_buffer = nl_buffer,                                           &
-            gcm_ciso_on = ciso_on,                                               &
-            gcm_tracer_cnt = marbl_tracer_cnt,                                   &
-            gcm_num_levels = km,                                                 & 
-            gcm_num_PAR_subcols = mcog_nbins,                                    &
-            gcm_num_elements_interior_forcing = 1,                               & 
-            gcm_num_elements_surface_forcing = num_elements,                     &
-            gcm_dz = dz,                                                         &
-            gcm_zw = zw,                                                         &
-            gcm_zt = zt)
-
+       call marbl_instances(iblock)%init(                                     &
+            gcm_num_levels = km,                                              & 
+            gcm_num_PAR_subcols = mcog_nbins,                                 &
+            gcm_num_elements_interior_forcing = 1,                            & 
+            gcm_num_elements_surface_forcing = num_elements,                  &
+            gcm_dz = dz,                                                      &
+            gcm_zw = zw,                                                      &
+            gcm_zt = zt,                                                      &
+            gcm_nl_buffer = nl_buffer,                                        &
+            marbl_tracer_cnt = marbl_actual_tracer_cnt)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
+
+       ! Make sure MARBL tracer count lines up with what POP expects
+       if (marbl_actual_tracer_cnt.ne.marbl_tracer_cnt) then
+         write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
+                    marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
+                    marbl_tracer_cnt
+         call exit_POP(sigAbort, log_message)
+       end if
+
+    end do
+
+    !--------------------------------------------------------------------
+    !  Complete marbl setup
+    !--------------------------------------------------------------------
+
+    do iblock=1, nblocks_clinic
+
+       call marbl_instances(iblock)%complete_config_and_init()
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%complete_init_and_config()"
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
+
     end do
 
     ! Set up saved state data type
@@ -2732,7 +2791,12 @@ contains
     tmp => log_to_print%FullLog
     do while (associated(tmp))
       if (tmp%lall_tasks.or.iam_master) then
-        write(stdout, *) trim(tmp%LogMessage)
+        if (tmp%lall_tasks.and.(.not.iam_master)) then
+          write(stdout, "(A,I0,A,I0,2A)") "(Task ", my_task, ', block ', iblock, &
+                '): ', trim(tmp%LogMessage)
+        else
+          write(stdout, "(A)") trim(tmp%LogMessage)
+        end if
       end if
       tmp => tmp%next
     end do

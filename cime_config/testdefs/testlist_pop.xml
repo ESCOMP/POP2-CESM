@@ -121,6 +121,7 @@
       </test>
       <test name="SMS">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_ladjust_bury_coeff">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_apply_nhx_surface_emis">hobart</machine>
       </test>
       <test name="SMS_D">

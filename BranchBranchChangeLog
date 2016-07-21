@@ -2,6 +2,35 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    21 Jun 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n15_marbl_dev_n13_cesm_pop_2_1_20160513
+Tag Summary: merge marbl_dev_n13 to this branch
+
+also reintroduce lecosys_debug to build-namelist and namelist_defaults_pop.xml
+
+Testing:
+MARBL commit f9c5ac4dfbf95b0606644f40fdde04cd0aba468b
+
+aux_pop_MARBL (yellowstone/intel yellowstone/gnu): (baseline comparison to n14 tag)
+   all tests, except nl baseline compares, pass
+      nl baseline compares fail because many nl vars have moved
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+ M      drivers/cpl
+M       source/ecosys_driver.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    20 Jul 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n14_marbl_dev_n12_cesm_pop_2_1_20160513
 Tag Summary: add datasets to namelist_defaults_pop.xml, incorporate suggestions from code review
