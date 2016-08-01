@@ -1386,10 +1386,18 @@ if ($abio_on eq "TRUE") {
  }
 
 ##########################################
-# namelist group: marbl_config_nml       #
+# namelist group: ecosys derived vars    #
 ##########################################
 
 my $ecosys_on = $cfg->get("use_ecosys");
+if ($ecosys_on eq "TRUE") {
+    add_default($nl, 'lecosys_debug');
+}
+
+##########################################
+# namelist group: marbl_config_nml       #
+##########################################
+
 my $ciso_on = $cfg->get("use_ciso");
 
 if ($ecosys_on eq "TRUE") {
@@ -1407,6 +1415,7 @@ EOF
   add_default($nl, 'lecovars_full_depth_tavg');
   add_default($nl, 'lflux_gas_o2');
   add_default($nl, 'lflux_gas_co2');
+  add_default($nl, 'lapply_nhx_surface_emis');
 
   # FIXME : replace following with ladjust_bury_coeff=.true. branch
   # when "restfile" is implemented for scalar saved state
@@ -1473,13 +1482,15 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'alk_riv_flux_input%filename');
   add_default($nl, 'doc_riv_flux_input%filename');
 
+  my $lapply_nhx_surface_emis = $nl->get_value('lapply_nhx_surface_emis');
+
   add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
   if ($OCN_TRANSIENT eq "unset") {
-    add_default($nl, 'nox_flux_monthly_input%filename');
+    add_default($nl, 'nox_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
     add_default($nl, 'nox_flux_monthly_input%file_fmt');
     add_default($nl, 'nox_flux_monthly_input%file_varname');
-    add_default($nl, 'nhy_flux_monthly_input%filename');
     add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+    add_default($nl, 'nhy_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
     add_default($nl, 'nhy_flux_monthly_input%file_fmt');
     add_default($nl, 'nhy_flux_monthly_input%file_varname');
     add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
@@ -1488,7 +1499,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'ndep_shr_stream_year_last');
     add_default($nl, 'ndep_shr_stream_year_align');
     add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    add_default($nl, 'ndep_shr_stream_file');
+    add_default($nl, 'ndep_shr_stream_file', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
   } elsif (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
     add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");

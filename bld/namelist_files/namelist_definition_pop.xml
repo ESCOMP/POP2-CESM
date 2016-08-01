@@ -5183,6 +5183,18 @@ Default: 1
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys derived vars      - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="lecosys_debug"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: marbl_config_nml         - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -5242,6 +5254,14 @@ type="logical"
 category="ecosys"
 group="marbl_config_nml" >
 Default: .true.
+</entry>
+
+<entry 
+id="lapply_nhx_surface_emis"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .false.
 </entry>
 
 <entry
@@ -6835,14 +6855,6 @@ type="real"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 1944.0
-</entry>
-
-<entry
-id="lecosys_debug"
-type="logical"
-category="ecosys"
-group="derived">
-When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
 
 
