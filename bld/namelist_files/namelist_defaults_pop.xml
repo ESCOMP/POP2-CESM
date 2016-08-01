@@ -999,6 +999,12 @@
 <abio_dic_dic14_data_year>1</abio_dic_dic14_data_year>
 
 <!---------------------------->
+<!-- ecosys derived vars    -->
+<!---------------------------->
+
+<lecosys_debug>.false.</lecosys_debug>
+
+<!---------------------------->
 <!--     marbl_config_nml   -->
 <!---------------------------->
 
@@ -1012,6 +1018,7 @@
 
 <lflux_gas_o2 >.true.</lflux_gas_o2>
 <lflux_gas_co2>.true.</lflux_gas_co2>
+<lapply_nhx_surface_emis>.false.</lapply_nhx_surface_emis>
 
 <ladjust_bury_coeff>.false.</ladjust_bury_coeff>
 <bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
@@ -1122,14 +1129,18 @@
 <ndep_data_type ocn_transient="rcp4.5">shr_stream</ndep_data_type>              
 <ndep_data_type ocn_transient="rcp8.5">shr_stream</ndep_data_type>              
 
-<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nox_flux_monthly_input%filename> 
-<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nox_flux_monthly_input%filename>  
+<nox_flux_monthly_input%filename ocn_grid="gx3v7" lapply_nhx_surface_emis=".false.">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nox_flux_monthly_input%filename> 
+<nox_flux_monthly_input%filename ocn_grid="gx1v6" lapply_nhx_surface_emis=".false.">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nox_flux_monthly_input%filename>  
+<nox_flux_monthly_input%filename ocn_grid="gx3v7" lapply_nhx_surface_emis=".true.">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c160716.nc</nox_flux_monthly_input%filename> 
+<nox_flux_monthly_input%filename ocn_grid="gx1v6" lapply_nhx_surface_emis=".true.">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nox_flux_monthly_input%filename>  
 <nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
 <nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
 <nox_flux_monthly_input%scale_factor>7.1429e+06</nox_flux_monthly_input%scale_factor>
 
-<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nhy_flux_monthly_input%filename> 
-<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nhy_flux_monthly_input%filename>  
+<nhy_flux_monthly_input%filename ocn_grid="gx3v7" lapply_nhx_surface_emis=".false.">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nhy_flux_monthly_input%filename> 
+<nhy_flux_monthly_input%filename ocn_grid="gx1v6" lapply_nhx_surface_emis=".false.">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nhy_flux_monthly_input%filename>  
+<nhy_flux_monthly_input%filename ocn_grid="gx3v7" lapply_nhx_surface_emis=".true.">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c160716.nc</nhy_flux_monthly_input%filename> 
+<nhy_flux_monthly_input%filename ocn_grid="gx1v6" lapply_nhx_surface_emis=".true.">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nhy_flux_monthly_input%filename>  
 <nhy_flux_monthly_input%file_fmt>nc</nhy_flux_monthly_input%file_fmt>    
 <nhy_flux_monthly_input%file_varname>NHx_deposition</nhy_flux_monthly_input%file_varname>
 <nhy_flux_monthly_input%scale_factor>7.1429e+06</nhy_flux_monthly_input%scale_factor>
@@ -1146,10 +1157,12 @@
 <ndep_shr_stream_year_align ocn_transient="rcp4.5">2004</ndep_shr_stream_year_align>  
 <ndep_shr_stream_year_align ocn_transient="rcp8.5">2004</ndep_shr_stream_year_align>  
 
-<ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx3v7" lapply_nhx_surface_emis=".false.">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx3v7" lapply_nhx_surface_emis=".true.">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx3v7_c160717.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp4.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp45_gx3v7_c100816.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp8.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp85_gx3v7_c100816.nc</ndep_shr_stream_file> 
-<ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6" lapply_nhx_surface_emis=".false.">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
+<ndep_shr_stream_file ocn_grid="gx1v6" lapply_nhx_surface_emis=".true.">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx1v6_c160717.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
 
