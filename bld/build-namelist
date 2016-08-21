@@ -1450,9 +1450,9 @@ EOF
   }
 }
 
-##########################################
-# namelist group: marbl_forcing_tmp_nml  #
-##########################################
+###################################################
+# namelist group: ecosys_driver_forcing_data_nml  #
+###################################################
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'dust_flux_source');
@@ -1553,9 +1553,9 @@ if ($ecosys_on eq "TRUE") {
   }
 }
 
-#############################################
-# namelist group: marbl_tracer_init_tmp_nml #
-#############################################
+#################################################
+# namelist group: ecosys_driver_tracer_init_nml #
+#################################################
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
@@ -2187,8 +2187,11 @@ if ($sf6_on eq "TRUE" ) {
     push @groups, qw(sf6_nml);
 }    
 if ($ecosys_on eq "TRUE") {
-    push @groups, qw(ecosys_driver_nml marbl_config_nml marbl_parms_nml);
-    push @groups, qw(marbl_forcing_tmp_nml marbl_tracer_init_tmp_nml);
+    push @groups, qw(ecosys_driver_nml
+                     ecosys_driver_forcing_data_nml
+                     ecosys_driver_tracer_init_nml
+                     marbl_config_nml
+                     marbl_parms_nml);
 }    
 if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );

@@ -1040,9 +1040,9 @@
 <grazing_config(3,1)%zoo_ind_cnt >0            </grazing_config(3,1)%zoo_ind_cnt>
 
 
-<!---------------------------->
-<!-- marbl_forcing_tmp_nml  -->
-<!---------------------------->
+<!------------------------------------>
+<!-- ecosys_driver_forcing_data_nml -->
+<!------------------------------------>
 
 <dust_flux_source>monthly-calendar</dust_flux_source>    
 
@@ -1188,9 +1188,9 @@
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
 
-<!------------------------------->
-<!-- marbl_tracer_init_tmp_nml -->
-<!------------------------------->
+<!------------------------------------>
+<!-- ecosys_driver_tracer_init_nml  -->
+<!------------------------------------>
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</init_ecosys_init_file>
@@ -1202,10 +1202,10 @@
 
 <ciso_init_ecosys_init_file_fmt>nc</ciso_init_ecosys_init_file_fmt>
 
-<tracer_init_ext(1)%mod_varname&marbl_tracer_init_tmp_nml>ALK</tracer_init_ext(1)%mod_varname&marbl_tracer_init_tmp_nml>
-<tracer_init_ext(2)%mod_varname&marbl_tracer_init_tmp_nml>DIC</tracer_init_ext(2)%mod_varname&marbl_tracer_init_tmp_nml>
-<tracer_init_ext(3)%mod_varname&marbl_tracer_init_tmp_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&marbl_tracer_init_tmp_nml>
-<tracer_init_ext(4)%mod_varname&marbl_tracer_init_tmp_nml>O2</tracer_init_ext(4)%mod_varname&marbl_tracer_init_tmp_nml>
+<tracer_init_ext(1)%mod_varname&ecosys_driver_tracer_init_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_driver_tracer_init_nml>
+<tracer_init_ext(2)%mod_varname&ecosys_driver_tracer_init_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_driver_tracer_init_nml>
+<tracer_init_ext(3)%mod_varname&ecosys_driver_tracer_init_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_driver_tracer_init_nml>
+<tracer_init_ext(4)%mod_varname&ecosys_driver_tracer_init_nml>O2</tracer_init_ext(4)%mod_varname&ecosys_driver_tracer_init_nml>
 
 <ciso_tracer_init_ext(1)%mod_varname>DI13C</ciso_tracer_init_ext(1)%mod_varname>
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>

@@ -26,56 +26,15 @@ module ecosys_driver
   use communicate               , only : my_task, master_task
 
   use marbl_sizes               , only : num_surface_forcing_fields 
+  use marbl_sizes               , only : ecosys_base_tracer_cnt
+  use marbl_sizes               , only : ciso_tracer_cnt
 
-  use marbl_parms               , only : init_ecosys_option
-  use marbl_parms               , only : init_ecosys_init_file
-  use marbl_parms               , only : init_ecosys_init_file_fmt
-  use marbl_parms               , only : ciso_init_ecosys_option
-  use marbl_parms               , only : ciso_init_ecosys_init_file
-  use marbl_parms               , only : ciso_init_ecosys_init_file_fmt
-
-  use marbl_config_mod          , only : gas_flux_forcing_iopt
-  use marbl_config_mod          , only : gas_flux_forcing_iopt_drv
-  use marbl_config_mod          , only : gas_flux_forcing_iopt_file
-  use marbl_config_mod          , only : gas_flux_forcing_file
-  use marbl_config_mod          , only : fesedflux_input
   use marbl_config_mod          , only : lflux_gas_co2
-  use marbl_config_mod          , only : liron_patch
-  use marbl_config_mod          , only : atm_co2_iopt
-  use marbl_config_mod          , only : atm_co2_iopt_drv_prog
-  use marbl_config_mod          , only : atm_co2_iopt_drv_diag
-  use marbl_config_mod          , only : atm_co2_iopt_const
-  use marbl_config_mod          , only : atm_co2_const
-  use marbl_config_mod          , only : atm_alt_co2_const
-  use marbl_config_mod          , only : atm_alt_co2_iopt
-  use marbl_config_mod          , only : iron_patch_flux_filename
-  use marbl_config_mod          , only : iron_patch_month
-  use marbl_config_mod          , only : ndep_data_type
-  use marbl_config_mod          , only : ciso_atm_model_year
-  use marbl_config_mod          , only : ciso_atm_data_year
-  use marbl_config_mod          , only : ciso_atm_d13c_opt
-  use marbl_config_mod          , only : ciso_atm_d14c_opt
-  use marbl_config_mod          , only : ciso_atm_d13c_const
-  use marbl_config_mod          , only : ciso_atm_d14c_const
-  use marbl_config_mod          , only : ciso_atm_d13c_data_nbval
-  use marbl_config_mod          , only : ciso_atm_d14c_data_nbval
-  use marbl_config_mod          , only : ciso_atm_d13c_data
-  use marbl_config_mod          , only : ciso_atm_d14c_data
-  use marbl_config_mod          , only : ciso_atm_d13c_data_yr
-  use marbl_config_mod          , only : ciso_atm_d14c_data_yr
-  use marbl_config_mod          , only : ciso_atm_d13c_const
-  use marbl_config_mod          , only : ciso_atm_d14c_const
-  use marbl_config_mod          , only : ciso_atm_d13c_opt
-  use marbl_config_mod          , only : ciso_atm_d14c_opt
-  use marbl_config_mod          , only : ciso_atm_d13c_filename
-  use marbl_config_mod          , only : ciso_atm_d14c_filename
 
   use marbl_logging             , only : marbl_log_type
   use marbl_logging             , only : marbl_status_log_entry_type
 
   use marbl_interface           , only : marbl_interface_class
-  use marbl_interface_types     , only : marbl_forcing_fields_type
-  use marbl_interface_types     , only : marbl_forcing_monthly_every_ts_type
 
   use marbl_namelist_mod        , only : marbl_nl_in_size
   use marbl_namelist_mod        , only : marbl_nl_cnt
@@ -88,6 +47,7 @@ module ecosys_driver
   use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
 
   use passive_tracer_tools      , only : ind_name_pair
+  use passive_tracer_tools      , only : tracer_read
   use strdata_interface_mod     , only : strdata_input_type
 
   use timers                    , only : timer_start
@@ -111,8 +71,8 @@ module ecosys_driver
 
   private :: ecosys_driver_init_rmean_var
   private :: ecosys_driver_init_tracers_and_saved_state
-  private :: ecosys_driver_read_restore_data
-  private :: ecosys_driver_set_input_forcing_data
+!  private :: ecosys_driver_read_restore_data
+!  private :: ecosys_driver_set_input_forcing_data
   private :: ecosys_driver_update_scalar_rmeans
 
   ! this struct is necessary because there is some global state
@@ -138,6 +98,29 @@ module ecosys_driver
   end type ecosys_restoring_climatology_type
   type(ecosys_restoring_climatology_type), allocatable, dimension(:) ::       &
                                                 ecosys_tracer_restore_data_3D
+
+  !*****************************************************************************
+
+  type, public :: forcing_monthly_every_ts_type
+     type      (tracer_read) :: input
+     logical   (log_kind)    :: has_data
+     character (char_len)    :: interp_type       ! = 'linear'
+     character (char_len)    :: data_type         ! = 'monthly-calendar'
+     character (char_len)    :: interp_freq       ! = 'every-timestep'
+     character (char_len)    :: filename          ! = 'not-used-for-monthly'
+     character (char_len)    :: data_label        ! = 'not-used-for-monthly'
+     real      (r8), pointer :: data(:,:,:,:,:)
+     real      (r8)          :: data_time(12)     ! times where DATA is given
+     real      (r8)          :: data_renorm(20)   ! not used for monthly
+     real      (r8)          :: data_inc          ! not used for monthly data
+     real      (r8)          :: data_next         ! time used for the next value of forcing data needed
+     real      (r8)          :: data_update       ! time when new forcing value needs to be added 
+     real      (r8)          :: interp_inc        ! not used for 'every-timestep' interp
+     real      (r8)          :: interp_next       ! not used for 'every-timestep' interp
+     real      (r8)          :: interp_last       ! not used for 'every-timestep' interp
+     integer   (int_kind)    :: data_time_min_loc ! index of third dimension of data_time
+                                                  ! containing minimum forcing time
+  end type forcing_monthly_every_ts_type
 
   !-----------------------------------------------------------------------
   ! public variables
@@ -211,6 +194,73 @@ module ecosys_driver
   integer (int_kind), parameter :: shr_stream_no_ind     = 1 ! index for NO forcing
   integer (int_kind), parameter :: shr_stream_nh_ind     = 2 ! index for NH forcing
   type    (strdata_input_type)  :: strdata_inputlist(shr_stream_var_cnt)  ! FIXME - need to make this more flexible
+
+  !---------------------------------------------------------------------
+  !  Variables read in via &ecosys_driver_forcing_data_nml
+  !---------------------------------------------------------------------
+
+  character(char_len),  target :: dust_flux_source             ! option for atmospheric dust deposition
+  type(tracer_read),    target :: dust_flux_input             ! namelist input for dust_flux
+  character(char_len),  target :: iron_flux_source             ! option for atmospheric iron deposition
+  type(tracer_read),    target :: iron_flux_input             ! namelist input for iron_flux
+  type(tracer_read),    target :: fesedflux_input                    ! namelist input for iron_flux
+  character(char_len),  target :: ndep_data_type               ! type of ndep forcing
+  type(tracer_read),    target :: nox_flux_monthly_input      ! namelist input for nox_flux_monthly
+  type(tracer_read),    target :: nhy_flux_monthly_input      ! namelist input for nhy_flux_monthly
+  integer(int_kind),    target :: ndep_shr_stream_year_first   ! first year in stream to use
+  integer(int_kind),    target :: ndep_shr_stream_year_last    ! last year in stream to use
+  integer(int_kind),    target :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
+  character(char_len),  target :: ndep_shr_stream_file         ! file containing domain and input data
+  real(r8),             target :: ndep_shr_stream_scale_factor ! unit conversion factor
+  type(tracer_read),    target :: din_riv_flux_input          ! namelist input for din_riv_flux
+  type(tracer_read),    target :: dip_riv_flux_input          ! namelist input for dip_riv_flux
+  type(tracer_read),    target :: don_riv_flux_input          ! namelist input for don_riv_flux
+  type(tracer_read),    target :: dop_riv_flux_input          ! namelist input for dop_riv_flux
+  type(tracer_read),    target :: dsi_riv_flux_input          ! namelist input for dsi_riv_flux
+  type(tracer_read),    target :: dfe_riv_flux_input          ! namelist input for dfe_riv_flux
+  type(tracer_read),    target :: dic_riv_flux_input          ! namelist input for dic_riv_flux
+  type(tracer_read),    target :: alk_riv_flux_input          ! namelist input for alk_riv_flux
+  type(tracer_read),    target :: doc_riv_flux_input          ! namelist input for doc_riv_flux
+  character(char_len),  target :: gas_flux_forcing_opt        ! option for forcing gas fluxes
+  character(char_len),  target :: gas_flux_forcing_file        ! file containing gas flux forcing fields
+  type(tracer_read),    target :: gas_flux_fice               ! ice fraction for gas fluxes
+  type(tracer_read),    target :: gas_flux_ws                 ! wind speed for gas fluxes
+  type(tracer_read),    target :: gas_flux_ap                 ! atmospheric pressure for gas fluxes
+  character(char_len),  target :: atm_co2_opt                 ! option for atmospheric co2 concentration
+  real(r8),             target :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
+  character(char_len),  target :: atm_alt_co2_opt             ! option for atmospheric alternative CO2
+  real(r8),             target :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
+  logical(log_kind),    target :: liron_patch                  ! flag for iron patch fertilization
+  character(char_len),  target :: iron_patch_flux_filename     ! file containing name of iron patch file
+  integer(int_kind),    target :: iron_patch_month             ! integer month to add patch flux
+  integer(int_kind),    target :: ciso_atm_model_year            ! arbitrary model year
+  integer(int_kind),    target :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
+  integer(int_kind),    target :: ciso_atm_d13c_data_nbval       ! number of values in ciso_atm_d13c_filename
+  integer(int_kind),    target :: ciso_atm_d14c_data_nbval       ! number of values in ciso_atm_d14c_filename
+  real(r8), allocatable, target :: ciso_atm_d13c_data(:)          ! atmospheric D13C values in datafile
+  real(r8), allocatable, target :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric D13C values in datafile
+  real(r8), allocatable, target :: ciso_atm_d14c_data(:,:)        ! atmospheric D14C values in datafile (sh, eq, nh, in permil)
+  real(r8), allocatable, target :: ciso_atm_d14c_data_yr(:,:)     ! date of atmospheric D14C values in datafile (sh, eq, nh)
+  real(r8),             target :: ciso_atm_d13c_const            ! atmospheric D13C constant [permil]
+  real(r8),             target :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
+  character(char_len),  target :: ciso_atm_d13c_opt              ! option for CO2 and D13C varying or constant forcing
+  character(char_len),  target :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
+  character(char_len),  target :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
+  character(char_len),  target :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
+
+  !---------------------------------------------------------------------
+  !  Variables read in via &ecosys_driver_tracer_init_nml
+  !---------------------------------------------------------------------
+
+  character(char_len), target :: init_ecosys_option           ! namelist option for initialization of bgc
+  character(char_len), target :: init_ecosys_init_file        ! filename for option 'file'
+  character(char_len), target :: init_ecosys_init_file_fmt    ! file format for option 'file'
+  type(tracer_read),   target :: tracer_init_ext(ecosys_base_tracer_cnt) ! namelist variable for initializing tracers
+
+  character(char_len), target :: ciso_init_ecosys_option        ! option for initialization of bgc
+  character(char_len), target :: ciso_init_ecosys_init_file     ! filename for option 'file'
+  character(char_len), target :: ciso_init_ecosys_init_file_fmt ! file format for option 'file'
+  type(tracer_read),   target :: ciso_tracer_init_ext(ciso_tracer_cnt) ! namelist variable for initializing tracers
 
   ! Note - ind_name_table is needed as a module variable because of interface
   !        to ecosys_write_restart
@@ -314,6 +364,8 @@ contains
     integer (int_kind)                  :: glo_avg_field_cnt
     real (r8)                           :: rmean_val
 
+    type(tracer_read), allocatable      :: tracer_inputs(:)
+
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
     !  should be the same for all ecosystem-related modules
@@ -323,6 +375,29 @@ contains
          lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const,       &
          surf_avg_alk_const, surf_avg_dic_const, surf_avg_di13c_const,        &
          surf_avg_di14c_const
+
+    namelist /ecosys_driver_forcing_data_nml/                                 &
+         dust_flux_source, dust_flux_input, iron_flux_source,                 &
+         iron_flux_input, fesedflux_input, ndep_data_type,                    &
+         nox_flux_monthly_input, nhy_flux_monthly_input,                      &
+         ndep_shr_stream_year_first, ndep_shr_stream_year_last,               &
+         ndep_shr_stream_year_align, ndep_shr_stream_file,                    &
+         ndep_shr_stream_scale_factor, din_riv_flux_input,                    &
+         dip_riv_flux_input, don_riv_flux_input, dop_riv_flux_input,          &
+         dsi_riv_flux_input, dfe_riv_flux_input, dic_riv_flux_input,          &
+         alk_riv_flux_input, doc_riv_flux_input, gas_flux_forcing_opt,        &
+         gas_flux_forcing_file, gas_flux_fice, gas_flux_ws, gas_flux_ap,      &
+         atm_co2_opt, atm_co2_const, atm_alt_co2_opt, atm_alt_co2_const,      &
+         liron_patch, iron_patch_flux_filename, iron_patch_month,             &
+         ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
+         ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
+         ciso_atm_model_year, ciso_atm_data_year
+
+    namelist /ecosys_driver_tracer_init_nml/                                  &
+         init_ecosys_option, init_ecosys_init_file, tracer_init_ext,          &
+         init_ecosys_init_file_fmt, ciso_init_ecosys_option,                  &
+         ciso_init_ecosys_init_file, ciso_init_ecosys_init_file_fmt,          &
+         ciso_tracer_init_ext
 
     errorCode = POP_Success
     ciso_on   = ciso_active_flag
@@ -334,6 +409,73 @@ contains
     surf_avg_dic_const   = 1944.0_r8
     surf_avg_di13c_const = 1944.0_r8
     surf_avg_di14c_const = 1944.0_r8
+
+    !-----------------------------------------------------------------------
+    !  &marbl_forcing_tmp_nml
+    !-----------------------------------------------------------------------
+
+    gas_flux_forcing_opt  = 'drv'
+    gas_flux_forcing_file = 'unknown'
+    call set_defaults_tcr_rd(gas_flux_fice, file_varname='FICE')
+    call set_defaults_tcr_rd(gas_flux_ws, file_varname='XKW')
+    call set_defaults_tcr_rd(gas_flux_ap, file_varname='P')
+    dust_flux_source             = 'monthly-calendar'
+    call set_defaults_tcr_rd(dust_flux_input, file_varname='dust_flux')
+    iron_flux_source             = 'monthly-calendar'
+    call set_defaults_tcr_rd(iron_flux_input, file_varname='iron_flux')
+    call set_defaults_tcr_rd(fesedflux_input, file_varname='FESEDFLUXIN')
+    ndep_data_type = 'monthly-calendar'
+    call set_defaults_tcr_rd(nox_flux_monthly_input, file_varname='nox_flux')
+    call set_defaults_tcr_rd(nhy_flux_monthly_input, file_varname='nhy_flux')
+    ndep_shr_stream_year_first = 1
+    ndep_shr_stream_year_last  = 1
+    ndep_shr_stream_year_align = 1
+    ndep_shr_stream_file       = 'unknown'
+    ndep_shr_stream_scale_factor = c1
+    call set_defaults_tcr_rd(din_riv_flux_input, file_varname='din_riv_flux')
+    call set_defaults_tcr_rd(dip_riv_flux_input, file_varname='dip_riv_flux')
+    call set_defaults_tcr_rd(don_riv_flux_input, file_varname='don_riv_flux')
+    call set_defaults_tcr_rd(dop_riv_flux_input, file_varname='dop_riv_flux')
+    call set_defaults_tcr_rd(dsi_riv_flux_input, file_varname='dsi_riv_flux')
+    call set_defaults_tcr_rd(dfe_riv_flux_input, file_varname='dfe_riv_flux')
+    call set_defaults_tcr_rd(dic_riv_flux_input, file_varname='dic_riv_flux')
+    call set_defaults_tcr_rd(alk_riv_flux_input, file_varname='alk_riv_flux')
+    call set_defaults_tcr_rd(doc_riv_flux_input, file_varname='doc_riv_flux')
+    liron_patch              = .false.
+    iron_patch_flux_filename = 'unknown_iron_patch_filename'
+    iron_patch_month         = 1
+    atm_co2_opt   = 'const'
+    atm_co2_const = 280.0_r8
+    atm_alt_co2_opt   = 'const'
+    atm_alt_co2_const = 280.0_r8
+    ciso_atm_d13c_opt                       = 'const'
+    ciso_atm_d13c_const                     = -6.379_r8
+    ciso_atm_d13c_filename                  = 'unknown'
+    ciso_atm_d14c_opt                       = 'const'
+    ciso_atm_d14c_const                     = 0.0_r8
+    ciso_atm_d14c_filename(1)               = 'unknown'
+    ciso_atm_d14c_filename(2)               = 'unknown'
+    ciso_atm_d14c_filename(3)               = 'unknown'
+    ciso_atm_model_year                     = 1
+    ciso_atm_data_year                      = 1
+
+    !-----------------------------------------------------------------------
+    !  &ecosys_driver_tracer_init_nml
+    !-----------------------------------------------------------------------
+
+    init_ecosys_option = 'unknown'
+    init_ecosys_init_file = 'unknown'
+    init_ecosys_init_file_fmt = 'bin'
+    do n = 1, ecosys_base_tracer_cnt
+       call set_defaults_tcr_rd(tracer_init_ext(n))
+    end do
+
+    ciso_init_ecosys_option                 = 'unknown'
+    ciso_init_ecosys_init_file              = 'unknown'
+    ciso_init_ecosys_init_file_fmt          = 'bin'
+    do n = 1,ciso_tracer_cnt
+       call set_defaults_tcr_rd(ciso_tracer_init_ext(n))
+    end do
 
     nl_buffer(:) = ''
     nl_str    = ''
@@ -380,19 +522,44 @@ contains
     ! process namelist string to store in nl_buffer
     call marbl_nl_split_string(nl_str, nl_buffer)
 
-    ! now every process reads the namelist from the buffer
+    ! now every process reads the namelists from the buffer
     ioerror_msg=''
     call marbl_status_log%construct()
+
+    ! ecosys_driver_nml
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml',marbl_status_log)
     if (marbl_status_log%labort_marbl) then
       call marbl_status_log%log_error_trace('marbl_namelist', subname)
       call print_marbl_log(marbl_status_log, 1)
     end if
-
     read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
        write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
        call exit_POP(sigAbort, 'ERROR reading ecosys_driver_nml from buffer.')
+    end if
+
+    ! ecosys_driver_forcing_data_nml
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_forcing_data_nml',marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      call marbl_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(marbl_status_log, 1)
+    end if
+    read(tmp_nl_buffer, nml=ecosys_driver_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
+    if (nml_error /= 0) then
+       write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
+       call exit_POP(sigAbort, 'ERROR reading ecosys_driver_forcing_data_nml from buffer.')
+    end if
+
+    ! ecosys_driver_tracer_init_nml
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_tracer_init_nml',marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      call marbl_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(marbl_status_log, 1)
+    end if
+    read(tmp_nl_buffer, nml=ecosys_driver_tracer_init_nml, iostat=nml_error, iomsg=ioerror_msg)
+    if (nml_error /= 0) then
+       write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
+       call exit_POP(sigAbort, 'ERROR reading ecosys_driver_tracer_init_nml from buffer.')
     end if
 
     if (my_task == master_task) then
@@ -405,9 +572,14 @@ contains
        write(stdout,*)
        write(stdout,ecosys_driver_nml)
        write(stdout,*)
+       write(stdout,*) ' ecosys_driver_tracer_init_nml namelist settings:'
+       write(stdout,*)
+       write(stdout,ecosys_driver_tracer_init_nml)
+       write(stdout,*)
        write(stdout,delim_fmt)
     endif
 
+    allocate(tracer_inputs(marbl_tracer_cnt))
 
     !-----------------------------------------------------------------------
     !  timer init
@@ -570,7 +742,7 @@ contains
     call ecosys_driver_init_tracers_and_saved_state( &
        init_ts_file_fmt,                             &
        read_restart_filename,                        &
-       marbl_instances(1)%tracer_read(:),            &
+       tracer_inputs(:),                             &
        tracer_d_module(:),                           &
        marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
        tracer_module(:,:,:,:,:,:),                   &
@@ -590,7 +762,7 @@ contains
     !  If tracer restoring is enabled, read climatological tracer data
     !--------------------------------------------------------------------
 
-    call ecosys_driver_read_restore_data(marbl_instances(1)%restoring)
+!    call ecosys_driver_read_restore_data(marbl_instances(1)%restoring)
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -704,6 +876,8 @@ contains
        end do
     end do
 
+    deallocate(tracer_inputs)
+
   end subroutine ecosys_driver_init
 
   !-----------------------------------------------------------------------
@@ -746,7 +920,7 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine ecosys_driver_init_tracers_and_saved_state(&
-       init_ts_file_fmt, read_restart_filename, tracer_read, tracer_d_module, &
+       init_ts_file_fmt, read_restart_filename, tracer_inputs, tracer_d_module, &
        module_name, TRACER_MODULE, ecosys_restart_filename, errorCode)       
 
     use passive_tracer_tools  , only : rest_read_tracer_block
@@ -763,13 +937,12 @@ contains
     use grid                  , only : fill_points
     use grid                  , only : n_topo_smooth
     use grid                  , only : KMT
-    use marbl_interface_types , only : marbl_tracer_read_type
 
     implicit none
     
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
-    type(marbl_tracer_read_type), intent(in)    :: tracer_read(:)          ! metadata about file to read
+    type(tracer_read)       , intent(in)    :: tracer_inputs(:)        ! metadata about file to read
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
     character(*), dimension(:),  intent(in)    :: module_name
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
@@ -872,7 +1045,7 @@ contains
                                        TRACER_MODULE(:,:,:,n:n,:,:))
 
         case ('file', 'ccsm_startup')
-           call file_read_single_tracer(tracer_read, TRACER_MODULE, n)
+           call file_read_single_tracer(tracer_inputs, TRACER_MODULE, n)
 
            if (n_topo_smooth > 0) then
              do k=1, km
@@ -1138,15 +1311,15 @@ contains
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
-    call ecosys_driver_set_input_forcing_data( &
-         u10_sqr,                              &
-         ifrac,                                &
-         press,                                &
-         dust_flux,                            &
-         black_carbon_flux,                    &
-         sst,                                  &
-         sss,                                  &
-         input_forcing_data)
+!    call ecosys_driver_set_input_forcing_data( &
+!         u10_sqr,                              &
+!         ifrac,                                &
+!         press,                                &
+!         dust_flux,                            &
+!         black_carbon_flux,                    &
+!         sst,                                  &
+!         sss,                                  &
+!         input_forcing_data)
 
     ! The following is used in ecosys_driver_set_interior on the next timestep
     dust_flux_in(:,:,:) = input_forcing_data(:,:, marbl_instances(1)%surface_forcing_ind%dust_flux_id,:)
@@ -1669,7 +1842,7 @@ contains
   end subroutine ecosys_driver_setup_saved_state
 
   !*****************************************************************************
-
+#if 0
   subroutine ecosys_driver_read_restore_data(ecosys_restore)
 
     use marbl_restore_mod   , only : marbl_restore_type
@@ -1746,9 +1919,9 @@ contains
     enddo
 
   end subroutine ecosys_driver_read_restore_data
-
+#endif
   !*****************************************************************************
-
+#if 0
   subroutine ecosys_driver_set_input_forcing_data( &
        u10_sqr,                                    &
        ifrac,                                      &
@@ -1816,7 +1989,7 @@ contains
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     real      (r8)                 :: d14c_glo_avg                                          ! global average D14C over the ocean, computed from current D14C field
-    type      (marbl_forcing_monthly_every_ts_type), pointer :: file
+    type      (forcing_monthly_every_ts_type), pointer :: file
     real      (r8), allocatable, target :: work_read(:,:,:,:)
     integer   (int_kind)          :: stream_index
     integer   (int_kind)          :: nf_ind
@@ -2144,7 +2317,7 @@ contains
     end associate
 
   end subroutine ecosys_driver_set_input_forcing_data
-
+#endif
   !***********************************************************************
 
   subroutine ecosys_driver_ciso_init_atm_D13_D14
@@ -2807,6 +2980,8 @@ contains
 
   end subroutine print_marbl_log
 
+  !*****************************************************************************
+
   subroutine ecosys_restoring_climatology_init(this)
 
     class (ecosys_restoring_climatology_type), intent(inout) :: this
@@ -2814,6 +2989,59 @@ contains
     allocate(this%climatology(nx_block, ny_block, km, max_blocks_clinic))
 
   end subroutine ecosys_restoring_climatology_init
+
+  !*****************************************************************************
+
+  subroutine set_defaults_tcr_rd(tracer_read_var, mod_varname, filename,      &
+             file_varname, scale_factor, default_val, file_fmt)
+
+    type(tracer_read),          intent(inout) :: tracer_read_var
+    character(len=*), optional, intent(in)    :: mod_varname
+    character(len=*), optional, intent(in)    :: filename
+    character(len=*), optional, intent(in)    :: file_varname
+    real(r8),         optional, intent(in)    :: scale_factor
+    real(r8),         optional, intent(in)    :: default_val
+    character(len=*), optional, intent(in)    :: file_fmt
+
+    if (present(mod_varname)) then
+      tracer_read_var%mod_varname = trim(mod_varname)
+    else
+      tracer_read_var%mod_varname = 'unknown'
+    end if
+
+    if (present(filename)) then
+      tracer_read_var%filename = trim(filename)
+    else
+      tracer_read_var%filename = 'unknown'
+    end if
+
+    if (present(file_varname)) then
+      tracer_read_var%file_varname = trim(file_varname)
+    else
+      tracer_read_var%file_varname = 'unknown'
+    end if
+
+    if (present(scale_factor)) then
+      tracer_read_var%scale_factor = scale_factor
+    else
+      tracer_read_var%scale_factor = c1
+    end if
+
+    if (present(default_val)) then
+      tracer_read_var%default_val = default_val
+    else
+      tracer_read_var%default_val = c0
+    end if
+
+    if (present(file_fmt)) then
+      tracer_read_var%file_fmt = trim(file_fmt)
+    else
+      tracer_read_var%file_fmt = 'nc'
+    end if
+
+  end subroutine set_defaults_tcr_rd
+
+  !*****************************************************************************
 
 end module ecosys_driver
 
