@@ -1,6 +1,25 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    24 August 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n30_marbl_dev_n14_cesm_pop_2_1_20160513
+Tag Summary: Refactor ecosys_driver to create ecosys_tracers_and_saved_state_mod
+             Same as last tag - code builds but does not properly initialize
+             tracers and forcing fields (there are some "#if 0" blocks in
+             ecosys_driver.F90 that need to be cleaned up but I will probably
+             refactor the forcing routines out first).
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+A       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    21 August 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n29_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: New tag to move code while yellowstone is down - this branch

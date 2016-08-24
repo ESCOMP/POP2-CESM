@@ -21,13 +21,11 @@ module ecosys_driver
   use domain                    , only : distrb_clinic
   use domain_size               , only : max_blocks_clinic, km, nt
   use io_types                  , only : stdout, nml_in, nml_filename
-  use exit_mod                  , only : sigAbort, exit_pop
+  use exit_mod                  , only : sigAbort, exit_POP
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use communicate               , only : my_task, master_task
 
   use marbl_sizes               , only : num_surface_forcing_fields 
-  use marbl_sizes               , only : ecosys_base_tracer_cnt
-  use marbl_sizes               , only : ciso_tracer_cnt
 
   use marbl_config_mod          , only : lflux_gas_co2
 
@@ -54,6 +52,17 @@ module ecosys_driver
   use timers                    , only : timer_stop
   use timers                    , only : get_timer
 
+  use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
+  use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
+  use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_construct_io_fields
+  use ecosys_tracers_and_saved_state_mod, only : set_defaults_tcr_rd
+  use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
+  use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
+  use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
+  use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
+  use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
   implicit none
   private
 
@@ -64,32 +73,14 @@ module ecosys_driver
   public :: ecosys_driver_set_global_scalars
   public :: ecosys_driver_comp_global_averages
   public :: ecosys_driver_set_sflux
-  public :: ecosys_driver_tracer_ref_val
   public :: ecosys_driver_tavg_forcing
   public :: ecosys_driver_write_restart
   public :: ecosys_driver_unpack_source_sink_terms
 
   private :: ecosys_driver_init_rmean_var
-  private :: ecosys_driver_init_tracers_and_saved_state
 !  private :: ecosys_driver_read_restore_data
 !  private :: ecosys_driver_set_input_forcing_data
   private :: ecosys_driver_update_scalar_rmeans
-
-  ! this struct is necessary because there is some global state
-  ! that needs to be preserved for from one time step to the next
-  type :: ecosys_saved_state_type
-     integer :: rank
-     character(len=char_len) :: short_name
-     character(len=char_len) :: file_varname
-     character(len=char_len) :: units
-
-     ! (nx_block, ny_block, max_blocks_clinic)
-     real (r8), allocatable, dimension(:,:,:)   :: field_2d
-     ! (nx_block, ny_block, km, max_blocks_clinic)
-     real (r8), allocatable, dimension(:,:,:,:) :: field_3d
-  end type ecosys_saved_state_type
-  type(ecosys_saved_state_type), allocatable, dimension(:) :: saved_state_surf
-  type(ecosys_saved_state_type), allocatable, dimension(:) :: saved_state_interior
 
   type :: ecosys_restoring_climatology_type
     real(r8), allocatable :: climatology(:,:,:,:)
@@ -121,13 +112,6 @@ module ecosys_driver
      integer   (int_kind)    :: data_time_min_loc ! index of third dimension of data_time
                                                   ! containing minimum forcing time
   end type forcing_monthly_every_ts_type
-
-  !-----------------------------------------------------------------------
-  ! public variables
-  !-----------------------------------------------------------------------
-
-  ! # of tracers expected from MARBL
-  integer(int_kind), parameter, public :: marbl_tracer_cnt = MARBL_NT
 
   !-----------------------------------------------------------------------
   ! timers
@@ -168,23 +152,9 @@ module ecosys_driver
   integer :: totalChl_id
 
   ! Named tables 
+  ! Note - ind_name_table is needed as a module variable because of interface
+  !        to ecosys_write_restart
   type(ind_name_pair), allocatable, dimension(:) :: ind_name_table     ! derived type & parameter for tracer index lookup
-
-  ! Virtual fluxes
-  logical(log_kind), allocatable, dimension(:) :: vflux_flag           ! which tracers get virtual fluxes applied
-  real(r8), allocatable, dimension(:) :: surf_avg                      ! average surface tracer values
-  ! Virtual fluxes set in namelist
-  real(r8) :: surf_avg_dic_const
-  real(r8) :: surf_avg_alk_const
-  real(r8) :: surf_avg_di13c_const
-  real(r8) :: surf_avg_di14c_const
-
-  ! Indices of tracers needed for virtual flux
-  integer(int_kind) :: dic_ind
-  integer(int_kind) :: alk_ind
-  integer(int_kind) :: dic_alt_co2_ind
-  integer(int_kind) :: di13c_ind
-  integer(int_kind) :: di14c_ind
 
   ! Set by surface flux and used by interior
   ! FIXME - this should be moved to be read in by set_interior if possible
@@ -247,23 +217,6 @@ module ecosys_driver
   character(char_len),  target :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
   character(char_len),  target :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
   character(char_len),  target :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
-
-  !---------------------------------------------------------------------
-  !  Variables read in via &ecosys_driver_tracer_init_nml
-  !---------------------------------------------------------------------
-
-  character(char_len), target :: init_ecosys_option           ! namelist option for initialization of bgc
-  character(char_len), target :: init_ecosys_init_file        ! filename for option 'file'
-  character(char_len), target :: init_ecosys_init_file_fmt    ! file format for option 'file'
-  type(tracer_read),   target :: tracer_init_ext(ecosys_base_tracer_cnt) ! namelist variable for initializing tracers
-
-  character(char_len), target :: ciso_init_ecosys_option        ! option for initialization of bgc
-  character(char_len), target :: ciso_init_ecosys_init_file     ! filename for option 'file'
-  character(char_len), target :: ciso_init_ecosys_init_file_fmt ! file format for option 'file'
-  type(tracer_read),   target :: ciso_tracer_init_ext(ciso_tracer_cnt) ! namelist variable for initializing tracers
-
-  ! Note - ind_name_table is needed as a module variable because of interface
-  !        to ecosys_write_restart
 
   ! Variables related to global averages
 
@@ -364,17 +317,13 @@ contains
     integer (int_kind)                  :: glo_avg_field_cnt
     real (r8)                           :: rmean_val
 
-    type(tracer_read), allocatable      :: tracer_inputs(:)
-
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
     !  should be the same for all ecosystem-related modules
     !-----------------------------------------------------------------------
 
     namelist /ecosys_driver_nml/ &
-         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const,       &
-         surf_avg_alk_const, surf_avg_dic_const, surf_avg_di13c_const,        &
-         surf_avg_di14c_const
+         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
 
     namelist /ecosys_driver_forcing_data_nml/                                 &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
@@ -393,22 +342,12 @@ contains
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
          ciso_atm_model_year, ciso_atm_data_year
 
-    namelist /ecosys_driver_tracer_init_nml/                                  &
-         init_ecosys_option, init_ecosys_init_file, tracer_init_ext,          &
-         init_ecosys_init_file_fmt, ciso_init_ecosys_option,                  &
-         ciso_init_ecosys_init_file, ciso_init_ecosys_init_file_fmt,          &
-         ciso_tracer_init_ext
-
     errorCode = POP_Success
     ciso_on   = ciso_active_flag
 
     lmarginal_seas        = .true.
     ecosys_tadvect_ctype  = 'base_model'
     ecosys_qsw_distrb_const = .true.
-    surf_avg_alk_const   = 2225.0_r8
-    surf_avg_dic_const   = 1944.0_r8
-    surf_avg_di13c_const = 1944.0_r8
-    surf_avg_di14c_const = 1944.0_r8
 
     !-----------------------------------------------------------------------
     !  &marbl_forcing_tmp_nml
@@ -458,24 +397,6 @@ contains
     ciso_atm_d14c_filename(3)               = 'unknown'
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
-
-    !-----------------------------------------------------------------------
-    !  &ecosys_driver_tracer_init_nml
-    !-----------------------------------------------------------------------
-
-    init_ecosys_option = 'unknown'
-    init_ecosys_init_file = 'unknown'
-    init_ecosys_init_file_fmt = 'bin'
-    do n = 1, ecosys_base_tracer_cnt
-       call set_defaults_tcr_rd(tracer_init_ext(n))
-    end do
-
-    ciso_init_ecosys_option                 = 'unknown'
-    ciso_init_ecosys_init_file              = 'unknown'
-    ciso_init_ecosys_init_file_fmt          = 'bin'
-    do n = 1,ciso_tracer_cnt
-       call set_defaults_tcr_rd(ciso_tracer_init_ext(n))
-    end do
 
     nl_buffer(:) = ''
     nl_str    = ''
@@ -550,18 +471,6 @@ contains
        call exit_POP(sigAbort, 'ERROR reading ecosys_driver_forcing_data_nml from buffer.')
     end if
 
-    ! ecosys_driver_tracer_init_nml
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_tracer_init_nml',marbl_status_log)
-    if (marbl_status_log%labort_marbl) then
-      call marbl_status_log%log_error_trace('marbl_namelist', subname)
-      call print_marbl_log(marbl_status_log, 1)
-    end if
-    read(tmp_nl_buffer, nml=ecosys_driver_tracer_init_nml, iostat=nml_error, iomsg=ioerror_msg)
-    if (nml_error /= 0) then
-       write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
-       call exit_POP(sigAbort, 'ERROR reading ecosys_driver_tracer_init_nml from buffer.')
-    end if
-
     if (my_task == master_task) then
        write(stdout,*)
        write(stdout,ndelim_fmt)
@@ -572,14 +481,8 @@ contains
        write(stdout,*)
        write(stdout,ecosys_driver_nml)
        write(stdout,*)
-       write(stdout,*) ' ecosys_driver_tracer_init_nml namelist settings:'
-       write(stdout,*)
-       write(stdout,ecosys_driver_tracer_init_nml)
-       write(stdout,*)
        write(stdout,delim_fmt)
     endif
-
-    allocate(tracer_inputs(marbl_tracer_cnt))
 
     !-----------------------------------------------------------------------
     !  timer init
@@ -611,6 +514,8 @@ contains
     !     or in the time loop; write config vars to log; set parameters)
     !  3) Complete setup ("lock" parmameters so they aren't changed during
     !     time loop; write parameters to log)
+    !
+    !  POP sets up saved state and tracers between (1) and (2)
     !--------------------------------------------------------------------
 
     !--------------------------------------------------------------------
@@ -631,6 +536,73 @@ contains
     end do
 
     !--------------------------------------------------------------------
+    ! Set up saved state data type
+    !--------------------------------------------------------------------
+
+    call ecosys_saved_state_setup(saved_state_surf,                    &
+         marbl_instances(1)%surface_saved_state)
+    call ecosys_saved_state_setup(saved_state_interior,                &
+         marbl_instances(1)%interior_saved_state)
+
+    !--------------------------------------------------------------------
+    ! Set up marbl tracer indices for virtual fluxes
+    !--------------------------------------------------------------------
+
+    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
+    call document(subname, 'dic_ind', dic_ind)
+    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
+    call document(subname, 'alk_ind', alk_ind)
+    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
+    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
+    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
+    call document(subname, 'di13c_ind', di13c_ind)
+    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
+    call document(subname, 'di14c_ind', di14c_ind)
+    if (any((/dic_ind, alk_ind, dic_alt_co2_ind/).eq.0)) then
+      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
+    end if
+
+    allocate(ecosys_tracer_restore_data_3D(marbl_tracer_cnt))
+
+    !--------------------------------------------------------------------
+    !  Initialize ecosys tracers
+    !--------------------------------------------------------------------
+
+    ! pass ecosys_driver_tracer_init_nml to
+    ! ecosys_tracers_and_saved_state_init()
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_tracer_init_nml',marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      call marbl_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(marbl_status_log, 1)
+    end if
+
+    call ecosys_tracers_and_saved_state_init(                    &
+       init_ts_file_fmt,                                         &
+       read_restart_filename,                                    &
+       tracer_d_module(:),                                       &
+       marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
+       tmp_nl_buffer,                                            &
+       land_mask,                                                &
+       tracer_module(:,:,:,:,:,:),                               &
+       ecosys_restart_filename,                                  &
+       errorCode)       
+
+    if (errorCode /= POP_Success) then
+       call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_driver_init')
+       return
+    endif
+
+    if (ciso_on) then
+       call ecosys_driver_ciso_init_atm_D13_D14()
+    end if
+
+    !--------------------------------------------------------------------
+    !  If tracer restoring is enabled, read climatological tracer data
+    !--------------------------------------------------------------------
+
+!    call ecosys_driver_read_restore_data(marbl_instances(1)%restoring)
+
+    !--------------------------------------------------------------------
     !  Initialize marbl 
     !--------------------------------------------------------------------
 
@@ -646,6 +618,7 @@ contains
             gcm_zt = zt,                                                      &
             gcm_nl_buffer = nl_buffer,                                        &
             marbl_tracer_cnt = marbl_actual_tracer_cnt)
+
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
@@ -679,32 +652,6 @@ contains
 
     end do
 
-    ! Set up saved state data type
-    call ecosys_driver_setup_saved_state(saved_state_surf,                    &
-         marbl_instances(1)%surface_saved_state)
-    call ecosys_driver_setup_saved_state(saved_state_interior,                &
-         marbl_instances(1)%interior_saved_state)
-
-    ! Set up marbl tracer indices for virtual fluxes
-    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
-    call document(subname, 'dic_ind', dic_ind)
-    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
-    call document(subname, 'alk_ind', alk_ind)
-    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
-    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
-    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
-    call document(subname, 'di13c_ind', di13c_ind)
-    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
-    call document(subname, 'di14c_ind', di14c_ind)
-    if (any((/dic_ind, alk_ind, dic_alt_co2_ind/).eq.0)) then
-      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
-    end if
-
-    allocate(ecosys_tracer_restore_data_3D(marbl_tracer_cnt))
-    allocate(ind_name_table(marbl_tracer_cnt))
-    allocate(vflux_flag(marbl_tracer_cnt))
-    allocate(surf_avg(marbl_tracer_cnt))
-
     !--------------------------------------------------------------------
     ! Initialize tracer_d_module input argument
     !--------------------------------------------------------------------
@@ -729,40 +676,10 @@ contains
 
     tadvect_ctype(1:marbl_tracer_cnt) = ecosys_tadvect_ctype
 
-    surf_avg(:) = 0._r8
-
+    allocate(ind_name_table(marbl_tracer_cnt))
     do n = 1, marbl_tracer_cnt
        ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
     end do
-
-    !--------------------------------------------------------------------
-    !  Initialize ecosys tracers
-    !--------------------------------------------------------------------
-
-    call ecosys_driver_init_tracers_and_saved_state( &
-       init_ts_file_fmt,                             &
-       read_restart_filename,                        &
-       tracer_inputs(:),                             &
-       tracer_d_module(:),                           &
-       marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
-       tracer_module(:,:,:,:,:,:),                   &
-       ecosys_restart_filename,                      &
-       errorCode)       
-
-    if (errorCode /= POP_Success) then
-       call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_driver_init')
-       return
-    endif
-
-    if (ciso_on) then
-       call ecosys_driver_ciso_init_atm_D13_D14()
-    end if
-
-    !--------------------------------------------------------------------
-    !  If tracer restoring is enabled, read climatological tracer data
-    !--------------------------------------------------------------------
-
-!    call ecosys_driver_read_restore_data(marbl_instances(1)%restoring)
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -876,8 +793,6 @@ contains
        end do
     end do
 
-    deallocate(tracer_inputs)
-
   end subroutine ecosys_driver_init
 
   !-----------------------------------------------------------------------
@@ -916,193 +831,6 @@ contains
     end do
 
   end subroutine ecosys_driver_init_rmean_var
-
-  !-----------------------------------------------------------------------
-
-  subroutine ecosys_driver_init_tracers_and_saved_state(&
-       init_ts_file_fmt, read_restart_filename, tracer_inputs, tracer_d_module, &
-       module_name, TRACER_MODULE, ecosys_restart_filename, errorCode)       
-
-    use passive_tracer_tools  , only : rest_read_tracer_block
-    use passive_tracer_tools  , only : file_read_single_tracer
-    use passive_tracer_tools  , only : read_field
-    use passive_tracer_tools  , only : ind_name_pair
-    use prognostic            , only : curtime
-    use prognostic            , only : oldtime
-    use prognostic            , only : newtime
-    use prognostic            , only : tracer_field_type => tracer_field
-    use time_management       , only : check_time_flag
-    use time_management       , only : eval_time_flag
-    use io_tools              , only : document
-    use grid                  , only : fill_points
-    use grid                  , only : n_topo_smooth
-    use grid                  , only : KMT
-
-    implicit none
-    
-    character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
-    character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
-    type(tracer_read)       , intent(in)    :: tracer_inputs(:)        ! metadata about file to read
-    type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
-    character(*), dimension(:),  intent(in)    :: module_name
-    real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
-    character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file
-    integer (POP_i4)        , intent(out)   :: errorCode
-    
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init_tracers_and_saved_state'
-    integer :: n, k, bid
-    character(char_len) :: init_option, init_file_fmt
-    !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    !  initialize saved state
-    !-----------------------------------------------------------------------
-
-    select case (init_ecosys_option)
-       
-    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
-
-       ecosys_restart_filename = char_blank
-       init_file_fmt = init_ecosys_init_file_fmt
-       if (init_ecosys_init_file == 'same_as_TS') then
-          if (read_restart_filename == 'undefined') then
-             call document(subname, 'no restart file to read ecosys from')
-             call exit_POP(sigAbort, 'stopping in ' // subname)
-          endif
-          ecosys_restart_filename = read_restart_filename
-          init_file_fmt = init_ts_file_fmt
-       else  ! do not read from TS restart file
-          ecosys_restart_filename = trim(init_ecosys_init_file)
-       endif
-
-       call ecosys_driver_read_restart_saved_state(init_file_fmt,             &
-            ecosys_restart_filename, saved_state_surf)
-       call ecosys_driver_read_restart_saved_state(init_file_fmt,             &
-            ecosys_restart_filename, saved_state_interior)
-
-    case ('file', 'ccsm_startup')
-       call ecosys_driver_set_saved_state_zero(saved_state_surf)
-       call ecosys_driver_set_saved_state_zero(saved_state_interior)
-
-    case default
-       call document(subname, 'init_ecosys_option', init_ecosys_option)
-       call exit_POP(sigAbort, 'unknown init_ecosys_option')
-
-    end select
-
-    !-----------------------------------------------------------------------
-    !  initialize tracers
-    !-----------------------------------------------------------------------
-
-    ! initialize module variable - virtual flux flag array
-    vflux_flag(:) = .false.
-    vflux_flag(dic_ind) = .true.
-    vflux_flag(alk_ind) = .true.
-    vflux_flag(dic_alt_co2_ind) = .true.
-
-    if (di13c_ind.ne.0) &
-       vflux_flag(di13c_ind) = .true.
-    if (di14c_ind.ne.0) &
-       vflux_flag(di14c_ind) = .true.
-
-    do n=1,marbl_tracer_cnt
-
-      ! Is tracer read from restart file or initial condition?
-      ! What is the file name and format?
-      select case (trim(module_name(n)))
-        case('ecosys')
-          init_option = init_ecosys_option
-          ecosys_restart_filename = trim(init_ecosys_init_file)
-          init_file_fmt = init_ecosys_init_file_fmt
-
-        case('ciso')
-          init_option = ciso_init_ecosys_option
-          ecosys_restart_filename = trim(ciso_init_ecosys_init_file)
-          init_file_fmt = ciso_init_ecosys_init_file_fmt
-
-      end select
-
-      select case (init_option)
-
-        ! For restart run, either read from specified file or TS restart file
-        case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
-           if (ecosys_restart_filename == 'same_as_TS') then
-              if (read_restart_filename == 'undefined') then
-                 call document(subname, 'no restart file to read ',           &
-                      trim(module_name(n)))
-                 call exit_POP(sigAbort, 'stopping in ' // subname)
-              endif
-              ecosys_restart_filename = read_restart_filename
-              init_file_fmt = init_ts_file_fmt
-           endif
-
-           call rest_read_tracer_block(init_file_fmt,        &
-                                       ecosys_restart_filename,     &
-                                       tracer_d_module(n:n),        &
-                                       TRACER_MODULE(:,:,:,n:n,:,:))
-
-        case ('file', 'ccsm_startup')
-           call file_read_single_tracer(tracer_inputs, TRACER_MODULE, n)
-
-           if (n_topo_smooth > 0) then
-             do k=1, km
-                call fill_points(k, TRACER_MODULE(:, :, k, n, oldtime, :), errorCode)
-
-                if (errorCode /= POP_Success) then
-                   call POP_ErrorSet(errorCode, &
-                        'ecosys_init: error in fill points for tracers(oldtime)')
-                   return
-                endif
-
-                call fill_points(k, TRACER_MODULE(:, :, k, n, curtime, :), errorCode)
-
-                if (errorCode /= POP_Success) then
-                   call POP_ErrorSet(errorCode, &
-                        'ecosys_init: error in fill points for tracers(newtime)')
-                   return
-                endif
-
-             enddo
-           endif
-
-        case default
-         call document(subname, 'init_option', init_option)
-         call exit_POP(sigAbort, 'unknown init_option')
-
-      end select
-
-      ! Set surf_avg for all tracers
-      if (n.eq.dic_ind) then
-         surf_avg(n) = surf_avg_dic_const
-      elseif (n.eq.dic_alt_co2_ind) then
-         surf_avg(n) = surf_avg_dic_const
-      elseif (n.eq.alk_ind) then
-         surf_avg(n) = surf_avg_alk_const
-      elseif (n.eq.di13c_ind) then
-         surf_avg(n) = surf_avg_di13c_const
-      elseif (n.eq.di14c_ind) then
-         surf_avg(n) = surf_avg_di14c_const
-      else
-         surf_avg(n) = c0
-      end if
-
-    end do
-
-    do bid=1, nblocks_clinic
-       do n = 1, marbl_tracer_cnt
-          do k = 1, km
-             where (.not. land_mask(:, :, bid) .or. k > KMT(:, :, bid))
-                TRACER_MODULE(:, :, k, n, curtime, bid) = c0
-                TRACER_MODULE(:, :, k, n, oldtime, bid) = c0
-             end where
-          end do
-       end do
-    end do
-
-  end subroutine ecosys_driver_init_tracers_and_saved_state
 
   !***********************************************************************
 
@@ -1604,28 +1332,6 @@ contains
 
   !***********************************************************************
 
-  function ecosys_driver_tracer_ref_val(ind)
-    !
-    ! !DESCRIPTION:
-    !  return reference value for tracer with global tracer index ind
-    !  this is used in virtual flux computations
-
-    implicit none
-
-    integer(int_kind) , intent(in) :: ind
-    real(r8) :: ecosys_driver_tracer_ref_val
-
-    !  default value for reference value is 0
-
-    ecosys_driver_tracer_ref_val = c0
-    if (vflux_flag(ind)) then
-       ecosys_driver_tracer_ref_val = surf_avg(ind)
-    endif
-       
-  end function ecosys_driver_tracer_ref_val
-
-  !***********************************************************************
-
   subroutine ecosys_driver_unpack_source_sink_terms(source, destination)
 
     real(r8), dimension(:, :, :), intent(in)  :: source
@@ -1659,11 +1365,11 @@ contains
     if (trim(action) == 'define') then
 
        allocate(surf_iodesc(size(saved_state_surf)))
-       surf_iodesc = ecosys_driver_construct_saved_state_io_fields(restart_file, &
+       surf_iodesc = ecosys_saved_state_construct_io_fields(restart_file,     &
             saved_state_surf, size(saved_state_surf))
 
        allocate(col_iodesc(size(saved_state_interior)))
-       col_iodesc = ecosys_driver_construct_saved_state_io_fields(restart_file, &
+       col_iodesc = ecosys_saved_state_construct_io_fields(restart_file,      &
            saved_state_interior, size(saved_state_interior))
 
     else if (trim(action) == 'write') then
@@ -1680,166 +1386,6 @@ contains
     endif
 
   end subroutine ecosys_driver_write_restart
-
-  !*****************************************************************************
-
-  function ecosys_driver_construct_saved_state_io_fields(restart_file, state, num_fields) &
-    result(io_desc)
-
-    use domain_size, only : nx_global
-    use domain_size, only : ny_global
-    use constants  , only : field_loc_center
-    use constants  , only : field_type_scalar
-    use io         , only : data_set
-    use io         , only : datafile
-    use io_types   , only : io_dim
-    use io_types   , only : io_field_desc
-    use io_types   , only : add_attrib_file
-    use io_types   , only : construct_io_dim
-    use io_types   , only : construct_io_field
-    use io_tools   , only : document
-
-    implicit none
-
-    type (datafile), intent(inout) :: restart_file
-    type(ecosys_saved_state_type), dimension(:), intent(in) :: state
-    integer, intent(in) :: num_fields
-    type(io_field_desc), dimension(num_fields) :: io_desc
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(*), parameter :: subname='ecosys_driver:ecosys_driver_construct_saved_state_io_fields'
-    character(len=char_len) :: log_message
-    integer (int_kind)         :: n
-    type (io_dim)              :: i_dim, j_dim ! dimension descriptors
-    type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
-
-    i_dim = construct_io_dim('i', nx_global)
-    j_dim = construct_io_dim('j', ny_global)
-    k_dim = construct_io_dim('k', km)
-
-    do n=1,num_fields
-      select case (state(n)%rank)
-        case (2)
-          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
-                       j_dim, units = trim(state(n)%units), grid_loc = '2110',&
-                       field_loc  = field_loc_center,                         &
-                       field_type = field_type_scalar,                        &
-                       d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
-        case (3)
-          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
-                       j_dim, k_dim,                                          &
-                       units = trim(state(n)%units), grid_loc = '3111',       &
-                       field_loc  = field_loc_center,                         &
-                       field_type = field_type_scalar,                        &
-                       d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
-      end select
-      write(log_message, "(3A)") "Setting up IO field for ",                  &
-                                 trim(state(n)%file_varname), " (in restart)"
-      call document(subname, log_message)
-      call data_set (restart_file, 'define', io_desc(n))
-    end do
-
-  end function ecosys_driver_construct_saved_state_io_fields
-
-  !*****************************************************************************
-
-  subroutine ecosys_driver_read_restart_saved_state(file_fmt, filename, state)
-
-    use passive_tracer_tools  , only : field_exists_in_file
-    use passive_tracer_tools  , only : read_field
-    use io_tools              , only : document
-
-    character(len=*), intent(in) :: file_fmt
-    character(len=*), intent(in) :: filename
-    type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
-
-    character(*), parameter :: subname='ecosys_driver:ecosys_driver_read_restart_saved_state'
-    character(len=char_len) :: log_message
-    integer :: n
-
-    call ecosys_driver_set_saved_state_zero(state)
-    do n=1,size(state)
-      if (field_exists_in_file(file_fmt, filename, state(n)%file_varname)) then
-        select case (state(n)%rank)
-          case (2)
-            call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 state(n)%field_2d(:,:,:))
-          case (3)
-            call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 state(n)%field_3d(:,:,:,:))
-        end select
-      else
-        write(log_message, "(4A)") trim(state(n)%file_varname),               &
-                                   ' does not exist in ', trim(filename),     &
-                                   ', setting to 0'
-        call document(subname, log_message)
-      end if
-    end do
-
-  end subroutine ecosys_driver_read_restart_saved_state
-
-  !*****************************************************************************
-
-  subroutine ecosys_driver_set_saved_state_zero(state)
-
-    type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
-    integer :: n
-
-    do n=1,size(state)
-      select case (state(n)%rank)
-        case (2)
-          state(n)%field_2d = c0
-        case (3)
-          state(n)%field_3d = c0
-      end select
-    end do
-
-  end subroutine ecosys_driver_set_saved_state_zero
-
-  !*****************************************************************************
-
-  subroutine ecosys_driver_setup_saved_state(state, marbl_state)
-
-    use marbl_interface_types, only : marbl_saved_state_type
-    use io_tools             , only : document
-
-    type(ecosys_saved_state_type), allocatable, intent(out) :: state(:)
-    type(marbl_saved_state_type),               intent(in)  :: marbl_state
-
-    character(*), parameter :: subname =                                      &
-                  'ecosys_driver:ecosys_driver_setup_saved_state'
-    integer :: num_fields
-    integer :: n
-
-    num_fields = marbl_state%saved_state_cnt
-    allocate(state(num_fields))
-    do n=1, num_fields
-      state(n)%rank = marbl_state%state(n)%rank
-      select case (state(n)%rank)
-        case (2)
-          allocate(state(n)%field_2d(nx_block, ny_block, max_blocks_clinic))
-        case (3)
-          select case (trim(marbl_state%state(n)%vertical_grid))
-            case ('layer_avg')
-              allocate(state(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
-            case DEFAULT
-          call document(subname, 'n', n)
-          call document(subname, 'marbl_state(n)%vertical_grid',              &
-                        trim(marbl_state%state(n)%vertical_grid))
-          call exit_POP(sigAbort, 'Invalid vert grid from MARBL saved state')
-          end select
-        case DEFAULT
-          call document(subname, 'n', n)
-          call document(subname, 'state(n)%rank', state(n)%rank)
-          call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
-      end select
-      state(n)%short_name = trim(marbl_state%state(n)%short_name)
-      write(state(n)%file_varname, "(2A)") 'MARBL_', trim(state(n)%short_name)
-      state(n)%units = trim(marbl_state%state(n)%units)
-    end do
-
-  end subroutine ecosys_driver_setup_saved_state
 
   !*****************************************************************************
 #if 0
@@ -2989,57 +2535,6 @@ contains
     allocate(this%climatology(nx_block, ny_block, km, max_blocks_clinic))
 
   end subroutine ecosys_restoring_climatology_init
-
-  !*****************************************************************************
-
-  subroutine set_defaults_tcr_rd(tracer_read_var, mod_varname, filename,      &
-             file_varname, scale_factor, default_val, file_fmt)
-
-    type(tracer_read),          intent(inout) :: tracer_read_var
-    character(len=*), optional, intent(in)    :: mod_varname
-    character(len=*), optional, intent(in)    :: filename
-    character(len=*), optional, intent(in)    :: file_varname
-    real(r8),         optional, intent(in)    :: scale_factor
-    real(r8),         optional, intent(in)    :: default_val
-    character(len=*), optional, intent(in)    :: file_fmt
-
-    if (present(mod_varname)) then
-      tracer_read_var%mod_varname = trim(mod_varname)
-    else
-      tracer_read_var%mod_varname = 'unknown'
-    end if
-
-    if (present(filename)) then
-      tracer_read_var%filename = trim(filename)
-    else
-      tracer_read_var%filename = 'unknown'
-    end if
-
-    if (present(file_varname)) then
-      tracer_read_var%file_varname = trim(file_varname)
-    else
-      tracer_read_var%file_varname = 'unknown'
-    end if
-
-    if (present(scale_factor)) then
-      tracer_read_var%scale_factor = scale_factor
-    else
-      tracer_read_var%scale_factor = c1
-    end if
-
-    if (present(default_val)) then
-      tracer_read_var%default_val = default_val
-    else
-      tracer_read_var%default_val = c0
-    end if
-
-    if (present(file_fmt)) then
-      tracer_read_var%file_fmt = trim(file_fmt)
-    else
-      tracer_read_var%file_fmt = 'nc'
-    end if
-
-  end subroutine set_defaults_tcr_rd
 
   !*****************************************************************************
 
