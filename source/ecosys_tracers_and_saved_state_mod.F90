@@ -85,7 +85,7 @@ Contains
   !-----------------------------------------------------------------------
 
   subroutine ecosys_tracers_and_saved_state_init(&
-       init_ts_file_fmt, read_restart_filename, tracer_d_module, &
+       init_ts_file_fmt, read_restart_filename, tracer_d_module,                   &
        module_name, tracer_nml, land_mask, TRACER_MODULE, ecosys_restart_filename, &
        errorCode)       
 
@@ -117,8 +117,6 @@ Contains
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
 
-    implicit none
-    
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
@@ -193,6 +191,7 @@ Contains
        write(stdout,*)
        write(stdout,delim_fmt)
     endif
+
     !-----------------------------------------------------------------------
     !  initialize saved state
     !-----------------------------------------------------------------------

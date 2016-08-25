@@ -1450,9 +1450,9 @@ EOF
   }
 }
 
-###################################################
-# namelist group: ecosys_driver_forcing_data_nml  #
-###################################################
+############################################
+# namelist group: ecosys_forcing_data_nml  #
+############################################
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'dust_flux_source');
@@ -2188,7 +2188,7 @@ if ($sf6_on eq "TRUE" ) {
 }    
 if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_driver_nml
-                     ecosys_driver_forcing_data_nml
+                     ecosys_forcing_data_nml
                      ecosys_tracer_init_nml
                      marbl_config_nml
                      marbl_parms_nml);
