@@ -1,5 +1,28 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  jedwards
+Tag Date:    28 Aug 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160828
+Tag Summary: merge esmci pop changes to trunk add licecesm2 to ice namelist and initialize.
+
+Testing: Ran aux_pop everything passes with exception of hybrid restarts because of WW3 problem
+
+	M       bld/config_files/definition.xml
+	M       bld/configure
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       cime_config/config_component.xml
+	M       cime_config/config_pes.xml
+	M       cime_config/testdefs/testlist_pop.xml
+	M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+	M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+	M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+	M       cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+	M       cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+	M       source/ice.F90
+	M       ChangeLog
+
+===============================================================================
+Tag Creator: jet
 Developers:  jet
 Tag Date:    28 Jun 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160628

@@ -291,6 +291,7 @@
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
 <!--QL, 150526, langmuir mixing parameterization option-->
+<langmuir_opt comp_wav="swav">'null'</langmuir_opt> 
 <langmuir_opt>'vr12-ma'</langmuir_opt>
 
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  >.true.</lhoriz_varying_bckgrnd>

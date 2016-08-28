@@ -144,8 +144,7 @@
       ice_freq              ! freq for computing ice in above units
 
 
-   namelist /ice_nml/ kmxice, ice_freq_opt, ice_freq, lactive_ice
-
+   namelist /ice_nml/ kmxice, ice_freq_opt, ice_freq, lactive_ice, licecesm2 
 !-----------------------------------------------------------------------
 !
 !  read input namelists
@@ -158,6 +157,7 @@
    ice_freq_opt     = 'never'
    ice_freq         = 100000
    lactive_ice      = .false.
+   licecesm2        = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -253,6 +253,7 @@
 
    call broadcast_scalar(ice_freq_iopt, master_task)
    call broadcast_scalar(lactive_ice,   master_task)
+   call broadcast_scalar(licecesm2,     master_task)
 
    if (ice_freq_iopt == -1000) then
       call exit_POP(sigAbort,'unknown restart frequency option')
