@@ -84,10 +84,17 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  subroutine ecosys_tracers_and_saved_state_init(&
-       init_ts_file_fmt, read_restart_filename, tracer_d_module,                   &
-       module_name, tracer_nml, land_mask, TRACER_MODULE, ecosys_restart_filename, &
-       errorCode)       
+  subroutine ecosys_tracers_and_saved_state_init(ciso_on,                     &
+                                                 init_ts_file_fmt,            &
+                                                 read_restart_filename,       &
+                                                 tracer_d_module,             &
+                                                 tracer_name,                 &
+                                                 module_name,                 &
+                                                 tracer_nml,                  &
+                                                 land_mask,                   &
+                                                 TRACER_MODULE,               &
+                                                 ecosys_restart_filename,     &
+                                                 errorCode)       
 
     use POP_ErrorMod, only : POP_Success, POP_ErrorSet
 
@@ -117,9 +124,11 @@ Contains
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
 
+    logical                 , intent(in)    :: ciso_on
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
+    character(*), dimension(:),  intent(in)    :: tracer_name
     character(*), dimension(:),  intent(in)    :: module_name
     character(marbl_nl_buffer_size), intent(in)   :: tracer_nml
     logical(log_kind) , dimension(:,:,:), intent(in) :: land_mask
@@ -152,12 +161,17 @@ Contains
          ciso_init_ecosys_init_file_fmt, ciso_tracer_init_ext
 
     !-----------------------------------------------------------------------
-    !  &ecosys_tracer_init_nml
+    !  Set defaults for &ecosys_tracer_init_nml
     !-----------------------------------------------------------------------
 
     do n = 1, ecosys_base_tracer_cnt
        call set_defaults_tcr_rd(tracer_init_ext(n))
     end do
+    if (ciso_on) then
+      do n = 1,ciso_tracer_cnt
+         call set_defaults_tcr_rd(ciso_tracer_init_ext(n))
+      end do
+    end if
 
     surf_avg_alk_const   = 2225.0_r8
     surf_avg_dic_const   = 1944.0_r8
@@ -171,9 +185,10 @@ Contains
     ciso_init_ecosys_option                 = 'unknown'
     ciso_init_ecosys_init_file              = 'unknown'
     ciso_init_ecosys_init_file_fmt          = 'bin'
-    do n = 1,ciso_tracer_cnt
-       call set_defaults_tcr_rd(ciso_tracer_init_ext(n))
-    end do
+
+    !-----------------------------------------------------------------------
+    !  Read &ecosys_tracer_init_nml
+    !-----------------------------------------------------------------------
 
     read(tracer_nml, nml=ecosys_tracer_init_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -191,6 +206,37 @@ Contains
        write(stdout,*)
        write(stdout,delim_fmt)
     endif
+
+    !-----------------------------------------------------------------------
+    ! Set default values for tracer_inputs
+    !-----------------------------------------------------------------------
+
+    do n=1,marbl_tracer_cnt
+      tracer_inputs(n)%mod_varname  = tracer_name(n)
+      tracer_inputs(n)%file_varname = tracer_name(n)
+      tracer_inputs(n)%scale_factor = c1
+      tracer_inputs(n)%default_val  = c0
+      select case (trim(module_name(n)))
+        case('ecosys')
+          tracer_inputs(n)%filename = init_ecosys_init_file
+          tracer_inputs(n)%file_fmt = init_ecosys_init_file_fmt
+        case('ciso')
+          tracer_inputs(n)%filename = ciso_init_ecosys_init_file
+          tracer_inputs(n)%file_fmt = ciso_init_ecosys_init_file_fmt
+        case DEFAULT
+          call document(subname, 'module_name', trim(module_name(n)))
+          call exit_POP(sigAbort, 'unknown module_name')
+      end select
+    end do
+
+    !-----------------------------------------------------------------------
+    ! Update tracer_inputs from tracer_init_ext and ciso_tracer_init_ext
+    !-----------------------------------------------------------------------
+
+    call tracer_read_update(tracer_init_ext, tracer_inputs)
+    if (ciso_on) then
+      call tracer_read_update(ciso_tracer_init_ext, tracer_inputs)
+    end if
 
     !-----------------------------------------------------------------------
     !  initialize saved state
@@ -257,6 +303,10 @@ Contains
           init_option = ciso_init_ecosys_option
           ecosys_restart_filename = trim(ciso_init_ecosys_init_file)
           init_file_fmt = ciso_init_ecosys_init_file_fmt
+
+        case DEFAULT
+          call document(subname, 'module_name', trim(module_name(n)))
+          call exit_POP(sigAbort, 'unknown module_name')
 
       end select
 
@@ -575,6 +625,44 @@ Contains
     end do
 
   end function ecosys_saved_state_construct_io_fields
+
+  !-----------------------------------------------------------------------
+
+  subroutine tracer_read_update(tracer_ext, tracer_inputs)
+
+    type(tracer_read), dimension(:), intent(in)    :: tracer_ext
+    type(tracer_read), dimension(:), intent(inout) :: tracer_inputs
+
+    integer :: n, ind, tracer_ind
+    character(len=char_len) :: err_msg
+
+    do n=1,size(tracer_ext)
+      if (trim(tracer_ext(n)%mod_varname).ne.'unknown') then
+        tracer_ind = 0
+        do ind = 1, size(tracer_inputs)
+          if (trim(tracer_ext(n)%mod_varname).eq.                             &
+              trim(tracer_inputs(ind)%mod_varname)) then
+            tracer_ind = ind
+            exit
+          end if
+        end do
+
+        if (tracer_ind.eq.0) then
+          write(err_msg, "(A,1X,A)") 'No tracer defined with name',           &
+                                     trim(tracer_ext(n)%mod_varname)
+          call exit_POP(sigAbort, err_msg)
+        end if
+
+        if (trim(tracer_ext(n)%filename).ne.'unknown')                        &
+          tracer_inputs(ind)%filename = tracer_ext(n)%filename
+        if (trim(tracer_ext(n)%file_varname).ne.'unknown')                    &
+          tracer_inputs(ind)%file_varname = tracer_ext(n)%file_varname
+        tracer_inputs(ind)%scale_factor = tracer_ext(n)%scale_factor
+        tracer_inputs(ind)%default_val  = tracer_ext(n)%default_val
+      end if
+    end do
+          
+  end subroutine tracer_read_update
 
   !-----------------------------------------------------------------------
 

@@ -6391,6 +6391,38 @@ group="ecosys_tracer_init_nml" >
 Default: 'nc'
 </entry>
 
+<entry 
+id="surf_avg_dic_const"
+type="real"
+category="ecosys"
+group="ecosys_tracer_init_nml" >
+Default: 1944.0
+</entry>
+
+<entry 
+id="surf_avg_alk_const"
+type="real"
+category="ecosys"
+group="ecosys_tracer_init_nml" >
+Default: 2225.0
+</entry>
+
+<entry 
+id="surf_avg_di13c_const"
+type="real"
+category="ecosys"
+group="ecosys_tracer_init_nml" >
+Default: 1944.0
+</entry>
+
+<entry 
+id="surf_avg_di14c_const"
+type="real"
+category="ecosys"
+group="ecosys_tracer_init_nml" >
+Default: 1944.0
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: marbl_parms_nml          - -->
@@ -6823,38 +6855,6 @@ type="logical"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 
-</entry>
-
-<entry 
-id="surf_avg_dic_const"
-type="real"
-category="ecosys"
-group="ecosys_driver_nml" >
-Default: 1944.0
-</entry>
-
-<entry 
-id="surf_avg_alk_const"
-type="real"
-category="ecosys"
-group="ecosys_driver_nml" >
-Default: 2225.0
-</entry>
-
-<entry 
-id="surf_avg_di13c_const"
-type="real"
-category="ecosys"
-group="ecosys_driver_nml" >
-Default: 1944.0
-</entry>
-
-<entry 
-id="surf_avg_di14c_const"
-type="real"
-category="ecosys"
-group="ecosys_driver_nml" >
-Default: 1944.0
 </entry>
 
 

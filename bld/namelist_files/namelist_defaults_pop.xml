@@ -1263,6 +1263,11 @@
 <ciso_tracer_init_ext(14)%file_varname>diazC</ciso_tracer_init_ext(14)%file_varname>
 <ciso_tracer_init_ext(14)%scale_factor>1.0</ciso_tracer_init_ext(14)%scale_factor>
 
+<surf_avg_dic_const>1944.0</surf_avg_dic_const>          
+<surf_avg_alk_const>2225.0</surf_avg_alk_const>          
+<surf_avg_di13c_const>1944.0</surf_avg_di13c_const>  
+<surf_avg_di14c_const>1944.0</surf_avg_di14c_const>          
+
 
 <!---------------------------->
 <!--    marbl_parms_nml     -->
@@ -1377,11 +1382,6 @@
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
 <ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
-
-<surf_avg_dic_const>1944.0</surf_avg_dic_const>          
-<surf_avg_alk_const>2225.0</surf_avg_alk_const>          
-<surf_avg_di13c_const>1944.0</surf_avg_di13c_const>  
-<surf_avg_di14c_const>1944.0</surf_avg_di14c_const>          
 
 <!---------------------------->
 <!--moby_nml -->

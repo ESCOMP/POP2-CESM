@@ -46,7 +46,6 @@ module ecosys_driver
 
   use passive_tracer_tools      , only : ind_name_pair
   use passive_tracer_tools      , only : tracer_read
-  use strdata_interface_mod     , only : strdata_input_type
 
   use timers                    , only : timer_start
   use timers                    , only : timer_stop
@@ -108,7 +107,6 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   integer (int_kind) :: ecosys_interior_timer
-  integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_set_sflux_timer
   integer (int_kind) :: ecosys_comp_CO3terms_timer
   
@@ -126,7 +124,6 @@ module ecosys_driver
   logical   (log_kind) , public              :: ecosys_qsw_distrb_const
   logical   (log_kind)                       :: ciso_on 
   logical   (log_kind) , allocatable         :: land_mask(:, :, :)
-  real      (r8)       , allocatable, target :: iron_patch_flux(:, :, :)              ! related to ph computation
   real      (r8)       , allocatable, target :: fesedflux(:, :, :, :)                 !  sedimentary Fe inputs 
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
@@ -141,11 +138,6 @@ module ecosys_driver
   ! Set by surface flux and used by interior
   ! FIXME - this should be moved to be read in by set_interior if possible
   real (r8) :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)     ! dust flux not stored in STF since dust is not prognostic
-
-  integer (int_kind), parameter :: shr_stream_var_cnt    = 2 ! number of variables in ndep shr_stream
-  integer (int_kind), parameter :: shr_stream_no_ind     = 1 ! index for NO forcing
-  integer (int_kind), parameter :: shr_stream_nh_ind     = 2 ! index for NH forcing
-  type    (strdata_input_type)  :: strdata_inputlist(shr_stream_var_cnt)  ! FIXME - need to make this more flexible
 
   ! Variables related to global averages
 
@@ -343,7 +335,6 @@ contains
 
     call get_timer(ecosys_interior_timer     , 'ECOSYS_INTERIOR'   , nblocks_clinic , distrb_clinic%nprocs)
     call get_timer(ecosys_set_sflux_timer    , 'ECOSYS_SET_SFLUX'  , 1              , distrb_clinic%nprocs)
-    call get_timer(ecosys_pre_sflux_timer    , 'ECOSYS_PRE_SFLUX'  , 1              , distrb_clinic%nprocs)
     call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms'     , nblocks_clinic , distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------
@@ -395,58 +386,6 @@ contains
          marbl_instances(1)%interior_saved_state)
 
     !--------------------------------------------------------------------
-    ! Set up marbl tracer indices for virtual fluxes
-    !--------------------------------------------------------------------
-
-    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
-    call document(subname, 'dic_ind', dic_ind)
-    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
-    call document(subname, 'alk_ind', alk_ind)
-    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
-    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
-    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
-    call document(subname, 'di13c_ind', di13c_ind)
-    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
-    call document(subname, 'di14c_ind', di14c_ind)
-    if (any((/dic_ind, alk_ind, dic_alt_co2_ind/).eq.0)) then
-      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
-    end if
-
-    !--------------------------------------------------------------------
-    !  Initialize ecosys tracers
-    !--------------------------------------------------------------------
-
-    ! pass ecosys_tracer_init_nml to
-    ! ecosys_tracers_and_saved_state_init()
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_tracer_init_nml',marbl_status_log)
-    if (marbl_status_log%labort_marbl) then
-      call marbl_status_log%log_error_trace('marbl_namelist', subname)
-      call print_marbl_log(marbl_status_log, 1)
-    end if
-
-    call ecosys_tracers_and_saved_state_init(                    &
-       init_ts_file_fmt,                                         &
-       read_restart_filename,                                    &
-       tracer_d_module(:),                                       &
-       marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
-       tmp_nl_buffer,                                            &
-       land_mask,                                                &
-       tracer_module(:,:,:,:,:,:),                               &
-       ecosys_restart_filename,                                  &
-       errorCode)       
-
-    if (errorCode /= POP_Success) then
-       call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_driver_init')
-       return
-    endif
-
-    !--------------------------------------------------------------------
-    !  If tracer restoring is enabled, read climatological tracer data
-    !--------------------------------------------------------------------
-
-!    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
-
-    !--------------------------------------------------------------------
     !  Initialize marbl 
     !--------------------------------------------------------------------
 
@@ -481,18 +420,76 @@ contains
     end do
 
     !--------------------------------------------------------------------
+    ! Set up marbl tracer indices for virtual fluxes
+    !--------------------------------------------------------------------
+
+    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
+    call document(subname, 'dic_ind', dic_ind)
+    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
+    call document(subname, 'alk_ind', alk_ind)
+    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
+    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
+    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
+    call document(subname, 'di13c_ind', di13c_ind)
+    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
+    call document(subname, 'di14c_ind', di14c_ind)
+    if (any((/dic_ind, alk_ind, dic_alt_co2_ind/).eq.0)) then
+      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
+    end if
+
+    !--------------------------------------------------------------------
+    !  Initialize ecosys tracers
+    !--------------------------------------------------------------------
+
+    ! pass ecosys_tracer_init_nml to
+    ! ecosys_tracers_and_saved_state_init()
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_tracer_init_nml',marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      call marbl_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(marbl_status_log, 1)
+    end if
+
+    call ecosys_tracers_and_saved_state_init(                    &
+       ciso_on,                                                  &
+       init_ts_file_fmt,                                         &
+       read_restart_filename,                                    &
+       tracer_d_module(:),                                       &
+       marbl_instances(1)%tracer_metadata(:)%short_name,         &
+       marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
+       tmp_nl_buffer,                                            &
+       land_mask,                                                &
+       tracer_module(:,:,:,:,:,:),                               &
+       ecosys_restart_filename,                                  &
+       errorCode)       
+
+    if (errorCode /= POP_Success) then
+       call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_driver_init')
+       return
+    endif
+
+    !--------------------------------------------------------------------
+    !  If tracer restoring is enabled, read climatological tracer data
+    !--------------------------------------------------------------------
+
+!    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
+
+    !--------------------------------------------------------------------
     !  Initialize ecosys forcing fields / restore fields
     !--------------------------------------------------------------------
 
-    ! pass ecosys_forcing_data_nml to
-    ! ecosys_tracers_and_saved_state_init()
+    ! pass ecosys_forcing_data_nml
+    ! to ecosys_forcing_init()
+    ! Also pass marbl_instance%surface_forcing_metadata
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_forcing_data_nml',marbl_status_log)
     if (marbl_status_log%labort_marbl) then
       call marbl_status_log%log_error_trace('marbl_namelist', subname)
       call print_marbl_log(marbl_status_log, 1)
     end if
 
-    call ecosys_forcing_init(ciso_on, marbl_tracer_cnt, tmp_nl_buffer)
+    call ecosys_forcing_init(ciso_on,                                         &
+                             marbl_tracer_cnt,                                &
+                             marbl_instances(1)%surface_forcing_metadata,     &
+                             tmp_nl_buffer)
 
     !--------------------------------------------------------------------
     !  Complete marbl setup
@@ -869,7 +866,8 @@ contains
     use named_field_mod      , only : named_field_set
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
-!    use ecosys_forcing_mod   , only : ecosys_forcing_set_restore_data
+    use ecosys_forcing_mod   , only : ecosys_forcing_set_forcing_data
+    use ecosys_forcing_mod   , only : marbl_forcing_fields_type
 
     implicit none
 
@@ -893,22 +891,26 @@ contains
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
     integer (int_kind) :: glo_scalar_cnt
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
+    type(marbl_forcing_fields_type) :: tmp_fields
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
-!    call ecosys_forcing_set_restore_data( &
-!         land_mask,                       &
-!         u10_sqr,                         &
-!         ifrac,                           &
-!         press,                           &
-!         dust_flux,                       &
-!         black_carbon_flux,               &
-!         sst,                             &
-!         sss,                             &
-!         input_forcing_data)
+    allocate(tmp_fields%forcing_fields(5))
+    call ecosys_forcing_set_forcing_data( &
+         tmp_fields%forcing_fields,       &
+         ciso_on,                         &
+         land_mask,                       &
+         u10_sqr,                         &
+         ifrac,                           &
+         press,                           &
+         dust_flux,                       &
+         black_carbon_flux,               &
+         sst,                             &
+         sss,                             &
+         input_forcing_data)
 
     ! The following is used in ecosys_driver_set_interior on the next timestep
     dust_flux_in(:,:,:) = input_forcing_data(:,:, marbl_instances(1)%surface_forcing_ind%dust_flux_id,:)
