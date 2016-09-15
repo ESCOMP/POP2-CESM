@@ -124,7 +124,6 @@ module ecosys_driver
   logical   (log_kind) , public              :: ecosys_qsw_distrb_const
   logical   (log_kind)                       :: ciso_on 
   logical   (log_kind) , allocatable         :: land_mask(:, :, :)
-  real      (r8)       , allocatable, target :: fesedflux(:, :, :, :)                 !  sedimentary Fe inputs 
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
   integer :: flux_co2_id
@@ -197,7 +196,7 @@ contains
     use named_field_mod       , only : named_field_set
     use running_mean_mod      , only : running_mean_get_var
     use ecosys_forcing_mod    , only : ecosys_forcing_init
-!    use ecosys_forcing_mod    , only : ecosys_forcing_read_restore_data
+    use ecosys_forcing_mod    , only : ecosys_forcing_read_restore_data
     use marbl_logging         , only : marbl_log_type
 
     implicit none
@@ -377,15 +376,6 @@ contains
     end do
 
     !--------------------------------------------------------------------
-    ! Set up saved state data type
-    !--------------------------------------------------------------------
-
-    call ecosys_saved_state_setup(saved_state_surf,                    &
-         marbl_instances(1)%surface_saved_state)
-    call ecosys_saved_state_setup(saved_state_interior,                &
-         marbl_instances(1)%interior_saved_state)
-
-    !--------------------------------------------------------------------
     !  Initialize marbl 
     !--------------------------------------------------------------------
 
@@ -438,7 +428,7 @@ contains
     end if
 
     !--------------------------------------------------------------------
-    !  Initialize ecosys tracers
+    !  Initialize ecosys tracers and saved state
     !--------------------------------------------------------------------
 
     ! pass ecosys_tracer_init_nml to
@@ -448,6 +438,11 @@ contains
       call marbl_status_log%log_error_trace('marbl_namelist', subname)
       call print_marbl_log(marbl_status_log, 1)
     end if
+
+    call ecosys_saved_state_setup(saved_state_surf,                    &
+         marbl_instances(1)%surface_saved_state)
+    call ecosys_saved_state_setup(saved_state_interior,                &
+         marbl_instances(1)%interior_saved_state)
 
     call ecosys_tracers_and_saved_state_init(                    &
        ciso_on,                                                  &
@@ -471,7 +466,7 @@ contains
     !  If tracer restoring is enabled, read climatological tracer data
     !--------------------------------------------------------------------
 
-!    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
+    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
 
     !--------------------------------------------------------------------
     !  Initialize ecosys forcing fields / restore fields
@@ -487,6 +482,7 @@ contains
     end if
 
     call ecosys_forcing_init(ciso_on,                                         &
+                             num_elements,                                    &
                              marbl_tracer_cnt,                                &
                              marbl_instances(1)%surface_forcing_metadata,     &
                              tmp_nl_buffer)
@@ -707,6 +703,7 @@ contains
     use mcog               , only : mcog_nbins
     use state_mod          , only : ref_pressure
     use ecosys_forcing_mod , only : ecosys_tracer_restore_data_3D
+    use ecosys_forcing_mod , only : fesedflux
 
     implicit none
 
@@ -867,7 +864,6 @@ contains
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
     use ecosys_forcing_mod   , only : ecosys_forcing_set_forcing_data
-    use ecosys_forcing_mod   , only : marbl_forcing_fields_type
 
     implicit none
 
@@ -891,16 +887,13 @@ contains
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
     integer (int_kind) :: glo_scalar_cnt
     real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
-    type(marbl_forcing_fields_type) :: tmp_fields
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
-    allocate(tmp_fields%forcing_fields(5))
     call ecosys_forcing_set_forcing_data( &
-         tmp_fields%forcing_fields,       &
          ciso_on,                         &
          land_mask,                       &
          u10_sqr,                         &
@@ -952,6 +945,31 @@ contains
 
           end do
        end do
+#if 0
+       if (my_task.eq.master_task) then
+         do n = 1,num_surface_forcing_fields
+           write(stdout, "(A,I0,A,2E10.3)") "surface_input_forcings(",n,'): ', &
+                  minval(marbl_instances(iblock)%surface_input_forcings(:,n)), &
+                  maxval(marbl_instances(iblock)%surface_input_forcings(:,n))
+          end do
+
+          do n = 1,marbl_tracer_cnt
+                marbl_instances(iblock)%surface_vals(index_marbl,n) = &
+                     p5*(surface_vals_old(i,j,n,iblock) + surface_vals_cur(i,j,n,iblock))
+           write(stdout, "(A,I0,A,2E10.3)") "surface_vals(", n, '): ',        &
+                    minval(marbl_instances(iblock)%surface_vals(:,n)),        &
+                    maxval(marbl_instances(iblock)%surface_vals(:,n))
+          end do
+
+          do n=1,size(saved_state_surf)
+           write(stdout, "(A,I0,A,2E10.3)") "saved_state(", n, '): ',         &
+                minval(marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(:)), &
+                maxval(marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(:))
+          end do
+
+          call exit_POP(sigAbort, "MNL MNL MNL")
+        end if
+#endif
 
        !-----------------------------------------------------------------------
        ! Determine surface forcing flux - marbl
