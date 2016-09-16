@@ -460,6 +460,18 @@ contains
     call ecosys_saved_state_setup(saved_state_interior,                &
          marbl_instances(1)%interior_saved_state)
 
+    ! Initialize tracer_d_module input argument (needed before reading
+    ! tracers from restart file)
+    do n = 1, marbl_tracer_cnt
+       tracer_d_module(n)%short_name       = marbl_instances(1)%tracer_metadata(n)%short_name      
+       tracer_d_module(n)%long_name        = marbl_instances(1)%tracer_metadata(n)%long_name       
+       tracer_d_module(n)%units            = marbl_instances(1)%tracer_metadata(n)%units           
+       tracer_d_module(n)%tend_units       = marbl_instances(1)%tracer_metadata(n)%tend_units      
+       tracer_d_module(n)%flux_units       = marbl_instances(1)%tracer_metadata(n)%flux_units      
+       tracer_d_module(n)%scale_factor     = marbl_instances(1)%tracer_metadata(n)%scale_factor
+       tracer_d_module(n)%lfull_depth_tavg = marbl_instances(1)%tracer_metadata(n)%lfull_depth_tavg
+    end do
+
     call ecosys_tracers_and_saved_state_init(                    &
        ciso_on,                                                  &
        init_ts_file_fmt,                                         &
@@ -502,20 +514,6 @@ contains
     !--------------------------------------------------------------------
 
     call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
-
-    !--------------------------------------------------------------------
-    ! Initialize tracer_d_module input argument
-    !--------------------------------------------------------------------
-
-    do n = 1, marbl_tracer_cnt
-       tracer_d_module(n)%short_name       = marbl_instances(1)%tracer_metadata(n)%short_name      
-       tracer_d_module(n)%long_name        = marbl_instances(1)%tracer_metadata(n)%long_name       
-       tracer_d_module(n)%units            = marbl_instances(1)%tracer_metadata(n)%units           
-       tracer_d_module(n)%tend_units       = marbl_instances(1)%tracer_metadata(n)%tend_units      
-       tracer_d_module(n)%flux_units       = marbl_instances(1)%tracer_metadata(n)%flux_units      
-       tracer_d_module(n)%scale_factor     = marbl_instances(1)%tracer_metadata(n)%scale_factor
-       tracer_d_module(n)%lfull_depth_tavg = marbl_instances(1)%tracer_metadata(n)%lfull_depth_tavg
-    end do
 
     !--------------------------------------------------------------------
     !  Initialize ecosys_driver module variables

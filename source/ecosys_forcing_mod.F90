@@ -231,9 +231,20 @@ module ecosys_forcing_mod
                                                 ecosys_tracer_restore_data_3D
 
   ! Some forcing fields need special treatment, so we store indices
-  integer(int_kind) :: Fe_ind, nox_ind, nhy_ind, xco2_ind, mask_ind, ifrac_ind
-  integer(int_kind) :: ap_ind, sst_ind, sss_ind, u10sqr_ind, dust_ind
-  integer(int_kind) :: d13c_ind, d14c_ind, d14c_glo_ind, xkw_ind
+  integer(int_kind) :: Fe_ind       = 0, &
+                       nox_ind      = 0, &
+                       nhy_ind      = 0, &
+                       xco2_ind     = 0, &
+                       mask_ind     = 0, &
+                       ifrac_ind    = 0, &
+                       ap_ind       = 0, &
+                       sst_ind      = 0, &
+                       sss_ind      = 0, &
+                       u10sqr_ind   = 0, &
+                       dust_ind     = 0, &
+                       d13c_ind     = 0, &
+                       d14c_ind     = 0, &
+                       d14c_glo_ind = 0
 
   !*****************************************************************************
 
@@ -475,6 +486,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(atm_co2_opt),                     &
                  'is not a valid option for atm_co2_opt'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('xco2_alt_co2')
@@ -486,6 +498,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(atm_alt_co2_opt),                 &
                  'is not a valid option for atm_alt_co2_opt'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('Ice Fraction')
@@ -507,27 +520,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
                  'is not a valid option for gas_flux_forcing_opt'
-          end if
-
-        case ('Piston Velocity')
-          xkw_ind = n
-          if (trim(gas_flux_forcing_opt).eq.'drv') then
-            call forcing_fields%add_forcing_field(field_source='driver',      &
-                                marbl_varname=forcing_metadata(n)%varname,    &
-                                field_units=forcing_metadata(n)%field_units,  &
-                                marbl_driver_varname='XKW_ICE',               &
-                                id=n)
-          else if (trim(gas_flux_forcing_opt).eq.'file') then
-            file_details => xkw_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call forcing_fields%add_forcing_field(field_source='POP monthly calendar', &
-                                marbl_varname=forcing_metadata(n)%varname,    &
-                                field_units=forcing_metadata(n)%field_units,  &
-                                marbl_forcing_calendar_name=file_details,     &
-                                id=n)
-          else
-            write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
-                 'is not a valid option for gas_flux_forcing_opt'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('Atmospheric Pressure')
@@ -549,6 +542,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
                  'is not a valid option for gas_flux_forcing_opt'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('Dust Flux')
@@ -570,6 +564,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(dust_flux_source),                &
                  'is not a valid option for dust_flux_source'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('Iron Flux')
@@ -591,6 +586,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(iron_flux_source),                &
                  'is not a valid option for iron_flux_source'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('NOx Flux')
@@ -599,6 +595,7 @@ contains
             call forcing_fields%add_forcing_field(field_source='file',        &
                                 marbl_varname=forcing_metadata(n)%varname,    &
                                 field_units=forcing_metadata(n)%field_units,  &
+                                unit_conv_factor=ndep_shr_stream_scale_factor,&
                                 file_varname='NOy_deposition',                &
                                 year_first = ndep_shr_stream_year_first,      &
                                 year_last = ndep_shr_stream_year_last,        &
@@ -616,6 +613,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
                  'is not a valid option for ndep_data_type'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('NHy Flux')
@@ -624,6 +622,7 @@ contains
             call forcing_fields%add_forcing_field(field_source='file',        &
                                 marbl_varname=forcing_metadata(n)%varname,    &
                                 field_units=forcing_metadata(n)%field_units,  &
+                                unit_conv_factor=ndep_shr_stream_scale_factor,&
                                 file_varname='NHx_deposition',                &
                                 year_first = ndep_shr_stream_year_first,      &
                                 year_last = ndep_shr_stream_year_last,        &
@@ -641,6 +640,7 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
                  'is not a valid option for ndep_data_type'
+            call exit_POP(sigAbort, err_msg)
           end if
 
         case ('DIN River Flux')
@@ -1176,28 +1176,29 @@ contains
 
        ! Reduce surface dust flux due to assumed instant surface dissolution
        index = dust_ind
-       input_forcing_data(:,:, index,iblock) = input_forcing_data(:,:,index,iblock) * 0.98_r8
+       if (index.gt.0) then
+         input_forcing_data(:,:, index,iblock) = input_forcing_data(:,:,index,iblock) * 0.98_r8
+       end if
 
        ! FIXME : this won't work if iron_flux_source = 'driver-derived', fix this
        ! when surface forcing source is selected in driver, instead of MARBL
        index = Fe_ind
-       if (liron_patch .and. imonth == iron_patch_month) then
-          input_forcing_data(:,:,index,iblock) = input_forcing_data(:,:,index,iblock) + iron_patch_flux(:,:,iblock)
+       if (index.gt.0) then
+         if (liron_patch .and. imonth == iron_patch_month) then
+           input_forcing_data(:,:,index,iblock) = input_forcing_data(:,:,index,iblock) + iron_patch_flux(:,:,iblock)
+         endif
        endif
 
-       index = xkw_ind
-       if (fields(index)%field_source == 'driver') then
-          input_forcing_data(:,:,index,iblock) = xkw_coeff * u10_sqr(:,:,iblock)
-       end if
-
        index = ifrac_ind
-       if (fields(index)%field_source == 'driver') then
-          where (input_forcing_data(:,:,index,iblock) < c0) input_forcing_data(:,:,index,iblock) = c0
-          where (input_forcing_data(:,:,index,iblock) > c1) input_forcing_data(:,:,index,iblock) = c1
-       else
-          ! Apply OCMIP ice fraction mask when input is from a file.
-          where (input_forcing_data(:,:,index,iblock) < 0.2000_r8) input_forcing_data(:,:,index,iblock) = 0.2000_r8
-          where (input_forcing_data(:,:,index,iblock) > 0.9999_r8) input_forcing_data(:,:,index,iblock) = 0.9999_r8
+       if (index.gt.0) then
+         if (fields(index)%field_source == 'driver') then
+           where (input_forcing_data(:,:,index,iblock) < c0) input_forcing_data(:,:,index,iblock) = c0
+           where (input_forcing_data(:,:,index,iblock) > c1) input_forcing_data(:,:,index,iblock) = c1
+         else
+           ! Apply OCMIP ice fraction mask when input is from a file.
+           where (input_forcing_data(:,:,index,iblock) < 0.2000_r8) input_forcing_data(:,:,index,iblock) = 0.2000_r8
+           where (input_forcing_data(:,:,index,iblock) > 0.9999_r8) input_forcing_data(:,:,index,iblock) = 0.9999_r8
+         end if
        end if
 
     end do
@@ -1869,7 +1870,7 @@ contains
   subroutine marbl_forcing_driver_init(this, marbl_driver_varname)
 
     class(marbl_forcing_driver_type), intent(inout) :: this
-    character(char_len),              intent(in)    :: marbl_driver_varname
+    character(len=*),                 intent(in)    :: marbl_driver_varname
 
     this%marbl_driver_varname = marbl_driver_varname
 
@@ -1882,9 +1883,9 @@ contains
 
 
     class(marbl_forcing_file_type),   intent(inout) :: this
-    character(char_len),              intent(in)    :: filename
-    character(char_len),              intent(in)    :: file_varname
-    character(char_len),    optional, intent(in)    :: temporal
+    character(len=*),                 intent(in)    :: filename
+    character(len=*),                 intent(in)    :: file_varname
+    character(len=*),       optional, intent(in)    :: temporal
     integer(kind=int_kind), optional, intent(in)    :: year_first
     integer(kind=int_kind), optional, intent(in)    :: year_last
     integer(kind=int_kind), optional, intent(in)    :: year_align
