@@ -1,6 +1,20 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 September 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n34_marbl_dev_n14_cesm_pop_2_1_20160513
+Tag Summary: Surface forcing is working in single test on hobart, moving code
+             to yellowstone for more extensive testing. Tracer restore should
+             fail as I have commented the code for initializing restoring fields
+             in MARBL but haven't yet moved that code to the driver.
+
+             Requires ebeb095 or later
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    15 September 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n33_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: Surface forcing looks to be initializing correctly, but I'm running

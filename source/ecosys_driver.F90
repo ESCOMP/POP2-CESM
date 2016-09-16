@@ -355,7 +355,7 @@ contains
     !  3) Complete setup ("lock" parmameters so they aren't changed during
     !     time loop; write parameters to log)
     !
-    !  POP sets up saved state and tracers between (1) and (2)
+    !  POP can set up saved state, tracers, and forcing fields after (3)
     !--------------------------------------------------------------------
 
     !--------------------------------------------------------------------
@@ -406,6 +406,22 @@ contains
                     marbl_tracer_cnt
          call exit_POP(sigAbort, log_message)
        end if
+
+    end do
+
+    !--------------------------------------------------------------------
+    !  Complete marbl setup
+    !--------------------------------------------------------------------
+
+    do iblock=1, nblocks_clinic
+
+       call marbl_instances(iblock)%complete_config_and_init()
+       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
+         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%complete_init_and_config()"
+         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
+       end if
+       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
+       call marbl_instances(iblock)%StatusLog%erase()
 
     end do
 
@@ -463,12 +479,6 @@ contains
     endif
 
     !--------------------------------------------------------------------
-    !  If tracer restoring is enabled, read climatological tracer data
-    !--------------------------------------------------------------------
-
-    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
-
-    !--------------------------------------------------------------------
     !  Initialize ecosys forcing fields / restore fields
     !--------------------------------------------------------------------
 
@@ -488,20 +498,10 @@ contains
                              tmp_nl_buffer)
 
     !--------------------------------------------------------------------
-    !  Complete marbl setup
+    !  If tracer restoring is enabled, read climatological tracer data
     !--------------------------------------------------------------------
 
-    do iblock=1, nblocks_clinic
-
-       call marbl_instances(iblock)%complete_config_and_init()
-       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%complete_init_and_config()"
-         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
-       end if
-       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
-       call marbl_instances(iblock)%StatusLog%erase()
-
-    end do
+    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
 
     !--------------------------------------------------------------------
     ! Initialize tracer_d_module input argument
