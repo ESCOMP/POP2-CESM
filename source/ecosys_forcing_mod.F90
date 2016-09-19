@@ -231,7 +231,9 @@ module ecosys_forcing_mod
                                                 ecosys_tracer_restore_data_3D
 
   ! Some forcing fields need special treatment, so we store indices
-  integer(int_kind) :: Fe_ind       = 0, &
+  integer(int_kind) :: dust_ind     = 0, &
+                       Fe_ind       = 0, &
+                       bc_ind       = 0, &
                        nox_ind      = 0, &
                        nhy_ind      = 0, &
                        xco2_ind     = 0, &
@@ -241,7 +243,6 @@ module ecosys_forcing_mod
                        sst_ind      = 0, &
                        sss_ind      = 0, &
                        u10sqr_ind   = 0, &
-                       dust_ind     = 0, &
                        d13c_ind     = 0, &
                        d14c_ind     = 0, &
                        d14c_glo_ind = 0
@@ -568,14 +569,15 @@ contains
           end if
 
         case ('Iron Flux')
-          Fe_ind = n
-          if (trim(iron_flux_source).eq.'driver') then
+          if (trim(iron_flux_source).eq.'driver-derived') then
+            bc_ind = n
             call forcing_fields%add_forcing_field(field_source='driver',      &
                                 marbl_varname=forcing_metadata(n)%varname,    &
                                 field_units=forcing_metadata(n)%field_units,  &
-                                marbl_driver_varname='IRON_FLUX',             &
+                                marbl_driver_varname='BLACK_CARBON_FLUX',     &
                                 id=n)
           else if (trim(iron_flux_source).eq.'monthly-calendar') then
+            Fe_ind = n
             file_details => iron_flux_file_loc
             call init_monthly_surface_forcing_metadata(file_details)
             call forcing_fields%add_forcing_field(field_source='POP monthly calendar', &
@@ -732,6 +734,11 @@ contains
     end do
     end associate
 
+    if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
+      write(err_msg, "(A)") "If deriving iron flux, must provide dust flux!"
+      call exit_POP(sigAbort, err_msg)
+    end if
+
   end subroutine ecosys_forcing_init
 
   !*****************************************************************************
@@ -859,7 +866,11 @@ contains
     use strdata_interface_mod , only : POP_strdata_create
     use passive_tracer_tools  , only : read_field
     use forcing_tools         , only : find_forcing_times
-    use marbl_sizes           , only : num_surface_forcing_fields 
+    use marbl_sizes           , only : num_surface_forcing_fields
+    use marbl_constants_mod   , only : molw_Fe
+    use marbl_parms           , only : iron_frac_in_dust
+    use marbl_parms           , only : iron_frac_in_bc
+    use marbl_parms           , only : parm_Fe_bioavail
 
 
     implicit none
@@ -958,6 +969,7 @@ contains
                    end do
                 end do
              end if
+
              deallocate(work_read)
 
           !------------------------------------
@@ -1101,6 +1113,12 @@ contains
              else if (index == sss_ind) then
                 input_forcing_data(:,:,index,iblock) = sss(:,:,iblock)
 
+             else if (index == bc_ind) then
+                ! compute iron_flux in gFe/cm^2/s, then convert to nmolFe/cm^2/s
+                input_forcing_data(:,:,index,iblock) = (1.0e9_r8 / molw_Fe) * &
+                     ((dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_dust + &
+                          black_carbon_flux(:,:,iblock) * iron_frac_in_bc)
+
              else if (index == u10sqr_ind) then
                 input_forcing_data(:,:,index,iblock) = u10_sqr(:,:,iblock)
 
@@ -1180,12 +1198,22 @@ contains
          input_forcing_data(:,:, index,iblock) = input_forcing_data(:,:,index,iblock) * 0.98_r8
        end if
 
-       ! FIXME : this won't work if iron_flux_source = 'driver-derived', fix this
-       ! when surface forcing source is selected in driver, instead of MARBL
+       ! Add iron patch (if available)
+       ! Apply bioavail scaling
        index = Fe_ind
        if (index.gt.0) then
          if (liron_patch .and. imonth == iron_patch_month) then
            input_forcing_data(:,:,index,iblock) = input_forcing_data(:,:,index,iblock) + iron_patch_flux(:,:,iblock)
+         endif
+         input_forcing_data(:,:,index,iblock) = input_forcing_data(:,:,index,iblock) * parm_Fe_bioavail
+       endif
+
+       ! Add iron patch (if available)
+       index = bc_ind
+       if (index.gt.0) then
+         if (liron_patch .and. imonth == iron_patch_month) then
+           input_forcing_data(:,:,index,iblock) = input_forcing_data(:,:,index,iblock) + &
+                                        iron_patch_flux(:,:,iblock) * parm_Fe_bioavail
          endif
        endif
 
