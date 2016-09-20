@@ -123,17 +123,17 @@ module ecosys_forcing_mod
 
   !*****************************************************************************
 
-  type, private :: marbl_forcing_fields_type
+  type, private :: forcing_fields_type
      integer(kind=int_kind) :: num_elements
      integer(kind=int_kind) :: forcing_field_cnt
      type(marbl_single_forcing_field_type), dimension(:), allocatable :: forcing_fields
    contains
-     procedure, public :: construct         => marbl_forcing_fields_constructor
-     procedure, public :: add_forcing_field => marbl_forcing_fields_add
-     procedure, public :: deconstruct       => marbl_forcing_fields_deconstructor
-  end type marbl_forcing_fields_type
+     procedure, public :: construct         => forcing_fields_constructor
+     procedure, public :: add_forcing_field => forcing_fields_add
+     procedure, public :: deconstruct       => forcing_fields_deconstructor
+  end type forcing_fields_type
 
-  type(marbl_forcing_fields_type) :: surface_forcing_fields
+  type(forcing_fields_type) :: surface_forcing_fields
 
   !---------------------------------------------------------------------
   !  Variables read in via &ecosys_forcing_data_nml
@@ -259,7 +259,7 @@ contains
   !*****************************************************************************
 
   subroutine ecosys_forcing_init(ciso_on, num_elements, tracer_cnt,           &
-                                 forcing_metadata, forcing_nml)
+                                 forcing_metadata, tracer_restore, forcing_nml)
 
     use POP_CommMod, only : POP_Barrier
 
@@ -276,6 +276,7 @@ contains
     integer,                                  intent(in)    :: num_elements
     integer,                                  intent(in)    :: tracer_cnt
     type(marbl_forcing_fields_metadata_type), intent(in)    :: forcing_metadata(:)
+    character(char_len),                      intent(in)    :: tracer_restore(:)
     character(marbl_nl_buffer_size),          intent(in)    :: forcing_nml
 
     !-----------------------------------------------------------------------
@@ -285,7 +286,7 @@ contains
     character(len=char_len)  :: err_msg
     integer (int_kind)       :: nml_error                  ! error flag for nml read
     character(char_len_long) :: ioerror_msg
-    integer                  :: n
+    integer                  :: m, n, match
     type(marbl_forcing_monthly_every_ts_type), pointer :: file_details
 
     namelist /ecosys_forcing_data_nml/                                        &
@@ -748,6 +749,28 @@ contains
       write(err_msg, "(A)") "If deriving iron flux, must provide dust flux!"
       call exit_POP(sigAbort, err_msg)
     end if
+
+    ! Check if climatologies are provided for all tracers that MARBL wants
+    ! to restore
+    do n=1,size(tracer_restore)
+      match = 0
+      do m=1,marbl_tracer_cnt
+        if (trim(tracer_restore(n)).eq.trim(restore_short_names(m))) then
+          match = m
+          if (my_task.eq.master_task) then
+            write(stdout, "(6A)") "Will restore ", trim(tracer_restore(n)),   &
+                                  " with ", trim(restore_file_varnames(m)),   &
+                                  " from ", trim(restore_filenames(m))
+          end if
+          exit
+        end if
+      end do
+      if (match.eq.0) then
+        write(err_msg, "(2A)") "No climatology provided to restore ",         &
+                               trim(tracer_restore(n))
+        call exit_POP(sigAbort, err_msg)
+      end if
+    end do
 
   end subroutine ecosys_forcing_init
 
@@ -1997,7 +2020,7 @@ contains
     integer(kind=int_kind)  :: n
     logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
-    character(*), parameter :: subname = 'marbl_interface_types:marbl_single_forcing_field_init'
+    character(*), parameter :: subname = 'ecosys_forcing_mod:marbl_single_forcing_field_init'
     character(len=char_len) :: log_message
     !-----------------------------------------------------------------------
 
@@ -2097,22 +2120,22 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_forcing_fields_constructor(this, num_elements, num_forcing_fields)
+  subroutine forcing_fields_constructor(this, num_elements, num_forcing_fields)
 
-    class(marbl_forcing_fields_type), intent(inout) :: this
-    integer (int_kind),               intent(in)    :: num_elements
-    integer (int_kind),               intent(in)    :: num_forcing_fields
+    class(forcing_fields_type), intent(inout) :: this
+    integer (int_kind),         intent(in)    :: num_elements
+    integer (int_kind),         intent(in)    :: num_forcing_fields
 
     allocate(this%forcing_fields(num_forcing_fields))
     this%forcing_field_cnt = num_forcing_fields
     this%num_elements      = num_elements
     !TODO: initialize forcing fields to null?
 
-  end subroutine marbl_forcing_fields_constructor
+  end subroutine forcing_fields_constructor
 
   !*****************************************************************************
 
-  subroutine marbl_forcing_fields_add(this, &
+  subroutine forcing_fields_add(this,       &
        field_source,                        &
        marbl_varname,                       &
        field_units,                         &
@@ -2127,7 +2150,7 @@ contains
        date, time,                          &
        marbl_forcing_calendar_name)
 
-    class(marbl_forcing_fields_type), intent(inout) :: this
+    class(forcing_fields_type), intent(inout) :: this
     character(len=*)                , intent(in)    :: field_source
     character(len=*)                , intent(in)    :: marbl_varname
     character(len=*)                , intent(in)    :: field_units
@@ -2147,7 +2170,7 @@ contains
     type(marbl_forcing_monthly_every_ts_type), optional, target, intent(in) :: marbl_forcing_calendar_name
 
     integer (kind=int_kind) :: num_elem
-    character(*), parameter :: subname = 'marbl_interface_types:marbl_forcing_fields_add'
+    character(*), parameter :: subname = 'ecosys_forcing_mod:forcing_fields_add'
     character(len=char_len) :: log_message
 
     if (id .gt. size(this%forcing_fields)) then
@@ -2168,19 +2191,19 @@ contains
          date=date, time=time,                           &
          marbl_forcing_calendar_name=marbl_forcing_calendar_name)
 
-  end subroutine marbl_forcing_fields_add
+  end subroutine forcing_fields_add
 
   !*****************************************************************************
 
-  subroutine marbl_forcing_fields_deconstructor(this)
+  subroutine forcing_fields_deconstructor(this)
 
-    class(marbl_forcing_fields_type), intent(inout) :: this
+    class(forcing_fields_type), intent(inout) :: this
 
     integer (kind=int_kind) :: n
 
     deallocate(this%forcing_fields)
 
-  end subroutine marbl_forcing_fields_deconstructor
+  end subroutine forcing_fields_deconstructor
 
   !*****************************************************************************
 
