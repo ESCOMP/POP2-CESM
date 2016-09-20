@@ -468,8 +468,8 @@ contains
        tracer_d_module(n)%units            = marbl_instances(1)%tracer_metadata(n)%units           
        tracer_d_module(n)%tend_units       = marbl_instances(1)%tracer_metadata(n)%tend_units      
        tracer_d_module(n)%flux_units       = marbl_instances(1)%tracer_metadata(n)%flux_units      
-       tracer_d_module(n)%scale_factor     = marbl_instances(1)%tracer_metadata(n)%scale_factor
        tracer_d_module(n)%lfull_depth_tavg = marbl_instances(1)%tracer_metadata(n)%lfull_depth_tavg
+       tracer_d_module(n)%scale_factor     = c1
     end do
 
     call ecosys_tracers_and_saved_state_init(                    &
@@ -477,7 +477,6 @@ contains
        init_ts_file_fmt,                                         &
        read_restart_filename,                                    &
        tracer_d_module(:),                                       &
-       marbl_instances(1)%tracer_metadata(:)%short_name,         &
        marbl_instances(1)%tracer_metadata(:)%tracer_module_name, &
        tmp_nl_buffer,                                            &
        land_mask,                                                &

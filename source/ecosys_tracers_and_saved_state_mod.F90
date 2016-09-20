@@ -88,7 +88,6 @@ Contains
                                                  init_ts_file_fmt,            &
                                                  read_restart_filename,       &
                                                  tracer_d_module,             &
-                                                 tracer_name,                 &
                                                  module_name,                 &
                                                  tracer_nml,                  &
                                                  land_mask,                   &
@@ -128,7 +127,6 @@ Contains
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
-    character(*), dimension(:),  intent(in)    :: tracer_name
     character(*), dimension(:),  intent(in)    :: module_name
     character(marbl_nl_buffer_size), intent(in)   :: tracer_nml
     logical(log_kind) , dimension(:,:,:), intent(in) :: land_mask
@@ -212,8 +210,8 @@ Contains
     !-----------------------------------------------------------------------
 
     do n=1,marbl_tracer_cnt
-      tracer_inputs(n)%mod_varname  = tracer_name(n)
-      tracer_inputs(n)%file_varname = tracer_name(n)
+      tracer_inputs(n)%mod_varname  = tracer_d_module(n)%short_name
+      tracer_inputs(n)%file_varname = tracer_d_module(n)%short_name
       tracer_inputs(n)%scale_factor = c1
       tracer_inputs(n)%default_val  = c0
       select case (trim(module_name(n)))

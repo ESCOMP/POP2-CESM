@@ -6254,6 +6254,30 @@ Year in atm data that corresponds to ciso_atm_model_year.
 Default: 1
 </entry>
 
+<entry 
+id="restore_short_names"
+type="char*256(100)"
+category="ecosys"
+group="ecosys_forcing_data_nml">
+Default:
+</entry>
+
+<entry 
+id="restore_filenames"
+type="char*256(100)"
+category="ecosys"
+group="ecosys_forcing_data_nml">
+Default:
+</entry>
+
+<entry 
+id="restore_file_varnames"
+type="char*256(100)"
+category="ecosys"
+group="ecosys_forcing_data_nml">
+Default:
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_tracer_init_nml - -->
@@ -6774,26 +6798,11 @@ Default:
 </entry>
 
 <entry 
-id="restore_short_names"
+id="tracer_restore_vars"
 type="char*256(100)"
 category="ecosys"
 group="marbl_parms_nml" >
-Default:
-</entry>
-
-<entry 
-id="restore_filenames"
-type="char*256(100)"
-category="ecosys"
-group="marbl_parms_nml" >
-Default:
-</entry>
-
-<entry 
-id="restore_file_varnames"
-type="char*256(100)"
-category="ecosys"
-group="marbl_parms_nml" >
+Short name for tracers to apply restoring to
 Default:
 </entry>
 

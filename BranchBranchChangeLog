@@ -1,6 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    20 September 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n37_marbl_dev_n14_cesm_pop_2_1_20160513
+Tag Summary: The tracer_field datatype is back in prognostic.F90 (it is
+             similar to marbl_tracer_metadata_type but also contains
+             scale_factor attribute). Also, clean-up based on getting the
+             restore fields into the corect namelist (they are in
+             &ecosys_forcing_data_nml) and we were passing an un-necessary
+             field to ecosys_tracers_and_saved_state_init -- tracer_d_module
+             is a derived type that contains tracer_name, so tracer_name is
+             not needed.
+
+             Requires 69282ce or later
+
+Files Modified:
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/prognostic.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 September 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n36_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: Options for iron flux: derive based on driver values of dust flux

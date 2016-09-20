@@ -24,6 +24,8 @@ module ecosys_forcing_mod
 
   use strdata_interface_mod     , only : strdata_input_type
 
+  use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
   implicit none
   private
 
@@ -185,6 +187,9 @@ module ecosys_forcing_mod
   character(char_len),  target :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
   character(char_len),  target :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
   character(char_len),  target :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_filenames
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_file_varnames
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_short_names
 
   !-----------------------------------------------------------------------
   !  input surface forcing
@@ -298,7 +303,8 @@ contains
          liron_patch, iron_patch_flux_filename, iron_patch_month,             &
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
-         ciso_atm_model_year, ciso_atm_data_year
+         ciso_atm_model_year, ciso_atm_data_year, restore_filenames,          &
+         restore_file_varnames, restore_short_names
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -348,6 +354,10 @@ contains
     ciso_atm_d14c_filename(3)               = 'unknown'
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
+
+    restore_filenames = ''
+    restore_file_varnames = ''
+    restore_short_names = ''
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -748,7 +758,6 @@ contains
     use marbl_restore_mod   , only : marbl_restore_type
     use passive_tracer_tools, only : read_field
     use grid                , only : KMT
-    !use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
 
     implicit none
 
