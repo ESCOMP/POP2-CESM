@@ -943,31 +943,6 @@ contains
 
           end do
        end do
-#if 0
-       if (my_task.eq.master_task) then
-         do n = 1,num_surface_forcing_fields
-           write(stdout, "(A,I0,A,2E10.3)") "surface_input_forcings(",n,'): ', &
-                  minval(marbl_instances(iblock)%surface_input_forcings(:,n)), &
-                  maxval(marbl_instances(iblock)%surface_input_forcings(:,n))
-          end do
-
-          do n = 1,marbl_tracer_cnt
-                marbl_instances(iblock)%surface_vals(index_marbl,n) = &
-                     p5*(surface_vals_old(i,j,n,iblock) + surface_vals_cur(i,j,n,iblock))
-           write(stdout, "(A,I0,A,2E10.3)") "surface_vals(", n, '): ',        &
-                    minval(marbl_instances(iblock)%surface_vals(:,n)),        &
-                    maxval(marbl_instances(iblock)%surface_vals(:,n))
-          end do
-
-          do n=1,size(saved_state_surf)
-           write(stdout, "(A,I0,A,2E10.3)") "saved_state(", n, '): ',         &
-                minval(marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(:)), &
-                maxval(marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(:))
-          end do
-
-          call exit_POP(sigAbort, "MNL MNL MNL")
-        end if
-#endif
 
        !-----------------------------------------------------------------------
        ! Determine surface forcing flux - marbl

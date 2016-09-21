@@ -134,6 +134,7 @@ module ecosys_forcing_mod
   end type forcing_fields_type
 
   type(forcing_fields_type) :: surface_forcing_fields
+  type(marbl_forcing_file_type), dimension(:), allocatable :: interior_restore_files
 
   !---------------------------------------------------------------------
   !  Variables read in via &ecosys_forcing_data_nml
@@ -752,11 +753,14 @@ contains
 
     ! Check if climatologies are provided for all tracers that MARBL wants
     ! to restore
+    allocate(interior_restore_files(size(tracer_restore)))
     do n=1,size(tracer_restore)
       match = 0
       do m=1,marbl_tracer_cnt
         if (trim(tracer_restore(n)).eq.trim(restore_short_names(m))) then
           match = m
+          interior_restore_files(n)%filename = restore_filenames(m)
+          interior_restore_files(n)%file_varname = restore_file_varnames(m)
           if (my_task.eq.master_task) then
             write(stdout, "(6A)") "Will restore ", trim(tracer_restore(n)),   &
                                   " with ", trim(restore_file_varnames(m)),   &
@@ -793,9 +797,9 @@ contains
     !-----------------------------------------------------------------------
     !  load restoring fields (if required)
     !-----------------------------------------------------------------------
-#if 0
+
     if (ecosys_restore%lrestore_any) then
-       do n=1,marbl_tracer_cnt
+       do n=1,size(interior_restore_files)
           associate(&
                marbl_tracer => ecosys_restore%tracer_restore(n), &
                global_field => ecosys_tracer_restore_data_3D(n)  &
@@ -803,8 +807,8 @@ contains
 
           if (allocated(marbl_tracer%climatology)) then
              call global_field%init()
-             call read_field('nc', marbl_tracer%file_metadata%filename,        &
-                  marbl_tracer%file_metadata%file_varname,          &
+             call read_field('nc', interior_restore_files(n)%filename,        &
+                  interior_restore_files(n)%file_varname,                     &
                   global_field%climatology)
              do iblock=1,nblocks_clinic
                 do k=1,km
@@ -818,7 +822,6 @@ contains
           end associate
        end do
     end if
-#endif
 
     !-----------------------------------------------------------------------
     !  load fesedflux
