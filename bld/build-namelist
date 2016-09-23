@@ -1551,6 +1551,11 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'ciso_atm_model_year');
     add_default($nl, 'ciso_atm_data_year');
   }
+  add_default($nl, 'restore_short_names');
+  add_default($nl, 'restore_file_varnames');
+  add_default($nl, 'restore_filenames_derived');
+  my $restore_file="12*" . $nl->get_value('restore_filenames_derived');
+  add_default($nl, 'restore_filenames', 'val'=>"$restore_file", 'quote'=>'FALSE');
 }
 
 ##########################################
@@ -2323,7 +2328,9 @@ sub add_default {
 
     # If the variable is a string, then add quotes if they're missing
     if ($str_len > 0) {
-      $val = quote_string($val);
+      if ((not defined $opts{'quote'}) or ($opts{'quote'} eq 'TRUE')) {
+        $val = quote_string($val);
+      }
     }
 
     # set the value in the namelist

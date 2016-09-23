@@ -6271,6 +6271,15 @@ Default:
 </entry>
 
 <entry 
+id="restore_filenames_derived"
+type="char*256"
+category="ecosys"
+group="derived" 
+input_pathname="abs" >
+Default:
+</entry>
+
+<entry 
 id="restore_file_varnames"
 type="char*256(100)"
 category="ecosys"

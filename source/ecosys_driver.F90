@@ -504,7 +504,6 @@ contains
 
     call ecosys_forcing_init(ciso_on,                                         &
                              num_elements,                                    &
-                             marbl_tracer_cnt,                                &
                              marbl_instances(1)%surface_forcing_metadata,     &
                              marbl_instances(1)%interior_forcing_input%tracer_names, &
                              tmp_nl_buffer)
