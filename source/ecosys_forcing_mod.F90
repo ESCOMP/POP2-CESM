@@ -727,7 +727,7 @@ contains
                               id=n)
 
         case DEFAULT
-          write(err_msg, "(A,1X,A)"), trim(marbl_metadata(n)%varname),        &
+          write(err_msg, "(A,1X,A)") trim(marbl_metadata(n)%varname),         &
                          'is not a valid surface forcing field name.'
           call exit_POP(sigAbort, err_msg)
       end select
