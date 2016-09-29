@@ -117,7 +117,6 @@
       coupled_ts            ! time_flag id for a coupled timestep
 
    logical (log_kind)   :: &! time-method control
-      lrobert_filter,      &! true if using robert filtering time method
       lfit_ts_interval      ! true if using any time method in which the timestep size is
                             !   selected to enforce strict pop2 alignment with coupling intervals.
                             !   Not true when using avg or avgbb, because the number of steps per
@@ -441,6 +440,20 @@
                              ! coriolis and  surface-pressure gradient
                              ! are not time centered
 
+!----------------------------------------------------------------------
+!
+!  Robert Filter variables
+!
+!----------------------------------------------------------------------
+
+   logical (log_kind) :: lrobert_filter          ! true if using robert filtering time method
+   logical (log_kind) :: lrf_nonzero_newtime     ! true if using robert robert_newtime .ne. 0
+   logical (log_kind) :: lrf_nonzero_newtime_tol ! test single-precision-ness
+   logical (log_kind) :: lrf_conserveVT          ! conserve <V*T> across RF.  
+                                                 ! Unstable. Use as sanity check only.
+
+   real (r8), dimension(nt) :: rf_S_prev, rf_Svol_prev
+
    real (r8) :: &
       robert_alpha,         &! Robert filter coefficient, default = 0.53; Williams, 2009
       robert_nu,            &! Robert filter coefficient, default = 0.20; Williams, 2009
@@ -458,6 +471,14 @@
 
    real (r8), dimension(:), allocatable :: &
       interval_cum_dayfrac
+
+!-----------------------------------------------------------------------
+!
+!  variables to control output
+!
+!-----------------------------------------------------------------------
+
+   logical (kind=log_kind) :: ltime_mgr_print  !time-manager info every dt and print time flags
 
 !EOP
 !BOC
@@ -480,9 +501,6 @@
       hour_at_interval,  &! hour value at end of each interval
       min_at_interval,   &! min  value at end of each interval
       sec_at_interval     ! sec  value at end of each interval
-
-   logical (kind=log_kind),private   ::   &
-      debug_time_management   = .false. 
 
 !EOC
 !***********************************************************************
@@ -520,6 +538,8 @@
    logical (log_kind)   ::  &
       last_step, error_code ! stepsize error testing
 
+
+
    character (char_len) ::  &
       stepsize_string, message_string ! last step/error condition reporting string
 !-----------------------------------------------------------------------
@@ -544,7 +564,8 @@
                isecond0,       dt_option,       dt_count,        &
                stop_option,    stop_count,      date_separator,  &
                allow_leapyear, fit_freq,                         &
-               robert_alpha,   robert_nu
+               robert_alpha,   robert_nu,       ltime_mgr_print, &
+               lrf_conserveVT
 
 !-----------------------------------------------------------------------
 !
@@ -577,8 +598,8 @@
    dt_option       = 'steps_per_day'
    dt_count         =  1
 
-   dt_tol     = 1.0e-6
-   dt_tol_year= 100.0*dt_tol
+   dt_tol     = 1.0e-6_POP_r8
+   dt_tol_year= 100.0_POP_r8*dt_tol
 
    iyear0     = 0
    imonth0    = 1
@@ -587,13 +608,20 @@
    iminute0   = 0
    isecond0   = 0
 
-   lrobert_filter = .false.
-   robert_nu      = 0.20_POP_r8 !nu = 0.2, Williams[2009]
-   robert_alpha   = 0.53_POP_r8 !alpha in Williams, 2009
-
    lfit_ts_interval = .false.  
+   ltime_mgr_print  = .false.
+
+   lrobert_filter      = .false.
+   lrf_conserveVT      = .false.
+   lrf_nonzero_newtime = .true.
+
+   robert_nu    = 0.20_POP_r8 !nu = 0.2, Williams[2009]
+   robert_alpha = 0.53_POP_r8 !alpha in Williams, 2009
 
    date_separator = ' '
+
+   rf_S_prev    = c0
+   rf_Svol_prev = c0
 
 !-----------------------------------------------------------------------
 !
@@ -862,6 +890,52 @@
      !*** define Robert-filter-related coefficients
      robert_curtime = p5*robert_nu* robert_alpha
      robert_newtime = p5*robert_nu*(robert_alpha - c1)
+
+     !*** probably good enough most of the time...
+     lrf_nonzero_newtime     = (.not. robert_newtime == c0)             !full-precision test
+
+     !*** but account for round-off possibility with a single-precision-ish test
+     lrf_nonzero_newtime_tol = (.not. (abs(robert_alpha-c1) <= dt_tol)) 
+
+     if (lrf_nonzero_newtime .and. lrf_nonzero_newtime_tol) then
+       !*** ok as-is
+          call document ('init_time1', 'lrf_nonzero_newtime     ', lrf_nonzero_newtime)
+          call document ('init_time1', 'lrf_nonzero_newtime_tol ', lrf_nonzero_newtime_tol)
+          call document ('init_time1', 'robert_curtime              ', robert_curtime)
+          call document ('init_time1', 'robert_newtime              ', robert_newtime)
+     else if (.not. lrf_nonzero_newtime .and. .not. lrf_nonzero_newtime_tol) then
+       !*** ok as-is
+          call document ('init_time1', 'lrf_nonzero_newtime     ', lrf_nonzero_newtime)
+          call document ('init_time1', 'lrf_nonzero_newtime_tol ', lrf_nonzero_newtime_tol)
+          call document ('init_time1', 'robert_curtime              ', robert_curtime)
+          call document ('init_time1', 'robert_newtime              ', robert_newtime)
+     else
+       !*** deal with roundoff
+       if (lrf_nonzero_newtime .and. .not. lrf_nonzero_newtime_tol) then
+          !*** robert_newtime is small and non-zero
+          !    treat it as if it were exactly zero
+          call document ('init_time1', 'pre-roundoff reset lrf_nonzero_newtime ', lrf_nonzero_newtime)
+          call document ('init_time1', 'pre-roundoff reset robert_curtime          ', robert_curtime)
+          call document ('init_time1', 'pre-roundoff reset robert_newtime          ', robert_newtime)
+          robert_curtime = p5*robert_nu
+          robert_newtime = c0
+          lrf_nonzero_newtime = .false. 
+          call document ('init_time1', 'post-roundoff reset lrf_nonzero_newtime', lrf_nonzero_newtime)
+          call document ('init_time1', 'post-roundoff reset robert_curtime         ', robert_curtime)
+          call document ('init_time1', 'post-roundoff reset robert_newtime         ', robert_newtime)
+       else
+         !*** exit because this does not make sense
+          call document ('init_time1', 'FATAL lrf_nonzero_newtime ERROR')
+          call document ('init_time1', 'lrf_nonzero_newtime     ', lrf_nonzero_newtime)
+          call document ('init_time1', 'lrf_nonzero_newtime_tol ', lrf_nonzero_newtime_tol)
+          call document ('init_time1', 'abs(robert_alpha-c1)        ', abs(robert_alpha-c1))
+          call document ('init_time1', 'dt_tol                      ', dt_tol)
+          call document ('init_time1', '     (abs(robert_alpha-c1) <= dt_tol',      (abs(robert_alpha-c1) <= dt_tol))
+          call document ('init_time1', '.not.(abs(robert_alpha-c1) <= dt_tol', .not.(abs(robert_alpha-c1) <= dt_tol))
+         write(exit_string,'(a)')  'robert_alpha roundoff test error'
+         call exit_POP (sigAbort, exit_string, out_unit=stdout)
+       endif
+     endif
 
    else !***all other tmix options except tmix_avgfit and tmix_robert
 
@@ -1682,6 +1756,7 @@
 
  end subroutine init_time2
 
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: time_manager
@@ -1873,9 +1948,9 @@
 !
    if (liceform) then
       if (lcoupled) then
-         if (licecesm2) then
+         if (lrobert_filter .or. licecesm2) then
             ice_ts = .true.
-         else  ! .not. licecesm2
+         else  ! .not. licecesm2 .and. .not. lrobert_filter
             if (check_time_flag(coupled_ts) ) then
                if (lfit_ts_interval) then
                   ice_ts = .true.
@@ -1915,6 +1990,7 @@
       if (ice_ts) sample_qflux_ts = .true.
 
    endif  ! liceform
+
 
 !-----------------------------------------------------------------------
 !
@@ -1975,16 +2051,16 @@
 !     report ocn model time daily
 !-----------------------------------------------------------------------
 
- if (eod .or. debug_time_management .or. registry_match('info_debug_ge2')) then
+ if (eod .or. ltime_mgr_print .or. registry_match('info_debug_ge2')) then
   if (my_task == master_task) then
     if (iyear <= 9999) then
-      if (debug_time_management) then
+      if (ltime_mgr_print) then
       write(stdout,1002) iyear, cmonth3, iday, seconds_this_day, ice_ts, f_euler_ts
       else
-      write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
+      write(stdout,1001) iyear, cmonth3, iday, seconds_this_day, nsteps_total
       endif
     else
-      write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
+      write(stdout,1001) iyear, cmonth3, iday, seconds_this_day, nsteps_total
     endif
     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
   endif
@@ -1992,7 +2068,8 @@
 1000 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &
                                   i2.2,', ', 1pe12.6, ' sec')
 1001 format (' (time_manager)', ' ocn date ', i5.5, '-', a3, '-', &
-                                  i2.2,', ', 1pe12.6, ' sec')
+                                  i2.2,', ', 1pe12.6, ' sec',     &
+                                  2x,'nsteps_total = ',  i7)
 
 1002 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &
                                   i2.2,', ', 1pe12.6, ' sec', ' ice_ts = ', l4, &
@@ -2321,7 +2398,7 @@
    endif
 
  
-   if (debug_time_management) call document_time_flag(flag_id)
+   if (ltime_mgr_print) call document_time_flag(flag_id)
 
 
 !-----------------------------------------------------------------------
@@ -5694,8 +5771,6 @@
 
  end subroutine ccsm_char_date_and_time
  
-!***********************************************************************
-
 !***********************************************************************
 
  end module time_management

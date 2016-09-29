@@ -26,7 +26,6 @@
    use broadcast
    use global_reductions
    use grid
-   use forcing
    use forcing_fields
    use timers
    use exit_mod

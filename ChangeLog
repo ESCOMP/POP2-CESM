@@ -1,5 +1,43 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  njn01
+Tag Date:    29 Sep 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160929
+Tag Summary: add robert filtering to trunk - bfb with cesm1_5_beta07 - default off
+
+Testing: aux_pop - BFB - nlcomp failed because of added robert namelist options
+	                 ERI restarts still failing because of WW3
+
+	M       ChangeLog
+	M       bld/namelist_files/namelist_definition_pop.xml
+	M       input_templates/gx1v6_tavg_contents
+	M       source/baroclinic.F90
+	M       source/budget_diagnostics.F90
+	M       source/diagnostics.F90
+	M       source/forcing_sfwf.F90
+	M       source/grid.F90
+	M       source/ice.F90
+	M       source/initial.F90
+	M       source/io_tools.F90
+	M       source/overflows.F90
+	M       source/qflux_mod.F90
+	M       source/restart.F90
+	M       source/step_mod.F90
+	M       source/surface_hgt.F90
+	M       source/tavg.F90
+	M       source/time_management.F90
+
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    28 Sep 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160928
+Tag Summary:  fix for the NCK test
+
+Testing: 
+
+===============================================================================
+Tag Creator: jet
 Developers:  jedwards
 Tag Date:    28 Aug 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160828

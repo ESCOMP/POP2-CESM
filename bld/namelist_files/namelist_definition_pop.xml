@@ -217,7 +217,7 @@ id="time_mix_opt"
 type="char*256"
 category="timemgr"
 group="time_manager_nml"
-valid_values="avg,avgbb,avgfit" >
+valid_values="avg,avgbb,avgfit,robert" >
 Option for time mixing: 
    avgfit = leapfrog with occasional time-averaging timestep to control stability. 
             The timestep is modified such that an integer number of full and half timesteps
@@ -232,7 +232,7 @@ Option for time mixing:
             followed by another time-averaging timestep ("back-to-back" avg). DO NOT USE THIS
             OPTION in scientific experiments.
 
-Valid Values: 'avgfit', 'avg', 'avgbb'
+Valid Values: 'robert' 'avgfit', 'avg', 'avgbb'
 Default: 'avgfit' 
 </entry>
 
@@ -449,6 +449,27 @@ Weather Review, Vol 137, 2009.
 Default: 0.20
 </entry>
 
+<entry 
+id="ltime_mgr_print"
+type="logical"
+category="timemgr"
+group="time_manager_nml" >
+Print time_manager info every timestep and print initial time-flag info.
+
+Default: .false.
+</entry>
+
+
+<entry 
+id="lrf_conserveVT"
+type="logical"
+category="timemgr"
+group="time_manager_nml" >
+Conserve <volume*TRACER> across each Robert Filtering step. Note that
+this is unstable, so only use as a sanity check over a few days at most.
+
+Default: .false.
+</entry>
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: grid_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -946,6 +967,16 @@ group="budget_diagnostics_nml" >
 Flag for global budget diagnostics for tracers.
 
 Default: .true.
+</entry>
+
+<entry 
+id="lrf_print_budget_term_by_term"
+type="logical"
+category="diag"
+group="budget_diagnostics_nml" >
+Flag for printing Robert-filter budget terms in a human-eye-friendly manner. 
+
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
