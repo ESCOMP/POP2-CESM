@@ -780,14 +780,10 @@ contains
 
              ! --- set tracer restore fields ---
 
-             if (marbl_instances(bid)%restoring%lrestore_any) then
-                do n=1, marbl_tracer_cnt
-                   if (allocated(ecosys_tracer_restore_data_3D(n)%climatology)) then
-                      marbl_instances(bid)%restoring%tracer_restore(n)%climatology(:) = &
-                           ecosys_tracer_restore_data_3D(n)%climatology(i,c,:,bid)
-                   end if
-                end do
-             end if
+             do n=1,size(ecosys_tracer_restore_data_3D)
+                marbl_instances(bid)%restoring%tracer_restore(n)%climatology(:) = &
+                     ecosys_tracer_restore_data_3D(n)%climatology(i,c,:,bid)
+             end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
              do n=1,size(saved_state_interior)

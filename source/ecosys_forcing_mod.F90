@@ -378,7 +378,7 @@ contains
        call ciso_init_atm_D13_D14()
     end if
 
-    allocate(ecosys_tracer_restore_data_3D(marbl_tracer_cnt))
+    allocate(ecosys_tracer_restore_data_3D(size(tracer_restore)))
 
     call get_timer(ecosys_pre_sflux_timer    , 'ECOSYS_PRE_SFLUX'  , 1              , distrb_clinic%nprocs)
     if (ndep_data_type == 'shr_stream') then
@@ -786,30 +786,26 @@ contains
     !  load restoring fields (if required)
     !-----------------------------------------------------------------------
 
-    if (ecosys_restore%lrestore_any) then
-       do n=1,size(interior_restore_files)
-          associate(&
-               marbl_tracer => ecosys_restore%tracer_restore(n), &
-               global_field => ecosys_tracer_restore_data_3D(n)  &
-               )
+    do n=1,size(ecosys_tracer_restore_data_3D)
+       associate(&
+            marbl_tracer => ecosys_restore%tracer_restore(n), &
+            global_field => ecosys_tracer_restore_data_3D(n)  &
+            )
 
-          if (allocated(marbl_tracer%climatology)) then
-             call global_field%init()
-             call read_field('nc', interior_restore_files(n)%filename,        &
-                  interior_restore_files(n)%file_varname,                     &
-                  global_field%climatology)
-             do iblock=1,nblocks_clinic
-                do k=1,km
-                   where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
-                      global_field%climatology(:,:,k,iblock) = c0
-                   end where
-                end do
-             end do
-          end if
-
-          end associate
+       call global_field%init()
+       call read_field('nc', interior_restore_files(n)%filename,        &
+            interior_restore_files(n)%file_varname,                     &
+            global_field%climatology)
+       do iblock=1,nblocks_clinic
+          do k=1,km
+             where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
+                global_field%climatology(:,:,k,iblock) = c0
+             end where
+          end do
        end do
-    end if
+
+       end associate
+    end do
 
     !-----------------------------------------------------------------------
     !  load fesedflux
