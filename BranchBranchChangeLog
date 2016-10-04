@@ -1,6 +1,20 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    4 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n43_marbl_dev_n14_cesm_pop_2_1_20160513
+Tag Summary: Climatology is not necessarily the right term to use to refer to
+             the field we restore tracers to... so I switched to the more
+             generic "data" in derived types (both in POP and MARBL).
+
+             Requires 34906ac or later
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    30 September 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n42_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: Update to handle interface change in MARBL restoring. Also changed

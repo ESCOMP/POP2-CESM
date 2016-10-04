@@ -35,11 +35,11 @@ module ecosys_forcing_mod
 
   !*****************************************************************************
 
-  type :: ecosys_restoring_climatology_type
-    real(r8), allocatable :: climatology(:,:,:,:)
+  type :: ecosys_restoring_data_type
+    real(r8), allocatable :: data(:,:,:,:)
   contains
-    procedure :: init => ecosys_restoring_climatology_init
-  end type ecosys_restoring_climatology_type
+    procedure :: init => ecosys_restoring_data_init
+  end type ecosys_restoring_data_type
 
   !*****************************************************************************
 
@@ -230,7 +230,7 @@ module ecosys_forcing_mod
   integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_shr_strdata_advance_timer
 
-  type(ecosys_restoring_climatology_type), allocatable, dimension(:), public :: &
+  type(ecosys_restoring_data_type), allocatable, dimension(:), public ::      &
                                                 ecosys_tracer_restore_data_3D
 
   ! Some forcing fields need special treatment, so we store indices
@@ -739,8 +739,7 @@ contains
       call exit_POP(sigAbort, err_msg)
     end if
 
-    ! Check if climatologies are provided for all tracers that MARBL wants
-    ! to restore
+    ! Check if data are provided for all tracers that MARBL wants to restore
     allocate(interior_restore_files(size(tracer_restore)))
     do n=1,size(tracer_restore)
       match = 0
@@ -758,7 +757,7 @@ contains
         end if
       end do
       if (match.eq.0) then
-        write(err_msg, "(2A)") "No climatology provided to restore ",         &
+        write(err_msg, "(2A)") "No restoring data provided for ",             &
                                trim(tracer_restore(n))
         call exit_POP(sigAbort, err_msg)
       end if
@@ -795,11 +794,11 @@ contains
        call global_field%init()
        call read_field('nc', interior_restore_files(n)%filename,        &
             interior_restore_files(n)%file_varname,                     &
-            global_field%climatology)
+            global_field%data)
        do iblock=1,nblocks_clinic
           do k=1,km
              where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
-                global_field%climatology(:,:,k,iblock) = c0
+                global_field%data(:,:,k,iblock) = c0
              end where
           end do
        end do
@@ -1893,13 +1892,13 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_restoring_climatology_init(this)
+  subroutine ecosys_restoring_data_init(this)
 
-    class (ecosys_restoring_climatology_type), intent(inout) :: this
+    class (ecosys_restoring_data_type), intent(inout) :: this
 
-    allocate(this%climatology(nx_block, ny_block, km, max_blocks_clinic))
+    allocate(this%data(nx_block, ny_block, km, max_blocks_clinic))
 
-  end subroutine ecosys_restoring_climatology_init
+  end subroutine ecosys_restoring_data_init
 
   !*****************************************************************************
 

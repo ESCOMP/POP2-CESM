@@ -509,7 +509,7 @@ contains
                              tmp_nl_buffer)
 
     !--------------------------------------------------------------------
-    !  If tracer restoring is enabled, read climatological tracer data
+    !  If tracer restoring is enabled, read restoring data
     !--------------------------------------------------------------------
 
     call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
@@ -781,8 +781,8 @@ contains
              ! --- set tracer restore fields ---
 
              do n=1,size(ecosys_tracer_restore_data_3D)
-                marbl_instances(bid)%restoring%tracer_restore(n)%climatology(:) = &
-                     ecosys_tracer_restore_data_3D(n)%climatology(i,c,:,bid)
+                marbl_instances(bid)%restoring%tracer_restore(n)%data(:) =    &
+                     ecosys_tracer_restore_data_3D(n)%data(i,c,:,bid)
              end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
