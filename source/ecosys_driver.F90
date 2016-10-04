@@ -30,7 +30,6 @@ module ecosys_driver
   use marbl_config_mod          , only : lflux_gas_co2
 
   use marbl_logging             , only : marbl_log_type
-  use marbl_logging             , only : marbl_status_log_entry_type
 
   use marbl_interface           , only : marbl_interface_class
 
@@ -44,7 +43,6 @@ module ecosys_driver
   use ecosys_tavg               , only : ecosys_tavg_accumulate
   use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
 
-  use passive_tracer_tools      , only : ind_name_pair
   use passive_tracer_tools      , only : tracer_read
 
   use timers                    , only : timer_start
@@ -54,7 +52,6 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_construct_io_fields
-  use ecosys_tracers_and_saved_state_mod, only : set_defaults_tcr_rd
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
   use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
@@ -80,27 +77,6 @@ module ecosys_driver
   private :: ecosys_driver_update_scalar_rmeans
 
   !*****************************************************************************
-
-  type, public :: forcing_monthly_every_ts_type
-     type      (tracer_read) :: input
-     logical   (log_kind)    :: has_data
-     character (char_len)    :: interp_type       ! = 'linear'
-     character (char_len)    :: data_type         ! = 'monthly-calendar'
-     character (char_len)    :: interp_freq       ! = 'every-timestep'
-     character (char_len)    :: filename          ! = 'not-used-for-monthly'
-     character (char_len)    :: data_label        ! = 'not-used-for-monthly'
-     real      (r8), pointer :: data(:,:,:,:,:)
-     real      (r8)          :: data_time(12)     ! times where DATA is given
-     real      (r8)          :: data_renorm(20)   ! not used for monthly
-     real      (r8)          :: data_inc          ! not used for monthly data
-     real      (r8)          :: data_next         ! time used for the next value of forcing data needed
-     real      (r8)          :: data_update       ! time when new forcing value needs to be added 
-     real      (r8)          :: interp_inc        ! not used for 'every-timestep' interp
-     real      (r8)          :: interp_next       ! not used for 'every-timestep' interp
-     real      (r8)          :: interp_last       ! not used for 'every-timestep' interp
-     integer   (int_kind)    :: data_time_min_loc ! index of third dimension of data_time
-                                                  ! containing minimum forcing time
-  end type forcing_monthly_every_ts_type
 
   !-----------------------------------------------------------------------
   ! timers
@@ -128,11 +104,6 @@ module ecosys_driver
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
   integer :: flux_co2_id
   integer :: totalChl_id
-
-  ! Named tables 
-  ! Note - ind_name_table is needed as a module variable because of interface
-  !        to ecosys_write_restart
-  type(ind_name_pair), allocatable, dimension(:) :: ind_name_table     ! derived type & parameter for tracer index lookup
 
   ! Set by surface flux and used by interior
   ! FIXME - this should be moved to be read in by set_interior if possible
@@ -196,7 +167,7 @@ contains
     use named_field_mod       , only : named_field_set
     use running_mean_mod      , only : running_mean_get_var
     use ecosys_forcing_mod    , only : ecosys_forcing_init
-    use ecosys_forcing_mod    , only : ecosys_forcing_read_restore_data
+    use ecosys_forcing_mod    , only : ecosys_forcing_read_interior_data
     use marbl_logging         , only : marbl_log_type
 
     implicit none
@@ -217,7 +188,7 @@ contains
     !              less error-prone (reading namelist on each task rather
     !              than relying on broadcasts to ensure every task has every
     !              namelist variable set correctly).
-    type(marbl_log_type)                :: marbl_status_log
+    type(marbl_log_type)                :: ecosys_status_log
     character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)                 :: log_message
     integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
@@ -301,13 +272,13 @@ contains
 
     ! now every process reads the namelists from the buffer
     ioerror_msg=''
-    call marbl_status_log%construct()
+    call ecosys_status_log%construct()
 
     ! ecosys_driver_nml
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml',marbl_status_log)
-    if (marbl_status_log%labort_marbl) then
-      call marbl_status_log%log_error_trace('marbl_namelist', subname)
-      call print_marbl_log(marbl_status_log, 1)
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml',ecosys_status_log)
+    if (ecosys_status_log%labort_marbl) then
+      call ecosys_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(ecosys_status_log, 1)
     end if
     read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -447,14 +418,6 @@ contains
     !  Initialize ecosys tracers and saved state
     !--------------------------------------------------------------------
 
-    ! pass ecosys_tracer_init_nml to
-    ! ecosys_tracers_and_saved_state_init()
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_tracer_init_nml',marbl_status_log)
-    if (marbl_status_log%labort_marbl) then
-      call marbl_status_log%log_error_trace('marbl_namelist', subname)
-      call print_marbl_log(marbl_status_log, 1)
-    end if
-
     call ecosys_saved_state_setup(saved_state_surf,                    &
          marbl_instances(1)%surface_saved_state)
     call ecosys_saved_state_setup(saved_state_interior,                &
@@ -471,6 +434,15 @@ contains
        tracer_d_module(n)%lfull_depth_tavg = marbl_instances(1)%tracer_metadata(n)%lfull_depth_tavg
        tracer_d_module(n)%scale_factor     = c1
     end do
+
+    ! pass ecosys_tracer_init_nml to
+    ! ecosys_tracers_and_saved_state_init()
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_tracer_init_nml',       &
+                                   ecosys_status_log)
+    if (ecosys_status_log%labort_marbl) then
+      call ecosys_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(ecosys_status_log, 1)
+    end if
 
     call ecosys_tracers_and_saved_state_init(                    &
        ciso_on,                                                  &
@@ -496,10 +468,11 @@ contains
     ! pass ecosys_forcing_data_nml
     ! to ecosys_forcing_init()
     ! Also pass marbl_instance%surface_forcing_metadata
-    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_forcing_data_nml',marbl_status_log)
-    if (marbl_status_log%labort_marbl) then
-      call marbl_status_log%log_error_trace('marbl_namelist', subname)
-      call print_marbl_log(marbl_status_log, 1)
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_forcing_data_nml',      &
+                                   ecosys_status_log)
+    if (ecosys_status_log%labort_marbl) then
+      call ecosys_status_log%log_error_trace('marbl_namelist', subname)
+      call print_marbl_log(ecosys_status_log, 1)
     end if
 
     call ecosys_forcing_init(ciso_on,                                         &
@@ -512,7 +485,7 @@ contains
     !  If tracer restoring is enabled, read restoring data
     !--------------------------------------------------------------------
 
-    call ecosys_forcing_read_restore_data(land_mask, marbl_instances(1)%restoring)
+    call ecosys_forcing_read_interior_data(land_mask, marbl_instances(1)%restoring)
 
     !--------------------------------------------------------------------
     !  Initialize ecosys_driver module variables
@@ -523,11 +496,6 @@ contains
     end associate
 
     tadvect_ctype(1:marbl_tracer_cnt) = ecosys_tadvect_ctype
-
-    allocate(ind_name_table(marbl_tracer_cnt))
-    do n = 1, marbl_tracer_cnt
-       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
-    end do
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -1239,6 +1207,8 @@ contains
   !*****************************************************************************
 
   subroutine print_marbl_log(log_to_print, iblock)
+
+    use marbl_logging             , only : marbl_status_log_entry_type
 
     class(marbl_log_type), intent(in) :: log_to_print
     integer,               intent(in) :: iblock

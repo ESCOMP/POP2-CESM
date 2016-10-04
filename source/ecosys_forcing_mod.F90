@@ -9,6 +9,7 @@ module ecosys_forcing_mod
   use exit_mod, only : sigAbort, exit_POP
 
   use passive_tracer_tools, only : tracer_read
+  use passive_tracer_tools, only : forcing_monthly_every_ts
 
   use communicate, only : my_task, master_task
 
@@ -30,7 +31,7 @@ module ecosys_forcing_mod
   private
 
   public :: ecosys_forcing_init
-  public :: ecosys_forcing_read_restore_data
+  public :: ecosys_forcing_read_interior_data
   public :: ecosys_forcing_set_forcing_data
 
   !*****************************************************************************
@@ -40,29 +41,6 @@ module ecosys_forcing_mod
   contains
     procedure :: init => ecosys_restoring_data_init
   end type ecosys_restoring_data_type
-
-  !*****************************************************************************
-
-  type, public :: forcing_monthly_every_ts_type
-     type      (tracer_read) :: input
-     logical   (log_kind)    :: has_data
-     character (char_len)    :: interp_type       ! = 'linear'
-     character (char_len)    :: data_type         ! = 'monthly-calendar'
-     character (char_len)    :: interp_freq       ! = 'every-timestep'
-     character (char_len)    :: filename          ! = 'not-used-for-monthly'
-     character (char_len)    :: data_label        ! = 'not-used-for-monthly'
-     real      (r8), pointer :: data(:,:,:,:,:)
-     real      (r8)          :: data_time(12)     ! times where DATA is given
-     real      (r8)          :: data_renorm(20)   ! not used for monthly
-     real      (r8)          :: data_inc          ! not used for monthly data
-     real      (r8)          :: data_next         ! time used for the next value of forcing data needed
-     real      (r8)          :: data_update       ! time when new forcing value needs to be added 
-     real      (r8)          :: interp_inc        ! not used for 'every-timestep' interp
-     real      (r8)          :: interp_next       ! not used for 'every-timestep' interp
-     real      (r8)          :: interp_last       ! not used for 'every-timestep' interp
-     integer   (int_kind)    :: data_time_min_loc ! index of third dimension of data_time
-                                                             ! containing minimum forcing time
-  end type forcing_monthly_every_ts_type
 
   !*****************************************************************************
 
@@ -99,7 +77,7 @@ module ecosys_forcing_mod
   !*****************************************************************************
 
   type, private :: forcing_monthly_calendar_type
-     type (forcing_monthly_every_ts_type), pointer :: forcing_calendar_name
+     type (forcing_monthly_every_ts), pointer :: forcing_calendar_name
    contains
      procedure :: initialize  => forcing_monthly_calendar_init
   end type forcing_monthly_calendar_type
@@ -195,22 +173,22 @@ module ecosys_forcing_mod
   !-----------------------------------------------------------------------
   !  input surface forcing
   !-----------------------------------------------------------------------
-  type(forcing_monthly_every_ts_type), target :: dust_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: iron_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: fice_file_loc
-  type(forcing_monthly_every_ts_type), target :: xkw_file_loc
-  type(forcing_monthly_every_ts_type), target :: ap_file_loc
-  type(forcing_monthly_every_ts_type), target :: nox_flux_monthly_file_loc
-  type(forcing_monthly_every_ts_type), target :: nhy_flux_monthly_file_loc
-  type(forcing_monthly_every_ts_type), target :: din_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: dip_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: don_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: dop_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: dsi_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: dfe_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: dic_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: alk_riv_flux_file_loc
-  type(forcing_monthly_every_ts_type), target :: doc_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: dust_flux_file_loc
+  type(forcing_monthly_every_ts), target :: iron_flux_file_loc
+  type(forcing_monthly_every_ts), target :: fice_file_loc
+  type(forcing_monthly_every_ts), target :: xkw_file_loc
+  type(forcing_monthly_every_ts), target :: ap_file_loc
+  type(forcing_monthly_every_ts), target :: nox_flux_monthly_file_loc
+  type(forcing_monthly_every_ts), target :: nhy_flux_monthly_file_loc
+  type(forcing_monthly_every_ts), target :: din_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: dip_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: don_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: dop_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: dsi_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: dfe_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: dic_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: alk_riv_flux_file_loc
+  type(forcing_monthly_every_ts), target :: doc_riv_flux_file_loc
 
   integer (int_kind), parameter :: shr_stream_var_cnt    = 2 ! number of variables in ndep shr_stream
   integer (int_kind), parameter :: shr_stream_no_ind     = 1 ! index for NO forcing
@@ -261,7 +239,7 @@ contains
 
     use POP_CommMod, only : POP_Barrier
 
-    use ecosys_tracers_and_saved_state_mod, only : set_defaults_tcr_rd
+    use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
     use marbl_interface_types, only : marbl_forcing_fields_metadata_type
@@ -284,7 +262,7 @@ contains
     integer (int_kind)       :: nml_error                  ! error flag for nml read
     character(char_len_long) :: ioerror_msg
     integer                  :: m, n, match
-    type(forcing_monthly_every_ts_type), pointer :: file_details
+    type(forcing_monthly_every_ts), pointer :: file_details
 
     namelist /ecosys_forcing_data_nml/                                        &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
@@ -310,31 +288,31 @@ contains
 
     gas_flux_forcing_opt  = 'drv'
     gas_flux_forcing_file = 'unknown'
-    call set_defaults_tcr_rd(gas_flux_fice, file_varname='FICE')
-    call set_defaults_tcr_rd(gas_flux_ws, file_varname='XKW')
-    call set_defaults_tcr_rd(gas_flux_ap, file_varname='P')
+    call set_defaults_tracer_read(gas_flux_fice, file_varname='FICE')
+    call set_defaults_tracer_read(gas_flux_ws, file_varname='XKW')
+    call set_defaults_tracer_read(gas_flux_ap, file_varname='P')
     dust_flux_source             = 'monthly-calendar'
-    call set_defaults_tcr_rd(dust_flux_input, file_varname='dust_flux')
+    call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
     iron_flux_source             = 'monthly-calendar'
-    call set_defaults_tcr_rd(iron_flux_input, file_varname='iron_flux')
-    call set_defaults_tcr_rd(fesedflux_input, file_varname='FESEDFLUXIN')
+    call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
+    call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
     ndep_data_type = 'monthly-calendar'
-    call set_defaults_tcr_rd(nox_flux_monthly_input, file_varname='nox_flux')
-    call set_defaults_tcr_rd(nhy_flux_monthly_input, file_varname='nhy_flux')
+    call set_defaults_tracer_read(nox_flux_monthly_input, file_varname='nox_flux')
+    call set_defaults_tracer_read(nhy_flux_monthly_input, file_varname='nhy_flux')
     ndep_shr_stream_year_first = 1
     ndep_shr_stream_year_last  = 1
     ndep_shr_stream_year_align = 1
     ndep_shr_stream_file       = 'unknown'
     ndep_shr_stream_scale_factor = c1
-    call set_defaults_tcr_rd(din_riv_flux_input, file_varname='din_riv_flux')
-    call set_defaults_tcr_rd(dip_riv_flux_input, file_varname='dip_riv_flux')
-    call set_defaults_tcr_rd(don_riv_flux_input, file_varname='don_riv_flux')
-    call set_defaults_tcr_rd(dop_riv_flux_input, file_varname='dop_riv_flux')
-    call set_defaults_tcr_rd(dsi_riv_flux_input, file_varname='dsi_riv_flux')
-    call set_defaults_tcr_rd(dfe_riv_flux_input, file_varname='dfe_riv_flux')
-    call set_defaults_tcr_rd(dic_riv_flux_input, file_varname='dic_riv_flux')
-    call set_defaults_tcr_rd(alk_riv_flux_input, file_varname='alk_riv_flux')
-    call set_defaults_tcr_rd(doc_riv_flux_input, file_varname='doc_riv_flux')
+    call set_defaults_tracer_read(din_riv_flux_input, file_varname='din_riv_flux')
+    call set_defaults_tracer_read(dip_riv_flux_input, file_varname='dip_riv_flux')
+    call set_defaults_tracer_read(don_riv_flux_input, file_varname='don_riv_flux')
+    call set_defaults_tracer_read(dop_riv_flux_input, file_varname='dop_riv_flux')
+    call set_defaults_tracer_read(dsi_riv_flux_input, file_varname='dsi_riv_flux')
+    call set_defaults_tracer_read(dfe_riv_flux_input, file_varname='dfe_riv_flux')
+    call set_defaults_tracer_read(dic_riv_flux_input, file_varname='dic_riv_flux')
+    call set_defaults_tracer_read(alk_riv_flux_input, file_varname='alk_riv_flux')
+    call set_defaults_tracer_read(doc_riv_flux_input, file_varname='doc_riv_flux')
     liron_patch              = .false.
     iron_patch_flux_filename = 'unknown_iron_patch_filename'
     iron_patch_month         = 1
@@ -767,7 +745,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_read_restore_data(land_mask, ecosys_restore)
+  subroutine ecosys_forcing_read_interior_data(land_mask, ecosys_restore)
 
     use marbl_restore_mod   , only : marbl_restore_type
     use passive_tracer_tools, only : read_field
@@ -839,7 +817,7 @@ contains
       enddo
     enddo
 
-  end subroutine ecosys_forcing_read_restore_data
+  end subroutine ecosys_forcing_read_interior_data
 
   !*****************************************************************************
 
@@ -921,7 +899,7 @@ contains
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     real      (r8)                 :: d14c_glo_avg                                          ! global average D14C over the ocean, computed from current D14C field
-    type      (forcing_monthly_every_ts_type), pointer :: file
+    type      (forcing_monthly_every_ts), pointer :: file
     real      (r8), allocatable, target :: work_read(:,:,:,:)
     integer   (int_kind)          :: stream_index
     integer   (int_kind)          :: nf_ind
@@ -1953,8 +1931,8 @@ contains
 
   subroutine forcing_monthly_calendar_init(this, forcing_calendar_name)
 
-    class(forcing_monthly_calendar_type)        , intent(inout) :: this
-    type (forcing_monthly_every_ts_type), target, intent(in)    :: forcing_calendar_name
+    class(forcing_monthly_calendar_type)   , intent(inout) :: this
+    type (forcing_monthly_every_ts), target, intent(in)    :: forcing_calendar_name
 
     this%forcing_calendar_name => forcing_calendar_name
 
@@ -1997,7 +1975,7 @@ contains
     integer (kind=int_kind), optional, intent(in)    :: year_align
     integer (kind=int_kind), optional, intent(in)    :: date
     integer (kind=int_kind), optional, intent(in)    :: time
-    type(forcing_monthly_every_ts_type), optional, target, intent(in) :: forcing_calendar_name
+    type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2153,7 +2131,7 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_align
     integer(kind=int_kind), optional, intent(in)    :: date
     integer(kind=int_kind), optional, intent(in)    :: time
-    type(forcing_monthly_every_ts_type), optional, target, intent(in) :: forcing_calendar_name
+    type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
     integer (kind=int_kind) :: num_elem
     character(*), parameter :: subname = 'ecosys_forcing_mod:forcing_fields_add'
@@ -2197,7 +2175,7 @@ contains
 
     implicit none
 
-    type(forcing_monthly_every_ts_type), intent(inout) :: var
+    type(forcing_monthly_every_ts), intent(inout) :: var
 
     var%interp_type = 'linear'
     var%data_type   = 'monthly-calendar'

@@ -2,6 +2,40 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    4 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n44_marbl_dev_n14_cesm_pop_2_1_20160513
+Tag Summary: Round 1 of code clean-up following code review
+
+             1) We had made a copy of forcing_monthly_every_ts in MARBL, but
+                now that we are using that code in the driver we can just grab
+                the type from passive_tracer_tools again.
+
+             2) Since we don't write surf_avg_* to restart files, no need for
+                the index name table (this should have been removed several
+                tags ago!)
+
+             3) Rename marbl_status_log to ecosys_status_log, since it is
+                logging activity in the driver rather than MARBL
+
+             4) We were setting tmp_nl_buffer for &ecosys_tracer_init_nml well
+                before using it, which was confusing. It has been moved so
+                that it is set just prior to the tracer_and_saved_state_init()
+                call
+
+             5) ecosys_forcing_read_restore_data has been renamed
+                ecosys_forcing_read_interior_data
+
+             6) set_defaults_tcr_rd has been renamed set_defaults_tracer_read
+
+             7) tracer_read_update has been renamed set_tracer_read
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    4 October 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n43_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: Climatology is not necessarily the right term to use to refer to
              the field we restore tracers to... so I switched to the more

@@ -76,7 +76,7 @@ module ecosys_tracers_and_saved_state_mod
   public :: ecosys_tracer_ref_val
   public :: ecosys_saved_state_setup
   public :: ecosys_saved_state_construct_io_fields
-  public :: set_defaults_tcr_rd
+  public :: set_defaults_tracer_read
 
   !-----------------------------------------------------------------------
 
@@ -163,11 +163,11 @@ Contains
     !-----------------------------------------------------------------------
 
     do n = 1, ecosys_base_tracer_cnt
-       call set_defaults_tcr_rd(tracer_init_ext(n))
+       call set_defaults_tracer_read(tracer_init_ext(n))
     end do
     if (ciso_on) then
       do n = 1,ciso_tracer_cnt
-         call set_defaults_tcr_rd(ciso_tracer_init_ext(n))
+         call set_defaults_tracer_read(ciso_tracer_init_ext(n))
       end do
     end if
 
@@ -231,9 +231,9 @@ Contains
     ! Update tracer_inputs from tracer_init_ext and ciso_tracer_init_ext
     !-----------------------------------------------------------------------
 
-    call tracer_read_update(tracer_init_ext, tracer_inputs)
+    call set_tracer_read(tracer_init_ext, tracer_inputs)
     if (ciso_on) then
-      call tracer_read_update(ciso_tracer_init_ext, tracer_inputs)
+      call set_tracer_read(ciso_tracer_init_ext, tracer_inputs)
     end if
 
     !-----------------------------------------------------------------------
@@ -389,7 +389,7 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  subroutine set_defaults_tcr_rd(tracer_read_var, mod_varname, filename,      &
+  subroutine set_defaults_tracer_read(tracer_read_var, mod_varname, filename, &
              file_varname, scale_factor, default_val, file_fmt)
 
     type(tracer_read),          intent(inout) :: tracer_read_var
@@ -436,7 +436,7 @@ Contains
       tracer_read_var%file_fmt = 'nc'
     end if
 
-  end subroutine set_defaults_tcr_rd
+  end subroutine set_defaults_tracer_read
 
   !-----------------------------------------------------------------------
 
@@ -626,7 +626,7 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  subroutine tracer_read_update(tracer_ext, tracer_inputs)
+  subroutine set_tracer_read(tracer_ext, tracer_inputs)
 
     type(tracer_read), dimension(:), intent(in)    :: tracer_ext
     type(tracer_read), dimension(:), intent(inout) :: tracer_inputs
@@ -660,7 +660,7 @@ Contains
       end if
     end do
           
-  end subroutine tracer_read_update
+  end subroutine set_tracer_read
 
   !-----------------------------------------------------------------------
 
