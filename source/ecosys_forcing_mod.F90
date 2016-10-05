@@ -33,6 +33,7 @@ module ecosys_forcing_mod
   public :: ecosys_forcing_init
   public :: ecosys_forcing_read_interior_data
   public :: ecosys_forcing_set_forcing_data
+  public :: ecosys_forcing_tracer_ref_val
 
   !*****************************************************************************
 
@@ -58,6 +59,15 @@ module ecosys_forcing_mod
    contains
      procedure :: initialize  => forcing_driver_init
   end type forcing_driver_type
+
+  !*****************************************************************************
+
+  type, private :: forcing_named_field_type
+     character(char_len) :: field_name     ! Name of variable in named_field
+     integer             :: field_ind
+   contains
+     procedure :: initialize  => forcing_named_field_init
+  end type forcing_named_field_type
 
   !*****************************************************************************
 
@@ -93,6 +103,7 @@ module ecosys_forcing_mod
      real(kind=r8)                        :: unit_conv_factor ! unit conversion factor, incorporates scale_factor
      type (forcing_constant_type)         :: field_constant_info
      type (forcing_driver_type)           :: field_driver_info
+     type (forcing_named_field_type)      :: field_named_info
      type (forcing_file_type)             :: field_file_info
      type (forcing_monthly_calendar_type) :: field_monthly_calendar_info
    contains
@@ -228,18 +239,35 @@ module ecosys_forcing_mod
                        d14c_ind     = 0, &
                        d14c_glo_ind = 0
 
+  !-----------------------------------------------------------------------
+  ! Other private variables
+  !-----------------------------------------------------------------------
+
+  ! Virtual fluxes
+  logical(log_kind), dimension(marbl_tracer_cnt) :: vflux_flag           ! which tracers get virtual fluxes applied
+  real(r8), dimension(marbl_tracer_cnt) :: surf_avg                      ! average surface tracer values
+
+  real(r8) :: iron_frac_in_dust
+  real(r8) :: iron_frac_in_bc
+
   !*****************************************************************************
 
 contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_init(ciso_on, num_elements, marbl_metadata,       &
-                                 tracer_restore, forcing_nml)
+  subroutine ecosys_forcing_init(ciso_on, num_elements, fe_frac_dust,         &
+                                 fe_frac_bc, marbl_metadata, tracer_restore,  &
+                                 forcing_nml)
 
     use POP_CommMod, only : POP_Barrier
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
+    use ecosys_tracers_and_saved_state_mod, only : dic_ind
+    use ecosys_tracers_and_saved_state_mod, only : dic_alt_co2_ind
+    use ecosys_tracers_and_saved_state_mod, only : alk_ind
+    use ecosys_tracers_and_saved_state_mod, only : di13c_ind
+    use ecosys_tracers_and_saved_state_mod, only : di14c_ind
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
     use marbl_interface_types, only : marbl_forcing_fields_metadata_type
@@ -250,6 +278,8 @@ contains
 
     logical,                                  intent(in)    :: ciso_on
     integer,                                  intent(in)    :: num_elements
+    real(r8),                                 intent(in)    :: fe_frac_dust
+    real(r8),                                 intent(in)    :: fe_frac_bc
     type(marbl_forcing_fields_metadata_type), intent(in)    :: marbl_metadata(:)
     character(char_len),                      intent(in)    :: tracer_restore(:)
     character(marbl_nl_buffer_size),          intent(in)    :: forcing_nml
@@ -263,6 +293,12 @@ contains
     character(char_len_long) :: ioerror_msg
     integer                  :: m, n, match
     type(forcing_monthly_every_ts), pointer :: file_details
+
+    ! Virtual fluxes set in namelist
+    real(r8) :: surf_avg_dic_const
+    real(r8) :: surf_avg_alk_const
+    real(r8) :: surf_avg_di13c_const
+    real(r8) :: surf_avg_di14c_const
 
     namelist /ecosys_forcing_data_nml/                                        &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
@@ -280,7 +316,15 @@ contains
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
          ciso_atm_model_year, ciso_atm_data_year, restore_filenames,          &
-         restore_file_varnames, restore_short_names
+         restore_file_varnames, restore_short_names, surf_avg_alk_const,      &
+         surf_avg_dic_const, surf_avg_di13c_const, surf_avg_di14c_const
+
+    !-----------------------------------------------------------------------
+    !  Set module variables from intent(in)
+    !-----------------------------------------------------------------------
+
+    iron_frac_in_dust = fe_frac_dust
+    iron_frac_in_bc   = fe_frac_bc
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -335,6 +379,11 @@ contains
     restore_file_varnames = ''
     restore_short_names = ''
 
+    surf_avg_alk_const   = 2225.0_r8
+    surf_avg_dic_const   = 1944.0_r8
+    surf_avg_di13c_const = 1944.0_r8
+    surf_avg_di14c_const = 1944.0_r8
+
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
        write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
@@ -354,6 +403,32 @@ contains
 
     if (ciso_on) then
        call ciso_init_atm_D13_D14()
+    end if
+
+    ! Set surf_avg for all tracers
+    surf_avg = c0
+    vflux_flag(:) = .false.
+    if (any((/dic_ind, dic_alt_co2_ind, alk_ind/).eq.0)) then
+      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
+    end if
+
+    surf_avg(dic_ind) = surf_avg_dic_const
+    vflux_flag(dic_ind) = .true.
+
+    surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
+    vflux_flag(dic_alt_co2_ind) = .true.
+
+    surf_avg(alk_ind) = surf_avg_alk_const
+    vflux_flag(alk_ind) = .true.
+    
+    if (ciso_on) then
+       if (any((/di13c_ind, di14c_ind/).eq.0)) then
+         call exit_POP(sigAbort, 'di13c_ind and di14c_ind must be non-zero')
+       end if
+       surf_avg(di13c_ind) = surf_avg_di13c_const
+       vflux_flag(di13c_ind) = .true.
+       surf_avg(di14c_ind) = surf_avg_di14c_const
+       vflux_flag(di14c_ind) = .true.
     end if
 
     allocate(ecosys_tracer_restore_data_3D(size(tracer_restore)))
@@ -451,16 +526,16 @@ contains
                                 field_units=marbl_metadata(n)%field_units,    &
                                 field_constant=atm_co2_const, id=n)
           else if (trim(atm_co2_opt).eq.'drv_prog') then
-            call forcing_fields%add_forcing_field(field_source='driver',      &
+            call forcing_fields%add_forcing_field(field_source='named_field', &
                                 marbl_varname=marbl_metadata(n)%varname,      &
                                 field_units=marbl_metadata(n)%field_units,    &
-                                driver_varname='ATM_CO2_PROG',                &
+                                named_field='ATM_CO2_PROG',                   &
                                 id=n)
           else if (trim(atm_co2_opt).eq.'drv_diag') then
-            call forcing_fields%add_forcing_field(field_source='driver',      &
+            call forcing_fields%add_forcing_field(field_source='named_field', &
                                 marbl_varname=marbl_metadata(n)%varname,      &
                                 field_units=marbl_metadata(n)%field_units,    &
-                                driver_varname='ATM_CO2_DIAG',                &
+                                named_field='ATM_CO2_DIAG',                   &
                                 id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_co2_opt),                     &
@@ -850,7 +925,6 @@ contains
     use forcing_tools         , only : interpolate_forcing
     use forcing_tools         , only : update_forcing_data
     use named_field_mod       , only : named_field_get
-    use named_field_mod       , only : named_field_get_index
     use time_management       , only : isecond
     use time_management       , only : iminute
     use time_management       , only : ihour
@@ -864,8 +938,6 @@ contains
     use forcing_tools         , only : find_forcing_times
     use marbl_sizes           , only : num_surface_forcing_fields
     use marbl_constants_mod   , only : molw_Fe
-    use marbl_parms           , only : iron_frac_in_dust
-    use marbl_parms           , only : iron_frac_in_bc
     use marbl_parms           , only : parm_Fe_bioavail
 
 
@@ -1073,19 +1145,20 @@ contains
           input_forcing_data(:,:,index,:) = fields(index)%field_constant_info%field_constant
 
        !------------------------------------
+       case ("named_field")
+       !------------------------------------
+
+       do iblock = 1,nblocks_clinic
+          call named_field_get(fields(index)%field_named_info%field_ind, iblock, &
+                               input_forcing_data(:,:,index,iblock))
+       end do
+       !------------------------------------
        case ("driver")
        !------------------------------------
 
           do iblock = 1,nblocks_clinic
 
-             if (index == xco2_ind) then
-
-                !FIXME - following lookup should be done at init with error message if not found
-                call named_field_get_index(fields(index)%field_driver_info%driver_varname, nf_ind) 
-                call named_field_get(nf_ind, iblock, input_forcing_data(:,:,index,iblock))
-
-
-             else if (index == mask_ind) then
+             if (index == mask_ind) then
                 where(land_mask(:,:,iblock))
                   input_forcing_data(:, :, index, iblock) = c1
                 elsewhere
@@ -1902,6 +1975,20 @@ contains
 
   !*****************************************************************************
 
+  subroutine forcing_named_field_init(this, field_name)
+
+    use named_field_mod       , only : named_field_get_index
+
+    class(forcing_named_field_type), intent(inout) :: this
+    character(len=*),                intent(in)    :: field_name
+
+    this%field_name = field_name
+    call named_field_get_index(field_name, this%field_ind) 
+
+  end subroutine forcing_named_field_init
+
+  !*****************************************************************************
+
   subroutine forcing_file_init(this, filename, file_varname, temporal, year_first, &
                                      year_last, year_align, date, time)
 
@@ -1948,6 +2035,7 @@ contains
        unit_conv_factor, temporal_interp,          &
        field_constant,                             &
        driver_varname,                             &
+       named_field,                                &
        filename,                                   &
        file_varname,                               &
        temporal,                                   &
@@ -1967,6 +2055,7 @@ contains
     character (len=*),       optional, intent(in)    :: temporal_interp
     real(kind=r8),           optional, intent(in)    :: field_constant
     character (len=*),       optional, intent(in)    :: driver_varname
+    character (len=*),       optional, intent(in)    :: named_field
     character (len=*),       optional, intent(in)    :: filename
     character (len=*),       optional, intent(in)    :: file_varname
     character (len=*),       optional, intent(in)    :: temporal
@@ -2048,6 +2137,15 @@ contains
           call this%field_driver_info%initialize(driver_varname)
        endif
 
+    case('named_field')
+       if (.not.present(named_field)) has_valid_inputs = .false.
+       if (has_valid_inputs) then
+          write(log_message, "(2A)") "Adding named field forcing_field_type for ",  &
+                                    trim(this%marbl_varname)
+          call document(subname, log_message)
+          call this%field_named_info%initialize(named_field)
+       endif
+
     case('file') 
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
@@ -2108,6 +2206,7 @@ contains
        temporal_interp,                     &
        field_constant,                      &
        driver_varname,                      &
+       named_field,                         &
        filename, file_varname,              &
        temporal,                            &
        year_first, year_last, year_align,   &
@@ -2123,6 +2222,7 @@ contains
     character(len=*),       optional, intent(in)    :: temporal_interp
     real(kind=r8),          optional, intent(in)    :: field_constant
     character(len=*),       optional, intent(in)    :: driver_varname
+    character(len=*),       optional, intent(in)    :: named_field
     character(len=*),       optional, intent(in)    :: filename
     character(len=*),       optional, intent(in)    :: file_varname
     character(len=*),       optional, intent(in)    :: temporal
@@ -2149,6 +2249,7 @@ contains
          temporal_interp=temporal_interp,                &
          field_constant=field_constant,                  &
          driver_varname=driver_varname,                  &
+         named_field=named_field,                        &
          filename=filename, file_varname=file_varname,   &
          temporal=temporal, year_first=year_first,       &
          year_last=year_last, year_align=year_align,     &
@@ -2184,6 +2285,28 @@ contains
     var%data_label  = 'not-used-for-monthly'
 
   end subroutine init_monthly_surface_forcing_metadata
+
+  !*****************************************************************************
+
+  function ecosys_forcing_tracer_ref_val(ind)
+    !
+    ! !DESCRIPTION:
+    !  return reference value for tracer with global tracer index ind
+    !  this is used in virtual flux computations
+
+    implicit none
+
+    integer(int_kind) , intent(in) :: ind
+    real(r8) :: ecosys_forcing_tracer_ref_val
+
+    !  default value for reference value is 0
+
+    ecosys_forcing_tracer_ref_val = c0
+    if (vflux_flag(ind)) then
+       ecosys_forcing_tracer_ref_val = surf_avg(ind)
+    endif
+       
+  end function ecosys_forcing_tracer_ref_val
 
   !*****************************************************************************
 

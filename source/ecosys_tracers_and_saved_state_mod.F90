@@ -63,17 +63,8 @@ module ecosys_tracers_and_saved_state_mod
   character(char_len), target :: ciso_init_ecosys_init_file_fmt ! file format for option 'file'
   type(tracer_read),   target :: ciso_tracer_init_ext(ciso_tracer_cnt) ! namelist variable for initializing tracers
 
-  !-----------------------------------------------------------------------
-  ! Other private variables
-  !-----------------------------------------------------------------------
-
-  ! Virtual fluxes
-  logical(log_kind), dimension(marbl_tracer_cnt) :: vflux_flag           ! which tracers get virtual fluxes applied
-  real(r8), dimension(marbl_tracer_cnt) :: surf_avg                      ! average surface tracer values
-
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: ecosys_tracers_and_saved_state_init
-  public :: ecosys_tracer_ref_val
   public :: ecosys_saved_state_setup
   public :: ecosys_saved_state_construct_io_fields
   public :: set_defaults_tracer_read
@@ -142,18 +133,12 @@ Contains
     character(char_len) :: init_option, init_file_fmt
     integer (int_kind)                  :: nml_error                          ! error flag for nml read
     character(char_len_long)            :: ioerror_msg
-    ! Virtual fluxes set in namelist
-    real(r8) :: surf_avg_dic_const
-    real(r8) :: surf_avg_alk_const
-    real(r8) :: surf_avg_di13c_const
-    real(r8) :: surf_avg_di14c_const
     type(tracer_read), dimension(marbl_tracer_cnt) :: tracer_inputs   ! metadata about file to read
 
     !-----------------------------------------------------------------------
 
     namelist /ecosys_tracer_init_nml/                                         &
-         tracer_init_ext, surf_avg_alk_const, surf_avg_dic_const,             &
-         surf_avg_di13c_const, surf_avg_di14c_const, init_ecosys_option,      &
+         tracer_init_ext, init_ecosys_option,                                 &
          init_ecosys_init_file, init_ecosys_init_file_fmt,                    &
          ciso_init_ecosys_option, ciso_init_ecosys_init_file,                 &
          ciso_init_ecosys_init_file_fmt, ciso_tracer_init_ext
@@ -170,11 +155,6 @@ Contains
          call set_defaults_tracer_read(ciso_tracer_init_ext(n))
       end do
     end if
-
-    surf_avg_alk_const   = 2225.0_r8
-    surf_avg_dic_const   = 1944.0_r8
-    surf_avg_di13c_const = 1944.0_r8
-    surf_avg_di14c_const = 1944.0_r8
 
     init_ecosys_option = 'unknown'
     init_ecosys_init_file = 'unknown'
@@ -276,17 +256,6 @@ Contains
     !  initialize tracers
     !-----------------------------------------------------------------------
 
-    ! initialize module variable - virtual flux flag array
-    vflux_flag(:) = .false.
-    vflux_flag(dic_ind) = .true.
-    vflux_flag(alk_ind) = .true.
-    vflux_flag(dic_alt_co2_ind) = .true.
-
-    if (di13c_ind.ne.0) &
-       vflux_flag(di13c_ind) = .true.
-    if (di14c_ind.ne.0) &
-       vflux_flag(di14c_ind) = .true.
-
     do n=1,marbl_tracer_cnt
 
       ! Is tracer read from restart file or initial condition?
@@ -356,21 +325,6 @@ Contains
          call exit_POP(sigAbort, 'unknown init_option')
 
       end select
-
-      ! Set surf_avg for all tracers
-      if (n.eq.dic_ind) then
-         surf_avg(n) = surf_avg_dic_const
-      elseif (n.eq.dic_alt_co2_ind) then
-         surf_avg(n) = surf_avg_dic_const
-      elseif (n.eq.alk_ind) then
-         surf_avg(n) = surf_avg_alk_const
-      elseif (n.eq.di13c_ind) then
-         surf_avg(n) = surf_avg_di13c_const
-      elseif (n.eq.di14c_ind) then
-         surf_avg(n) = surf_avg_di14c_const
-      else
-         surf_avg(n) = c0
-      end if
 
     end do
 
@@ -492,28 +446,6 @@ Contains
     end do
 
   end subroutine set_saved_state_zero
-
-  !-----------------------------------------------------------------------
-
-  function ecosys_tracer_ref_val(ind)
-    !
-    ! !DESCRIPTION:
-    !  return reference value for tracer with global tracer index ind
-    !  this is used in virtual flux computations
-
-    implicit none
-
-    integer(int_kind) , intent(in) :: ind
-    real(r8) :: ecosys_tracer_ref_val
-
-    !  default value for reference value is 0
-
-    ecosys_tracer_ref_val = c0
-    if (vflux_flag(ind)) then
-       ecosys_tracer_ref_val = surf_avg(ind)
-    endif
-       
-  end function ecosys_tracer_ref_val
 
   !-----------------------------------------------------------------------
 

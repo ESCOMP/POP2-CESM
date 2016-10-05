@@ -1,6 +1,36 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    5 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n45_marbl_dev_n14_cesm_pop_2_1_20160513
+Tag Summary: Round 2 of code clean-up following code review
+
+             1) move surf_avg, vflux_flag, and related namelist variables (as
+                well as the tracer_ref_val function) to ecosys_forcing
+
+             2) Add a new forcing field data type for variables that come from
+                the driver put are stored in a named_pair type. Right now that
+                is just the atmospheric CO2, but probably makes sense to move
+                several (all) of the fields that come from the driver over
+
+             3) Create iron_frac_in_dust and iron_frac_in_bc module variables
+                in ecosys_forcing_mod rather than using them from marbl_parms.
+                This was achieved by calling marbl_instance%parameters%get in
+                ecosys_driver and passing the resulting values to
+                ecosys_forcing_init, where they are copied to the module
+                variables.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    4 October 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n44_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: Round 1 of code clean-up following code review

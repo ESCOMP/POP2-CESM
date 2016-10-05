@@ -209,6 +209,8 @@ contains
     integer(int_kind)                   :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
     integer (int_kind)                  :: glo_avg_field_cnt
     real (r8)                           :: rmean_val
+    real (r8)                           :: fe_frac_dust
+    real (r8)                           :: fe_frac_bc
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -397,24 +399,6 @@ contains
     end do
 
     !--------------------------------------------------------------------
-    ! Set up marbl tracer indices for virtual fluxes
-    !--------------------------------------------------------------------
-
-    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
-    call document(subname, 'dic_ind', dic_ind)
-    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
-    call document(subname, 'alk_ind', alk_ind)
-    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
-    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
-    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
-    call document(subname, 'di13c_ind', di13c_ind)
-    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
-    call document(subname, 'di14c_ind', di14c_ind)
-    if (any((/dic_ind, alk_ind, dic_alt_co2_ind/).eq.0)) then
-      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
-    end if
-
-    !--------------------------------------------------------------------
     !  Initialize ecosys tracers and saved state
     !--------------------------------------------------------------------
 
@@ -465,6 +449,34 @@ contains
     !  Initialize ecosys forcing fields / restore fields
     !--------------------------------------------------------------------
 
+    ! Determine MARBL tracer indices for tracers that use virtual fluxes
+    ! (must be done prior to call to ecosys_forcing_init, when vflux is set)
+    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
+    call document(subname, 'dic_ind', dic_ind)
+    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
+    call document(subname, 'alk_ind', alk_ind)
+    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
+    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
+    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
+    call document(subname, 'di13c_ind', di13c_ind)
+    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
+    call document(subname, 'di14c_ind', di14c_ind)
+
+    ! forcing module requires two MARBL parameter values (set during init)
+    call marbl_instances(1)%parameters%get('iron_frac_in_dust', fe_frac_dust, &
+                                           ecosys_status_log)
+    if (ecosys_status_log%labort_marbl) then
+      call ecosys_status_log%log_error_trace('parameters%get(iron_frac_in_dust)', subname)
+      call print_marbl_log(ecosys_status_log, 1)
+    end if
+
+    call marbl_instances(1)%parameters%get('iron_frac_in_bc', fe_frac_bc,     &
+                                           ecosys_status_log)
+    if (ecosys_status_log%labort_marbl) then
+      call ecosys_status_log%log_error_trace('parameters%get(iron_frac_in_bc)', subname)
+      call print_marbl_log(ecosys_status_log, 1)
+    end if
+
     ! pass ecosys_forcing_data_nml
     ! to ecosys_forcing_init()
     ! Also pass marbl_instance%surface_forcing_metadata
@@ -477,6 +489,8 @@ contains
 
     call ecosys_forcing_init(ciso_on,                                         &
                              num_elements,                                    &
+                             fe_frac_dust,                                    &
+                             fe_frac_bc,                                      &
                              marbl_instances(1)%surface_forcing_metadata,     &
                              marbl_instances(1)%interior_forcing_input%tracer_names, &
                              tmp_nl_buffer)

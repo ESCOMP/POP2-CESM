@@ -43,9 +43,9 @@
    use io_tools, only: document
    use passive_tracer_tools, only: set_tracer_indices
 
-   use ecosys_tracers_and_saved_state_mod, only:   &
-       marbl_tracer_cnt,                           &
-       ecosys_tracer_ref_val
+   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
+   use ecosys_forcing_mod, only : ecosys_forcing_tracer_ref_val
 
    use ecosys_driver, only:               &
        ecosys_driver_init,                &
@@ -1618,7 +1618,7 @@
 
    if (ecosys_on) then
       if (ind >= ecosys_driver_ind_begin .and. ind <= ecosys_driver_ind_end) then
-         tracer_ref_val = ecosys_tracer_ref_val(ind - ecosys_driver_ind_begin + 1)
+         tracer_ref_val = ecosys_forcing_tracer_ref_val(ind - ecosys_driver_ind_begin + 1)
       endif
    endif
 
