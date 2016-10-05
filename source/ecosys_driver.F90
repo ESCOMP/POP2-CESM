@@ -21,6 +21,7 @@ module ecosys_driver
   use domain                    , only : distrb_clinic
   use domain_size               , only : max_blocks_clinic, km, nt
   use io_types                  , only : stdout, nml_in, nml_filename
+  use io_tools                  , only : document
   use exit_mod                  , only : sigAbort, exit_POP
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use communicate               , only : my_task, master_task
@@ -151,7 +152,6 @@ contains
     use global_reductions     , only : global_sum
     use constants             , only : field_loc_center
     use broadcast             , only : broadcast_scalar
-    use io_tools              , only : document
     use time_management       , only : init_time_flag
     use passive_tracer_tools  , only : set_tracer_indices
     use named_field_mod       , only : named_field_register
@@ -263,7 +263,8 @@ contains
     if (.not. is_iostat_end(nml_error)) then
        ! NOTE(bja, 2015-01) assuming that eof is the only proper exit
        ! code from the read.
-       call exit_POP(sigAbort, 'ERROR reading pop namelist file into buffer.')
+       call document(subname, 'ERROR reading pop namelist file into buffer.')
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
     ! broadcast the namelist string
@@ -377,7 +378,8 @@ contains
          write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
                     marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
                     marbl_tracer_cnt
-         call exit_POP(sigAbort, log_message)
+         call document(subname, log_message)
+         call exit_POP(sigAbort, 'Stopping in ' // subname)
        end if
 
     end do
@@ -1114,7 +1116,7 @@ contains
                 write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_interior(n)
                 write(stdout, fmt_str_i) subname, 'iblock', iblock
                 write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_interior(n)
-                call exit_POP(sigAbort, 'stopping in ' // subname)
+                call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
 
@@ -1134,7 +1136,7 @@ contains
                 write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_surface(n)
                 write(stdout, fmt_str_i) subname, 'iblock', iblock
                 write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_surface(n)
-                call exit_POP(sigAbort, 'stopping in ' // subname)
+                call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
 
@@ -1227,6 +1229,7 @@ contains
     class(marbl_log_type), intent(in) :: log_to_print
     integer,               intent(in) :: iblock
 
+    character(len=*), parameter :: subname = 'ecosys_driver:print_marbl_log'
     type(marbl_status_log_entry_type), pointer :: tmp
     logical :: iam_master
 
@@ -1246,7 +1249,8 @@ contains
     end do
 
     if (log_to_print%labort_marbl) then
-      call exit_POP(sigAbort, 'ERROR reported from MARBL library')
+      call document(subname, 'ERROR reported from MARBL library')
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
   end subroutine print_marbl_log

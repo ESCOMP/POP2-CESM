@@ -1,10 +1,19 @@
 module ecosys_tracers_and_saved_state_mod
 
+
+  ! !DESCRIPTION:
+  !  This module provides routines to read data to initialize the tracers
+  !  introduced to POP via the MARBL library. It also sets up data-types to
+  !  populate MARBL's saved_state type (used to pass data between the surface
+  !  and interior computations).
+
   use constants, only : c0, c1
 
   use kinds_mod, only : r8, int_kind, log_kind, char_len, char_len_long
 
   use io_types, only : stdout
+
+  use io_tools, only : document
 
   use exit_mod, only : sigAbort, exit_POP
 
@@ -100,8 +109,6 @@ Contains
 
     use time_management, only : check_time_flag
     use time_management, only : eval_time_flag
-
-    use io_tools, only : document
 
     use grid, only : fill_points
     use grid, only : n_topo_smooth
@@ -202,8 +209,8 @@ Contains
           tracer_inputs(n)%filename = ciso_init_ecosys_init_file
           tracer_inputs(n)%file_fmt = ciso_init_ecosys_init_file_fmt
         case DEFAULT
-          call document(subname, 'module_name', trim(module_name(n)))
-          call exit_POP(sigAbort, 'unknown module_name')
+          call document(subname, 'unknown module_name', trim(module_name(n)))
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
       end select
     end do
 
@@ -229,7 +236,7 @@ Contains
        if (init_ecosys_init_file == 'same_as_TS') then
           if (read_restart_filename == 'undefined') then
              call document(subname, 'no restart file to read ecosys from')
-             call exit_POP(sigAbort, 'stopping in ' // subname)
+             call exit_POP(sigAbort, 'Stopping in ' // subname)
           endif
           ecosys_restart_filename = read_restart_filename
           init_file_fmt = init_ts_file_fmt
@@ -247,8 +254,8 @@ Contains
        call set_saved_state_zero(saved_state_interior)
 
     case default
-       call document(subname, 'init_ecosys_option', init_ecosys_option)
-       call exit_POP(sigAbort, 'unknown init_ecosys_option')
+       call document(subname, 'unknown init_ecosys_option', init_ecosys_option)
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     end select
 
@@ -272,8 +279,8 @@ Contains
           init_file_fmt = ciso_init_ecosys_init_file_fmt
 
         case DEFAULT
-          call document(subname, 'module_name', trim(module_name(n)))
-          call exit_POP(sigAbort, 'unknown module_name')
+          call document(subname, 'unknown module_name', trim(module_name(n)))
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
 
       end select
 
@@ -285,7 +292,7 @@ Contains
               if (read_restart_filename == 'undefined') then
                  call document(subname, 'no restart file to read ',           &
                       trim(module_name(n)))
-                 call exit_POP(sigAbort, 'stopping in ' // subname)
+                 call exit_POP(sigAbort, 'Stopping in ' // subname)
               endif
               ecosys_restart_filename = read_restart_filename
               init_file_fmt = init_ts_file_fmt
@@ -321,8 +328,8 @@ Contains
            endif
 
         case default
-         call document(subname, 'init_option', init_option)
-         call exit_POP(sigAbort, 'unknown init_option')
+         call document(subname, 'unknown init_option', init_option)
+         call exit_POP(sigAbort, 'Stopping in ' // subname)
 
       end select
 
@@ -479,12 +486,14 @@ Contains
           call document(subname, 'n', n)
           call document(subname, 'marbl_state(n)%vertical_grid',              &
                         trim(marbl_state%state(n)%vertical_grid))
-          call exit_POP(sigAbort, 'Invalid vert grid from MARBL saved state')
+          call document(subname, 'Invalid vert grid from MARBL saved state')
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
           end select
         case DEFAULT
           call document(subname, 'n', n)
           call document(subname, 'state(n)%rank', state(n)%rank)
-          call exit_POP(sigAbort, 'Invalid rank from MARBL saved state')
+          call document(subname, 'Invalid rank from MARBL saved state')
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
       end select
       state(n)%short_name = trim(marbl_state%state(n)%short_name)
       write(state(n)%file_varname, "(2A)") 'MARBL_', trim(state(n)%short_name)
@@ -563,6 +572,7 @@ Contains
     type(tracer_read), dimension(:), intent(in)    :: tracer_ext
     type(tracer_read), dimension(:), intent(inout) :: tracer_inputs
 
+    character(len=*), parameter :: subname = 'ecosys_tracers_and_saved_state_mod:set_tracer_read'
     integer :: n, ind, tracer_ind
     character(len=char_len) :: err_msg
 
@@ -580,7 +590,8 @@ Contains
         if (tracer_ind.eq.0) then
           write(err_msg, "(A,1X,A)") 'No tracer defined with name',           &
                                      trim(tracer_ext(n)%mod_varname)
-          call exit_POP(sigAbort, err_msg)
+          call document(subname, err_msg)
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
         end if
 
         if (trim(tracer_ext(n)%filename).ne.'unknown')                        &

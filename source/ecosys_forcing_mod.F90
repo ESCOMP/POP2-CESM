@@ -1,10 +1,19 @@
 module ecosys_forcing_mod
 
+  ! !DESCRIPTION:
+  !  This module sets up data types to keep track of the surface forcing data
+  !  being sent to MARBL. Data may be passed through to MARBL from the flux
+  !  coupler, read from a file, or set to a constant value based on namelist
+  !  variables. Additionally, this module handles some interior forcing --
+  !  namely tracer restoring.
+
   use constants, only : c0, c1
 
   use kinds_mod, only : r8, int_kind, log_kind, char_len, char_len_long
 
   use io_types, only : stdout
+
+  use io_tools, only : document
 
   use exit_mod, only : sigAbort, exit_POP
 
@@ -184,6 +193,11 @@ module ecosys_forcing_mod
   !-----------------------------------------------------------------------
   !  input surface forcing
   !-----------------------------------------------------------------------
+
+  ! These variables are necessary because of the way POP uses pointers store
+  ! data that is read in via the forcing_monthly_every_ts data type. POP needs
+  ! to allocate memory to store data read in from each file, and for each file
+  ! *_file_loc%DATA points to that memory.
   type(forcing_monthly_every_ts), target :: dust_flux_file_loc
   type(forcing_monthly_every_ts), target :: iron_flux_file_loc
   type(forcing_monthly_every_ts), target :: fice_file_loc
@@ -409,7 +423,8 @@ contains
     surf_avg = c0
     vflux_flag(:) = .false.
     if (any((/dic_ind, dic_alt_co2_ind, alk_ind/).eq.0)) then
-      call exit_POP(sigAbort, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
+      call document(subname, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
     surf_avg(dic_ind) = surf_avg_dic_const
@@ -423,7 +438,8 @@ contains
     
     if (ciso_on) then
        if (any((/di13c_ind, di14c_ind/).eq.0)) then
-         call exit_POP(sigAbort, 'di13c_ind and di14c_ind must be non-zero')
+         call document(subname, 'di13c_ind and di14c_ind must be non-zero')
+         call exit_POP(sigAbort, 'Stopping in ' // subname)
        end if
        surf_avg(di13c_ind) = surf_avg_di13c_const
        vflux_flag(di13c_ind) = .true.
@@ -540,7 +556,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(atm_co2_opt),                     &
                  'is not a valid option for atm_co2_opt'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('xco2_alt_co2')
@@ -552,7 +569,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(atm_alt_co2_opt),                 &
                  'is not a valid option for atm_alt_co2_opt'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('Ice Fraction')
@@ -574,7 +592,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
                  'is not a valid option for gas_flux_forcing_opt'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('Atmospheric Pressure')
@@ -596,7 +615,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
                  'is not a valid option for gas_flux_forcing_opt'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('Dust Flux')
@@ -618,7 +638,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(dust_flux_source),                &
                  'is not a valid option for dust_flux_source'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('Iron Flux')
@@ -641,7 +662,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(iron_flux_source),                &
                  'is not a valid option for iron_flux_source'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('NOx Flux')
@@ -668,7 +690,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
                  'is not a valid option for ndep_data_type'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('NHy Flux')
@@ -695,7 +718,8 @@ contains
           else
             write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
                  'is not a valid option for ndep_data_type'
-            call exit_POP(sigAbort, err_msg)
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('DIN River Flux')
@@ -782,14 +806,16 @@ contains
         case DEFAULT
           write(err_msg, "(A,1X,A)") trim(marbl_metadata(n)%varname),         &
                          'is not a valid surface forcing field name.'
-          call exit_POP(sigAbort, err_msg)
+          call document(subname, err_msg)
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
       end select
     end do
     end associate
 
     if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
       write(err_msg, "(A)") "If deriving iron flux, must provide dust flux!"
-      call exit_POP(sigAbort, err_msg)
+      call document(subname, err_msg)
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
     ! Check if data are provided for all tracers that MARBL wants to restore
@@ -812,7 +838,8 @@ contains
       if (match.eq.0) then
         write(err_msg, "(2A)") "No restoring data provided for ",             &
                                trim(tracer_restore(n))
-        call exit_POP(sigAbort, err_msg)
+        call document(subname, err_msg)
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
       end if
     end do
 
@@ -1233,7 +1260,8 @@ contains
              call POP_HaloUpdate(shr_stream, POP_haloClinic, &
                   POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
              if (errorCode /= POP_Success) then
-                call exit_POP(sigAbort, subname // ': error updating halo for Ndep fields')
+                call document(subname, 'error updating halo for Ndep fields')
+                call exit_POP(sigAbort, 'Stopping in ' // subname)
              endif
              
              do iblock = 1, nblocks_clinic
@@ -1331,6 +1359,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_update_atm_D13C_D14C'
     type (block) :: &
          this_block      ! block info for the current block
 
@@ -1371,7 +1400,8 @@ contains
        case ('file')
           call ciso_comp_varying_D13C(iblock, ciso_data_ind_d13c(iblock), D13C(:,:,iblock))
        case default
-          call exit_POP(sigAbort, 'unknown ciso_atm_d13c_opt in ecosys_ciso_set_sflux')
+          call document(subname, 'unknown ciso_atm_d13c_opt in ecosys_ciso_set_sflux')
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
        end select
 
        !-----------------------------------------------------------------------
@@ -1384,7 +1414,8 @@ contains
        case ('file')
           call ciso_comp_varying_D14C(iblock, ciso_data_ind_d14c(iblock), D14C(:,:,iblock))
        case default
-          call exit_POP(sigAbort, 'unknown ciso_atm_d14c_opt in ecosys_ciso_set_sflux')
+          call document(subname, 'unknown ciso_atm_d14c_opt in ecosys_ciso_set_sflux')
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
        end select
 
        !-----------------------------------------------------------------------
@@ -1452,6 +1483,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_comp_varying_D13C'
+
     integer (int_kind) :: &
          i, j              ! loop indices
 
@@ -1469,7 +1502,8 @@ contains
     mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
 
     if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval)) then
-       call exit_POP(sigAbort, 'ciso: Model date maps to date after end of D13C data in file.')
+       call document(subname, 'ciso: Model date maps to date after end of D13C data in file.')
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
     !--------------------------------------------------------------------------------------------------------------
@@ -1553,6 +1587,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_comp_varying_D14C'
     integer (int_kind) :: &
          i, j, il        ! loop indices
 
@@ -1573,7 +1608,8 @@ contains
     mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
     do il=1,3
        if (mapped_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval,il)) then
-          call exit_POP(sigAbort, 'ciso: model date maps to date after end of D14C data in files.')
+          call document(subname, 'ciso: model date maps to date after end of D14C data in files.')
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
        endif
     enddo
 
@@ -1663,6 +1699,8 @@ contains
 
     implicit none
 
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_init_atm_D13_D14'
+
     !-------------------------------------------------------------------------
     !     Set D13C data source
     !-------------------------------------------------------------------------
@@ -1681,7 +1719,8 @@ contains
     case('file')
        call ciso_read_atm_D13C_data ! READ in D13C data from file
     case default
-       call exit_POP(sigAbort, 'unknown ciso_atm_d13c_opt in ecosys_ciso_init_atm_d13_d14')
+       call document(subname, 'unknown ciso_atm_d13c_opt in ecosys_ciso_init_atm_d13_d14')
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end select
 
     !-------------------------------------------------------------------------
@@ -1702,7 +1741,8 @@ contains
     case('file')
        call ciso_read_atm_D14C_data ! READ in D14C data from files
     case default
-       call exit_POP(sigAbort, 'unknown ciso_atm_d14c_opt in ecosys_ciso_init_atm_d13_d14')
+       call document(subname, 'unknown ciso_atm_d14c_opt in ecosys_ciso_init_atm_d13_d14')
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end select
 
   end subroutine ciso_init_atm_D13_D14
@@ -1789,7 +1829,7 @@ contains
     endif
 
 99  call broadcast_scalar(stat, master_task)
-    if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' // subname)
+    if (stat /= 0) call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     !---------------------------------------------------------------------
     !     Need to allocate and broadcast the variables to other tasks beside master-task
@@ -1831,7 +1871,6 @@ contains
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
     use io_types        , only : nml_in
-    use io_tools        , only : document
 
     implicit none
 
@@ -1888,7 +1927,7 @@ contains
     call broadcast_scalar(nbval_mismatch, master_task)
     if (nbval_mismatch) then
        call document(subname, 'D14C data files must all have the same number of values')
-       call exit_POP(sigAbort, 'stopping in ' // subname)
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
     call broadcast_scalar(ciso_atm_d14c_data_nbval, master_task)
@@ -1930,7 +1969,7 @@ contains
     endif
 
 99  call broadcast_scalar(stat, master_task)
-    if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' // subname)
+    if (stat /= 0) call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     !---------------------------------------------------------------------
     ! Broadcast the variables to other tasks beside master_task
@@ -2094,7 +2133,8 @@ contains
                                  " is not a valid source for reading the ",   &
                                  trim(marbl_varname), " forcing field"
 
-       call exit_POP(sigAbort, log_message)
+       call document(subname, log_message)
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
     ! required variables for all forcing field sources
@@ -2175,7 +2215,8 @@ contains
       write(log_message,"(3A)") "Call to forcing_field%init does not have ",  &
                                 "the correct optional arguments for ",        &
                                 trim(field_source)
-       call exit_POP(sigAbort, log_message)
+       call document(subname, log_message)
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
    end subroutine single_forcing_field_init
@@ -2239,7 +2280,8 @@ contains
 
     if (id .gt. size(this%forcing_fields)) then
       log_message = "not enough memory allocated for number of forcing fields!"
-       call exit_POP(sigAbort, log_message)
+      call document(subname, log_message)
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
     num_elem = this%num_elements
 
