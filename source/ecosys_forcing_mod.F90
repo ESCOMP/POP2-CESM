@@ -2108,7 +2108,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(len=char_len), dimension(6) :: valid_field_sources
+    character(len=char_len), dimension(7) :: valid_field_sources
     integer(kind=int_kind)  :: n
     logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
@@ -2118,10 +2118,11 @@ contains
 
     valid_field_sources(1) = "constant"
     valid_field_sources(2) = "driver"
-    valid_field_sources(3) = "file"
-    valid_field_sources(4) = "marbl"
-    valid_field_sources(5) = "POP monthly calendar"
-    valid_field_sources(6) = "none"
+    valid_field_sources(3) = "named_field"
+    valid_field_sources(4) = "file"
+    valid_field_sources(5) = "marbl"
+    valid_field_sources(6) = "POP monthly calendar"
+    valid_field_sources(7) = "none"
 
     ! check for valid source
     has_valid_source = .false.
