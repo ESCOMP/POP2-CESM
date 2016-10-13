@@ -1,5 +1,37 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n15_cesm_pop_2_1_20160513
+Tag Summary: merge in marbl_dev_levy_n47 (update tracer initialization and
+             surface forcing -- driver now controls source of data rather than
+             getting that information from MARBL)
+
+Testing: I ran
+         * aux_pop       (yellowstone_intel)
+         * aux_pop_MARBL (yellowstone_intel)
+         * aux_pop_MARBL (yellowstone_gnu)
+         * aux_pop_MARBL (hobart_nag)
+         All were bit-for-bit against baselines except the ecosys_restore test
+         (which restores the current initial conditions rather than old
+         initial conditions)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+ M      drivers/cpl
+M       source/ecosys_driver.F90
+A  +    source/ecosys_forcing_mod.F90
+A  +    source/ecosys_tracers_and_saved_state_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    1 August 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n14_cesm_pop_2_1_20160513
