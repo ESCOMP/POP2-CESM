@@ -12,15 +12,26 @@
 
 ! !USES:
 
-   use kinds_mod             , only : r8, int_kind, rtavg
+   use kinds_mod             , only : char_len, r8, int_kind
    use blocks                , only : nx_block, ny_block
    use domain_size           , only : max_blocks_clinic, km, nt
-   use marbl_interface_types , only : tracer_field => marbl_tracer_metadata_type
    use constants
 
    implicit none
    public
    save
+
+! !PUBLIC DATA TYPES:
+
+   type :: tracer_field
+      character(char_len) :: short_name
+      character(char_len) :: long_name
+      character(char_len) :: units
+      character(char_len) :: tend_units
+      character(char_len) :: flux_units
+      real(r8)            :: scale_factor
+      logical :: lfull_depth_tavg
+   end type
 
 ! !PUBLIC DATA MEMBERS:
 

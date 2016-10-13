@@ -1450,9 +1450,9 @@ EOF
   }
 }
 
-##########################################
-# namelist group: marbl_forcing_tmp_nml  #
-##########################################
+############################################
+# namelist group: ecosys_forcing_data_nml  #
+############################################
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'dust_flux_source');
@@ -1551,11 +1551,21 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'ciso_atm_model_year');
     add_default($nl, 'ciso_atm_data_year');
   }
+  add_default($nl, 'restore_short_names');
+  add_default($nl, 'restore_file_varnames');
+  add_default($nl, 'restore_filenames_derived');
+  my $restore_file="12*" . $nl->get_value('restore_filenames_derived');
+  add_default($nl, 'restore_filenames', 'val'=>"$restore_file", 'quote'=>'FALSE');
+
+  add_default($nl, 'surf_avg_dic_const');
+  add_default($nl, 'surf_avg_alk_const');
+  add_default($nl, 'surf_avg_di13c_const');
+  add_default($nl, 'surf_avg_di14c_const');
 }
 
-#############################################
-# namelist group: marbl_tracer_init_tmp_nml #
-#############################################
+##########################################
+# namelist group: ecosys_tracer_init_nml #
+##########################################
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
@@ -1729,15 +1739,9 @@ if ($ecosys_on eq "TRUE") {
 ##########################################
 
 if ($ecosys_on eq "TRUE") {
-
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
-
-    add_default($nl, 'surf_avg_dic_const');
-    add_default($nl, 'surf_avg_alk_const');
-    add_default($nl, 'surf_avg_di13c_const');
-    add_default($nl, 'surf_avg_di14c_const');
     }
  
 ##########################################
@@ -2187,8 +2191,11 @@ if ($sf6_on eq "TRUE" ) {
     push @groups, qw(sf6_nml);
 }    
 if ($ecosys_on eq "TRUE") {
-    push @groups, qw(ecosys_driver_nml marbl_config_nml marbl_parms_nml);
-    push @groups, qw(marbl_forcing_tmp_nml marbl_tracer_init_tmp_nml);
+    push @groups, qw(ecosys_driver_nml
+                     ecosys_forcing_data_nml
+                     ecosys_tracer_init_nml
+                     marbl_config_nml
+                     marbl_parms_nml);
 }    
 if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );
@@ -2320,7 +2327,9 @@ sub add_default {
 
     # If the variable is a string, then add quotes if they're missing
     if ($str_len > 0) {
-      $val = quote_string($val);
+      if ((not defined $opts{'quote'}) or ($opts{'quote'} eq 'TRUE')) {
+        $val = quote_string($val);
+      }
     }
 
     # set the value in the namelist
