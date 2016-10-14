@@ -616,7 +616,7 @@
    lrf_nonzero_newtime = .true.
 
    robert_nu    = 0.20_POP_r8 !nu = 0.2, Williams[2009]
-   robert_alpha = 0.53_POP_r8 !alpha in Williams, 2009
+   robert_alpha = 1.0_POP_r8 !standard Robert-Asselin
 
    date_separator = ' '
 

@@ -1,5 +1,31 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  njn01,yuheng,jet
+Tag Date:    14 Oct 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161014
+Tag Summary: add new Robert Filtering defaults, EBM exchange circulation mods,
+	bug fix in diagnostics.F90,bug fix for new RF tavg fixed level diagnostics.
+
+Testing: aux_pop - BFB with EBM/RF off (default).
+
+	ERI tests fail due to ww3 bug with hybrid restarts
+        ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 failing due to cime problem introduced in cesm15alpha07e
+        known SMS Memory failures
+
+
+	M       ChangeLog
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       bld/namelist_files/namelist_definition_pop.xml
+	M       source/diagnostics.F90
+	M       source/estuary_vsf_mod.F90
+	M       source/forcing.F90
+	M       source/forcing_coupled.F90
+	M       source/restart.F90
+	M       source/step_mod.F90
+	M       source/time_management.F90
+
+===============================================================================
+Tag Creator: jet
 Developers:  njn01
 Tag Date:    29 Sep 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160929

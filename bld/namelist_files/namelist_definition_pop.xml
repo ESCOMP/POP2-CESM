@@ -433,7 +433,7 @@ Tuning parameter used in Robert filtering.
 Williams, Paul D. "A proposed Modification to the Robert-Asselin Time Filter." Monthly
 Weather Review, Vol 137, 2009.
 
-Default: 0.53 
+Default: 1.0 
 </entry>
 
 <entry 

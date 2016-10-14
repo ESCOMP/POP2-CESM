@@ -1606,8 +1606,11 @@
    endif
 
    !*** collect TEMP at specified levels
-   call accumulate_tavg_field(TRACER(:,:,27,1,curtime,iblock),tavg_TEMP_27,iblock,27)
-   call accumulate_tavg_field(TRACER(:,:,43,1,curtime,iblock),tavg_TEMP_43,iblock,43)
+   !*** collect TEMP at specified levels
+   if (km >= 27) &
+      call accumulate_tavg_field(TRACER(:,:,27,1,curtime,iblock),tavg_TEMP_27,iblock,27)
+   if (km >= 43) &
+      call accumulate_tavg_field(TRACER(:,:,43,1,curtime,iblock),tavg_TEMP_43,iblock,43)
 
    if (iblock == 1) first_trip = .false.
 

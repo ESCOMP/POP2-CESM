@@ -233,7 +233,7 @@
 
    logical (POP_logical) :: &
       lcoupled_ts,          &! flag to check whether coupled time step
-      ldocument_read_restart ! flag to print sal_initial ssh_initial and others
+      ldocument_read_restart=.false. ! flag to print sal_initial ssh_initial and others
 
    type (block) ::         &
       this_block            ! block information for current block

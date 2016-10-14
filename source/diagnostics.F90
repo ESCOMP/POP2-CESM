@@ -81,10 +81,12 @@
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       public :: &
-      DIAG_TRACER_ADV_2D,    &!
-      DIAG_TRACER_HDIFF_2D,  &!
-      DIAG_TRACER_VDIFF_2D,  &!
-      DIAG_TRACER_SOURCE_2D, &!
+      DIAG_TRACER_ADV_2D,     &!
+      DIAG_TRACER_HDIFF_2D,   &!
+      DIAG_TRACER_VDIFF_2D,   &!
+      DIAG_TRACER_SOURCE_2D,  &!
+      DIAG_TRACER_ROFF_VSF_2D,&!
+      DIAG_TRACER_EXCHCIRC_2D,&!            
       DIAG_TRACER_SFC_FLX
 
 !-----------------------------------------------------------------------
@@ -166,6 +168,8 @@
       diag_tracer_vdiff,       &! tracer change due to vert  diffusion
       diag_tracer_source,      &! tracer change due to source terms
       avg_tracer,              &! global average tracer at new time
+      diag_tracer_roff_vsf,    &! tracer change due to surface runoff 
+      diag_tracer_exchcirc,    &! tracer change due to exchange circ      
       sfc_tracer_flux           ! sfc tracer flux (Fw*tracer) or
                                 !   resid sfc flux (w*tracer)
 
@@ -1097,6 +1101,8 @@
       DIAG_TRACER_HDIFF_2D = c0
       DIAG_TRACER_VDIFF_2D = c0
       DIAG_TRACER_SOURCE_2D = c0
+      DIAG_TRACER_ROFF_VSF_2D = c0
+      DIAG_TRACER_EXCHCIRC_2D = c0       
       DIAG_TRACER_SFC_FLX   = c0
    endif
 
@@ -1167,7 +1173,7 @@
       dcount ,           & ! diag counter
       ib,ie,jb,je
 
-   real (r8), dimension(max_blocks_clinic,6*nt+9) :: &
+   real (r8), dimension(max_blocks_clinic,8*nt+9) :: &
       local_sums           ! array for holding block sums
                            ! of each diagnostic
 
@@ -1282,6 +1288,14 @@
             local_sums(iblock,dcount) = sum(WORK1(ib:ie,jb:je))
 
             dcount = dcount + 1
+            WORK1 = DIAG_TRACER_ROFF_VSF_2D(:,:,n,iblock)*TFACT
+            local_sums(iblock,dcount) = sum(WORK1(ib:ie,jb:je))
+            
+            dcount = dcount + 1
+            WORK1 = DIAG_TRACER_EXCHCIRC_2D(:,:,n,iblock)*TFACT
+            local_sums(iblock,dcount) = sum(WORK1(ib:ie,jb:je))
+                  
+            dcount = dcount + 1
             do k=1,km
                if (sfc_layer_type == sfc_layer_varthick .and. &
                    k == 1) then
@@ -1368,6 +1382,14 @@
         sum_tmp = sum(local_sums(:,dcount))
         diag_tracer_source(n) = & 
                          global_sum(sum_tmp,distrb_clinic)/volume_t
+        dcount = dcount + 1
+        sum_tmp = sum(local_sums(:,dcount))
+        diag_tracer_roff_vsf(n) = & 
+                         global_sum(sum_tmp,distrb_clinic)/volume_t
+        dcount = dcount + 1
+        sum_tmp = sum(local_sums(:,dcount))
+        diag_tracer_exchcirc(n) = & 
+                         global_sum(sum_tmp,distrb_clinic)/volume_t                                                         
         dcount = dcount + 1
         sum_tmp = sum(local_sums(:,dcount))
         dtracer_avg(n) = global_sum(sum_tmp,distrb_clinic)/volume_t
@@ -1806,6 +1828,12 @@
             ' mean change in tracer  ',n, &
             ' from sources     : ',    diag_tracer_source(n)
             write(stdout,trcr_fmt) &
+            ' mean change in tracer  ',n, &
+            ' from roff. VSF   : ',    diag_tracer_roff_vsf(n)
+            write(stdout,trcr_fmt) &
+            ' mean change in tracer  ',n, &
+            ' from exch. circ. : ',    diag_tracer_exchcirc(n)           
+            write(stdout,trcr_fmt) &
             ' surface flux of tracer ',n, &
             '                  : ',    sfc_tracer_flux(n)
 
@@ -1869,7 +1897,10 @@
             write(diag_unit,diag_fmt) tday, diag_tracer_vdiff(n), diag_name
             write(diag_name,'(a7,i3,a14)') 'Tracer ',n,' change source'
             write(diag_unit,diag_fmt) tday, diag_tracer_source(n), diag_name
-
+            write(diag_name,'(a7,i3,a14)') 'Tracer ',n,' change rofvsf'
+            write(diag_unit,diag_fmt) tday, diag_tracer_roff_vsf(n), diag_name
+            write(diag_name,'(a7,i3,a14)') 'Tracer ',n,' change exccir'
+            write(diag_unit,diag_fmt) tday, diag_tracer_exchcirc(n), diag_name
             write(diag_name,'(a7,i3,a14)') 'Tracer ',n,' surface flux'
             write(diag_unit,diag_fmt) tday, sfc_tracer_flux(n), diag_name
          end do
