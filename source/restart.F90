@@ -40,6 +40,7 @@
        extract_attrib_file
    use time_management
    use ice, only: tlast_ice, liceform, AQICE, FW_FREEZE, QFLUX
+   use io_tools
    use forcing_fields, only: FW_OLD
    use forcing_ap, only: ap_interp_last
    use forcing_ws, only: ws_interp_last
@@ -89,6 +90,8 @@
 
    character (POP_charLength) ::  &
       exit_string           = 'undefined' ! error-exit string
+
+   character (POP_charLength) ::  restart_string
 
    logical (POP_logical) ::   &
       pressure_correction, &! fix pressure for exact restart
@@ -228,8 +231,9 @@
       restart_pointer_file, &! file name for restart pointer file
       short_name, long_name  ! tracer name temporaries
 
-   logical (POP_logical) ::   &
-      lcoupled_ts           ! flag to check whether coupled time step
+   logical (POP_logical) :: &
+      lcoupled_ts,          &! flag to check whether coupled time step
+      ldocument_read_restart=.false. ! flag to print sal_initial ssh_initial and others
 
    type (block) ::         &
       this_block            ! block information for current block
@@ -370,6 +374,23 @@
    call add_attrib_file(restart_file, 'precip_fact', precip_fact)
    call add_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
+   if (lrobert_filter) then
+    !*** rf tracer conservation adjustment factor
+    short_name = char_blank
+    do n=1,nt
+      write(short_name,'(a,i3.3)') 'rf_S_prev',n
+       call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
+    enddo
+
+    !*** rf tracer*volume conservation adjustment factor
+    short_name = char_blank
+    do n=1,nt
+      write(short_name,'(a,i3.3)') 'rf_Svol_prev',n
+       call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
+    enddo
+
+   endif
+
    short_name = char_blank
    do k=1,km
       write(short_name,'(a11,i3.3)') 'sal_initial',k
@@ -476,7 +497,23 @@
       call extract_attrib_file(restart_file, 'precip_fact', precip_fact)
       call extract_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
+      if (lrobert_filter) then
+       !*** rf tracer conservation adjustment factor
+       short_name = char_blank
+       do n=1,nt
+        write(short_name,'(a,i3.3)') 'rf_S_prev',n
+        call extract_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
+       enddo 
 
+       !*** rf tracer*volume conservation adjustment factor
+       short_name = char_blank
+       do n=1,nt
+        write(short_name,'(a,i3.3)') 'rf_Svol_prev',n
+        call extract_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
+       enddo 
+
+      endif
+ 
       short_name = char_blank
       do k=1,km
          write(short_name,'(a11,i3.3)') 'sal_initial',k
@@ -994,6 +1031,17 @@
    endif
    endif
 
+   if (ldocument_read_restart) then
+     !*** document restart values
+     do k = 1,km
+      write(restart_string,'(a,i3,a)') 'sal_initial(',k,')'
+      call document ('read_restart', trim(restart_string), sal_initial(k))
+     enddo
+
+     call document ('read_restart', 'ssh_initial', ssh_initial)
+     call document ('read_restart', 'precip_fact', precip_fact)
+     call document ('read_restart', 'sum_precip', sum_precip)
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1040,12 +1088,15 @@
 
    character (POP_charLength) ::  &
       write_restart_filename, &! modified file name for restart file
-      restart_pointer_file, &! file name for restart pointer file
-      short_name,           &! temporary for short name for io fields
-      long_name              ! temporary for long  name for io fields
+      restart_pointer_file,   &! file name for restart pointer file
+      short_name,             &! temporary for short name for io fields
+      long_name                ! temporary for long  name for io fields
 
    logical (POP_logical) ::   &
-      lcoupled_ts           ! flag to check whether coupled time step
+      lcoupled_ts              ! flag to check whether coupled time step
+
+   logical (POP_logical) ::   &! flag to check whether coupled time step
+      ldocument_write_restart = .false.
 
    type (datafile) :: &
       restart_file    ! io file descriptor
@@ -1256,6 +1307,24 @@
    call add_attrib_file(restart_file, 'sum_precip' , sum_precip )
    call add_attrib_file(restart_file, 'precip_fact', precip_fact)
    call add_attrib_file(restart_file, 'ssh_initial', ssh_initial)
+
+   if (lrobert_filter) then
+     !*** rf tracer conservation adjustment factor
+     short_name = char_blank
+     do n=1,nt
+     write(short_name,'(a,i3.3)') 'rf_S_prev',n
+     call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
+     enddo 
+
+     !*** rf tracer*volume conservation adjustment factor
+     short_name = char_blank
+     do n=1,nt
+     write(short_name,'(a,i3.3)') 'rf_Svol_prev',n
+     call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
+     enddo 
+
+
+   endif
 
    short_name = char_blank
    do k=1,km
@@ -1560,6 +1629,30 @@
      call release_unit(nu)
    endif
 
+
+   !*** document 
+   if (ldocument_write_restart) then
+     do k = 1,km
+      write(restart_string,'(a,i3,a)') 'sal_initial(',k,')'
+      call document ('write_restart', trim(restart_string), sal_initial(k))
+     enddo
+
+      call document ('write_restart', 'ssh_initial', ssh_initial)
+      call document ('write_restart', 'precip_fact', precip_fact)
+      call document ('write_restart', 'sum_precip', sum_precip)
+
+     if (lrobert_filter) then
+      do n = 1,nt
+       write(restart_string,'(a,i3.3,a)') 'rf_S_prev(',n,')'
+       call document ('write_restart', trim(restart_string), rf_S_prev(n))
+      enddo
+
+      do n = 1,nt
+       write(restart_string,'(a,i3.3,a)') 'rf_Svol_prev(',n,')'
+       call document ('write_restart', trim(restart_string), rf_Svol_prev(n))
+      enddo
+     endif
+   endif
 
 !-----------------------------------------------------------------------
 !

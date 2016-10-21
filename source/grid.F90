@@ -53,6 +53,7 @@
       volume_u, volume_t   ,&! total ocean volume of U,T cells
       volume_t_marg        ,&! volume of marginal seas (T cells)
       area_t_marg          ,&! area of marginal seas (T cells)
+      area_u_marg          ,&! area of marginal seas (U cells)
       uarea_equator          ! area of equatorial cell
 
    ! Default values used if l1Ddyn and lidentical_columns = .true.
@@ -2731,6 +2732,7 @@
 !-----------------------------------------------------------------------
 
    area_t_marg = c0
+   area_u_marg = c0
    volume_t_marg = c0
    volume_t_marg_k = c0
 
@@ -2739,6 +2741,9 @@
       WORK = merge(TAREA, c0, 1 <= KMT .and. REGION_MASK == -region)
       sea_area = global_sum(WORK, distrb_clinic, field_loc_center)
       area_t_marg = area_t_marg + sea_area
+   
+      sea_area = global_sum(WORK, distrb_clinic, field_loc_NEcorner)
+      area_u_marg = area_u_marg + sea_area
 
       sea_vol = c0
       do k = 1, km

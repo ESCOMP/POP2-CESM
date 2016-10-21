@@ -32,6 +32,7 @@
    private
    save
 
+
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_sfwf,     &
@@ -151,7 +152,8 @@
       sfwf_file_fmt,       &! format (bin or netcdf) of forcing file
       sfwf_interp_freq,    &! keyword for period of temporal interpolation
       sfwf_interp_type,    &!
-      sfwf_data_label
+      sfwf_data_label,     &
+      sfwf_string           !general purpose character string private to module
 
    character (char_len),public :: &
       sfwf_data_type,      &! keyword for period of forcing data
@@ -203,6 +205,9 @@
 
    character (char_len) :: &
       forcing_filename     ! full filename for forcing input
+
+   logical (log_kind) ::  &
+      lprintsalinitial  = .false.
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       WORK               ! temporary work space
@@ -414,6 +419,14 @@
                              (volume_t_k(k) - volume_t_marg_k(k)) ! in m^3
          enddo
       endif
+   endif
+
+   !*** document sal_initial
+   if (lprintsalinitial) then
+     do k = 1,km
+      write(sfwf_string,'(a,i3,a)') 'sal_initial(',k,')'
+      call document ('init_sfwf', trim(sfwf_string), sal_initial(k))
+     enddo
    endif
 
 !-----------------------------------------------------------------------
@@ -1769,7 +1782,6 @@
          sal_final(k) = 1.0e-6_r8* &! convert to m^3
                         global_sum(WORK1,distrb_clinic,field_loc_center)/vol_glob_m_marg
       enddo
-
 
       if (ladjust_precip) call precip_adjustment
 

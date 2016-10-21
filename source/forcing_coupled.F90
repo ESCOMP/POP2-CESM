@@ -815,19 +815,27 @@
        !$OMP PARALLEL DO PRIVATE(iblock)
        do iblock = 1, nblocks_clinic
 !  Add up the freshwater flux except river runoff
-        STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
-                     (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
-                      MELT_F(:,:,iblock)&
-                     +IOFF_F(:,:,iblock))*salinity_factor   &
-                    + SALT_F(:,:,iblock)*sflux_factor)
+        where (MASK_SR(:,:,iblock) == 0 ) 
+          STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
+                       (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
+                        MELT_F(:,:,iblock)+ROFF_F(:,:,iblock)+IOFF_F(:,:,iblock))*salinity_factor&
+                      + SALT_F(:,:,iblock)*sflux_factor)
+        elsewhere
+          STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
+                       (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
+                        MELT_F(:,:,iblock)&
+                       +IOFF_F(:,:,iblock))*salinity_factor   &
+                       + SALT_F(:,:,iblock)*sflux_factor)
+        endwhere
        enddo
        !$OMP END PARALLEL DO
        if (lvsf_river) THEN
         !$OMP PARALLEL DO PRIVATE(iblock)
 !  Add global correction for salt conservation with local river reference salinity
+!  Marginal Seas excluded for the global correction
         do iblock = 1, nblocks_clinic
-         STF(:,:,2,iblock) = &
-                & STF(:,:,2,iblock) + RCALCT(:,:,iblock)*vsf_river_correction
+          STF(:,:,2,iblock) = &
+                & STF(:,:,2,iblock) + MASK_SR(:,:,iblock)*vsf_river_correction
         enddo
         !$OMP END PARALLEL DO
        endif

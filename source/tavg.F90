@@ -2702,12 +2702,13 @@
 !EOC
 
  end subroutine tavg_global
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: tavg_global_sum_2D
 ! !INTERFACE:
 
- function tavg_global_sum_2D (id)
+ function tavg_global_sum_2D (id,MASK_BUDGET)
 
 ! !DESCRIPTION:
 !  Calculates the global sum of a requested 2D time-averaged field
@@ -2723,13 +2724,14 @@
 
    integer (int_kind), intent(in) ::  &
       id                               ! identifier of time-averaged field 
+   real (r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in), optional ::  &
+      MASK_BUDGET                       ! mask used for Robert Filter budgets
 
 ! !OUTPUT PARAMETERS:
 
    real (r8) :: &
       tavg_global_sum_2D     ! result of this function: the global sum of
                              !   a requested 2D time-averaged field
-
 
 !EOP
 !BOC
@@ -2749,13 +2751,18 @@
       field_type        ! field type (scalar, vector, angle)
 
    real (r8) ::        &
-      tavg_norm         ! normalization for average
+      tavg_norm,       &! normalization for average
+      denom_t,         &! area - marginal seas area (T grid)
+      denom_u           ! area - marginal seas area (U grid)
 
    real (r8), dimension (nx_block,ny_block,max_blocks_clinic) ::  &
-      WORK              ! temp for holding area_weighted field
+      WORK,            &! temp for holding area_weighted field
+      WORK1             ! temp for holding masked field
 
    real (r8), dimension (nx_block, ny_block) ::  &
       RMASK             ! topography mask for global sum
+ 
+   logical (log_kind) :: lmask
 
 
 !-----------------------------------------------------------------------
@@ -2782,6 +2789,18 @@
       exit_string = 'FATAL ERROR: invalid dimension'
       call document ('tavg_global_sum_2D', exit_string)
       call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  should the requested field be masked?
+!
+!-----------------------------------------------------------------------
+
+   if (present (MASK_BUDGET)) then
+     lmask = .true.
+   else
+     lmask = .false.
    endif
 
 !-----------------------------------------------------------------------
@@ -2841,6 +2860,10 @@
         case(field_loc_center)
            WORK(:,:,iblock)  = TAVG_BUF_2D(:,:,iblock,loc)* &
                                TAREA(:,:,iblock)*RCALCT(:,:,iblock)
+           !*** MASK_BUDGET applied to T grid points
+           if (lmask) then
+            WORK(:,:,iblock) = WORK(:,:,iblock)*MASK_BUDGET(:,:,1,iblock)
+           endif
         case(field_loc_NEcorner)
            WORK(:,:,iblock)  = TAVG_BUF_2D(:,:,iblock,loc)* &
                                UAREA(:,:,iblock)*RCALCU(:,:,iblock)
@@ -2848,20 +2871,28 @@
            WORK(:,:,iblock)  = TAVG_BUF_2D(:,:,iblock,loc)* &
                                UAREA(:,:,iblock)*RCALCU(:,:,iblock)
       end select
+
    end do
 !njn01 !$OMP END PARALLEL DO
+
+   if (lmask) then
+     denom_t = tavg_norm*(area_t-area_t_marg)
+   else
+     denom_t = tavg_norm*area_t
+   endif
+
+   denom_u = tavg_norm*area_u
 
    tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc)
 
    select case(field_loc)
      case(field_loc_center)
-        tavg_global_sum_2D = tavg_global_sum_2D/(tavg_norm*area_t)
+        tavg_global_sum_2D = tavg_global_sum_2D/denom_t
      case(field_loc_NEcorner)
-        tavg_global_sum_2D = tavg_global_sum_2D/(tavg_norm*area_u)
+        tavg_global_sum_2D = tavg_global_sum_2D/denom_u
      case default ! make U cell the default for all other cases
-        tavg_global_sum_2D = tavg_global_sum_2D/(tavg_norm*area_u)
+        tavg_global_sum_2D = tavg_global_sum_2D/denom_u
    end select
-
 
 
 !-----------------------------------------------------------------------

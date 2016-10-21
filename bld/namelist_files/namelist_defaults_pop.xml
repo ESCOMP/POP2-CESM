@@ -58,7 +58,7 @@
 
 <fit_freq>1</fit_freq> 
 
-<robert_alpha> 0.53 </robert_alpha>
+<robert_alpha> 1.0 </robert_alpha>
 <robert_nu>    0.20 </robert_nu>
 
 <!---------------------------->
@@ -279,7 +279,7 @@
 <!-- vmix_kpp_nml -->
 <!---------------------------->
 
-<lcvmix>.false.</lcvmix>
+<lcvmix>.true.</lcvmix>
 <lcvmix ocn_onedim="TRUE">.true.</lcvmix>
 <linertial>.false.</linertial>
 <Prandtl>10.0</Prandtl>
@@ -291,7 +291,8 @@
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
 <!--QL, 150526, langmuir mixing parameterization option-->
-<langmuir_opt>'null'</langmuir_opt>
+<langmuir_opt comp_wav="swav">'null'</langmuir_opt> 
+<langmuir_opt>'vr12-ma'</langmuir_opt>
 
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  >.true.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  ocn_onedim="TRUE">.false.</lhoriz_varying_bckgrnd>
@@ -404,6 +405,8 @@
 <shrdispfac                                    >0.05066</shrdispfac>
 <simpsubcells                                  >.false.</simpsubcells>
 <vertdiffhere                                  >.false.</vertdiffhere>
+<kappa_thic_deep                               >0.1</kappa_thic_deep>
+<kappa_isop_deep                               >0.1</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->
@@ -589,6 +592,8 @@
 
 <lactive_ice>.true.</lactive_ice>
 <lactive_ice ocn_ice_forcing="inactive">.false.</lactive_ice>
+
+<licecesm2>.false.</licecesm2>
 
 <!---------------------------->
 <!-- pressure_grad_nml -->

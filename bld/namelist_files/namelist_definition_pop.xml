@@ -217,7 +217,7 @@ id="time_mix_opt"
 type="char*256"
 category="timemgr"
 group="time_manager_nml"
-valid_values="avg,avgbb,avgfit" >
+valid_values="avg,avgbb,avgfit,robert" >
 Option for time mixing: 
    avgfit = leapfrog with occasional time-averaging timestep to control stability. 
             The timestep is modified such that an integer number of full and half timesteps
@@ -232,7 +232,7 @@ Option for time mixing:
             followed by another time-averaging timestep ("back-to-back" avg). DO NOT USE THIS
             OPTION in scientific experiments.
 
-Valid Values: 'avgfit', 'avg', 'avgbb'
+Valid Values: 'robert' 'avgfit', 'avg', 'avgbb'
 Default: 'avgfit' 
 </entry>
 
@@ -433,7 +433,7 @@ Tuning parameter used in Robert filtering.
 Williams, Paul D. "A proposed Modification to the Robert-Asselin Time Filter." Monthly
 Weather Review, Vol 137, 2009.
 
-Default: 0.53 
+Default: 1.0 
 </entry>
 
 <entry 
@@ -449,6 +449,27 @@ Weather Review, Vol 137, 2009.
 Default: 0.20
 </entry>
 
+<entry 
+id="ltime_mgr_print"
+type="logical"
+category="timemgr"
+group="time_manager_nml" >
+Print time_manager info every timestep and print initial time-flag info.
+
+Default: .false.
+</entry>
+
+
+<entry 
+id="lrf_conserveVT"
+type="logical"
+category="timemgr"
+group="time_manager_nml" >
+Conserve <volume*TRACER> across each Robert Filtering step. Note that
+this is unstable, so only use as a sanity check over a few days at most.
+
+Default: .false.
+</entry>
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: grid_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -946,6 +967,16 @@ group="budget_diagnostics_nml" >
 Flag for global budget diagnostics for tracers.
 
 Default: .true.
+</entry>
+
+<entry 
+id="lrf_print_budget_term_by_term"
+type="logical"
+category="diag"
+group="budget_diagnostics_nml" >
+Flag for printing Robert-filter budget terms in a human-eye-friendly manner. 
+
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1700,7 +1731,7 @@ category="kpp"
 group="vmix_kpp_nml" >
 Flag for using CVMix for mixing instead of POP routines
 
-Default: .false.
+Default: .true.
 </entry>
 
 <!--QL, 150526, Langmuir mixing options-->
@@ -1712,7 +1743,7 @@ group="vmix_kpp_nml" >
 Langmuir mixing parameterization option.
 
 Valid Values: 'null', 'vr12-ma', 'vr12-en'
-Default: 'null'
+Default: 'vr12-ma'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -2209,6 +2240,28 @@ Background horizontal diffusivity at k = KMT
 
 Default: 0.0
 </entry>
+
+<entry 
+id="kappa_isop_deep"
+type="real"
+category="hmix"
+group="hmix_gm_nml" >
+specify isopcynal deep diffusivity as fraction of the reference value
+
+Default: 0.1
+</entry>
+
+<entry 
+id="kappa_thic_deep"
+type="real"
+category="hmix"
+group="hmix_gm_nml" >
+specify thickness deep diffusivity as fraction of the reference value
+
+Default: 0.1
+</entry>
+
+
 
 <entry 
 id="slm_r"
@@ -2722,6 +2775,16 @@ group="ice_nml" >
 Flag for whether POP is coupled to an active ice model.
 
 Default: Depends on $OCN_ICE_FORCING ("inactive" => .false.)
+</entry>
+
+<entry 
+id="licecesm2"
+type="logical"
+category="ice"
+group="ice_nml" >
+CESM2 default for forming ice every timestep when coupled
+
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

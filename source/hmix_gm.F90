@@ -202,6 +202,10 @@
          slm_r,         &       ! max. slope allowed for redi diffusion
          slm_b                  ! max. slope allowed for bolus transport
 
+      real (r8) ::      &
+         kappa_isop_deep, &     ! isopycnal diffusivity minimum
+         kappa_thic_deep        ! thickness diffusivity minimum
+
 !-----------------------------------------------------------------------
 !
 !     the following set of variables are used in Eden and Greatbatch 
@@ -352,6 +356,8 @@
 
    namelist /hmix_gm_nml/ kappa_isop_choice,                     &
                           kappa_thic_choice,                     &
+                          kappa_isop_deep,                       &
+                          kappa_thic_deep,                       &
                           kappa_freq_choice,                     &
                           slope_control_choice,                  &
                           kappa_depth_1, kappa_depth_2,          &
@@ -432,6 +438,8 @@
    gamma_eg               = 300.0_r8 
    kappa_min_eg           = 0.35e7_r8
    kappa_max_eg           = 5.0e7_r8
+   kappa_isop_deep        = 0.1_r8
+   kappa_thic_deep        = 0.1_r8
 
    if (my_task == master_task) then
      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -467,6 +475,10 @@
                      trim(kappa_thic_choice)
      write(stdout,*) '    kappa computation frequency choice is ',  &
                      trim(kappa_freq_choice)
+     write(stdout,'(a56,1pe13.6)') 'kappa isopycnal diffusion minimum (deep)   = ',  &
+                     kappa_isop_deep
+     write(stdout,'(a56,1pe13.6)') 'kappa thickness diffusion minimum (deep)   = ',  &
+                     kappa_thic_deep
      write(stdout,*) '    slope control choice is ',  &
                                     trim(slope_control_choice)
      write(stdout,'(a28,1pe13.6)') ' isopycnal diffusion      = ',  &
@@ -633,6 +645,8 @@
 
    call broadcast_scalar(kappa_isop_type,        master_task)
    call broadcast_scalar(kappa_thic_type,        master_task)
+   call broadcast_scalar(kappa_isop_deep,        master_task)
+   call broadcast_scalar(kappa_thic_deep,        master_task)
    call broadcast_scalar(kappa_freq,             master_task)
    call broadcast_scalar(slope_control,          master_task)
    call broadcast_scalar(kappa_depth_1,          master_task)
@@ -1394,6 +1408,10 @@
 !-----------------------------------------------------------------------
 !
 !     reinitialize the diffusivity coefficients 
+!     NOTE: KAPPA_VERTICAL bounded between 0.1 and 1.0.  New scaling factors
+!            kappa_thic_deep,kappa_isop_deep can only be used to increase the 
+!            lower limit above .1  Any values below .1 will have no effect
+!            on the diffusivity components.
 !
 !-----------------------------------------------------------------------
 	
@@ -1403,6 +1421,13 @@
           do kk_sub=ktp,kbt
             do kk=1,km
               KAPPA_ISOP(:,:,kk_sub,kk,bid) = KAPPA_VERTICAL(:,:,kk,bid)
+            enddo
+          enddo
+        elseif ( kappa_isop_type == kappa_type_bfreq ) then
+          do kk_sub=ktp,kbt
+            do kk=1,km
+              KAPPA_ISOP(:,:,kk_sub,kk,bid) =  KAPPA_LATERAL(:,:,bid)  &
+                                         * max(KAPPA_VERTICAL(:,:,kk,bid),kappa_isop_deep)
             enddo
           enddo
         else
@@ -1419,12 +1444,18 @@
 
         if ( kappa_thic_type == kappa_type_const ) then
           KAPPA_THIC(:,:,:,:,bid) = ah_bolus
-        else if ( kappa_thic_type == kappa_type_depth  .or.  &
-                  kappa_thic_type == kappa_type_bfreq ) then
+        else if ( kappa_thic_type == kappa_type_depth ) then
           do kk_sub=ktp,kbt
             do kk=1,km
               KAPPA_THIC(:,:,kk_sub,kk,bid) =  ah_bolus  &
                                         * KAPPA_VERTICAL(:,:,kk,bid)
+            enddo
+          enddo 
+        else if ( kappa_thic_type == kappa_type_bfreq ) then
+          do kk_sub=ktp,kbt
+            do kk=1,km
+              KAPPA_THIC(:,:,kk_sub,kk,bid) =  ah_bolus  &
+	                                * max(KAPPA_VERTICAL(:,:,kk,bid),kappa_thic_deep)
             enddo
           enddo 
         else if ( kappa_thic_type == kappa_type_eg ) then
