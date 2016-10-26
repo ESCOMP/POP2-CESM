@@ -6,6 +6,18 @@ Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n17_cesm_pop_2_1_20161014
 Tag Summary: merge Tony's 4D streams and addition ice coupler fields onto
              marbl_dev (came from marbl_dev_tc branch)
 
+             Note that this tag changes answers for GECO cases because of the
+             new terms in DUST_FLUX_CPL and BLACK_CARBON_FLUX_CPL; these
+             fields do not affect prognostic variables by default, but answer
+             change will affect prognostic variables if
+
+             dust_flux_source = 'driver'
+             iron_flux_source = 'driver-derived'
+
+             Also, new namelist variables (to allow PT and S restoring via
+             shr_stream file reads) cause namelist compare failures for all
+             cases running with POP.
+
 Files Modified:
 M       bld/build-namelist
 M       bld/namelist_files/namelist_defaults_pop.xml
