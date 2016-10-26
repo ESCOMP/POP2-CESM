@@ -1,5 +1,18 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  jet
+Tag Date:    26 Oct 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161026
+Tag Summary: update configure because of interface change to xmlchange
+
+
+Testing: built a coupled case.
+
+	M       ChangeLog
+	M       bld/configure
+
+===============================================================================
+Tag Creator: jet
 Developers:  njn01,yuheng,jet
 Tag Date:    14 Oct 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161014
