@@ -3511,8 +3511,8 @@ Default: 1
 id="pt_interior_shr_stream_file"
 type="char*256" 
 category="forcing"
-group="forcing_pt_interior_nml"
-Default: depends on grid
+group="forcing_pt_interior_nml">
+Default: unknown-pt_interior_shr_stream
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -3712,8 +3712,8 @@ Default: 1
 id="s_interior_shr_stream_file"
 type="char*256" 
 category="forcing"
-group="forcing_s_interior_nml"
-Default: depends on grid
+group="forcing_s_interior_nml">
+Default: unknown-s_interior_shr_stream
 </entry>
 
 

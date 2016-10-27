@@ -81,10 +81,7 @@
       s_interior_shr_stream_file          ! file containing domain and input data
 
    integer (int_kind) :: &
-      s_interior_shr_stream_temp_ind      ! index into the stream av for temp
-
-   integer (int_kind) :: &
-      tavg_INTERIOR_S                     ! tavg id for S_INTERIOR_DATA
+      tavg_SALT_RESTORE                   ! tavg id for S_INTERIOR_DATA
 
    type(strdata_input_type) :: &
       s_inputlist                         ! pop stream datatype
@@ -211,7 +208,7 @@
    s_interior_shr_stream_year_first = 1
    s_interior_shr_stream_year_last  = 1
    s_interior_shr_stream_year_align = 1
-   s_interior_shr_stream_file       = 'unknown'
+   s_interior_shr_stream_file       = 'unknown-s_interior_shr_stream'
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -502,16 +499,16 @@
       s_inputlist%year_align = s_interior_shr_stream_year_align
       s_inputlist%file_name  = s_interior_shr_stream_file
       s_inputlist%field_list = 'SALT'
-      s_interior_shr_stream_temp_ind = 1
 
-      !--- moved to "get" interface because gsmap and other data not yet set
-      !--- call POP_strdata_create(s_inputlist,depthflag=.true.)
- 
       call get_timer(s_interior_shr_strdata_advance_timer, &
                     'S_INTERIOR_SHR_STRDATA_ADVANCE',1, distrb_clinic%nprocs)
       if (my_task == master_task) then
          write(stdout,blank_fmt)
          write(stdout,'(a)') ' Interior S shr_stream option: '
+         write(stdout,'(2a)') '   year_first = ', s_interior_shr_stream_year_first
+         write(stdout,'(2a)') '   year_last = ', s_interior_shr_stream_year_last
+         write(stdout,'(2a)') '   year_align = ', s_interior_shr_stream_year_align
+         write(stdout,'(2a)') '   file = ', s_interior_shr_stream_file
       endif
 
    case default
@@ -620,9 +617,10 @@
 !
 !-----------------------------------------------------------------------
 
-   call define_tavg_field(tavg_INTERIOR_S,'INTERIOR_S',3,                      &
+   call define_tavg_field(tavg_SALT_RESTORE,'SALT_RESTORE',3,              &
                           long_name='S values of interior restoring data', &
-                          units='ppt', grid_loc='3111',         &
+                          units='gram/kilogram', grid_loc='3111',          &
+                          scale_factor=1000.0_r8,                          &
                           coordinates='TLONG TLAT z_t time')
 
 !-----------------------------------------------------------------------
@@ -747,6 +745,7 @@
    case ('shr_stream')
 
       if (first_call_strdata_create) then
+         !--- moved to "get" interface because gsmap and other data not yet set
          call POP_strdata_create(s_inputlist,depthflag=.true.)
       endif
       first_call_strdata_create = .false.
@@ -768,7 +767,7 @@
          do i=this_block%ib,this_block%ie
             n = n + 1
             S_INTERIOR_DATA(i,j,k,iblock,1) = &
-               s_inputlist%sdat%avs(1)%rAttr(s_interior_shr_stream_temp_ind,n)
+               s_inputlist%sdat%avs(1)%rAttr(1,n)
          enddo
          enddo
       enddo
@@ -871,7 +870,7 @@
 
       bid = this_block%local_id
 
-      call accumulate_tavg_field(S_INTERIOR_DATA(:,:,k,bid,now), tavg_INTERIOR_S, bid, k)
+      call accumulate_tavg_field(S_INTERIOR_DATA(:,:,k,bid,now), tavg_SALT_RESTORE, bid, k)
 
       if (s_interior_variable_restore) then
          DS_INTERIOR = S_RESTORE_RTAU(:,:,bid)*                &

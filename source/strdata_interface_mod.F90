@@ -27,8 +27,10 @@ module strdata_interface_mod
   use POP_IOUnitsMod,   only : inst_name
   use POP_CommMod,      only : POP_communicator
   use POP_MCT_vars_mod, only : POP_MCT_OCNID
-  use POP_MCT_vars_mod, only : POP_MCT_gsMap_o, POP_MCT_gsMap3d_o
-  use POP_MCT_vars_mod, only : POP_MCT_dom_o, POP_MCT_dom3d_o
+  use POP_MCT_vars_mod, only : POP_MCT_gsMap_o
+  use POP_MCT_vars_mod, only : POP_MCT_gsMap3d_o
+  use POP_MCT_vars_mod, only : POP_MCT_dom_o
+  use POP_MCT_vars_mod, only : POP_MCT_dom3d_o
 
   implicit none
   private
@@ -59,14 +61,14 @@ contains
     logical, optional, intent(in) :: depthflag    ! true means 3d data expected
 
     !--- local ---
-    logical :: ldepthflag
+    logical :: depthflag_loc
 
-    ldepthflag = .false.
+    depthflag_loc = .false.
     if (present(depthflag)) then
-       ldepthflag = depthflag
+       depthflag_loc = depthflag
     endif
 
-    if (ldepthflag) then
+    if (depthflag_loc) then
        !--- include nzg and domZvarName in call
        call shr_strdata_create(inputlist%sdat, name='not_used',               &
                             mpicom=POP_communicator,                          &
