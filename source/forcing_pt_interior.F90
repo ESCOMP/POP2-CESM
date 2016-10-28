@@ -250,6 +250,15 @@
    call broadcast_scalar(pt_interior_shr_stream_year_align, master_task)
    call broadcast_scalar(pt_interior_shr_stream_file      , master_task)
 
+   ! Write namelist to log
+   if (my_task == master_task) then
+       write(stdout,blank_fmt)
+       write(stdout,*) ' forcing_pt_interior_nml namelist settings:'
+       write(stdout,blank_fmt)
+       write(stdout, forcing_pt_interior_nml)
+       write(stdout,blank_fmt)
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  convert data_type to 'monthly-calendar' if input is 'monthly'

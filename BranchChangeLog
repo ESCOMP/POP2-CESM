@@ -1,6 +1,17 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy, klindsay
+Tag Date:    28 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n20_cesm_pop_2_1_20161026
+Tag Summary: Add &forcing_pt_interior_nml and &forcing_s_interior_nml to
+             ocn.log output
+
+Files Modified:
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
 Tag Date:    27 October 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n19_cesm_pop_2_1_20161026
 Tag Summary: Code clean-up following review of changes that went in n17
