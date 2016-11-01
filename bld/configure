@@ -124,7 +124,7 @@ sub auto_decomp {
 
 sub determine_tracer_count {
 
-  $ECOSYS_NT       = 27;
+  $ECOSYS_NT       = 28;
   $ZOOPLANKTON_CNT = 1;
   $AUTOTROPH_CNT   = 3;
   $GRAZER_PREY_CNT = 3;

@@ -6273,12 +6273,12 @@ type="char*256"
 category="ecosys"
 group="marbl_tracer_init_tmp_nml"
 input_pathname="abs" >
-Default: ecosys_jan_IC_gx3v7_20151210.nc or ecosys_jan_IC_gx1v6_20150108.nc (none provided for tripole grids)
+Default: ecosys_jan_IC_gx3v7_20161026.nc or ecosys_jan_IC_gx1v6_20161026.nc (none provided for tripole grids)
 </entry>
 
 <entry 
 id="tracer_init_ext%mod_varname&marbl_tracer_init_tmp_nml"
-type="dtype(27)%char*256" 
+type="dtype(28)%char*256" 
 category="ecosys"
 group="derived" >
 Default: (/"ALK", "DIC", "DIC_ALT_CO2", "O2"/)
@@ -6286,7 +6286,7 @@ Default: (/"ALK", "DIC", "DIC_ALT_CO2", "O2"/)
 
 <entry 
 id="tracer_init_ext%filename&marbl_tracer_init_tmp_nml"
-type="dtype(27)%char*256" 
+type="dtype(28)%char*256" 
 category="ecosys"
 group="derived"
 input_pathname="abs" >
@@ -6295,7 +6295,7 @@ Default: none provided
 
 <entry 
 id="tracer_init_ext%file_varname&marbl_tracer_init_tmp_nml"
-type="dtype(27)%char*256" 
+type="dtype(28)%char*256" 
 category="ecosys"
 group="derived" >
 Default: none provided
@@ -6303,7 +6303,7 @@ Default: none provided
 
 <entry 
 id="tracer_init_ext%file_fmt&marbl_tracer_init_tmp_nml"
-type="dtype(27)%char*256" 
+type="dtype(28)%char*256" 
 category="ecosys"
 group="derived" >
 Default: none provided
@@ -6311,7 +6311,7 @@ Default: none provided
 
 <entry 
 id="tracer_init_ext%scale_factor&marbl_tracer_init_tmp_nml"
-type="dtype(27)%real" 
+type="dtype(28)%real" 
 category="ecosys"
 group="derived" >
 Default: (/1.025, 1.025, 1.025, 1.0/)
@@ -6319,7 +6319,7 @@ Default: (/1.025, 1.025, 1.025, 1.0/)
 
 <entry 
 id="tracer_init_ext%default_val&marbl_tracer_init_tmp_nml"
-type="dtype(27)%real" 
+type="dtype(28)%real" 
 category="ecosys"
 group="derived" >
 Default: none provided
@@ -6473,7 +6473,23 @@ id="parm_fe_scavenge_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 1.4 for gx3v7, 1.9 otherwise
+Default: 60
+</entry>
+
+<entry 
+id="parm_Lig_scavenge_rate0"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 5
+</entry>
+
+<entry 
+id="parm_Lig_degrade_rate0"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 60
 </entry>
 
 <entry 
@@ -6506,14 +6522,6 @@ type="real"
 category="ecosys"
 group="marbl_parms_nml" >
 Default: 450.0e2
-</entry>
-
-<entry 
-id="fe_max_scale2"
-type="real" 
-category="ecosys"
-group="marbl_parms_nml" >
-Default: 1600 for gx3v7, 2200 otherwise
 </entry>
 
 <entry 

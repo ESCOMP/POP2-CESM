@@ -1192,8 +1192,8 @@
 <!-- marbl_tracer_init_tmp_nml -->
 <!------------------------------->
 
-<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7">/glade/scratch/klindsay/ic/ecosys_jan_IC_gx3v7_20161026.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6">/glade/scratch/klindsay/ic/ecosys_jan_IC_gx1v6_20161026.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
@@ -1284,8 +1284,9 @@
 <parm_init_bSi_bury_coeff ocn_grid="gx3v7">1.1</parm_init_bSi_bury_coeff>
 <parm_init_bSi_bury_coeff                 >1.0</parm_init_bSi_bury_coeff>
 
-<parm_fe_scavenge_rate0 ocn_grid="gx3v7">1.4</parm_fe_scavenge_rate0>
-<parm_fe_scavenge_rate0                 >1.9</parm_fe_scavenge_rate0>
+<parm_fe_scavenge_rate0>  60 </parm_fe_scavenge_rate0>
+<parm_Lig_scavenge_rate0>  5 </parm_Lig_scavenge_rate0>
+<parm_Lig_degrade_rate0>  60 </parm_Lig_degrade_rate0>
 
 <parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.08</parm_f_prod_sp_CaCO3>
 <parm_f_prod_sp_CaCO3                 >0.065</parm_f_prod_sp_CaCO3>
@@ -1293,9 +1294,6 @@
 <parm_POC_diss  > 90.0e2</parm_POC_diss>
 <parm_SiO2_diss >600.0e2</parm_SiO2_diss>
 <parm_CaCO3_diss>450.0e2</parm_CaCO3_diss>
-
-<fe_max_scale2 ocn_grid="gx3v7">1600</fe_max_scale2>
-<fe_max_scale2                 >2200</fe_max_scale2>
 
 <parm_scalelen_z                    >100.0e2, 250.0e2, 500.0e2,  750.0e2</parm_scalelen_z>
 <parm_scalelen_vals ocn_grid="gx3v7">    1.0,     4.0,     4.5,      4.6</parm_scalelen_vals>

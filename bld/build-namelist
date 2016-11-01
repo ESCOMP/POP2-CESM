@@ -1648,11 +1648,12 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'parm_init_POP_bury_coeff');
   add_default($nl, 'parm_init_bSi_bury_coeff');
   add_default($nl, 'parm_fe_scavenge_rate0');
+  add_default($nl, 'parm_Lig_scavenge_rate0');
+  add_default($nl, 'parm_Lig_degrade_rate0');
   add_default($nl, 'parm_f_prod_sp_CaCO3');
   add_default($nl, 'parm_POC_diss');
   add_default($nl, 'parm_SiO2_diss');
   add_default($nl, 'parm_CaCO3_diss');
-  add_default($nl, 'fe_max_scale2');
   add_default($nl, 'bury_coeff_rmean_timescale_years');
 
   add_default($nl, 'parm_scalelen_z');

@@ -94,6 +94,12 @@ if ($lecosys_debug == ".true.") then
 1  DOPr_remin
 1  Fe_scavenge
 1  Fe_scavenge_rate
+1  Lig_prod
+1  Lig_loss
+1  Lig_scavenge
+1  Fefree
+1  Lig_photochem
+1  Lig_deg
 #  PARTICULATE
 1  calcToSed
 1  pocToSed
@@ -224,8 +230,8 @@ EOF
 EOF
   end
 
-  foreach tracer ( PO4 NO3 SiO3 NH4 Fe O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr    \
-                   DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC    \
+  foreach tracer ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr \
+                   DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC     \
                    diatFe diatSi diazChl diazC diazFe )
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  TRACERS (${tracer})
@@ -271,6 +277,7 @@ $s1  NO3
 $s1  SiO3
 $s1  NH4
 $s1  Fe
+$s1  Lig
 $s1  O2
 $s1  O2_ZMIN
 $s1  O2_ZMIN_DEPTH
@@ -325,6 +332,12 @@ $s1  bsiToSed
 $s1  CaCO3_form
 $s1  Fe_scavenge
 $s1  Fe_scavenge_rate
+$s1  Lig_prod
+$s1  Lig_loss
+$s1  Lig_scavenge
+$s1  Fefree
+$s1  Lig_photochem
+$s1  Lig_deg
 $s1  bSi_form
 $s1  NITRIF
 $s1  DENITRIF
