@@ -2,6 +2,82 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    3 Nov 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n18_marbl_dev_n20_cesm_pop_2_1_20161026
+Tag Summary: merge marbl_dev_n20 tag to this branch
+
+Testing:
+MARBL commit c36383a1a0c4b7cb98c214cc72097aad6dc0ed73
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_n20 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because iron scavenging changed
+         RMS diffs in baseline compares to marbl_dev_n20 similar to diffs between marbl_dev_klindsay_n17 and marbl_dev_klindsay_n16
+      some memleak failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/config_files/definition.xml
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildlib
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+ M      drivers/cpl
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/POP_MCT_vars_mod.F90
+M       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+ M      drivers/cpl_none
+M       input_templates/gx1v6_tavg_contents
+M       source/baroclinic.F90
+M       source/budget_diagnostics.F90
+M       source/diagnostics.F90
+M       source/ecosys_driver.F90
+A  +    source/ecosys_forcing_mod.F90
+A  +    source/ecosys_tracers_and_saved_state_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/forcing_sfwf.F90
+M       source/grid.F90
+M       source/hmix_gm.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/io_tools.F90
+M       source/io_types.F90
+M       source/overflows.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+M       source/qflux_mod.F90
+M       source/restart.F90
+M       source/step_mod.F90
+M       source/strdata_interface_mod.F90
+M       source/surface_hgt.F90
+M       source/tavg.F90
+M       source/time_management.F90
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    1 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n17_marbl_dev_n14_cesm_pop_2_1_20160513
 Tag Summary: add Lig tracer, iron-binding ligand

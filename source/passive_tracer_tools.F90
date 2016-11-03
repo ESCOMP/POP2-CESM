@@ -21,7 +21,6 @@
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
-   use marbl_interface_types, only : tracer_read  => marbl_tracer_read_type
    use io_tools, only: document
    use io, only: data_set
    use io_types, only: datafile, io_dim, io_field_desc, rec_type_dbl, &
@@ -43,6 +42,15 @@
       integer(int_kind) :: ind
       character(char_len) :: name
    end type ind_name_pair
+
+!-----------------------------------------------------------------------
+!  derived type for reading tracers from a file
+!-----------------------------------------------------------------------
+
+   type, public :: tracer_read
+      character(char_len) :: mod_varname, filename, file_varname, file_fmt
+      real(r8) :: scale_factor, default_val
+   end type
 
 !-----------------------------------------------------------------------
 !  monthly forcing variables
@@ -89,7 +97,6 @@
       extract_surf_avg,                      &
       comp_surf_avg,                         &
       set_tracer_indices,                    &
-      tracer_read,                           & ! from marbl_interface_types
       tracer_read_init
 
 !EOP

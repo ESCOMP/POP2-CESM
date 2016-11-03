@@ -49,6 +49,7 @@
    use registry
    use forcing_fields
    use mcog, only: mcog_nbins, QSW_BIN, QSW_RAW_BIN
+   use estuary_mod, only:lestuary_on,lvsf_river,FLUX_ROFF_VSF_SRF
 
    implicit none
    private
@@ -503,11 +504,24 @@
                WORK = c0
             end where
          else
-            where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
-               WORK = STF(:,:,2,iblock)/salinity_factor
-            elsewhere
-               WORK = c0
-            end where
+            if ( lestuary_on .and. lvsf_river ) then
+            ! ROFF_F should be included in the SFWF term in the open ocean
+            ! ROFF_F in the Marginal Seas is already in STF(:,:,2,iblock)
+               where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
+!TS                  WORK=(STF(:,:,2,iblock)-MASK_SR(:,:,iblock)*ROFF_F(:,:,iblock)*TRACER(:,:,1,2,curtime,iblock)*fwmass_to_fwflux)/salinity_factor
+!TS                 WORK =STF(:,:,2,iblock)/salinity_factor+MASK_SR(:,:,iblock)*ROFF_F(:,:,iblock)
+                 WORK =STF(:,:,2,iblock)/salinity_factor&
+                      -MASK_SR(:,:,iblock)*FLUX_ROFF_VSF_SRF(:,:,2,iblock)/salinity_factor
+               elsewhere
+                  WORK = c0
+               end where
+            else                     
+               where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
+                  WORK = STF(:,:,2,iblock)/salinity_factor
+               elsewhere
+                  WORK = c0
+               end where
+            endif
          endif
 
          call accumulate_tavg_field(WORK,tavg_SFWF,iblock,1)

@@ -58,7 +58,7 @@
 
 <fit_freq>1</fit_freq> 
 
-<robert_alpha> 0.53 </robert_alpha>
+<robert_alpha> 1.0 </robert_alpha>
 <robert_nu>    0.20 </robert_nu>
 
 <!---------------------------->
@@ -279,7 +279,7 @@
 <!-- vmix_kpp_nml -->
 <!---------------------------->
 
-<lcvmix>.false.</lcvmix>
+<lcvmix>.true.</lcvmix>
 <lcvmix ocn_onedim="TRUE">.true.</lcvmix>
 <linertial>.false.</linertial>
 <Prandtl>10.0</Prandtl>
@@ -291,7 +291,8 @@
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
 <!--QL, 150526, langmuir mixing parameterization option-->
-<langmuir_opt>'null'</langmuir_opt>
+<langmuir_opt comp_wav="swav">'null'</langmuir_opt> 
+<langmuir_opt>'vr12-ma'</langmuir_opt>
 
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  >.true.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  ocn_onedim="TRUE">.false.</lhoriz_varying_bckgrnd>
@@ -404,6 +405,8 @@
 <shrdispfac                                    >0.05066</shrdispfac>
 <simpsubcells                                  >.false.</simpsubcells>
 <vertdiffhere                                  >.false.</vertdiffhere>
+<kappa_thic_deep                               >0.1</kappa_thic_deep>
+<kappa_isop_deep                               >0.1</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->
@@ -590,6 +593,8 @@
 <lactive_ice>.true.</lactive_ice>
 <lactive_ice ocn_ice_forcing="inactive">.false.</lactive_ice>
 
+<licecesm2>.false.</licecesm2>
+
 <!---------------------------->
 <!-- pressure_grad_nml -->
 <!---------------------------->
@@ -724,6 +729,10 @@
 <pt_interior_restore_file_fmt>'bin'</pt_interior_restore_file_fmt>
 <pt_interior_surface_restore>.false.</pt_interior_surface_restore>
 <pt_interior_surface_restore ocn_onedim="TRUE">.true.</pt_interior_surface_restore>
+<pt_interior_shr_stream_year_first>1</pt_interior_shr_stream_year_first>
+<pt_interior_shr_stream_year_last>1</pt_interior_shr_stream_year_last>
+<pt_interior_shr_stream_year_align>1</pt_interior_shr_stream_year_align>
+<pt_interior_shr_stream_file> 'unknown-pt_interior_shr_stream'</pt_interior_shr_stream_file>
 
 <!---------------------------->
 <!--forcing_s_interior_nml -->
@@ -745,6 +754,10 @@
 <s_interior_restore_file_fmt>'bin'</s_interior_restore_file_fmt>
 <s_interior_surface_restore>.false.</s_interior_surface_restore>
 <s_interior_surface_restore ocn_onedim="TRUE">.true.</s_interior_surface_restore>
+<s_interior_shr_stream_year_first>1</s_interior_shr_stream_year_first>
+<s_interior_shr_stream_year_last>1</s_interior_shr_stream_year_last>
+<s_interior_shr_stream_year_align>1</s_interior_shr_stream_year_align>
+<s_interior_shr_stream_file> 'unknown-s_interior_shr_stream'</s_interior_shr_stream_file>
 
 <!---------------------------->
 <!--forcing_ap_interior_nml -->
@@ -1040,9 +1053,9 @@
 <grazing_config(3,1)%zoo_ind_cnt >0            </grazing_config(3,1)%zoo_ind_cnt>
 
 
-<!---------------------------->
-<!-- marbl_forcing_tmp_nml  -->
-<!---------------------------->
+<!-------------------------- - -->
+<!-- ecosys_forcing_data_nml - -->
+<!-------------------------- - -->
 
 <dust_flux_source>monthly-calendar</dust_flux_source>    
 
@@ -1187,10 +1200,19 @@
 <ciso_atm_model_year>1</ciso_atm_model_year>
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
+<restore_short_names>  'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC_ALT_CO2', 'ALK', 'DOC', 'DON', 'DOP'</restore_short_names>
+<restore_file_varnames>'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC',         'ALK', 'DOC', 'DON', 'DOP'</restore_file_varnames>
+<restore_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</restore_filenames_derived>
+<restore_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_filenames_derived>
 
-<!------------------------------->
-<!-- marbl_tracer_init_tmp_nml -->
-<!------------------------------->
+<surf_avg_dic_const>1944.0</surf_avg_dic_const>          
+<surf_avg_alk_const>2225.0</surf_avg_alk_const>          
+<surf_avg_di13c_const>1944.0</surf_avg_di13c_const>  
+<surf_avg_di14c_const>1944.0</surf_avg_di14c_const>          
+
+<!----------------------------->
+<!-- ecosys_tracer_init_nml  -->
+<!----------------------------->
 
 <init_ecosys_init_file ocn_grid="gx3v7">/glade/scratch/klindsay/ic/ecosys_jan_IC_gx3v7_20161026.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v6">/glade/scratch/klindsay/ic/ecosys_jan_IC_gx1v6_20161026.nc</init_ecosys_init_file>
@@ -1202,10 +1224,10 @@
 
 <ciso_init_ecosys_init_file_fmt>nc</ciso_init_ecosys_init_file_fmt>
 
-<tracer_init_ext(1)%mod_varname&marbl_tracer_init_tmp_nml>ALK</tracer_init_ext(1)%mod_varname&marbl_tracer_init_tmp_nml>
-<tracer_init_ext(2)%mod_varname&marbl_tracer_init_tmp_nml>DIC</tracer_init_ext(2)%mod_varname&marbl_tracer_init_tmp_nml>
-<tracer_init_ext(3)%mod_varname&marbl_tracer_init_tmp_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&marbl_tracer_init_tmp_nml>
-<tracer_init_ext(4)%mod_varname&marbl_tracer_init_tmp_nml>O2</tracer_init_ext(4)%mod_varname&marbl_tracer_init_tmp_nml>
+<tracer_init_ext(1)%mod_varname&ecosys_tracer_init_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_tracer_init_nml>
+<tracer_init_ext(2)%mod_varname&ecosys_tracer_init_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_tracer_init_nml>
+<tracer_init_ext(3)%mod_varname&ecosys_tracer_init_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_tracer_init_nml>
+<tracer_init_ext(4)%mod_varname&ecosys_tracer_init_nml>O2</tracer_init_ext(4)%mod_varname&ecosys_tracer_init_nml>
 
 <ciso_tracer_init_ext(1)%mod_varname>DI13C</ciso_tracer_init_ext(1)%mod_varname>
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>
@@ -1375,11 +1397,6 @@
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
 <ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
-
-<surf_avg_dic_const>1944.0</surf_avg_dic_const>          
-<surf_avg_alk_const>2225.0</surf_avg_alk_const>          
-<surf_avg_di13c_const>1944.0</surf_avg_di13c_const>  
-<surf_avg_di14c_const>1944.0</surf_avg_di14c_const>          
 
 <!---------------------------->
 <!--moby_nml -->
