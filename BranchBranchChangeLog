@@ -2,18 +2,53 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    9 Nov 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n19_marbl_dev_n20_cesm_pop_2_1_20161026
+Tag Summary: change Fe & Lig namelist vars
+
+removed CECO WW3->SWAV change used for testing
+
+Testing:
+MARBL commit c9ad801cb584f5babe110ea2049b27d35106a224
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+tested with bugfix for vmix_kpp.F90 uninitialized var
+   to get ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso test to pass
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n17 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because Fe and Lig source terms changed
+      namelist baseline compares fail beaucase namelist vars changed
+      some memleak failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_compsets.xml
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    3 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n18_marbl_dev_n20_cesm_pop_2_1_20161026
 Tag Summary: merge marbl_dev_n20 tag to this branch
 
+accidentally included CECO WW3->SWAV change used for testing in this commit
+
 Testing:
 MARBL commit c36383a1a0c4b7cb98c214cc72097aad6dc0ed73
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
 
 aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_n20 tag)
    all tests, except baseline compares, pass
       baseline comparisons fail because iron scavenging changed
          RMS diffs in baseline compares to marbl_dev_n20 similar to diffs between marbl_dev_klindsay_n17 and marbl_dev_klindsay_n16
       some memleak failures
+
+   noticed after committed that ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso failed
+      this was tracked down to an uninitialized var in vmix_kpp.F90
 
 Files Modified:
  M      .

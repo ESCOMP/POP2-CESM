@@ -1306,9 +1306,13 @@
 <parm_init_bSi_bury_coeff ocn_grid="gx3v7">1.1</parm_init_bSi_bury_coeff>
 <parm_init_bSi_bury_coeff                 >1.0</parm_init_bSi_bury_coeff>
 
-<parm_fe_scavenge_rate0>  60 </parm_fe_scavenge_rate0>
-<parm_Lig_scavenge_rate0>  5 </parm_Lig_scavenge_rate0>
-<parm_Lig_degrade_rate0>  60 </parm_Lig_degrade_rate0>
+<parm_Fe_scavenge_coeffA>      1.45 </parm_Fe_scavenge_coeffA>
+<parm_Fe_scavenge_coeffB>       1.0 </parm_Fe_scavenge_coeffB>
+<parm_Fe_scavenge_rate0>       25.0 </parm_Fe_scavenge_rate0>
+<parm_Lig_scavenge_rate0>     0.005 </parm_Lig_scavenge_rate0>
+<parm_FeLig_scavenge_rate0>     1.0 </parm_FeLig_scavenge_rate0>
+<parm_Lig_degrade_rate0>   0.000095 </parm_Lig_degrade_rate0>
+<parm_Fe_desorption_rate0>   1.0e-6 </parm_Fe_desorption_rate0>
 
 <parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.08</parm_f_prod_sp_CaCO3>
 <parm_f_prod_sp_CaCO3                 >0.065</parm_f_prod_sp_CaCO3>

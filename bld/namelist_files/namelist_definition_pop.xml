@@ -6662,11 +6662,27 @@ Default: 1.1 for gx3v7, 1.0 otherwise
 </entry>
 
 <entry 
-id="parm_fe_scavenge_rate0"
+id="parm_Fe_scavenge_coeffA"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 60
+Default: 1.45
+</entry>
+
+<entry 
+id="parm_Fe_scavenge_coeffB"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="parm_Fe_scavenge_rate0"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 25.0
 </entry>
 
 <entry 
@@ -6674,7 +6690,15 @@ id="parm_Lig_scavenge_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 5
+Default: 0.005
+</entry>
+
+<entry 
+id="parm_FeLig_scavenge_rate0"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.0
 </entry>
 
 <entry 
@@ -6682,7 +6706,15 @@ id="parm_Lig_degrade_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 60
+Default: 0.000095
+</entry>
+
+<entry 
+id="parm_Fe_desorption_rate0"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.0e-6
 </entry>
 
 <entry 
