@@ -508,7 +508,7 @@ contains
     !--------------------------------------------------------------------
 
     associate(diag_cnt => marbl_instances(1)%surface_forcing_diags%diag_cnt)
-    allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, max_blocks_clinic))
+    allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, nblocks_clinic))
     end associate
 
     tadvect_ctype(1:marbl_tracer_cnt) = ecosys_tadvect_ctype
@@ -703,11 +703,13 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer (int_kind) :: i   ! nx_block loop index
-    integer (int_kind) :: c   ! ny_block / column loop index
-    integer (int_kind) :: k   ! vertical level index
-    integer (int_kind) :: bid ! local block address for this block
-    integer (int_kind) :: n, d, ncols
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_interior'
+    character(len=char_len) :: log_message
+    integer (int_kind)      :: i   ! nx_block loop index
+    integer (int_kind)      :: c   ! ny_block / column loop index
+    integer (int_kind)      :: k   ! vertical level index
+    integer (int_kind)      :: bid ! local block address for this block
+    integer (int_kind)      :: n, d, ncols
     !-----------------------------------------------------------------------
 
     bid = this_block%local_id
@@ -745,9 +747,7 @@ contains
              else
                 marbl_instances(bid)%interior_forcing_input%surf_shortwave(:) = QSW_BIN(i, c, :)
              end if
-             if (KMT(i, c, bid) > 0) then 
-                marbl_instances(bid)%interior_forcing_input%dust_flux = dust_flux_in(i, c, bid)
-             end if
+             marbl_instances(bid)%interior_forcing_input%dust_flux = dust_flux_in(i, c, bid)
              marbl_instances(bid)%interior_forcing_input%temperature(:) = p5*(temp_old(i, c, :) + temp_cur(i, c, :))
              marbl_instances(bid)%interior_forcing_input%salinity(:)    = p5*(salt_old(i, c, :) + salt_cur(i, c, :))*salt_to_ppt
              do k=1,km
@@ -779,28 +779,31 @@ contains
              !  compute time derivatives for ecosystem state variables
              !-----------------------------------------------------------
 
-             if (marbl_instances(bid)%domain%kmt > 0) then 
-                call marbl_instances(bid)%set_interior_forcing()
+             call marbl_instances(bid)%set_interior_forcing()
+             if (marbl_instances(bid)%StatusLog%labort_marbl) then
+                write(log_message,"(A,I0,A)") "marbl_instances(", bid, &
+                                              ")%set_surface_forcing()"
+                call marbl_instances(bid)%StatusLog%log_error_trace(log_message, subname)
              end if
+             call print_marbl_log(marbl_instances(bid)%StatusLog, bid)
+             call marbl_instances(bid)%StatusLog%erase()
 
              !-----------------------------------------------------------
              ! copy marbl column data back to slab
              !-----------------------------------------------------------
 
-             if (marbl_instances(bid)%domain%kmt > 0) then 
-                  do n=1,size(saved_state_interior)
-                  saved_state_interior(n)%field_3d(i,c,:,bid) =               &
-                    marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
-                end do
+             do n=1,size(saved_state_interior)
+               saved_state_interior(n)%field_3d(i,c,:,bid) =               &
+                 marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
+             end do
                 
-                do n = 1, marbl_tracer_cnt
-                   dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
-                end do
+             do n = 1, marbl_tracer_cnt
+                dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
+             end do
 
-                ! copy values to be used in computing requested global averages
-                ! arrays have zero extent if none are requested
-                glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
-             end if ! end if domain%kmt > 0
+             ! copy values to be used in computing requested global averages
+             ! arrays have zero extent if none are requested
+             glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
 
           !-----------------------------------------------------------
           ! Update pop tavg diags

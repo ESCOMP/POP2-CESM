@@ -2,6 +2,28 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    8 November 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n22_cesm_pop_2_1_20161026
+Tag Summary: 3 minor bug fixes
+             1. MARBL status log not checked after calling
+                set_interior_forcing()
+             2. The "level" argument is ignored when accumulating 2D fields,
+                but convention is to specify k=1; in accumulating some MARBL
+                surface fluxes we were specifying k = diagnostic index
+             3. Had an allocatable variable with dimension max_blocks_clinic
+                when it should have been nblocks_clinic
+
+             Also renamed a variable (FLUX_DIAGS) that was appearing in
+             several different cases (flux_diags, FLUX_diags). The flux_diags
+             name predates the change in MARBL to surface_forcing_diags, which
+             is a more appropriate name on the driver side as well.
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 November 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n21_cesm_pop_2_1_20161026
 Tag Summary: Update MARBL to include NHx surface emission bugfix; update
              POP to use more recent initial condition file for CISO. Add tests
