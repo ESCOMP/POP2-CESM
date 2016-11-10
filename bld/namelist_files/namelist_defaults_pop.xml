@@ -1219,11 +1219,6 @@
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
-<ciso_init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_Nov2012_corrO2.nc</ciso_init_ecosys_init_file>
-<ciso_init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_corrO2_Feb2013.nc</ciso_init_ecosys_init_file>
-
-<ciso_init_ecosys_init_file_fmt>nc</ciso_init_ecosys_init_file_fmt>
-
 <tracer_init_ext(1)%mod_varname&ecosys_tracer_init_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_tracer_init_nml>
 <tracer_init_ext(2)%mod_varname&ecosys_tracer_init_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_tracer_init_nml>
 <tracer_init_ext(3)%mod_varname&ecosys_tracer_init_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_tracer_init_nml>

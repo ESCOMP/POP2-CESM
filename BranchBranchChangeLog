@@ -3,6 +3,44 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    9 Nov 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n20_marbl_dev_n22_cesm_pop_2_1_20161026
+Tag Summary: merge marbl_dev_n22 tag to this branch
+
+Testing:
+MARBL commit b4da535e090893a49c3d8fb05eca48f4e864b866
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+tested with bugfix for vmix_kpp.F90 uninitialized var
+   to get ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso test to pass
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n19 tag)
+   all tests, except ciso baseline compares (including namelists), pass
+      ciso baseline comparisons fail because ciso ic changed
+      some memleak failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg
+M       cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n19_marbl_dev_n20_cesm_pop_2_1_20161026
 Tag Summary: change Fe & Lig namelist vars
 
@@ -14,7 +52,7 @@ tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
 tested with bugfix for vmix_kpp.F90 uninitialized var
    to get ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso test to pass
 
-aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n17 tag)
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n18 tag)
    all tests, except baseline compares, pass
       baseline comparisons fail because Fe and Lig source terms changed
       namelist baseline compares fail beaucase namelist vars changed

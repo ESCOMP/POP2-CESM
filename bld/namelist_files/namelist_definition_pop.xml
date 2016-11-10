@@ -6538,8 +6538,7 @@ Default:
 id="ciso_init_ecosys_init_file"
 type="char*256" 
 category="ecosys"
-group="ecosys_tracer_init_nml"
-input_pathname="abs" >
+group="ecosys_tracer_init_nml" >
 Default: 
 </entry>
 

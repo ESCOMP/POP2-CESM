@@ -1,5 +1,58 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 November 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n22_cesm_pop_2_1_20161026
+Tag Summary: 3 minor bug fixes
+             1. MARBL status log not checked after calling
+                set_interior_forcing()
+             2. The "level" argument is ignored when accumulating 2D fields,
+                but convention is to specify k=1; in accumulating some MARBL
+                surface fluxes we were specifying k = diagnostic index
+             3. Had an allocatable variable with dimension max_blocks_clinic
+                when it should have been nblocks_clinic
+
+             Also renamed a variable (FLUX_DIAGS) that was appearing in
+             several different cases (flux_diags, FLUX_diags). The flux_diags
+             name predates the change in MARBL to surface_forcing_diags, which
+             is a more appropriate name on the driver side as well.
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 November 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n21_cesm_pop_2_1_20161026
+Tag Summary: Update MARBL to include NHx surface emission bugfix; update
+             POP to use more recent initial condition file for CISO. Add tests
+             to run with r4 tavg output instead of r8, and don't force PIO to
+             use pnetcdf for some tests (should be default anyway, at least on
+             yellowstone).
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    28 October 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n20_cesm_pop_2_1_20161026

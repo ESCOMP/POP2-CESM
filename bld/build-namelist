@@ -1587,14 +1587,20 @@ if ($ecosys_on eq "TRUE") {
   }
   add_default($nl, 'init_ecosys_init_file_fmt');
 
+# init_ecosys_init_file is set
+  # (1) query init_ecosys_init_file
+  # (2) add_default('ciso_init_ecosys_init_file', 'val' => '$init_ecosys_init_file')
+
   if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'ciso_init_ecosys_init_file');
-    } else {
-      add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
-    }
-    add_default($nl, 'ciso_init_ecosys_init_file_fmt');
+
+    # By default, we use the same initial condition file for the base
+    # ecosystem module and the CISO module, but users have the option of
+    # specifying different files if desired.
+    my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
+    my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
+    add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
+    add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
 
     add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
