@@ -551,7 +551,7 @@ contains
    type (io_dim) :: &
       i_dim, j_dim, k_dim, month_dim ! dimension descriptors
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), target, allocatable :: &
       TEMP_DATA           ! temp array for reading Tracer data
 
     integer(int_kind) :: &
