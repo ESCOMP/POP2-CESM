@@ -212,7 +212,7 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       WORK               ! temporary work space
 
-   real (r8), dimension(:,:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:,:), target, allocatable :: &
       TEMP_DATA          ! temporary array for reading monthly data
 
    type (block) :: &

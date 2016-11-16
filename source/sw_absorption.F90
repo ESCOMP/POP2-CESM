@@ -251,7 +251,7 @@
       bid,               &! local block address for this block
       iblock
 
-   real (r8), allocatable, dimension(:,:,:,:) :: &
+   real (r8), allocatable, dimension(:,:,:,:), target :: &
       TEMP_DATA   ! temporary data array
  
    type (datafile) ::        &

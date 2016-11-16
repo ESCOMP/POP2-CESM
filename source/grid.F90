@@ -2627,6 +2627,8 @@
       inquire (iolength=reclength) REGION_G
       open(nu, file=mask_filename,status='old',form='unformatted', &
                access='direct', recl=reclength, iostat=ioerr)
+   else
+      allocate (REGION_G(1, 1))
    endif
 
    call broadcast_scalar(ioerr, master_task)
@@ -2645,7 +2647,7 @@
 
    call scatter_global(REGION_MASK, REGION_G, master_task,distrb_clinic, &
                        field_loc_center, field_type_scalar)
-   if (my_task == master_task) deallocate(REGION_G)
+   deallocate(REGION_G)
 
    num_regions = global_maxval(abs(REGION_MASK), &
                                distrb_clinic, field_loc_center)
