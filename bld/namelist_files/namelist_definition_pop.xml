@@ -5535,7 +5535,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: solFe_scenario4_current_gx3v7.nc or solFe_scenario4_current_gx1v6.nc
+Default: solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc or solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc
 </entry>
 
 <entry 
@@ -6466,20 +6466,20 @@ type="char*256"
 category="ecosys"
 group="ecosys_tracer_init_nml"
 input_pathname="abs" >
-Default: ecosys_jan_IC_gx3v7_20161026.nc or ecosys_jan_IC_gx1v6_20161026.nc (none provided for tripole grids)
+Default: ecosys_jan_IC_gx3v7_20161123.nc or ecosys_jan_IC_gx1v6_20161123.nc (none provided for tripole grids)
 </entry>
 
 <entry 
 id="tracer_init_ext%mod_varname&ecosys_tracer_init_nml"
-type="dtype(28)%char*256" 
+type="dtype(31)%char*256" 
 category="ecosys"
 group="derived" >
-Default: (/"ALK", "DIC", "DIC_ALT_CO2", "O2"/)
+Default: none provided
 </entry>
 
 <entry 
 id="tracer_init_ext%filename&ecosys_tracer_init_nml"
-type="dtype(28)%char*256" 
+type="dtype(31)%char*256" 
 category="ecosys"
 group="derived"
 input_pathname="abs" >
@@ -6488,7 +6488,7 @@ Default: none provided
 
 <entry 
 id="tracer_init_ext%file_varname&ecosys_tracer_init_nml"
-type="dtype(28)%char*256" 
+type="dtype(31)%char*256" 
 category="ecosys"
 group="derived" >
 Default: none provided
@@ -6496,7 +6496,7 @@ Default: none provided
 
 <entry 
 id="tracer_init_ext%file_fmt&ecosys_tracer_init_nml"
-type="dtype(28)%char*256" 
+type="dtype(31)%char*256" 
 category="ecosys"
 group="derived" >
 Default: none provided
@@ -6504,15 +6504,15 @@ Default: none provided
 
 <entry 
 id="tracer_init_ext%scale_factor&ecosys_tracer_init_nml"
-type="dtype(28)%real" 
+type="dtype(31)%real" 
 category="ecosys"
 group="derived" >
-Default: (/1.025, 1.025, 1.025, 1.0/)
+Default: none provided
 </entry>
 
 <entry 
 id="tracer_init_ext%default_val&ecosys_tracer_init_nml"
-type="dtype(28)%real" 
+type="dtype(31)%real" 
 category="ecosys"
 group="derived" >
 Default: none provided
@@ -6613,11 +6613,11 @@ Default: 5.0
 </entry>
 
 <entry 
-id="parm_kappa_nitrif"
+id="parm_kappa_nitrif_per_day"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 6.9444e-7
+Default: 0.06
 </entry>
 
 <entry 
@@ -6721,7 +6721,7 @@ id="parm_f_prod_sp_CaCO3"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 0.08 for gx3v7, 0.065 otherwise
+Default: 0.075 for gx3v7, 0.070 otherwise
 </entry>
 
 <entry 
@@ -6737,7 +6737,7 @@ id="parm_SiO2_diss"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 600.0e2
+Default: 660.0e2
 </entry>
 
 <entry 
@@ -6746,6 +6746,14 @@ type="real"
 category="ecosys"
 group="marbl_parms_nml" >
 Default: 450.0e2
+</entry>
+
+<entry 
+id="parm_sed_denitrif_coeff"
+type="real" 
+category="ecosys"
+group="marbl_parms_nml" >
+Default: 1.4 for gx3v7, 1.0 otherwise
 </entry>
 
 <entry 
@@ -6769,23 +6777,23 @@ id="parm_scalelen_vals"
 type="real(4)" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default:  (/1.0, 4.0, 4.5, 4.6/) for gx3v7, (/1.0, 3.3, 4.6, 5.0/) otherwise
+Default: (/ 1.0, 3.3, 4.2, 4.4 /) for gx3v7, (/ 1.0, 3.3, 4.2, 4.5 /) otherwise
 </entry>
 
 <entry 
-id="zooplankton%z_mort_0"
+id="zooplankton%z_mort_0_per_day"
 type="dtype(1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/1.15741e-06/)
+Default: (/ 0.1 /)
 </entry>
 
 <entry 
-id="zooplankton%z_mort2_0"
+id="zooplankton%z_mort2_0_per_day"
 type="dtype(1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/4.62963e-06/)
+Default: (/ 0.4 /)
 </entry>
 
 <entry 
@@ -6801,7 +6809,7 @@ id="autotrophs%kFe"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.03e-3, 0.07e-3, 0.03e-3/)
+Default: (/ 0.025e-3, 0.05e-3, 0.025e-3 /)
 </entry>
 
 <entry 
@@ -6809,7 +6817,7 @@ id="autotrophs%kPO4"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.01, 0.05, 0.0125/)
+Default: (/ 0.005, 0.05, 0.02 /)
 </entry>
 
 <entry 
@@ -6817,7 +6825,7 @@ id="autotrophs%kDOP"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.2, 0.5, 0.05/)
+Default: (/ 0.025, 0.1, 0.02 /)
 </entry>
 
 <entry 
@@ -6825,7 +6833,7 @@ id="autotrophs%kNO3"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.25, 1.0, 4.0/)
+Default: (/ 0.15, 0.45, 3.0 /)
 </entry>
 
 <entry 
@@ -6833,7 +6841,7 @@ id="autotrophs%kNH4"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.0125, 0.05, 0.4/)
+Default: (/ 0.005, 0.05, 0.3 /)
 </entry>
 
 <entry 
@@ -6841,7 +6849,7 @@ id="autotrophs%kSiO3"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.0, 0.8, 0.0/)
+Default: (/0.0, 0.7, 0.0/)
 </entry>
 
 <entry 
@@ -6861,11 +6869,11 @@ Default: (/-1,-1,-1/)
 </entry>
 
 <entry 
-id="grazing%z_umax_0"
+id="grazing%z_umax_0_per_day"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/3.76157e-05,3.35648e-05,2.14120e-05/)
+Default: (/ 3.3, 3.05, 3.05 /)
 </entry>
 
 <entry 
@@ -6873,7 +6881,7 @@ id="grazing%z_grz"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/1.15,1.15,1.15/)
+Default: (/ 1.2, 1.2, 1.2 /)
 </entry>
 
 <entry 
@@ -6881,7 +6889,7 @@ id="grazing%graze_zoo"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.3,0.3,0.3/)
+Default: (/ 0.3, 0.25, 0.3 /)
 </entry>
 
 <entry 
@@ -6889,7 +6897,7 @@ id="grazing%graze_poc"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.0,0.4,0.08/)
+Default: (/ 0.0, 0.39, 0.1 /)
 </entry>
 
 <entry 
@@ -6897,7 +6905,7 @@ id="grazing%graze_doc"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.06,0.06,0.06/)
+Default: (/ 0.06, 0.06, 0.06 /)
 </entry>
 
 <entry 
@@ -6905,7 +6913,7 @@ id="grazing%f_zoo_detr"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/0.1,0.2,0.1/)
+Default: (/ 0.12, 0.24, 0.12 /)
 </entry>
 
 <entry 
@@ -6913,7 +6921,7 @@ id="grazing%grazing_function"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/1,1,1/)
+Default: (/ 1, 1, 1 /)
 </entry>
 
 
@@ -6970,7 +6978,7 @@ id="ciso_fract_factors"
 type="char*256" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default:  
+Default: Laws
 </entry>
 
 <entry 

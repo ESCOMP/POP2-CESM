@@ -114,8 +114,11 @@ if ($lecosys_debug == ".true.") then
 1  POC_PROD
 1  POC_REMIN
 1  POC_REMIN_DIC
-1  PON_REMIN_NH4
+1  POP_FLUX_IN
+1  POP_PROD
+1  POP_REMIN
 1  POP_REMIN_PO4
+1  PON_REMIN_NH4
 1  CaCO3_FLUX_IN
 1  CaCO3_PROD
 1  CaCO3_REMIN
@@ -184,6 +187,7 @@ echo "#  AUTOTROPH TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_con
 #  ${autotroph} TRACER FIELDS
 1  photoC_${autotroph}_zint
 1  photoC_NO3_${autotroph}_zint
+1  ${autotroph}_Qp
 1  ${autotroph}_N_lim
 1  ${autotroph}_P_lim
 1  ${autotroph}_Fe_lim
@@ -234,8 +238,8 @@ EOF
 
 echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   foreach tracer ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr \
-                   DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC     \
-                   diatFe diatSi diazChl diazC diazFe )
+                   DOP DOPr DONr zooC spChl spC spP spFe spCaCO3 diatChl diatC \
+                   diatP diatFe diatSi diazChl diazC diazP diazFe )
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  ${tracer} TRACER FIELDS
 1  ${tracer}
@@ -348,12 +352,16 @@ $s1  DENITRIF
 $s1  POC_PROD
 $s1  POC_REMIN
 $s1  POC_REMIN_DIC
-$s1  PON_REMIN_NH4
+$s1  POP_PROD
+$s1  POP_REMIN
 $s1  POP_REMIN_PO4
+$s1  PON_REMIN_NH4
 $s1  CaCO3_PROD
 $s1  SiO2_PROD
 $s1  P_iron_PROD
+$s1  P_iron_REMIN
 $s1  POC_FLUX_IN
+$s1  POP_FLUX_IN
 $s1  CaCO3_FLUX_IN
 $s1  SiO2_FLUX_IN
 $s1  P_iron_FLUX_IN
@@ -432,7 +440,9 @@ EOF
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}Chl
 $s1  ${autotroph}C
+$s1  ${autotroph}P
 $s1  ${autotroph}Fe
+$s1  ${autotroph}_Qp
 $s1  graze_${autotroph}
 $s1  ${autotroph}_agg
 $s1  photoC_${autotroph}

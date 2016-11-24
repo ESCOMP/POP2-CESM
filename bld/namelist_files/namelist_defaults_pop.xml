@@ -1034,7 +1034,6 @@
 <lapply_nhx_surface_emis>.false.</lapply_nhx_surface_emis>
 
 <ladjust_bury_coeff>.false.</ladjust_bury_coeff>
-<bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
 
 <autotrophs_config(1)%sname>sp</autotrophs_config(1)%sname>
 <autotrophs_config(2)%sname>diat</autotrophs_config(2)%sname>
@@ -1067,8 +1066,8 @@
 
 <iron_flux_source>monthly-calendar</iron_flux_source>    
 
-<iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7.nc</iron_flux_input%filename> 
-<iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6.nc</iron_flux_input%filename> 
+<iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename> 
+<iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename> 
 <iron_flux_input%file_fmt>nc</iron_flux_input%file_fmt>
 <iron_flux_input%file_varname>DSTSF</iron_flux_input%file_varname>
 <!-- 6.2668e4 = kg/m^2/sec -> nmol/cm^2/sec, 3.5%Fe Wt. Dust file -->
@@ -1214,15 +1213,10 @@
 <!-- ecosys_tracer_init_nml  -->
 <!----------------------------->
 
-<init_ecosys_init_file ocn_grid="gx3v7">/glade/scratch/klindsay/ic/ecosys_jan_IC_gx3v7_20161026.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6">/glade/scratch/klindsay/ic/ecosys_jan_IC_gx1v6_20161026.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20161123.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20161123.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
-
-<tracer_init_ext(1)%mod_varname&ecosys_tracer_init_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_tracer_init_nml>
-<tracer_init_ext(2)%mod_varname&ecosys_tracer_init_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_tracer_init_nml>
-<tracer_init_ext(3)%mod_varname&ecosys_tracer_init_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_tracer_init_nml>
-<tracer_init_ext(4)%mod_varname&ecosys_tracer_init_nml>O2</tracer_init_ext(4)%mod_varname&ecosys_tracer_init_nml>
 
 <ciso_tracer_init_ext(1)%mod_varname>DI13C</ciso_tracer_init_ext(1)%mod_varname>
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>
@@ -1285,12 +1279,12 @@
 <!--    marbl_parms_nml     -->
 <!---------------------------->
 
-<parm_Fe_bioavail>    1.0        </parm_Fe_bioavail>
-<parm_o2_min>         5.0        </parm_o2_min>
-<parm_o2_min_delta>   5.0        </parm_o2_min_delta>
-<parm_kappa_nitrif>   6.9444e-07 </parm_kappa_nitrif>
-<parm_nitrif_par_lim> 1.0        </parm_nitrif_par_lim>
-<parm_labile_ratio>   0.94       </parm_labile_ratio>
+<parm_Fe_bioavail>            1.0   </parm_Fe_bioavail>
+<parm_o2_min>                 5.0   </parm_o2_min>
+<parm_o2_min_delta>           5.0   </parm_o2_min_delta>
+<parm_kappa_nitrif_per_day>   0.06  </parm_kappa_nitrif_per_day>
+<parm_nitrif_par_lim>         1.0   </parm_nitrif_par_lim>
+<parm_labile_ratio>           0.94  </parm_labile_ratio>
 
 <parm_init_POC_bury_coeff ocn_grid="gx3v7">5.0</parm_init_POC_bury_coeff>
 <parm_init_POC_bury_coeff                 >1.1</parm_init_POC_bury_coeff>
@@ -1309,72 +1303,77 @@
 <parm_Lig_degrade_rate0>   0.000095 </parm_Lig_degrade_rate0>
 <parm_Fe_desorption_rate0>   1.0e-6 </parm_Fe_desorption_rate0>
 
-<parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.08</parm_f_prod_sp_CaCO3>
-<parm_f_prod_sp_CaCO3                 >0.065</parm_f_prod_sp_CaCO3>
+<parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.075</parm_f_prod_sp_CaCO3>
+<parm_f_prod_sp_CaCO3                 >0.070</parm_f_prod_sp_CaCO3>
 
 <parm_POC_diss  > 90.0e2</parm_POC_diss>
-<parm_SiO2_diss >600.0e2</parm_SiO2_diss>
+<parm_SiO2_diss >660.0e2</parm_SiO2_diss>
 <parm_CaCO3_diss>450.0e2</parm_CaCO3_diss>
 
+<parm_sed_denitrif_coeff ocn_grid="gx3v7">1.4</parm_sed_denitrif_coeff>
+<parm_sed_denitrif_coeff                 >1.0</parm_sed_denitrif_coeff>
+
+<bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
+
 <parm_scalelen_z                    >100.0e2, 250.0e2, 500.0e2,  750.0e2</parm_scalelen_z>
-<parm_scalelen_vals ocn_grid="gx3v7">    1.0,     4.0,     4.5,      4.6</parm_scalelen_vals>
-<parm_scalelen_vals                 >    1.0,     3.3,     4.6,      5.0</parm_scalelen_vals>
+<parm_scalelen_vals ocn_grid="gx3v7">    1.0,     3.3,     4.2,      4.4</parm_scalelen_vals>
+<parm_scalelen_vals                 >    1.0,     3.3,     4.2,      4.5</parm_scalelen_vals>
 
 
-<zooplankton(1)%z_mort_0>       1.15741e-06 </zooplankton(1)%z_mort_0>
-<zooplankton(1)%z_mort2_0>      4.62963e-06 </zooplankton(1)%z_mort2_0>
-<zooplankton(1)%loss_thres>0.075 </zooplankton(1)%loss_thres>
+<zooplankton(1)%z_mort_0_per_day>  0.1   </zooplankton(1)%z_mort_0_per_day>
+<zooplankton(1)%z_mort2_0_per_day> 0.4   </zooplankton(1)%z_mort2_0_per_day>
+<zooplankton(1)%loss_thres>        0.075 </zooplankton(1)%loss_thres>
 
-<autotrophs(1)%kFe  >0.03e-3</autotrophs(1)%kFe>
-<autotrophs(1)%kPO4 >0.01   </autotrophs(1)%kPO4>
-<autotrophs(1)%kDOP >0.2    </autotrophs(1)%kDOP>
-<autotrophs(1)%kNO3 >0.25   </autotrophs(1)%kNO3>
-<autotrophs(1)%kNH4 >0.0125 </autotrophs(1)%kNH4>
-<autotrophs(1)%kSiO3>0.0    </autotrophs(1)%kSiO3>
+<autotrophs(1)%kFe  >0.025e-3</autotrophs(1)%kFe>
+<autotrophs(1)%kPO4 >0.005   </autotrophs(1)%kPO4>
+<autotrophs(1)%kDOP >0.025   </autotrophs(1)%kDOP>
+<autotrophs(1)%kNO3 >0.15    </autotrophs(1)%kNO3>
+<autotrophs(1)%kNH4 >0.005   </autotrophs(1)%kNH4>
+<autotrophs(1)%kSiO3>0.0     </autotrophs(1)%kSiO3>
 
-<autotrophs(2)%kFe  >0.07e-3</autotrophs(2)%kFe>
-<autotrophs(2)%kPO4 >0.05   </autotrophs(2)%kPO4>
-<autotrophs(2)%kDOP >0.5    </autotrophs(2)%kDOP>
-<autotrophs(2)%kNO3 >1.0    </autotrophs(2)%kNO3>
+<autotrophs(2)%kFe  >0.05e-3 </autotrophs(2)%kFe>
+<autotrophs(2)%kPO4 >0.05    </autotrophs(2)%kPO4>
+<autotrophs(2)%kDOP >0.1     </autotrophs(2)%kDOP>
+<autotrophs(2)%kNO3 >0.45    </autotrophs(2)%kNO3>
 <autotrophs(2)%kNH4 >0.05   </autotrophs(2)%kNH4>
-<autotrophs(2)%kSiO3>0.8    </autotrophs(2)%kSiO3>
+<autotrophs(2)%kSiO3>0.7     </autotrophs(2)%kSiO3>
 
-<autotrophs(3)%kFe  >0.03e-3</autotrophs(3)%kFe>
-<autotrophs(3)%kPO4 >0.0125 </autotrophs(3)%kPO4>
-<autotrophs(3)%kDOP >0.05   </autotrophs(3)%kDOP>
-<autotrophs(3)%kNO3 >4.0    </autotrophs(3)%kNO3>
-<autotrophs(3)%kNH4 >0.4    </autotrophs(3)%kNH4>
-<autotrophs(3)%kSiO3>0.0    </autotrophs(3)%kSiO3>
+<autotrophs(3)%kFe  >0.025e-3</autotrophs(3)%kFe>
+<autotrophs(3)%kPO4 >0.02    </autotrophs(3)%kPO4>
+<autotrophs(3)%kDOP >0.02    </autotrophs(3)%kDOP>
+<autotrophs(3)%kNO3 >3.0     </autotrophs(3)%kNO3>
+<autotrophs(3)%kNH4 >0.3     </autotrophs(3)%kNH4>
+<autotrophs(3)%kSiO3>0.0     </autotrophs(3)%kSiO3>
 
-<grazing(1,1)%auto_ind        >1           </grazing(1,1)%auto_ind> 
-<grazing(1,1)%zoo_ind         >-1          </grazing(1,1)%zoo_ind> 
-<grazing(1,1)%z_umax_0        >3.76157e-05 </grazing(1,1)%z_umax_0> 
-<grazing(1,1)%z_grz           >1.15        </grazing(1,1)%z_grz> 
-<grazing(1,1)%graze_zoo       >0.3         </grazing(1,1)%graze_zoo> 
-<grazing(1,1)%graze_poc       >0.0         </grazing(1,1)%graze_poc> 
-<grazing(1,1)%graze_doc       >0.06        </grazing(1,1)%graze_doc> 
-<grazing(1,1)%f_zoo_detr      >0.1         </grazing(1,1)%f_zoo_detr> 
-<grazing(1,1)%grazing_function>1           </grazing(1,1)%grazing_function> 
+<grazing(1,1)%auto_ind        >1   </grazing(1,1)%auto_ind> 
+<grazing(1,1)%zoo_ind         >-1  </grazing(1,1)%zoo_ind> 
+<grazing(1,1)%z_umax_0_per_day>3.3 </grazing(1,1)%z_umax_0_per_day> 
+<grazing(1,1)%z_grz           >1.2 </grazing(1,1)%z_grz> 
+<grazing(1,1)%graze_zoo       >0.3 </grazing(1,1)%graze_zoo> 
+<grazing(1,1)%graze_poc       >0.0 </grazing(1,1)%graze_poc> 
+<grazing(1,1)%graze_doc       >0.06</grazing(1,1)%graze_doc> 
+<grazing(1,1)%f_zoo_detr      >0.12</grazing(1,1)%f_zoo_detr> 
+<grazing(1,1)%grazing_function>1   </grazing(1,1)%grazing_function> 
 
-<grazing(2,1)%auto_ind        >2          </grazing(2,1)%auto_ind> 
-<grazing(2,1)%zoo_ind         >-1         </grazing(2,1)%zoo_ind> 
-<grazing(2,1)%z_umax_0        >3.35648e-05</grazing(2,1)%z_umax_0>
-<grazing(2,1)%z_grz           >1.15       </grazing(2,1)%z_grz> 
-<grazing(2,1)%graze_zoo       >0.3        </grazing(2,1)%graze_zoo> 
-<grazing(2,1)%graze_poc       >0.4        </grazing(2,1)%graze_poc> 
-<grazing(2,1)%graze_doc       >0.06       </grazing(2,1)%graze_doc> 
-<grazing(2,1)%f_zoo_detr      >0.2        </grazing(2,1)%f_zoo_detr> 
-<grazing(2,1)%grazing_function>1          </grazing(2,1)%grazing_function> 
+<grazing(2,1)%auto_ind        >2   </grazing(2,1)%auto_ind> 
+<grazing(2,1)%zoo_ind         >-1  </grazing(2,1)%zoo_ind> 
+<grazing(2,1)%z_umax_0_per_day>3.05</grazing(2,1)%z_umax_0_per_day>
+<grazing(2,1)%z_grz           >1.2 </grazing(2,1)%z_grz> 
+<grazing(2,1)%graze_zoo       >0.25</grazing(2,1)%graze_zoo> 
+<grazing(2,1)%graze_poc       >0.39</grazing(2,1)%graze_poc> 
+<grazing(2,1)%graze_doc       >0.06</grazing(2,1)%graze_doc> 
+<grazing(2,1)%f_zoo_detr      >0.24</grazing(2,1)%f_zoo_detr> 
+<grazing(2,1)%grazing_function>1   </grazing(2,1)%grazing_function> 
 
-<grazing(3,1)%auto_ind        >3          </grazing(3,1)%auto_ind> 
-<grazing(3,1)%zoo_ind         >-1         </grazing(3,1)%zoo_ind> 
-<grazing(3,1)%z_umax_0        >2.14120e-05</grazing(3,1)%z_umax_0>
-<grazing(3,1)%z_grz           >1.15       </grazing(3,1)%z_grz> 
-<grazing(3,1)%graze_zoo       >0.3        </grazing(3,1)%graze_zoo> 
-<grazing(3,1)%graze_poc       >0.08       </grazing(3,1)%graze_poc> 
-<grazing(3,1)%graze_doc       >0.06       </grazing(3,1)%graze_doc> 
-<grazing(3,1)%f_zoo_detr      >0.1        </grazing(3,1)%f_zoo_detr> 
-<grazing(3,1)%grazing_function>1          </grazing(3,1)%grazing_function> 
+<grazing(3,1)%auto_ind        >3   </grazing(3,1)%auto_ind> 
+<grazing(3,1)%zoo_ind         >-1  </grazing(3,1)%zoo_ind> 
+<grazing(3,1)%z_umax_0_per_day>3.05</grazing(3,1)%z_umax_0_per_day>
+<grazing(3,1)%z_grz           >1.2 </grazing(3,1)%z_grz> 
+<grazing(3,1)%graze_zoo       >0.3 </grazing(3,1)%graze_zoo> 
+<grazing(3,1)%graze_poc       >0.1 </grazing(3,1)%graze_poc> 
+<grazing(3,1)%graze_doc       >0.06</grazing(3,1)%graze_doc> 
+<grazing(3,1)%f_zoo_detr      >0.12</grazing(3,1)%f_zoo_detr> 
+<grazing(3,1)%grazing_function>1   </grazing(3,1)%grazing_function> 
 
 <iron_frac_in_dust>0.00035</iron_frac_in_dust>
 

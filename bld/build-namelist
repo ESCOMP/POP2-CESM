@@ -1668,7 +1668,7 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'parm_Fe_bioavail');
   add_default($nl, 'parm_o2_min');
   add_default($nl, 'parm_o2_min_delta');
-  add_default($nl, 'parm_kappa_nitrif');
+  add_default($nl, 'parm_kappa_nitrif_per_day');
   add_default($nl, 'parm_nitrif_par_lim');
   add_default($nl, 'parm_labile_ratio');
   add_default($nl, 'parm_init_POC_bury_coeff');
@@ -1685,13 +1685,14 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'parm_POC_diss');
   add_default($nl, 'parm_SiO2_diss');
   add_default($nl, 'parm_CaCO3_diss');
+  add_default($nl, 'parm_sed_denitrif_coeff');
   add_default($nl, 'bury_coeff_rmean_timescale_years');
 
   add_default($nl, 'parm_scalelen_z');
   add_default($nl, 'parm_scalelen_vals');
 
-  add_default($nl, 'zooplankton(1)%z_mort_0');
-  add_default($nl, 'zooplankton(1)%z_mort2_0');
+  add_default($nl, 'zooplankton(1)%z_mort_0_per_day');
+  add_default($nl, 'zooplankton(1)%z_mort2_0_per_day');
   add_default($nl, 'zooplankton(1)%loss_thres');
 
   add_default($nl, 'autotrophs(1)%kFe');
@@ -1717,7 +1718,7 @@ if ($ecosys_on eq "TRUE") {
 
   add_default($nl, 'grazing(1,1)%auto_ind');
   add_default($nl, 'grazing(1,1)%zoo_ind');
-  add_default($nl, 'grazing(1,1)%z_umax_0');
+  add_default($nl, 'grazing(1,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(1,1)%z_grz');
   add_default($nl, 'grazing(1,1)%graze_zoo');
   add_default($nl, 'grazing(1,1)%graze_poc');
@@ -1727,7 +1728,7 @@ if ($ecosys_on eq "TRUE") {
 
   add_default($nl, 'grazing(2,1)%auto_ind');
   add_default($nl, 'grazing(2,1)%zoo_ind');
-  add_default($nl, 'grazing(2,1)%z_umax_0');
+  add_default($nl, 'grazing(2,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(2,1)%z_grz');
   add_default($nl, 'grazing(2,1)%graze_zoo');
   add_default($nl, 'grazing(2,1)%graze_poc');
@@ -1737,7 +1738,7 @@ if ($ecosys_on eq "TRUE") {
 
   add_default($nl, 'grazing(3,1)%auto_ind');
   add_default($nl, 'grazing(3,1)%zoo_ind');
-  add_default($nl, 'grazing(3,1)%z_umax_0');
+  add_default($nl, 'grazing(3,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(3,1)%z_grz');
   add_default($nl, 'grazing(3,1)%graze_zoo');
   add_default($nl, 'grazing(3,1)%graze_poc');

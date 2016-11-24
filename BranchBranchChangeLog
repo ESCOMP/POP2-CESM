@@ -2,6 +2,39 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    24 Nov 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n21_marbl_dev_n22_cesm_pop_2_1_20161026
+Tag Summary: variable C:P ratios in autotrophs and POM
+
+added 3 new tracers (1 per autotroph)
+
+new iron_flux_input and init_ecosys_init_file datasets
+converted rate namelist variables and parameters to per day instead of per sec
+   Run-time code still uses the per sec variable.
+   The only thing changed is the units outside of the code.
+removed unneeded settings of tracer_init_ext(:)%mod_varname&ecosys_tracer_init_nml
+changed numerous namelist parameter defaults
+
+Testing:
+MARBL commit 5b354ed2ebcae7721a7306ac95ead3d1012c0992
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+tested with bugfix for vmix_kpp.F90 uninitialized var
+   to get ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso test to pass
+   all tests, except baseline compares, pass
+      baseline comparisons fail because MARBL tracer source terms changed
+      namelist baseline compares fail beaucase namelist vars changed
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    9 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n20_marbl_dev_n22_cesm_pop_2_1_20161026
 Tag Summary: merge marbl_dev_n22 tag to this branch
