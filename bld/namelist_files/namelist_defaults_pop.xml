@@ -1075,11 +1075,17 @@
 <iron_flux_input%scale_factor ocn_grid="gx3v7">1.79e6</iron_flux_input%scale_factor>
 <iron_flux_input%scale_factor ocn_grid="gx1v6">1.79e6</iron_flux_input%scale_factor>
 
-<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename> 
-<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc</fesedflux_input%filename> 
+<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_18gmol_cesm1_93_20161104.nc</fesedflux_input%filename>
 <fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
 <fesedflux_input%file_fmt>nc</fesedflux_input%file_fmt>
 <fesedflux_input%scale_factor>1.1574e-6</fesedflux_input%scale_factor>
+
+<feventflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/feventflux_gx3v7_8gmol_constant_20161122.nc</feventflux_input%filename> 
+<feventflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/feventflux_gx1v6_10gmol_constant_20161118.nc</feventflux_input%filename>
+<feventflux_input%file_varname>FESEDFLUXIN</feventflux_input%file_varname>
+<feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
+<feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
 
 <din_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</din_riv_flux_input%filename> 
 <din_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</din_riv_flux_input%filename> 

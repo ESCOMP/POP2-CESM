@@ -3,6 +3,34 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    24 Nov 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n22_marbl_dev_n22_cesm_pop_2_1_20161026
+Tag Summary: seperate Fe vent flux from Fe sed flux
+
+changed numerous namelist parameter defaults related to fesedflux and feventflux
+
+Testing:
+MARBL commit 5b354ed2ebcae7721a7306ac95ead3d1012c0992
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+tested with bugfix for vmix_kpp.F90 uninitialized var
+   to get ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso test to pass
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n21 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because MARBL tracer source terms changed
+      namelist baseline compares fail beaucase namelist vars changed
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    24 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n21_marbl_dev_n22_cesm_pop_2_1_20161026
 Tag Summary: variable C:P ratios in autotrophs and POM
 
@@ -20,6 +48,8 @@ MARBL commit 5b354ed2ebcae7721a7306ac95ead3d1012c0992
 tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
 tested with bugfix for vmix_kpp.F90 uninitialized var
    to get ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-cice_ciso test to pass
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n20 tag)
    all tests, except baseline compares, pass
       baseline comparisons fail because MARBL tracer source terms changed
       namelist baseline compares fail beaucase namelist vars changed

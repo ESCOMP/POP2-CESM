@@ -5576,7 +5576,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc or fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc
+Default: fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc or fesedflux_gx1v6_etopo2v2_18gmol_cesm1_93_20161104.nc
 </entry>
 
 <entry 
@@ -5605,6 +5605,47 @@ Default: 1.1574e-6
 
 <entry 
 id="fesedflux_input%default_val"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="feventflux_input%filename"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml"
+input_pathname="abs" >
+Default: feventflux_gx3v7_8gmol_constant_20161122.nc or feventflux_gx1v6_10gmol_constant_20161118.nc
+</entry>
+
+<entry 
+id="feventflux_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'FESEDFLUXIN'
+</entry>
+
+<entry 
+id="feventflux_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="feventflux_input%scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.1574e-6
+</entry>
+
+<entry 
+id="feventflux_input%default_val"
 type="real" 
 category="ecosys"
 group="ecosys_forcing_data_nml" >

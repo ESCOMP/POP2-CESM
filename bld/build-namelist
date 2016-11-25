@@ -1483,6 +1483,11 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'fesedflux_input%file_fmt');
   add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
+  add_default($nl, 'feventflux_input%filename');
+  add_default($nl, 'feventflux_input%file_varname');
+  add_default($nl, 'feventflux_input%file_fmt');
+  add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
+
   add_default($nl, 'din_riv_flux_input%filename');
   add_default($nl, 'dip_riv_flux_input%filename');
   add_default($nl, 'don_riv_flux_input%filename');

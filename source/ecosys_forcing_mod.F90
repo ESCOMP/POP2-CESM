@@ -139,13 +139,14 @@ module ecosys_forcing_mod
   !---------------------------------------------------------------------
 
   character(char_len),  target :: dust_flux_source             ! option for atmospheric dust deposition
-  type(tracer_read),    target :: dust_flux_input             ! namelist input for dust_flux
+  type(tracer_read),    target :: dust_flux_input              ! namelist input for dust_flux
   character(char_len),  target :: iron_flux_source             ! option for atmospheric iron deposition
-  type(tracer_read),    target :: iron_flux_input             ! namelist input for iron_flux
-  type(tracer_read),    target :: fesedflux_input                    ! namelist input for iron_flux
+  type(tracer_read),    target :: iron_flux_input              ! namelist input for iron_flux
+  type(tracer_read),    target :: fesedflux_input              ! namelist input for fesedflux
+  type(tracer_read),    target :: feventflux_input             ! namelist input for feventflux
   character(char_len),  target :: ndep_data_type               ! type of ndep forcing
-  type(tracer_read),    target :: nox_flux_monthly_input      ! namelist input for nox_flux_monthly
-  type(tracer_read),    target :: nhy_flux_monthly_input      ! namelist input for nhy_flux_monthly
+  type(tracer_read),    target :: nox_flux_monthly_input       ! namelist input for nox_flux_monthly
+  type(tracer_read),    target :: nhy_flux_monthly_input       ! namelist input for nhy_flux_monthly
   integer(int_kind),    target :: ndep_shr_stream_year_first   ! first year in stream to use
   integer(int_kind),    target :: ndep_shr_stream_year_last    ! last year in stream to use
   integer(int_kind),    target :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
@@ -222,6 +223,7 @@ module ecosys_forcing_mod
 
   real      (r8)       , allocatable, target :: iron_patch_flux(:, :, :)              ! related to ph computation
   real      (r8)       , allocatable, target, public :: fesedflux(:, :, :, :)                 !  sedimentary Fe inputs 
+  real      (r8)       , allocatable, target, public :: feventflux(:, :, :, :)                !  Fe from vents
 
   !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
   !  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
@@ -316,7 +318,7 @@ contains
 
     namelist /ecosys_forcing_data_nml/                                        &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
-         iron_flux_input, fesedflux_input, ndep_data_type,                    &
+         iron_flux_input, fesedflux_input, feventflux_input, ndep_data_type,  &
          nox_flux_monthly_input, nhy_flux_monthly_input,                      &
          ndep_shr_stream_year_first, ndep_shr_stream_year_last,               &
          ndep_shr_stream_year_align, ndep_shr_stream_file,                    &
@@ -354,6 +356,7 @@ contains
     iron_flux_source             = 'monthly-calendar'
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
+    call set_defaults_tracer_read(feventflux_input, file_varname='FESEDFLUXIN')
     ndep_data_type = 'monthly-calendar'
     call set_defaults_tracer_read(nox_flux_monthly_input, file_varname='nox_flux')
     call set_defaults_tracer_read(nhy_flux_monthly_input, file_varname='nhy_flux')
@@ -860,6 +863,7 @@ contains
 
     integer :: i, j, iblock, k, n
     real (r8) :: subsurf_fesed      ! sum of subsurface fesed values
+    real (r8) :: subsurf_fevent     ! sum of subsurface fevent values
 
     !-----------------------------------------------------------------------
     !  load restoring fields (if required)
@@ -887,16 +891,23 @@ contains
     end do
 
     !-----------------------------------------------------------------------
-    !  load fesedflux
+    !  load fesedflux and feventflux, add feventflux to fesedflux
     !  add subsurface positives to 1 level shallower, to accomodate overflow pop-ups
     !-----------------------------------------------------------------------
 
     allocate(fesedflux(nx_block, ny_block, km, max_blocks_clinic))
 
+    allocate(feventflux(nx_block, ny_block, km, max_blocks_clinic))
+
     call read_field(fesedflux_input%file_fmt, &
          fesedflux_input%filename, &
          fesedflux_input%file_varname, &
          fesedflux)
+
+    call read_field(feventflux_input%file_fmt, &
+         feventflux_input%filename, &
+         feventflux_input%file_varname, &
+         feventflux)
 
     do iblock=1,nblocks_clinic
       do j=1, ny_block
@@ -907,6 +918,12 @@ contains
               subsurf_fesed = subsurf_fesed + fesedflux(i, j, k, iblock)
             enddo
             fesedflux(i, j, KMT(i, j, iblock), iblock) = fesedflux(i, j, KMT(i, j, iblock), iblock) + subsurf_fesed
+
+            subsurf_fevent = c0
+            do k=KMT(i, j, iblock)+1, km
+              subsurf_fevent = subsurf_fevent + feventflux(i, j, k, iblock)
+            enddo
+            feventflux(i, j, KMT(i, j, iblock), iblock) = feventflux(i, j, KMT(i, j, iblock), iblock) + subsurf_fevent
           endif
         enddo
       enddo
@@ -914,8 +931,10 @@ contains
       do k = 1, km
         where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
           fesedflux(:, :, k, iblock) = c0
+          feventflux(:, :, k, iblock) = c0
         end where
-        fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
+        fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor &
+          + feventflux(:, :, k, iblock) * feventflux_input%scale_factor
       enddo
     enddo
 
