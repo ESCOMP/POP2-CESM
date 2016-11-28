@@ -30,10 +30,6 @@ if (! -d "$OBJROOT/ocn/input" ) {
     my $sysmod = "mkdir -p $OBJROOT/ocn/input";
     system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
-if (! -d "$OBJROOT/ocn/cvmix" ) {
-    my $sysmod = "mkdir -p $OBJROOT/ocn/cvmix";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-}
 
 chdir "${OBJROOT}/ocn/source";
 
@@ -42,6 +38,9 @@ print " Copy the necessary files into $OBJROOT/ocn/source \n";
 print " -----------------------------------------------------------------\n";
 
 my $sysmod = "cp -fp $SRCROOT/components/pop/source/*.F90  .";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+
+my $sysmod = "cp -fp $SRCROOT/components/pop/source/cvmix/*.F90  .";
 system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 my $sysmod = "cp -fp $SRCROOT/components/pop/source/marbl/*.F90  .";
@@ -180,10 +179,6 @@ chdir "${OBJROOT}/ocn/obj";
 open(file,">Filepath") or die "Could not open file Filepath to write";
 print file "$OBJROOT/ocn/source \n";
 close(file);
-
-chdir "${OBJROOT}/ocn/cvmix";
-my $sysmod = "$GMAKE -j $GMAKE_J LIBROOT=$LIBROOT -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 chdir "${OBJROOT}/ocn/obj";
 my $sysmod = "$GMAKE complib -j $GMAKE_J LIBROOT=$LIBROOT MODEL=pop COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$cppdefs\" -f $CASETOOLS/Makefile";

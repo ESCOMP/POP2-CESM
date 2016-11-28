@@ -1,5 +1,23 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  jet,mlevy
+Tag Date:    28 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161128
+Tag Summary: Allow cvmix files to be included in pop library build instead of creating
+	     a separate cvmix library.  This tag is dependent upon a
+	     cime/cime_config/cesm/machines/Makefile 
+	     update.
+
+	     (merged to esmci master https://github.com/ESMCI/cime/pull/840 via pull request)
+
+Testing: aux_pop all tests past with the exception of some MEM leak tests which were
+	 failing before this commit. Everything BFB with the exception of some ERI
+	 tests that fail because of WW3.
+
+	M       ChangeLog
+        M       components/pop/cime_config/buildlib
+===============================================================================
+Tag Creator: jet
 Developers:  jet,klindsay,mlevy
 Tag Date:    16 Nov 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161116
