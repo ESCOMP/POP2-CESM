@@ -231,7 +231,7 @@
    logical (log_kind) :: &
       no_region_mask      ! flag for existence of region mask
 
-   real (r8), dimension(:,:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:,:), target, allocatable :: &
       TEMP_DATA     ! temporary data array for monthly forcing
 
    type (datafile) :: &

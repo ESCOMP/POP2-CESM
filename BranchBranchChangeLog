@@ -2,6 +2,43 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    28 Nov 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n23_marbl_dev_n23_cesm_pop_2_1_20161116
+Tag Summary: merge marbl_dev_n23 tag to this branch
+
+Testing:
+MARBL commit 5b354ed2ebcae7721a7306ac95ead3d1012c0992
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n22 tag)
+   all tests, except some memleak failures, pass
+
+Files Modified:
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       mpi/POP_BroadcastMod.F90
+M       mpi/POP_CommMod.F90
+M       mpi/POP_HaloMod.F90
+M       mpi/POP_RedistributeMod.F90
+M       mpi/POP_ReductionsMod.F90
+M       source/cfc11_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing_ap.F90
+M       source/forcing_sfwf.F90
+M       source/forcing_shf.F90
+M       source/forcing_ws.F90
+M       source/grid.F90
+M       source/initial.F90
+M       source/io_binary.F90
+M       source/overflows.F90
+M       source/step_mod.F90
+M       source/sw_absorption.F90
+M       source/vmix_kpp.F90
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n22_marbl_dev_n22_cesm_pop_2_1_20161026
 Tag Summary: seperate Fe vent flux from Fe sed flux

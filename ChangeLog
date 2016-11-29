@@ -1,5 +1,38 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  jet,klindsay,mlevy
+Tag Date:    16 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161116
+Tag Summary: Bug fix to make sure all values in some of the vmix_kpp arrays
+	     are assigned. Also started adding in NAG compiler fixes for POP.
+
+
+Testing: aux_pop all tests past with the exception of some MEM leak tests which were
+	 failing before this commit. Everything BFB with the exception of some ERI
+	 tests that fail because of WW3.  There will be more NAG fixes to follow.
+
+	M       ChangeLog
+        M       mpi/POP_BroadcastMod.F90
+	M       mpi/POP_CommMod.F90
+	M       mpi/POP_HaloMod.F90
+	M       mpi/POP_RedistributeMod.F90
+	M       mpi/POP_ReductionsMod.F90
+	M       source/cfc11_mod.F90
+	M       source/estuary_vsf_mod.F90
+	M       source/forcing_ap.F90
+	M       source/forcing_sfwf.F90
+	M       source/forcing_shf.F90
+	M       source/forcing_ws.F90
+	M       source/grid.F90
+	M       source/initial.F90
+	M       source/io_binary.F90
+	M       source/overflows.F90
+	M       source/step_mod.F90
+	M       source/sw_absorption.F90
+	M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: jet
 Developers:  jet
 Tag Date:    26 Oct 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161026

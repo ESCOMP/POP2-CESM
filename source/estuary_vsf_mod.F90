@@ -138,7 +138,7 @@
    type(io_dim) :: i_dim, j_dim
    character(char_len) :: io_field_name
    integer(i4) :: io_field_loc, io_field_type
-   real (r8), allocatable, dimension(:,:,:) :: TEMP_DATA   ! temporary data array
+   real (r8), allocatable, dimension(:,:,:), target :: TEMP_DATA   ! temporary data array
 
    !Set parameters to the same value for all estuaries (simple test)
    !Eventually replace this with an input file
