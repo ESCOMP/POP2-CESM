@@ -1,213 +1,286 @@
-#! /usr/bin/env perl
-use strict;
-use File::Compare;
+#!/usr/bin/env python
 
-if ($#ARGV == -1) {
-    die " ERROR pop.buildlib: must specify a caseroot input argument";
-}
-my ($CASEROOT) = @ARGV;
-chdir "${CASEROOT}";
+import os, shutil, sys, glob
 
-my $CASEBUILD			= `./xmlquery CASEBUILD			-value`;
-my $SRCROOT			= `./xmlquery SRCROOT			-value`;
-my $LIBROOT			= `./xmlquery LIBROOT			-value`;
-my $OBJROOT			= `./xmlquery OBJROOT			-value`;
-my $CASETOOLS			= `./xmlquery CASETOOLS			-value`;
-my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
-my $OCN_TRACER_MODULES		= `./xmlquery OCN_TRACER_MODULES	-value`;
-my $GMAKE_J			= `./xmlquery GMAKE_J			-value`;
-my $GMAKE			= `./xmlquery GMAKE			-value`;
+CIMEROOT = os.environ.get("CIMEROOT")
+if CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
-if (! -d "$OBJROOT/ocn/obj" ) {
-    my $sysmod = "mkdir -p $OBJROOT/ocn/obj";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-}
-if (! -d "$OBJROOT/ocn/source" ) {
-    my $sysmod =  "mkdir -p $OBJROOT/ocn/source";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-}
-if (! -d "$OBJROOT/ocn/input" ) {
-    my $sysmod = "mkdir -p $OBJROOT/ocn/input";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-}
-if (! -d "$OBJROOT/ocn/cvmix" ) {
-    my $sysmod = "mkdir -p $OBJROOT/ocn/cvmix";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-}
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.utils import expect
+from CIME.utils import handle_standard_logging_options
+from CIME.utils import setup_standard_logging_options
+from CIME.utils import run_cmd, run_cmd_no_fail
+from CIME.buildnml import create_namelist_infile
 
-chdir "${OBJROOT}/ocn/source";
+logger = logging.getLogger(__name__)
 
-print " -----------------------------------------------------------------\n";
-print " Copy the necessary files into $OBJROOT/ocn/source \n";
-print " -----------------------------------------------------------------\n";
+###############################################################################
+def parse_command_line(argv):
+###############################################################################
+    if "--test" in argv:
+        test_results = doctest.testmod(verbose=True)
+        sys.exit(1 if test_results.failed > 0 else 0)
 
-my $sysmod = "cp -fp $SRCROOT/components/pop/source/*.F90  .";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+    parser = argparse.ArgumentParser()
 
-my $sysmod = "cp -fp $SRCROOT/components/pop/source/marbl/*.F90  .";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+    setup_standard_logging_options(parser)
 
-my $sysmod = "cp -fp $SRCROOT/components/pop/mpi/*.F90  .";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+    parser.add_argument("caseroot", default=os.getcwd(),
+                        help="Case directory")
 
-my $sysmod = "cp -fp $SRCROOT/components/pop/drivers/cpl/*.F90 .";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+    parser.add_argument("libroot",
+                        help="root for creating the library")
 
-# Two files require special attention because they get renamed when copied
-# from either SourceMods/src.pop or input_templates/:
-# ${OCN_GRID}_domain_size.F90       -> domain_size.F90
-# ${OCN_GRID}_POP_DomainSizeMod.F90 -> POP_DomainSizeMod.F90
-# (The latter is "needed during LANL merge transition")
-#
-# For these files:
-# 1) Make sure SourceMods does not contain copies of the same file both
-#    with and without the ${OCN_GRID}_ preface.
+    parser.add_argument("bldroot",
+                        help="root for building library")
 
-my $my_path = "$CASEROOT/SourceMods/src.pop";
+    args = parser.parse_args()
 
-if ((-f "${my_path}/domain_size.F90") && (-f "${my_path}/${OCN_GRID}_domain_size.F90")) {
-    die "ERROR: you can not have both domain_size.F90 and ${OCN_GRID}_domain_size.F90 in SourceMods/src.pop/";
-}
-if ((-f "${my_path}/POP_DomainSizeMod.F90") && (-f "${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90")) {
-    die "ERROR: you can not have both POP_DomainSizeMod.F90 and ${OCN_GRID}_POP_DomainSizeMod.F90 in SourceMods/src.pop/"
-}
+    handle_standard_logging_options(args)
 
-my $POP_FOUND_d_s = 0;
-my $POP_FOUND_POP_DSM = 0;
+    return args.caseroot, args.libroot, args.bldroot 
 
-# 1) Copy (with name-change) from input templates/ if they exist
+###############################################################################
+def _set_cppdefs(case):
+###############################################################################
 
-if (-f  "$SRCROOT/components/pop/input_templates/${OCN_GRID}_domain_size.F90" ) {
-    my $sysmod = "cp -fp $SRCROOT/components/pop/input_templates/${OCN_GRID}_domain_size.F90 domain_size.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-    $POP_FOUND_d_s = 1;
-}
-if (-f "$SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90") {
-    my $sysmod = "cp -fp $SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-    $POP_FOUND_POP_DSM = 1;
-}
+    exeroot = case.get_value("EXEROOT")
+    srcroot = case.get_value("SRCROOT")
+    caseroot = case.get_value("CASEROOT")
 
-# 2) Copy everything from SourceMods over
-# If domain_size.F90 or POP_DomainSizeMod.F90 exist, they should overwrite
-# anything copied from from input_templates/
+    # determine configure directory 
+    configure_dir = os.path.join(srcroot,"components","pop","bld")
+    if os.path.isfile(os.path.join(caseroot,"SourceMods","src.pop","configure")):
+        configure_dir = os.path.join(caseroot,"SourceMods","src.pop")
 
-if (-d "$my_path" ) {
-    my $sysmod = "cp -fp $my_path/*.F90 .";
-    system($sysmod) == 0 or warn "WARNING: pop.buildlib $sysmod failed: $?\n";
-}
-if (-f  "${my_path}/domain_size.F90" ) {
-    $POP_FOUND_d_s = 1;
-}
-if (-f "${my_path}/POP_DomainSizeMod.F90") {
-    $POP_FOUND_POP_DSM = 1;
-}
+    # create $CASEROOT/Buildconf/popconf if it does not exist
+    popconf_dir = os.path.join(caseroot,"Buildconf","popconf")
+    if not os.path.exists(popconf_dir):
+        os.makedirs(popconf_dir)
 
-# 3) If SourceMods/ contains ${OCN_GRID}_domain_size.F90 or
-#    ${OCN_GRID}_POP_DomainSizeMod.F90, those files will now exist in the
-#    current directory and need to be renamed
+    # run configure from $CASEROOT/Buildconf/popconf
+    # running configure writes out the following xml variables in env_build.xml
+    # POP_BLCKX, POP_BLCKY, POP_MXBLCKS, POP_DECOMPTYPE, POP_NX_BLOCKS, POP_NY_BLOCKS, POP_CPPDEFS
 
-if (-f  "${OCN_GRID}_domain_size.F90" ) {
-    my $sysmod = "mv -f ${OCN_GRID}_domain_size.F90 domain_size.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-    $POP_FOUND_d_s = 1;
-}
-if (-f "${OCN_GRID}_POP_DomainSizeMod.F90") {
-    my $sysmod = "mv -f ${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-    $POP_FOUND_POP_DSM = 1;
-}
+    command = os.path.join(configure_dir,"configure")
+    cmd = "%s %s" %(command, caseroot)
+    rc, out, err = run_cmd(cmd, from_dir=popconf_dir)
 
-# 4) Make sure both domain_size.F90 and POP_DomainSizeMod.F90 exist for the
-#    specified grid
+    expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(command,rc,out,err))
+    if out is not None:
+        logger.info("     %s"%out)
+    if err is not None:
+        logger.info("     %s"%err)
 
-if (${POP_FOUND_d_s} == 0) {
-    die "ERROR: you need either ${OCN_GRID}_domain_size.F90 or domain_size.F90";
-}
-if (${POP_FOUND_POP_DSM} == 0) {
-    die "ERROR: you need either ${OCN_GRID}_POP_DomainSizeMod.F90 or POP_DomainSizeMod.F90";
-}
+    # Verify that config_cache.xml exists
+    if not os.path.isfile(os.path.join(popconf_dir,"config_cache.xml")):
+        expect(False, "config_cache.xml is missing after configure command")
 
-print " ------------------------------------------------------------------------- \n";
-print " Checking for any auxilliary ocean-component models before building pop   \n";
-print " For now - only looking for moby component \n";
-print " ------------------------------------------------------------------------- \n";
+    # since env_build.xml has been updated above - must update case with the new file
+    case.read_xml()
 
-foreach my $comp ($OCN_TRACER_MODULES) {
-    if ("$comp" =~ 'moby') {
-	print " ------------------------------------------------------------------------- \n";
-	print "  Building moby \n";
-	print " ------------------------------------------------------------------------- \n";
+    pop_cppdefs = case.get_value("POP_CPPDEFS")
+    return pop_cppdefs
 
-	chdir "$CASEBUILD";
-	if (! -f "moby.buildlib") {
-	    my $sysmod = "cp $SRCROOT/components/pop/aux/moby/pop/bld/moby.buildlib.csh .";
-	    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-	}
-	my $sysmod = "./moby.buildlib";
-	system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-    }
-}
+###############################################################################
+def _write_filepath(case):
+###############################################################################
+                 
+    objroot = case.get_value("OBJROOT")
+    filepath_file = os.path.join(objroot,"ocn","obj","Filepath")
+    if not os.path.isfile(filepath_file):
+        paths = [ os.path.join(objroot,"ocn","source")]
 
-#--------------------------------------------------------------
-#  force gmake to recompile if any of the cppdefs are different
-#--------------------------------------------------------------
-my $recompile = 'FALSE';
-if (-e "$OBJROOT/ocn/obj/POP_cppdefs") {
-    if (compare("$OBJROOT/ocn/obj/POP_cppdefs.new", "$OBJROOT/ocn/obj/POP_cppdefs") != 0) {
-	$recompile = 'TRUE';
-    }
-    # NOTE - the following remove statements are what force pop to recompile if
-    # the cppdefs are different
-    print "recompile is $recompile \n";
-    if ($recompile eq 'TRUE') {
-	my $sysmod = "rm -f $OBJROOT/ocn/obj/*.o";
-	system($sysmod) == 0 or die "ERROR pop.buildlib: $sysmod failed: $?\n";
-    }
-}
-my $sysmod = "cp -f $OBJROOT/ocn/obj/POP_cppdefs.new $OBJROOT/ocn/obj/POP_cppdefs";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+        with open(filepath_file, "w") as filepath:
+            filepath.write("\n".join(paths))
+            filepath.write("\n")
 
-chdir $CASEROOT;
-my $cppdefs = `./xmlquery POP_CPPDEFS -value`;
-chomp($cppdefs);
+###############################################################################
+def _copy_files_to_blddir(case):
+###############################################################################
 
-print " ----------------------------------------------------------------- \n";
-print "  Build pop library LIBROOT is $LIBROOT\n";
-print " ----------------------------------------------------------------- \n";
+    srcroot = case.get_value("SRCROOT")
+    objroot = case.get_value("OBJROOT")
+    exeroot = case.get_value("EXEROOT")
+    caseroot = case.get_value("CASEROOT")
+    build_complete = case.get_value("BUILD_COMPLETE")
 
-chdir "${OBJROOT}/ocn/obj";
-open(file,">Filepath") or die "Could not open file Filepath to write";
-print file "$OBJROOT/ocn/source \n";
-close(file);
+    # create bld directories 
+    dirnames = [os.path.join(objroot,"ocn","obj"),
+                os.path.join(objroot,"ocn","source"),
+                os.path.join(objroot,"ocn","input"),
+                os.path.join(objroot,"ocn","cvmix")]
+    for dirname in dirnames:
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
 
-chdir "${OBJROOT}/ocn/cvmix";
-my $sysmod = "$GMAKE -j $GMAKE_J LIBROOT=$LIBROOT -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+    # copy source files into obj dir
+    srcroot = case.get_value("SRCROOT")
+    glob_dirs = [os.path.join(srcroot,"components","pop","source"),
+                 os.path.join(srcroot,"components","pop","source","marbl"),
+                 os.path.join(srcroot,"components","pop","mpi"),
+                 os.path.join(srcroot,"components","pop","drivers","cpl")]
 
-chdir "${OBJROOT}/ocn/obj";
-my $sysmod = "$GMAKE complib -j $GMAKE_J LIBROOT=$LIBROOT MODEL=pop COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$cppdefs\" -f $CASETOOLS/Makefile";
-system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
+    dest_dir = os.path.join(objroot,"ocn","source")
+    for glob_dir in glob_dirs:
+        filenames = glob.glob(glob_dir + "/*.F90")
+        for filename in filenames:
+            shutil.copy2(filename, dest_dir)
+            print "DEBUG: copying filename ",filename 
 
-print " \n";
-print " ---------------------------------------------------------------------------- \n";
-print "  Note that f90 files may not exist on all machines \n";
-print " ---------------------------------------------------------------------------- \n";
+    # Two files require special attention because they get renamed when copied
+    # $OCN_GRID_domain_size.F90       -> domain_size.F90
+    # $OCN_GRID_POP_DomainSizeMod.F90 -> POP_DomainSizeMod.F90
+    # For these files:
 
-my $f90_dir = "$OBJROOT/ocn/source/f90";
-if (! -d  "$f90_dir" ) {
-    my $sysmod = "mkdir -p $f90_dir";
-    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
-}
-my $sysmod = "mv -f *.f90 $f90_dir";
+    # 1) Make sure SourceMods does not contain copies of the same file both
+    # with and without the $OCN_GRID_ preface.
 
-if (! -f "$LIBROOT/libocn.a") {
-    die "ERROR: pop library not available"
-}
+    caseroot = case.get_value("CASEROOT")
+    ocn_grid = case.get_value("OCN_GRID")
 
-print "  \n";
-print " ------------------------------------------------------------------------- \n";
-print "  Successful completion of the pop executable building process \n";
-print " ------------------------------------------------------------------------- \n";
+    srcpath = os.path.join(caseroot,"SourceMods","src.pop")
 
-exit(0);
+    file1 = os.path.join(srcpath, "POP_DomainSizeMod.F90")
+    file2 = os.path.join(srcpath, "%s_POP_DomainSizeMod.F90"%ocn_grid)
+    if (os.path.isfile(file1) and os.path.isfile(os.path.join(file2))):
+        expect(False, "cannot have both %s and %s in SourceMods/src.pop/" %(file1,file2))
+
+    file1 = os.path.join(srcpath, "domain_size.F90")
+    file2 = os.path.join(srcpath, "%s_domain_size.F90"%ocn_grid)
+    if (os.path.isfile(file1) and os.path.isfile(file2)):
+        expect(False, "cannot have both %s and %s in SourceMods/src.pop/" %(file1,file2))
+
+    POP_FOUND_d_s = 0
+    POP_FOUND_DSM = 0
+
+    # 2) Copy (with name-change) from input templates if they exist
+
+    spath = os.path.join(srcroot,"components","pop","input_templates")
+    dpath = os.path.join(objroot,"ocn","source")
+
+    sfile = os.path.join(spath,"%s_domain_size.F90"%ocn_grid)
+    dfile = os.path.join(dpath,"domain_size.F90")
+    if os.path.isfile(sfile):
+        shutil.copy2(sfile, dfile)
+        POP_FOUND_d_s = 1
+
+    sfile = os.path.join(spath,"%s_POP_DomainSizeMod.F90"%ocn_grid)
+    dfile = os.path.join(dpath,"POP_DomainSizeMod.F90")
+    if os.path.isfile(sfile):
+        shutil.copy2(sfile, dfile)
+        POP_FOUND_DSM = 1
+
+    # 3) Copy everything from SourceMods/src.pop over
+    # If domain_size.F90 or POP_DomainSizeMod.F90 exist in SourceMods/src.pop, 
+    # they should overwrite the files copied from from input_templates/
+
+    sdir = os.path.join(caseroot,"SourceMods","src.pop")
+    ddir = os.path.join(objroot,"ocn","source")
+    for filename in glob.glob(os.path.join(sdir, '*.F90')):
+        shutil.copy2(filename, ddir)
+        
+    if os.path.isfile(os.path.join(sdir,"domain_size.F90")):
+        POP_FOUND_d_s = 1
+    if os.path.isfile(os.path.join(sdir,"POP_DomainSizeMod.F90")):
+        POP_FOUND_DSM = 1
+
+    # 4) If objroot/ocn/source contains $OCN_GRID_domain_size.F90 or
+    #  $OCN_GRID_POP_DomainSizeMod.F90, those files need to be renamed
+
+    objpath = os.path.join(objroot,"ocn","source")
+    if os.path.isfile(os.path.join(objpath,"%s_domain_size.F90"%ocn_grid)):
+        shutil.move(os.path.join(objpath,"%s_domain_size.F90"%ocn_grid),
+                    os.path.join(objpath,"domain_size.F90"))
+        POP_FOUND_d_s = 1
+
+    if os.path.isfile(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid)):
+        shutilmove(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid),
+                   os.path.join(objpath,"POP_DomainSizeMod.F90"))
+        POP_FOUND_DSM = 1
+
+    # 5) Make sure both domain_size.F90 and POP_DomainSizeMod.F90 exist for the specified grid
+
+    if POP_FOUND_d_s == 0:
+        print "DEBUG: i am here"
+        expect(False, "you need either $OCN_GRID_domain_size.F90 or domain_size.F90")
+
+    if POP_FOUND_DSM == 0:
+        expect(False, "you need either $OCN_GRID_POP_DomainSizeMod.F90 or POP_DomainSizeMod.F90")
+
+    logger.info(" -------------------------------------------------------------------------")
+    logger.info(" Checking for any auxilliary ocean-component models before building pop")   
+    logger.info(" -------------------------------------------------------------------------" )
+
+    ocn_tracer_modules = case.get_value("OCN_TRACER_MODULES")
+    for comp in ocn_tracer_modules:
+        if "moby" in comp:
+            logger.info("Building moby")
+            casebuild = case.get_value("CASEBUILD")
+            if not os.path.isfile(os.path.join(casebuild,"moby.buildlib")):
+                shutil.copy2(os.path.join(srcroot,"components","pop","aux","moby","pop","bld","moby.buildlib.csh"),
+                             os.path.join(casebuild,"moby.buildlib"))
+
+            command = os.path.join("moby.buildlib")
+            rc, out, err = run_cmd(command, from_dir=casebuild)
+            expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
+            if out is not None:
+                logger.info("     %s"%out)
+            if err is not None:
+                logger.info("     %s"%err)
+
+        
+###############################################################################
+def _build_pop():
+###############################################################################
+
+    caseroot, libroot, bldroot = parse_command_line(sys.argv)
+
+    with Case(caseroot) as case:
+        casetools = case.get_value("CASETOOLS")
+        objroot   = case.get_value("OBJROOT")
+        gmake_j   = case.get_value("GMAKE_J")
+        gmake     = case.get_value("GMAKE")
+
+        # create Filepath file
+        _write_filepath(case)
+
+        # copy all F90 files to $OBJROOT/ocn/sourc
+        _copy_files_to_blddir(case)
+
+        # set pop_cppdefs 
+        pop_cppdefs = _set_cppdefs(case)
+
+        # build the library
+        makefile = os.path.join(casetools, "Makefile")
+
+        libname = os.path.join(libroot,"libcvmix.a")
+        cmd = "%s -j %d -f %s %s" \
+            % (gmake, gmake_j, makefile, libname)
+
+        rc, out, err = run_cmd(cmd, from_dir=os.path.join(objroot,"ocn","cvmix"))
+        expect(rc == 0, "Command %s failed rc=%d\nout=%s\nerr=%s" % (cmd, rc, out, err))
+
+        complib = os.path.join(libroot,"libocn.a")
+        cmd = "%s complib -j %d MODEL=pop COMPLIB=%s -f %s USER_CPPDEFS=\"%s\"" \
+            % (gmake, gmake_j, complib, makefile, pop_cppdefs )
+
+        rc, out, err = run_cmd(cmd, from_dir=os.path.join(objroot,"ocn","obj"))
+        expect(rc == 0, "Command %s failed rc=%d\nout=%s\nerr=%s" % (cmd, rc, out, err))
+
+        # note that f90 files may not exist on all machines
+        f90_dir = os.path.join(objroot,"ocn","source","f90")
+        if not os.path.exists(f90_dir):
+            os.makedirs(f90_dir)
+        for filename in glob.glob('*.f90'):
+            shutil.move(filename, f90_dir)
+
+        logger.info("Command %s completed with output %s\nerr %s" ,cmd, out, err)
+
+###############################################################################
+
+if __name__ == "__main__":
+    _build_pop()

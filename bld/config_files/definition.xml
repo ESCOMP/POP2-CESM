@@ -37,9 +37,6 @@
   <entry id="irf_mode" valid_values="NK_precond,offline_transport" value="NK_precond">
     IRF tracer module mode
   </entry>
-  <entry id="cppdefs" value="">
-    CPPDEF used during POP build
-  </entry>
   <entry id="comp_wav" value="swav,ww3a,dwav">
     wave component 
   </entry>

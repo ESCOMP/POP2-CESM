@@ -29,52 +29,6 @@ unshift @INC, @dirs;
 require Config::SetupTools;
 my $sysmod; 
 
-if ($TESTCASE eq 'SBN') {
-    #  do nothing for namelist comparison test
-} else {
-    if (! -d "$EXEROOT/ocn/obj" ) {
-	$sysmod = "mkdir -p $EXEROOT/ocn/obj";
-	system($sysmod) == 0 or die "ERROR pop buildnml: $sysmod failed: $?\n";
-    }
-    if (! -d "$EXEROOT/ocn/source") {
-	$sysmod = "mkdir -p $EXEROOT/ocn/source";
-	system($sysmod) == 0 or die "ERROR pop buildnml: $sysmod failed: $?\n";
-    }
-}
-
-if (! -d "$CASEROOT/Buildconf/popconf" ) {
-    $sysmod = "mkdir $CASEROOT/Buildconf/popconf";
-    system($sysmod) == 0 or die "ERROR pop buildnml: $sysmod failed: $?\n";
-}
-chdir "$CASEROOT/Buildconf/popconf";
-
-#--------------------------------------------------------------------
-# Invoke pop configure, output will go in $CASEROOT/Buildconf/popconf
-#--------------------------------------------------------------------
-
-if ($BUILD_COMPLETE eq 'FALSE' ) {
-
-  my $tmp_dir = "$SRCROOT/components/pop/bld";
-  if (-e "$CASEROOT/SourceMods/src.pop/configure") {
-    $tmp_dir = "$CASEROOT/SourceMods/src.pop";
-  }
-  $sysmod = "$tmp_dir/configure $CASEROOT";
-  system($sysmod) == 0 or die "ERROR pop buildnml: $sysmod failed: $?\n";
-
-} else {
-
-    if ($TESTCASE eq 'SBN') {
-	#  do nothing for namelist comparison test
-    } else {
-	# Verify that config_cache.xml exists
-	if (! -e "$CASEROOT/Buildconf/popconf/config_cache.xml") {
-	    print "ERROR pop buildnml: Build is complete but config_cache.xml is missing\n";
-	    print "    Can not run build-namelist; try cleaning build and building again.\n";
-	    die;
-	}
-    }
-}
-
 #--------------------------------------------------------------------
 # Obtain correct pop rpointer files
 #--------------------------------------------------------------------

@@ -11,12 +11,14 @@
 
 my $CASEROOT = shift;
 
-# Environment variables
+# xml variables
 my $SRCROOT, $CIMEROOT, $CASEROOT, $OBJROOT, $OCN_GRID, @OCN_TRACER_MODULES;
 my @OCN_TRACER_MODULES_OPT, $POP_AUTO_DECOMP, $POP_BLCKX, $POP_BLCKY;
 my $POP_MXBLCKS, $POP_TAVG_R8, $NTHRDS_OCN, $NINST_OCN, $OCN_ICE_FORCING;
 my $COMP_WAV;
+
 chdir "$CASEROOT";
+
 $SRCROOT                 = `./xmlquery SRCROOT                -value`;
 $CASEROOT                = `./xmlquery CASEROOT               -value`;
 $CIMEROOT                = `./xmlquery CIMEROOT               -value`;
@@ -78,7 +80,6 @@ $cfg->set('use_moby',   $USE_MOBY);
 $cfg->set('use_irf',    $USE_IRF);
 $cfg->set('irf_nt',     $IRF_NT);
 $cfg->set('irf_mode',   $IRF_MODE);
-$cfg->set('cppdefs',    $cppdefs);
 $cfg->set('comp_wav',   $COMP_WAV);
 
 $cfg->write_file($cfg_cache_file,"");
@@ -237,22 +238,10 @@ sub set_cppdefs {
   $cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
   $cppdefs = "$cppdefs -DIRF_NT=$IRF_NT";
     
-  # write out cppdefs to env_build.xml
-  # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
+  # write out cppdefs to env_build.xml - this will determine if need to rebuild at runtime 
   chdir "$CASEROOT";
   my $sysmod = "./xmlchange -noecho -id POP_CPPDEFS -val=\'$cppdefs\'";
   system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
 
-  # write out cppdefs to POP_cppdefs.new
-  # this will force gmake to rebuild when $CASE.buildexe is called
-
-  if ($TESTCASE eq 'SBN') {
-      # do nothing
-  } else {
-      open(file,">$OBJROOT/ocn/obj/POP_cppdefs.new") or die "POP configure: Could not open file $OBJROOT/ocn/obj/POP_cppdefs.new to write";
-      print file "$cppdefs \n";
-      close(file);
-  }
-    
 }
 
