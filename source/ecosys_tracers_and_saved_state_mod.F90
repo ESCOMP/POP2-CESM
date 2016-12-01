@@ -96,6 +96,9 @@ Contains
 
     use POP_ErrorMod, only : POP_Success, POP_ErrorSet
 
+    use io_read_fallback_mod, only : io_read_fallback_register_tracer
+    use io_read_fallback_mod, only : io_read_fallback_register_field
+
     use passive_tracer_tools, only : rest_read_tracer_block
     use passive_tracer_tools, only : file_read_single_tracer
     use passive_tracer_tools, only : read_field
@@ -221,6 +224,37 @@ Contains
     if (ciso_on) then
       call set_tracer_read(ciso_tracer_init_ext, tracer_inputs)
     end if
+
+    !-----------------------------------------------------------------------
+    !  Enable tracers and saved state to be read from older IC/restart files
+    !-----------------------------------------------------------------------
+
+    call io_read_fallback_register_tracer(tracername='DOCr', &
+       fallback_opt='const', const_val=38.0_r8)
+
+    call io_read_fallback_register_tracer(tracername='Lig', &
+       fallback_opt='const', const_val=2.0e-3_r8)
+
+    call io_read_fallback_register_tracer(tracername='spP', &
+       fallback_opt='read_and_scale', tracername_read='spC', scalefactor=c1/117.0_r8)
+
+    call io_read_fallback_register_tracer(tracername='diatP', &
+       fallback_opt='read_and_scale', tracername_read='diatC', scalefactor=c1/117.0_r8)
+
+    call io_read_fallback_register_tracer(tracername='diazP', &
+       fallback_opt='read_and_scale', tracername_read='diazC', scalefactor=0.32_r8/117.0_r8)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_SURF', &
+       fallback_opt='const', const_val=c0)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_SURF_ALT_CO2', &
+       fallback_opt='const', const_val=c0)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_3D', &
+       fallback_opt='const', const_val=c0)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_3D_ALT_CO2', &
+       fallback_opt='const', const_val=c0)
 
     !-----------------------------------------------------------------------
     !  initialize saved state
@@ -402,35 +436,23 @@ Contains
 
   subroutine read_restart_saved_state(file_fmt, filename, state)
 
-    use passive_tracer_tools  , only : field_exists_in_file
     use passive_tracer_tools  , only : read_field
-    use io_tools              , only : document
 
     character(len=*), intent(in) :: file_fmt
     character(len=*), intent(in) :: filename
     type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
 
-    character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:read_restart_saved_state'
-    character(len=char_len) :: log_message
     integer :: n
 
-    call set_saved_state_zero(state)
     do n=1,size(state)
-      if (field_exists_in_file(file_fmt, filename, state(n)%file_varname)) then
-        select case (state(n)%rank)
-          case (2)
-            call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 state(n)%field_2d(:,:,:))
-          case (3)
-            call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 state(n)%field_3d(:,:,:,:))
-        end select
-      else
-        write(log_message, "(4A)") trim(state(n)%file_varname),               &
-                                   ' does not exist in ', trim(filename),     &
-                                   ', setting to 0'
-        call document(subname, log_message)
-      end if
+      select case (state(n)%rank)
+        case (2)
+          call read_field(file_fmt, filename, state(n)%file_varname,        &
+               state(n)%field_2d(:,:,:))
+        case (3)
+          call read_field(file_fmt, filename, state(n)%file_varname,        &
+               state(n)%field_3d(:,:,:,:))
+      end select
     end do
 
   end subroutine read_restart_saved_state

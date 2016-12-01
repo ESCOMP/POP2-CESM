@@ -2,6 +2,50 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    1 Dec 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n24_marbl_dev_n23_cesm_pop_2_1_20161116
+Tag Summary: enable ecosys tracers and saved state to be read from older IC/restart files
+
+introduce io_read_fallback_mod.F90
+   enable fallback methods for reading fields when they aren't in the input file
+   supported fallback options are ['const', 'read_and_scale']
+
+call io_read_fallback_mod routines in io.F90 for reading non-existant fields
+   hooks are only in place for netcdf files
+
+define fallback methdods in ecosys_tracers_and_saved_state_mod.F90 for the following:
+   tracers: DOCr, Lig, spP, diatP, diazP, MARBL_PH_SURF
+   saved_state: MARBL_PH_SURF, MARBL_PH_SURF_ALT_CO2, MARBL_PH_3D, MARBL_PH_3D_ALT_CO2
+
+remove code that skips reading of non-existant saved_state fields in restart file
+   rely on fallback methods instead
+
+introduce new test, SMS GECO T62_g3xv6, that initialized ecosys tracers with
+   older IC file that does have Lig, spP, diatP, diazP tracers
+
+tested by hand running a hybrid run off a previous coupled run
+
+Testing:
+MARBL commit 6114cdb4ed5d0495beb0d34fd823700615305da9
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu, hobart/nag: (baseline comparison to marbl_dev_klindsay_n23 tag)
+   all tests, except some memleak failures, pass
+   new test also fails baseline comparison
+
+Files Modified:
+M       BranchBranchChangeLog
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_read_fallback_gx3v7
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_read_fallback_gx3v7/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_read_fallback_gx3v7/user_nl_pop
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/io.F90
+A       source/io_read_fallback_mod.F90
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    28 Nov 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n23_marbl_dev_n23_cesm_pop_2_1_20161116
 Tag Summary: merge marbl_dev_n23 tag to this branch
