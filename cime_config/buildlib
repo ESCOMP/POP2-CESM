@@ -129,7 +129,6 @@ def _copy_files_to_blddir(case):
         filenames = glob.glob(glob_dir + "/*.F90")
         for filename in filenames:
             shutil.copy2(filename, dest_dir)
-            print "DEBUG: copying filename ",filename 
 
     # Two files require special attention because they get renamed when copied
     # $OCN_GRID_domain_size.F90       -> domain_size.F90
