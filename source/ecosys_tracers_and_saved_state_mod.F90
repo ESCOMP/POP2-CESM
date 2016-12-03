@@ -229,6 +229,9 @@ Contains
     !  Enable tracers and saved state to be read from older IC/restart files
     !-----------------------------------------------------------------------
 
+    call io_read_fallback_register_tracer(tracername='DIC_ALT_CO2', &
+       fallback_opt='alt_field', alt_tracername='DIC')
+
     call io_read_fallback_register_tracer(tracername='DOCr', &
        fallback_opt='const', const_val=38.0_r8)
 
@@ -236,13 +239,13 @@ Contains
        fallback_opt='const', const_val=2.0e-3_r8)
 
     call io_read_fallback_register_tracer(tracername='spP', &
-       fallback_opt='read_and_scale', tracername_read='spC', scalefactor=c1/117.0_r8)
+       fallback_opt='alt_field', alt_tracername='spC', scalefactor=c1/117.0_r8)
 
     call io_read_fallback_register_tracer(tracername='diatP', &
-       fallback_opt='read_and_scale', tracername_read='diatC', scalefactor=c1/117.0_r8)
+       fallback_opt='alt_field', alt_tracername='diatC', scalefactor=c1/117.0_r8)
 
     call io_read_fallback_register_tracer(tracername='diazP', &
-       fallback_opt='read_and_scale', tracername_read='diazC', scalefactor=0.32_r8/117.0_r8)
+       fallback_opt='alt_field', alt_tracername='diazC', scalefactor=0.32_r8/117.0_r8)
 
     call io_read_fallback_register_field(fieldname='MARBL_PH_SURF', &
        fallback_opt='const', const_val=c0)
