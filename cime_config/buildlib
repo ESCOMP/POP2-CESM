@@ -10,93 +10,10 @@ sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 from standard_script_setup import *
 from CIME.case import Case
 from CIME.utils import expect
-from CIME.utils import handle_standard_logging_options
-from CIME.utils import setup_standard_logging_options
-from CIME.utils import run_cmd, run_cmd_no_fail
-from CIME.buildnml import create_namelist_infile
+from CIME.utils import run_cmd
+from CIME.buildlib import parse_input
 
 logger = logging.getLogger(__name__)
-
-###############################################################################
-def parse_command_line(argv):
-###############################################################################
-    if "--test" in argv:
-        test_results = doctest.testmod(verbose=True)
-        sys.exit(1 if test_results.failed > 0 else 0)
-
-    parser = argparse.ArgumentParser()
-
-    setup_standard_logging_options(parser)
-
-    parser.add_argument("caseroot", default=os.getcwd(),
-                        help="Case directory")
-
-    parser.add_argument("libroot",
-                        help="root for creating the library")
-
-    parser.add_argument("bldroot",
-                        help="root for building library")
-
-    args = parser.parse_args()
-
-    handle_standard_logging_options(args)
-
-    return args.caseroot, args.libroot, args.bldroot 
-
-###############################################################################
-def _set_cppdefs(case):
-###############################################################################
-
-    exeroot = case.get_value("EXEROOT")
-    srcroot = case.get_value("SRCROOT")
-    caseroot = case.get_value("CASEROOT")
-
-    # determine configure directory 
-    configure_dir = os.path.join(srcroot,"components","pop","bld")
-    if os.path.isfile(os.path.join(caseroot,"SourceMods","src.pop","configure")):
-        configure_dir = os.path.join(caseroot,"SourceMods","src.pop")
-
-    # create $CASEROOT/Buildconf/popconf if it does not exist
-    popconf_dir = os.path.join(caseroot,"Buildconf","popconf")
-    if not os.path.exists(popconf_dir):
-        os.makedirs(popconf_dir)
-
-    # run configure from $CASEROOT/Buildconf/popconf
-    # running configure writes out the following xml variables in env_build.xml
-    # POP_BLCKX, POP_BLCKY, POP_MXBLCKS, POP_DECOMPTYPE, POP_NX_BLOCKS, POP_NY_BLOCKS, POP_CPPDEFS
-
-    command = os.path.join(configure_dir,"configure")
-    cmd = "%s %s" %(command, caseroot)
-    rc, out, err = run_cmd(cmd, from_dir=popconf_dir)
-
-    expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(command,rc,out,err))
-    if out is not None:
-        logger.info("     %s"%out)
-    if err is not None:
-        logger.info("     %s"%err)
-
-    # Verify that config_cache.xml exists
-    if not os.path.isfile(os.path.join(popconf_dir,"config_cache.xml")):
-        expect(False, "config_cache.xml is missing after configure command")
-
-    # since env_build.xml has been updated above - must update case with the new file
-    case.read_xml()
-
-    pop_cppdefs = case.get_value("POP_CPPDEFS")
-    return pop_cppdefs
-
-###############################################################################
-def _write_filepath(case):
-###############################################################################
-                 
-    objroot = case.get_value("OBJROOT")
-    filepath_file = os.path.join(objroot,"ocn","obj","Filepath")
-    if not os.path.isfile(filepath_file):
-        paths = [ os.path.join(objroot,"ocn","source")]
-
-        with open(filepath_file, "w") as filepath:
-            filepath.write("\n".join(paths))
-            filepath.write("\n")
 
 ###############################################################################
 def _copy_files_to_blddir(case):
@@ -231,27 +148,35 @@ def _copy_files_to_blddir(case):
             if err is not None:
                 logger.info("     %s"%err)
 
-        
 ###############################################################################
 def _build_pop():
 ###############################################################################
 
-    caseroot, libroot, bldroot = parse_command_line(sys.argv)
+    caseroot, libroot, bldroot = parse_input(sys.argv)
 
     with Case(caseroot) as case:
         casetools = case.get_value("CASETOOLS")
         objroot   = case.get_value("OBJROOT")
+        srcroot   = case.get_value("SRCROOT")
         gmake_j   = case.get_value("GMAKE_J")
         gmake     = case.get_value("GMAKE")
 
-        # create Filepath file
-        _write_filepath(case)
-
-        # copy all F90 files to $OBJROOT/ocn/sourc
+        # copy all F90 files to $OBJROOT/ocn/source
         _copy_files_to_blddir(case)
 
-        # set pop_cppdefs 
-        pop_cppdefs = _set_cppdefs(case)
+        # call pop's configure to set the cppdefs
+        sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
+        from configure_pop import configure_pop
+        pop_cppdefs = configure_pop(case)
+
+        # create Filepath file
+        objroot = case.get_value("OBJROOT")
+        filepath_file = os.path.join(objroot,"ocn","obj","Filepath")
+        if not os.path.isfile(filepath_file):
+            paths = [ os.path.join(objroot,"ocn","source")]
+            with open(filepath_file, "w") as filepath:
+                filepath.write("\n".join(paths))
+                filepath.write("\n")
 
         # build the library
         makefile = os.path.join(casetools, "Makefile")
