@@ -40,17 +40,17 @@
 
   <compset>
     <alias>C</alias>    
-    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_SWAV</lname>
+    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <compset>
     <alias>CIAF</alias> 
-    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_SWAV</lname>
+    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_WW3</lname>
   </compset>
 
   <compset>
     <alias>CECO</alias> 
-    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_SWAV</lname>
+    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <compset>
@@ -63,36 +63,36 @@
 
   <compset>
     <alias>G</alias>   
-    <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_SWAV</lname>
+    <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <compset>
     <alias>GIAF</alias>
-    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_SWAV</lname>
+    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_WW3</lname>
   </compset>
 
   <compset>
     <alias>GECO</alias>
-    <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_SWAV</lname>
+    <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <!-- DARWIN -->
 
   <compset>
     <alias>G1850DARWIN</alias>     
-    <lname>1850_DATM%NYF_SLND_CICE_POP2%DAR_DROF_SGLC_SWAV</lname>
+    <lname>1850_DATM%NYF_SLND_CICE_POP2%DAR_DROF_SGLC_WW3</lname>
     <support>Requires MOBY code, which is outside the CESM distribution</support> 
   </compset>
 
   <compset>
     <alias>GDARWIN</alias>         
-    <lname>2000_DATM%NYF_SLND_CICE_POP2%DAR_DROF_SGLC_SWAV</lname>
+    <lname>2000_DATM%NYF_SLND_CICE_POP2%DAR_DROF_SGLC_WW3</lname>
     <support>Requires MOBY code, which is outside the CESM distribution</support> 
   </compset>
 
   <compset>
     <alias>CDARWIN</alias>         
-    <lname>1850_DATM%NYF_SLND_DICE%NYF_POP2%DAR_DROF_SGLC_SWAV</lname>
+    <lname>1850_DATM%NYF_SLND_DICE%NYF_POP2%DAR_DROF_SGLC_WW3</lname>
     <support>Requires MOBY code, which is outside the CESM distribution</support> 
   </compset>
 

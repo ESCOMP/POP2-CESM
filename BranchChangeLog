@@ -1,5 +1,215 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  jet
+Tag Date:    21 November 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n23_cesm_pop_2_1_20161116
+Tag Summary: merge latest trunk tag onto marbl_dev (tested with
+             cime5.2.0-alpha.9 in cesm2_0_beta04; nag required ww3_161014)
+
+Testing:     Bit for bit with marbl_dev_n21 when rolling back cice from the
+             version in cesm2_0_beta04 to the version in my last sandbox.
+             Generated new baselines with beta04 sandbox due to changes in G
+             and GECO compsets. [Comparisons were done with aux_pop on
+             yellowstone_intel and aux_pop_MARBL on yellowstone_intel and
+             yellowstone_gnu; new baselines generated with hobart_nag but it
+             has been so long since POP worked with NAG that no baselines were
+             available for testing.]
+
+Files Modified:
+ M      .
+M       ChangeLog
+M       mpi/POP_BroadcastMod.F90
+M       mpi/POP_CommMod.F90
+M       mpi/POP_HaloMod.F90
+M       mpi/POP_RedistributeMod.F90
+M       mpi/POP_ReductionsMod.F90
+M       source/cfc11_mod.F90
+X       source/cvmix
+M       source/estuary_vsf_mod.F90
+M       source/forcing_ap.F90
+M       source/forcing_sfwf.F90
+M       source/forcing_shf.F90
+M       source/forcing_ws.F90
+M       source/grid.F90
+M       source/initial.F90
+M       source/io_binary.F90
+X       source/marbl
+M       source/overflows.F90
+M       source/step_mod.F90
+M       source/sw_absorption.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 November 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n22_cesm_pop_2_1_20161026
+Tag Summary: 3 minor bug fixes
+             1. MARBL status log not checked after calling
+                set_interior_forcing()
+             2. The "level" argument is ignored when accumulating 2D fields,
+                but convention is to specify k=1; in accumulating some MARBL
+                surface fluxes we were specifying k = diagnostic index
+             3. Had an allocatable variable with dimension max_blocks_clinic
+                when it should have been nblocks_clinic
+
+             Also renamed a variable (FLUX_DIAGS) that was appearing in
+             several different cases (flux_diags, FLUX_diags). The flux_diags
+             name predates the change in MARBL to surface_forcing_diags, which
+             is a more appropriate name on the driver side as well.
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 November 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n21_cesm_pop_2_1_20161026
+Tag Summary: Update MARBL to include NHx surface emission bugfix; update
+             POP to use more recent initial condition file for CISO. Add tests
+             to run with r4 tavg output instead of r8, and don't force PIO to
+             use pnetcdf for some tests (should be default anyway, at least on
+             yellowstone).
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    28 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n20_cesm_pop_2_1_20161026
+Tag Summary: Add &forcing_pt_interior_nml and &forcing_s_interior_nml to
+             ocn.log output
+
+Files Modified:
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    27 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n19_cesm_pop_2_1_20161026
+Tag Summary: Code clean-up following review of changes that went in n17
+
+             Round-off level answer change in GECO compsets due to reordering
+             computation of BLACK_CARBON_FLUX_CPL and DUST_FLUX_CPL.
+
+Files Modified:
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/ocn_import_export.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/strdata_interface_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  jet
+Tag Date:    26 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n18_cesm_pop_2_1_20161026
+Tag Summary: merge latest trunk tag onto marbl_dev (needed to build with
+             cime5.2.0-alpha.6 in cesm2_0_beta03)
+
+Files Modified:
+ M      .
+M       ChangeLog
+M       bld/configure
+===============================================================================
+Tag Creator: mlevy
+Developers:  tcraig
+Tag Date:    26 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n17_cesm_pop_2_1_20161014
+Tag Summary: merge Tony's 4D streams and addition ice coupler fields onto
+             marbl_dev (came from marbl_dev_tc branch)
+
+             Note that this tag changes answers for GECO cases because of the
+             new terms in DUST_FLUX_CPL and BLACK_CARBON_FLUX_CPL; these
+             fields do not affect prognostic variables by default, but answer
+             change will affect prognostic variables if
+
+             dust_flux_source = 'driver'
+             iron_flux_source = 'driver-derived'
+
+             Also, new namelist variables (to allow PT and S restoring via
+             shr_stream file reads) cause namelist compare failures for all
+             cases running with POP.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/POP_MCT_vars_mod.F90
+M       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/io_types.F90
+M       source/strdata_interface_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    21 October 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n16_cesm_pop_2_1_20161014
+Tag Summary: merge latest trunk tag onto marbl_dev
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/config_files/definition.xml
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildlib
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+M       input_templates/gx1v6_tavg_contents
+M       source/baroclinic.F90
+M       source/budget_diagnostics.F90
+M       source/diagnostics.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_sfwf.F90
+M       source/grid.F90
+M       source/hmix_gm.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/io_tools.F90
+M       source/overflows.F90
+M       source/qflux_mod.F90
+M       source/restart.F90
+M       source/step_mod.F90
+M       source/surface_hgt.F90
+M       source/tavg.F90
+M       source/time_management.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    13 October 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n15_cesm_pop_2_1_20160513

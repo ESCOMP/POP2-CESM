@@ -132,9 +132,11 @@
       </test>
       <test name="SMS_Ld2">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_daily_r4_tavg">hobart</machine>
       </test>
       <test name="SMS_Ld2_D">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_daily_r4_tavg">yellowstone</machine>
       </test>
       <test name="SMS_P15x1_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
@@ -169,7 +171,7 @@
       <test name="ICP">
         <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">yellowstone</machine>
       </test>
-      <test name="PET_PT">
+      <test name="PET">
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">bluewaters</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">edison</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">eos</machine>
@@ -232,7 +234,7 @@
       </test>
     </grid>
     <grid name="f45_g37_rx1">
-      <test name="PET_PT">
+      <test name="PET">
         <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
       </test>
     </grid>
@@ -245,11 +247,11 @@
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
-      <test name="PMT_P120x1">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">yellowstone</machine>
-      </test>
       <test name="SBN">
         <machine compiler="null" testtype="null">null</machine>
+      </test>
+      <test name="SMS">
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_daily_r4_tavg">yellowstone</machine>
       </test>
     </grid>
     <grid name="T62_g37">
@@ -291,7 +293,7 @@
       <test name="ERS_IOP">
         <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
       </test>
-      <test name="ERS_PT_Lm3">
+      <test name="ERS_Lm3">
         <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>

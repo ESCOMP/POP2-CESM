@@ -317,6 +317,7 @@ EOF
 
 my %xmlvars = ();
 SetupTools::getxmlvars($CASEROOT, \%xmlvars);
+$xmlvars{DIN_LOC_ROOT} = SetupTools::expand_xml_var($xmlvars{DIN_LOC_ROOT}, \%xmlvars);
 foreach my $attr (keys %xmlvars) {
   $xmlvars{$attr} = SetupTools::expand_xml_var($xmlvars{$attr}, \%xmlvars);
 }
@@ -840,6 +841,9 @@ add_default($nl, 'ah&hmix_del4t_nml');
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
+add_default($nl, 'kappa_isop_deep');
+add_default($nl, 'kappa_thic_deep');
+
 # All namelist values are stored in exactly the format
 # that is required in a valid namelist.  So if that value 
 # is a string, then the quotes are stored as part of the value. 
@@ -1075,7 +1079,10 @@ add_default($nl,'pt_interior_variable_restore');
 add_default($nl,'pt_interior_restore_filename');
 add_default($nl,'pt_interior_restore_file_fmt');
 add_default($nl,'pt_interior_surface_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
-
+add_default($nl,'pt_interior_shr_stream_year_first');
+add_default($nl,'pt_interior_shr_stream_year_last');
+add_default($nl,'pt_interior_shr_stream_year_align');
+add_default($nl,'pt_interior_shr_stream_file');
 
 ##########################################
 # namelist group: forcing_s_interior_nml #
@@ -1096,6 +1103,10 @@ add_default($nl,'s_interior_variable_restore');
 add_default($nl,'s_interior_restore_filename');
 add_default($nl,'s_interior_restore_file_fmt');
 add_default($nl,'s_interior_surface_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'s_interior_shr_stream_year_first');
+add_default($nl,'s_interior_shr_stream_year_last');
+add_default($nl,'s_interior_shr_stream_year_align');
+add_default($nl,'s_interior_shr_stream_file');
 
 ##########################################
 # namelist group: forcing_ap_interior_nml#
@@ -1576,14 +1587,20 @@ if ($ecosys_on eq "TRUE") {
   }
   add_default($nl, 'init_ecosys_init_file_fmt');
 
+# init_ecosys_init_file is set
+  # (1) query init_ecosys_init_file
+  # (2) add_default('ciso_init_ecosys_init_file', 'val' => '$init_ecosys_init_file')
+
   if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'ciso_init_ecosys_init_file');
-    } else {
-      add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
-    }
-    add_default($nl, 'ciso_init_ecosys_init_file_fmt');
+
+    # By default, we use the same initial condition file for the base
+    # ecosystem module and the CISO module, but users have the option of
+    # specifying different files if desired.
+    my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
+    my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
+    add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
+    add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
 
     add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');

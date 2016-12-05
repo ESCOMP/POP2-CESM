@@ -32,12 +32,13 @@
    use time_management, only: freq_opt_never, freq_opt_nyear, freq_opt_nday, &
        freq_opt_nhour, freq_opt_nsecond, freq_opt_nstep, init_time_flag,     &
        max_blocks_clinic, km, nt, avg_ts, back_to_back, dtt, check_time_flag,&
-       partial_bottom_cells, KMT, DZT, DZ, freq_opt_nmonth, dt, tmix_matsuno,&
-       tmix_iopt, ice_ts, access_time_flag
+       partial_bottom_cells, KMT, DZT, DZ, freq_opt_nmonth, dt, &
+       tmix_iopt, ice_ts, access_time_flag,tmix_avgfit,tmix_avg, lrobert_filter
    use exit_mod, only: sigAbort, exit_pop, flushm
    use prognostic
    use passive_tracers, only: tracer_ref_val
    use grid, only: sfc_layer_varthick, sfc_layer_type
+   use qflux_mod
    use shr_frz_mod, only: shr_frz_freezetemp
 
    implicit none
@@ -58,6 +59,10 @@
 
    logical (log_kind), public :: &
       liceform            ! flag to turn on/off ice formation
+
+   logical (log_kind), public :: &
+      licecesm2           ! cesm2 default T==> calculate ice formation every timestep
+                          ! F ==> use pre-cesm2 logic to determine when to calculate ice formation
 
    logical (log_kind), public :: &
       lactive_ice         ! T ==> ocn is coupled to an active ice model
@@ -140,8 +145,7 @@
       ice_freq              ! freq for computing ice in above units
 
 
-   namelist /ice_nml/ kmxice, ice_freq_opt, ice_freq, lactive_ice
-
+   namelist /ice_nml/ kmxice, ice_freq_opt, ice_freq, lactive_ice, licecesm2 
 !-----------------------------------------------------------------------
 !
 !  read input namelists
@@ -154,6 +158,7 @@
    ice_freq_opt     = 'never'
    ice_freq         = 100000
    lactive_ice      = .false.
+   licecesm2        = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -200,7 +205,7 @@
          ice_freq_iopt = freq_opt_never
       case ('coupled')
          write(stdout,'(a44)') &
-           'Ice formation computed on coupler time steps'
+           'Ice formation computed every time steps'
          ice_freq_iopt = freq_opt_never ! check coupler flag instead
       case ('nyear')
          write(stdout,'(a29,i4,a9)') 'Ice formation computed every ', &
@@ -236,12 +241,20 @@
          write(stdout,'(a30,i3,a13)') 'Ice formation computed in top ', &
                                        kmxice, ' levels only.'
       endif
+
+      if (licecesm2 .or. lrobert_filter) then
+         write(stdout,*) 'CESM2 calculates ice formation every time step'
+      else
+         write(stdout,*) 'Pre-CESM2 ice formation logic'
+      endif
+
       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
    endif
 
    call broadcast_scalar(ice_freq_iopt, master_task)
    call broadcast_scalar(lactive_ice,   master_task)
+   call broadcast_scalar(licecesm2,     master_task)
 
    if (ice_freq_iopt == -1000) then
       call exit_POP(sigAbort,'unknown restart frequency option')
@@ -340,7 +353,7 @@
 !BOP
 ! !IROUTINE:
 ! !INTERFACE:
-   subroutine ice_formation(TNEW, SHF_IN, iblock,this_block,lfw_as_salt_flx)
+   subroutine ice_formation(TNEW, PNEW, SHF_IN, iblock,this_block,lfw_as_salt_flx)
 
 ! !DESCRIPTION:
 !  This subroutine computes ocean heat flux to the sea-ice. it forms
@@ -361,7 +374,8 @@
 ! !INPUT PARAMETERS:
  
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      SHF_IN              ! surface heat flux
+      SHF_IN,            &! surface heat flux
+      PNEW                ! PSURF at new time level
 
    integer (int_kind), intent(in) :: &
       iblock              ! block information for current block
@@ -529,7 +543,7 @@
      endif
 
      if (sfc_layer_type == sfc_layer_varthick)  &
-       WORK1 = WORK1 + PSURF(:,:,newtime,bid)/grav + eps2
+       WORK1 = WORK1 + PNEW(:,:)/grav + eps2
      where ( k <= KMT(:,:,bid) )
        POTICE = (TFRZ - TNEW(:,:,k,1))*WORK1
      endwhere 
@@ -669,11 +683,11 @@
 
 !-----------------------------------------------------------------------
 !
-!  adjust ice formation amount when mixing step is tavg
+!  adjust ice formation amount when the time-stepping method is avgfit or avg
 !
 !-----------------------------------------------------------------------
 
-   if ( tmix_iopt /= tmix_matsuno ) then
+   if ( tmix_iopt == tmix_avgfit .or. tmix_iopt == tmix_avg ) then
      AQICE(:,:,bid) = p5 * AQICE(:,:,bid)
    endif
 

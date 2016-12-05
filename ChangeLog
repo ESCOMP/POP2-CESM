@@ -1,4 +1,163 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  jet,klindsay,mlevy
+Tag Date:    16 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161116
+Tag Summary: Bug fix to make sure all values in some of the vmix_kpp arrays
+	     are assigned. Also started adding in NAG compiler fixes for POP.
+
+
+Testing: aux_pop all tests past with the exception of some MEM leak tests which were
+	 failing before this commit. Everything BFB with the exception of some ERI
+	 tests that fail because of WW3.  There will be more NAG fixes to follow.
+
+	M       ChangeLog
+        M       mpi/POP_BroadcastMod.F90
+	M       mpi/POP_CommMod.F90
+	M       mpi/POP_HaloMod.F90
+	M       mpi/POP_RedistributeMod.F90
+	M       mpi/POP_ReductionsMod.F90
+	M       source/cfc11_mod.F90
+	M       source/estuary_vsf_mod.F90
+	M       source/forcing_ap.F90
+	M       source/forcing_sfwf.F90
+	M       source/forcing_shf.F90
+	M       source/forcing_ws.F90
+	M       source/grid.F90
+	M       source/initial.F90
+	M       source/io_binary.F90
+	M       source/overflows.F90
+	M       source/step_mod.F90
+	M       source/sw_absorption.F90
+	M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: jet
+Developers:  jet
+Tag Date:    26 Oct 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161026
+Tag Summary: update configure because of interface change to xmlchange
+
+
+Testing: built a coupled case.
+
+	M       ChangeLog
+	M       bld/configure
+
+===============================================================================
+Tag Creator: jet
+Developers:  njn01,yuheng,jet
+Tag Date:    14 Oct 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161014
+Tag Summary: add new Robert Filtering defaults, EBM exchange circulation mods,
+	bug fix in diagnostics.F90,bug fix for new RF tavg fixed level diagnostics.
+
+Testing: aux_pop - BFB with EBM/RF off (default).
+
+	ERI tests fail due to ww3 bug with hybrid restarts
+        ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 failing due to cime problem introduced in cesm15alpha07e
+        known SMS Memory failures
+
+
+	M       ChangeLog
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       bld/namelist_files/namelist_definition_pop.xml
+	M       source/diagnostics.F90
+	M       source/estuary_vsf_mod.F90
+	M       source/forcing.F90
+	M       source/forcing_coupled.F90
+	M       source/restart.F90
+	M       source/step_mod.F90
+	M       source/time_management.F90
+
+===============================================================================
+Tag Creator: jet
+Developers:  njn01
+Tag Date:    29 Sep 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160929
+Tag Summary: add robert filtering to trunk - bfb with cesm1_5_beta07 - default off
+
+Testing: aux_pop - BFB - nlcomp failed because of added robert namelist options
+	                 ERI restarts still failing because of WW3
+
+	M       ChangeLog
+	M       bld/namelist_files/namelist_definition_pop.xml
+	M       input_templates/gx1v6_tavg_contents
+	M       source/baroclinic.F90
+	M       source/budget_diagnostics.F90
+	M       source/diagnostics.F90
+	M       source/forcing_sfwf.F90
+	M       source/grid.F90
+	M       source/ice.F90
+	M       source/initial.F90
+	M       source/io_tools.F90
+	M       source/overflows.F90
+	M       source/qflux_mod.F90
+	M       source/restart.F90
+	M       source/step_mod.F90
+	M       source/surface_hgt.F90
+	M       source/tavg.F90
+	M       source/time_management.F90
+
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    28 Sep 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160928
+Tag Summary:  fix for the NCK test
+
+Testing: 
+
+===============================================================================
+Tag Creator: jet
+Developers:  jedwards
+Tag Date:    28 Aug 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160828
+Tag Summary: merge esmci pop changes to trunk add licecesm2 to ice namelist and initialize.
+
+Testing: Ran aux_pop everything passes with exception of hybrid restarts because of WW3 problem
+
+	M       bld/config_files/definition.xml
+	M       bld/configure
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       cime_config/config_component.xml
+	M       cime_config/config_pes.xml
+	M       cime_config/testdefs/testlist_pop.xml
+	M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+	M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+	M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+	M       cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+	M       cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+	M       source/ice.F90
+	M       ChangeLog
+
+===============================================================================
+Tag Creator: jet
+Developers:  jet
+Tag Date:    28 Jun 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160628
+Tag Summary: WW3 interactive (Lang & CVMIX on) and add namelist control of ice formation and redi diffusion
+
+New Namelist Parameters:
+	licecesm2: controls when ice formation occurs.  This is just a
+	temporary and will be removed before release.
+
+	kappa_thic_deep and kappa_isop_deep: adjust minimum diffusion
+	The valid range for these variables is .1 to 1.0.  Anything below .1 is ignored.
+
+Testing: Ran aux_pop everything passes with exception of hybrid restarts because of WW3 problem
+         Baseline comparisons differ due to active WaveWatch.
+
+M       source/time_management.F90
+M       source/ice.F90
+M       source/step_mod.F90
+M       source/hmix_gm.F90
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_compsets.xml
+M       ChangeLog
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy,klindsay
 Tag Date:    04 May 2016

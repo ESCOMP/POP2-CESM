@@ -48,7 +48,7 @@
    use state_mod, only: state
    use ice, only: liceform, ice_formation, increment_tlast_ice
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, beta,     &
-       gamma, c2dtt
+       gamma, c2dtt, lrobert_filter
    use io_types, only: nml_in, nml_filename, stdout
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now, &
        tavg_method_max, tavg_method_min
@@ -76,7 +76,35 @@
 
    public :: init_baroclinic,          &
              baroclinic_driver,        &
-             baroclinic_correct_adjust
+             baroclinic_correct_adjust,&
+             tracer_accumulate_tavg
+
+
+   integer (int_kind), public :: &
+      tavg_TEMP,         &! tavg id for temperature
+      tavg_TEMP_MAX,     &! tavg id for maximum temperature
+      tavg_TEMP_MIN,     &! tavg id for maximum temperature
+      tavg_dTEMP_POS_3D, &! tavg id for positive temperature timestep difference
+      tavg_dTEMP_POS_2D, &! tavg id for positive temperature timestep difference
+      tavg_dTEMP_NEG_3D, &! tavg id for negative temperature timestep difference
+      tavg_dTEMP_NEG_2D, &! tavg id for negative temperature timestep difference
+      tavg_SST,          &! tavg id for surface temperature
+      tavg_SST2,         &! tavg id for surface temperature squared
+      tavg_SALT,         &! tavg id for salinity
+      tavg_SALT_MAX,     &! tavg id for maximum salinity
+      tavg_SALT_MIN,     &! tavg id for minimum salinity
+      tavg_TEMP2,        &! tavg id for temperature squared
+      tavg_TEMP_27,      &! tavg id for temperature at level 27
+      tavg_TEMP_43,      &! tavg id for temperature at level 43
+      tavg_SALT2,        &! tavg id for salinity    squared
+      tavg_T1_8,         &! tavg id for temperature in top 8 lvls
+      tavg_S1_8,         &! tavg id for salinity    in top 8 lvls
+      tavg_U1_8,         &! tavg id for U           in top 8 lvls
+      tavg_V1_8,         &! tavg id for V           in top 8 lvls
+      tavg_U1_1,         &! tavg id for U           in top 1 lvl
+      tavg_V1_1,         &! tavg id for V           in top 1 lvl
+      tavg_RESID_T,      &! free-surface residual flux (T)
+      tavg_RESID_S        ! free-surface residual flux (S)
 
 ! !PRIVATE DATA MEMBERS:
 
@@ -93,20 +121,6 @@
 
    integer (int_kind) :: &
       tavg_UDP,          &! tavg id for pressure grad work
-      tavg_TEMP,         &! tavg id for temperature
-      tavg_TEMP_MAX,     &! tavg id for maximum temperature
-      tavg_TEMP_MIN,     &! tavg id for maximum temperature
-      tavg_dTEMP_POS_3D, &! tavg id for positive temperature timestep difference
-      tavg_dTEMP_POS_2D, &! tavg id for positive temperature timestep difference
-      tavg_dTEMP_NEG_3D, &! tavg id for negative temperature timestep difference
-      tavg_dTEMP_NEG_2D, &! tavg id for negative temperature timestep difference
-      tavg_SST,          &! tavg id for surface temperature
-      tavg_SST2,         &! tavg id for surface temperature squared
-      tavg_SALT,         &! tavg id for salinity
-      tavg_SALT_MAX,     &! tavg id for maximum salinity
-      tavg_SALT_MIN,     &! tavg id for minimum salinity
-      tavg_TEMP2,        &! tavg id for temperature squared
-      tavg_SALT2,        &! tavg id for salinity    squared
       tavg_UVEL,         &! tavg id for U velocity
       tavg_UVEL2,        &! tavg id for U velocity squared
       tavg_VVEL,         &! tavg id for V velocity
@@ -115,15 +129,7 @@
       tavg_ST,           &! tavg id for salt*temperature
       tavg_RHO,          &! tavg id for in-situ density
       tavg_RHO_VINT,     &! tavg id for vertical integral of in-situ density
-      tavg_UV,           &! tavg id for u times v
-      tavg_T1_8,         &! tavg id for temperature in top 8 lvls
-      tavg_S1_8,         &! tavg id for salinity    in top 8 lvls
-      tavg_U1_8,         &! tavg id for U           in top 8 lvls
-      tavg_V1_8,         &! tavg id for V           in top 8 lvls
-      tavg_U1_1,         &! tavg id for U           in top 1 lvl
-      tavg_V1_1,         &! tavg id for V           in top 1 lvl
-      tavg_RESID_T,      &! free-surface residual flux (T)
-      tavg_RESID_S        ! free-surface residual flux (S)
+      tavg_UV             ! tavg id for u times v
 
 !-----------------------------------------------------------------------
 !
@@ -261,6 +267,15 @@
                           long_name='Velocity in grid-x direction',    &
                           units='centimeter/s', grid_loc='3221',       &
                           coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_TEMP_27,'TEMP_27',2,                    &
+                          long_name='Potential Temperature at k=27',   &
+                          units='degC', grid_loc='2111',               &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_TEMP_43,'TEMP_43',2,                    &
+                          long_name='Potential Temperature at k=43',   &
+                          units='degC', grid_loc='2111',               &
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_UVEL2,'UVEL2',3,                        &
                           long_name='Velocity**2 in grid-x direction', &
@@ -651,117 +666,19 @@
          call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock)* &
                                     VVEL(:,:,k,curtime,iblock), tavg_UV,iblock,k)
 
-         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                    tavg_TEMP,iblock,k)
 
-         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                    tavg_TEMP_MAX,iblock,k)
-
-         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                    tavg_TEMP_MIN,iblock,k)
-
-         call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
-                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                    tavg_dTEMP_POS_3D,iblock,k)
-
-         call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
-                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                        tavg_dTEMP_POS_2D,iblock,1)
-
-         call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
-                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                    tavg_dTEMP_NEG_3D,iblock,k)
-
-         call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
-                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                        tavg_dTEMP_NEG_2D,iblock,1)
-
-         if (k <= 8)  &
-         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                    tavg_T1_8,iblock,k)
-
-         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)**2, &
-                                    tavg_TEMP2,iblock,k)
-
-         if (k == 1)  then
-            call accumulate_tavg_field(TRACER(:,:,1,1,curtime,iblock), &
-                                       tavg_SST,iblock,1)
-
-            call accumulate_tavg_field(TRACER(:,:,1,1,curtime,iblock)**2, &
-                                       tavg_SST2,iblock,1)
+         !*** accumulate tavg TRACER diagnostics if requested
+         if (.not. lrobert_filter) then
+           call tracer_accumulate_tavg (TRACER (:,:,k,:,oldtime,iblock),  &
+                                        TRACER (:,:,k,:,curtime,iblock),  &
+                                        RHO    (:,:,k  ,curtime,iblock),  &
+                                        PSURF  (:,:    ,curtime,iblock),  &
+                                        DH     (:,:            ,iblock),  &
+                                        k,iblock)
          endif
 
-         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                    tavg_SALT,iblock,k)
-
-         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                    tavg_SALT_MAX,iblock,k)
-
-         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                    tavg_SALT_MIN,iblock,k)
-
-         if (k <= 8)  &
-         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                    tavg_S1_8,iblock,k)
-
-         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock)**2, &
-                                    tavg_SALT2,iblock,k)
-
-         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)* &
-                                    TRACER(:,:,k,2,curtime,iblock), &
-                                    tavg_ST,iblock,k)
-
-         call accumulate_tavg_field(RHO(:,:,k,curtime,iblock), &
-                                    tavg_RHO,iblock,k)
-
-!         if (partial_bottom_cells) then 
-!            WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
-!         else
-!            WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
-!         endif
-         if (sfc_layer_type == sfc_layer_varthick .and. &
-                   k == 1) then
-           where (k <= KMT(:,:,iblock))
-             WORK1 = RHO(:,:,k,curtime,iblock) * ( dz(k) + PSURF(:,:,curtime,iblock)/grav )
-           elsewhere
-             WORK1 = c0
-           endwhere
-         else
-           if (partial_bottom_cells) then
-             where (k <= KMT(:,:,iblock))
-               WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
-             elsewhere
-               WORK1 = c0
-             endwhere
-           else
-             where (k <= KMT(:,:,iblock))
-               WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
-             elsewhere
-               WORK1 = c0
-             endwhere
-           endif
-         endif 
-         call accumulate_tavg_field(WORK1,tavg_RHO_VINT,iblock,k)
-
-        if ( sfc_layer_type /= sfc_layer_varthick .and. k == 1) then
-          if (accumulate_tavg_now(tavg_RESID_T)) then
-              WORK1 = c0
-              factor = c1/hflux_factor  ! converts to W/m^2
-              where (CALCT(:,:,iblock))  &
-                WORK1=DH(:,:,iblock)*TRACER(:,:,1,1,curtime,iblock)*factor
-              call accumulate_tavg_field(WORK1,tavg_RESID_T,iblock,k)
-          endif
-
-          if (accumulate_tavg_now(tavg_RESID_S)) then
-              WORK1 = c0
-              factor = c1/salinity_factor  ! converts to kg(freshwater)/m^2/s
-              where (CALCT(:,:,iblock)) &
-                WORK1 = DH(:,:,iblock)*TRACER(:,:,k,2,curtime,iblock)*factor
-              call accumulate_tavg_field(WORK1,tavg_RESID_S,iblock,k)
-          endif
-        endif  ! sfc_layer_type
-
          if (nt > 2) call tavg_passive_tracers(iblock,k)
+
 
 !-----------------------------------------------------------------------
 !
@@ -1375,10 +1292,14 @@
 !
 !-----------------------------------------------------------------------
 
-      if (liceform .and. mix_pass /= 1) then
-         call ice_formation(TRACER(:,:,:,:,newtime,iblock),          &
-                            STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
-                            iblock,this_block,lfw_as_salt_flx)
+      if (lrobert_filter) then
+        !*** call ice_formation from step_mod, after RF adjustments
+      else
+        if (liceform .and. mix_pass /= 1) then
+           call ice_formation(TRACER(:,:,:,:,newtime,iblock), PSURF(:,:,newtime,iblock), &
+                              STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
+                              iblock,this_block,lfw_as_salt_flx)
+        endif
       endif
 
       if (mix_pass /= 1) then
@@ -2110,6 +2031,129 @@
 !EOC
 
  end subroutine tracer_update
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tracer_accumulate_tavg
+
+! !INTERFACE:
+
+ subroutine tracer_accumulate_tavg (TOLD,TCUR,RHOCUR,PSURF,DH,k,iblock)
+
+! !DESCRIPTION:
+!  Accumulate TRACERS at curtime for time-averaging
+!
+! !REVISION HISTORY:
+!  2016-01-12 njn01 subroutininze for use with and without Robert Filtering
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: iblock, k
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
+      TOLD,     &! tracers at level k, old     time level, block iblock
+      TCUR       ! tracers at level k, current time level, block iblock
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      RHOCUR,   &! density at level k, current time level, block iblock
+      PSURF,    &!         at          current time level, block iblock
+      DH         !         at                              block iblock
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!         
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(nx_block,ny_block) :: WORK1 ! local work space
+   real (r8)  ::  factor
+
+   call accumulate_tavg_field(TCUR(:,:,1),    tavg_TEMP,    iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,1),    tavg_TEMP_MAX,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,1),    tavg_TEMP_MIN,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,1)**2, tavg_TEMP2,iblock,k)
+
+   if (k == 1)  then
+      call accumulate_tavg_field(TCUR(:,:,1),    tavg_SST, iblock,1)
+      call accumulate_tavg_field(TCUR(:,:,1)**2, tavg_SST2,iblock,1)
+   endif
+
+   call accumulate_tavg_field(max(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_POS_2D,iblock,1)
+   call accumulate_tavg_field(min(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_NEG_2D,iblock,1)
+
+   if (k <= 8) call accumulate_tavg_field(TCUR(:,:,1), tavg_T1_8,iblock,k)
+
+   call accumulate_tavg_field(max(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_POS_3D,iblock,k)
+   call accumulate_tavg_field(min(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_NEG_3D,iblock,k)
+    
+   call accumulate_tavg_field(TCUR(:,:,2), tavg_SALT,    iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,2), tavg_SALT_MAX,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,2), tavg_SALT_MIN,iblock,k)
+
+   if (k <= 8) call accumulate_tavg_field(TCUR(:,:,2), tavg_S1_8,iblock,k)
+
+   call accumulate_tavg_field(TCUR(:,:,2)**2, tavg_SALT2,iblock,k)
+
+   call accumulate_tavg_field(TCUR(:,:,1)*TCUR(:,:,2), tavg_ST,iblock,k)
+
+   call accumulate_tavg_field(RHOCUR(:,:), tavg_RHO,iblock,k)
+
+!   if (partial_bottom_cells) then 
+!      WORK1 = RHOCUR(:,:) * DZT(:,:,k,iblock)
+!   else
+!      WORK1 = RHOCUR(:,:) * dz(k)
+!   endif
+   if (sfc_layer_type == sfc_layer_varthick .and. &
+             k == 1) then
+     where (k <= KMT(:,:,iblock))
+       WORK1 = RHOCUR(:,:) * ( dz(k) + PSURF(:,:)/grav )
+     elsewhere
+       WORK1 = c0
+     endwhere
+   else
+     if (partial_bottom_cells) then
+       where (k <= KMT(:,:,iblock))
+         WORK1 = RHOCUR(:,:) * DZT(:,:,k,iblock)
+       elsewhere
+         WORK1 = c0
+       endwhere
+     else
+       where (k <= KMT(:,:,iblock))
+         WORK1 = RHOCUR(:,:) * dz(k)
+       elsewhere
+         WORK1 = c0
+       endwhere
+     endif
+   endif 
+   call accumulate_tavg_field(WORK1,tavg_RHO_VINT,iblock,k)
+
+  if ( sfc_layer_type /= sfc_layer_varthick .and. k == 1) then
+    if (accumulate_tavg_now(tavg_RESID_T)) then
+        WORK1 = c0
+        factor = c1/hflux_factor  ! converts to W/m^2
+        where (CALCT(:,:,iblock))  &
+          WORK1=DH(:,:)*TCUR(:,:,1)*factor
+        call accumulate_tavg_field(WORK1,tavg_RESID_T,iblock,k)
+    endif
+
+    if (accumulate_tavg_now(tavg_RESID_S)) then
+        WORK1 = c0
+        factor = c1/salinity_factor  ! converts to kg(freshwater)/m^2/s
+        where (CALCT(:,:,iblock)) &
+          WORK1 = DH(:,:)*TCUR(:,:,2)*factor
+        call accumulate_tavg_field(WORK1,tavg_RESID_S,iblock,k)
+    endif
+  endif  ! sfc_layer_type
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine tracer_accumulate_tavg
+
 
 !***********************************************************************
 

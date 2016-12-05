@@ -141,7 +141,7 @@
                              ws_interp_inc,  ws_filename,    &
                              ws_file_fmt,    ws_data_renorm
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), target, allocatable :: &
       TEMP_DATA        ! temp array for reading monthly data
 
    type (datafile) :: &

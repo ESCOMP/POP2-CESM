@@ -904,7 +904,7 @@
    type (io_dim) :: &
       i_dim, j_dim, k_dim ! dimension descriptors
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), target, allocatable :: &
       TEMP_DATA           ! temp array for reading T,S data
 
    real (r8), dimension(:,:,:,:), allocatable :: &
@@ -1055,6 +1055,7 @@
 !-----------------------------------------------------------------------
 
    case ('ccsm_continue', 'restart')
+      call register_string('ccsm_continue')
       first_step   = .false.
       lccsm_branch = .false.
       lccsm_hybrid = .false.
@@ -1081,6 +1082,7 @@
 !-----------------------------------------------------------------------
 
    case ('ccsm_branch')
+      call register_string('ccsm_branch')
       first_step   = .false.
       lccsm_branch = .true.
       lccsm_hybrid = .false.
@@ -1103,6 +1105,7 @@
       ltavg_restart = .false.
 
    case ('ccsm_hybrid', 'branch')  ! ccsm hybrid start or LANL branch start
+      call register_string('ccsm_hybrid')
       first_step   = .false.
       lccsm_branch = .false.
       lccsm_hybrid = .true.
@@ -1124,6 +1127,7 @@
       ltavg_restart = .false.
 
    case ('ccsm_startup_spunup')
+      call register_string('ccsm_startup_spunup')
       if(my_task == master_task )  then
          write(stdout,*) ' ccsm_startup_spunup option'
          write(stdout,*) ' init_ts_option = ', init_ts_option
@@ -1157,6 +1161,7 @@
 !-----------------------------------------------------------------------
 
    case ('ccsm_startup', 'file')
+      call register_string('ccsm_startup')
       first_step = .true.
 
       if (my_task == master_task) then

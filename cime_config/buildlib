@@ -19,14 +19,14 @@ my $GMAKE_J			= `./xmlquery GMAKE_J			-value`;
 my $GMAKE			= `./xmlquery GMAKE			-value`;
 
 if (! -d "$OBJROOT/ocn/obj" ) {
-    my $sysmod = "mkdir -p $OBJROOT/ocn/obj";    
+    my $sysmod = "mkdir -p $OBJROOT/ocn/obj";
     system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
 if (! -d "$OBJROOT/ocn/source" ) {
     my $sysmod =  "mkdir -p $OBJROOT/ocn/source";
     system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
-if (! -d "$OBJROOT/ocn/input" ) { 
+if (! -d "$OBJROOT/ocn/input" ) {
     my $sysmod = "mkdir -p $OBJROOT/ocn/input";
     system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
@@ -89,7 +89,7 @@ if (-f "$SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F9
 }
 
 # 2) Copy everything from SourceMods over
-# If domain_size.F90 or POP_DomainSizeMod.F90 exist, they should overwrite 
+# If domain_size.F90 or POP_DomainSizeMod.F90 exist, they should overwrite
 # anything copied from from input_templates/
 
 if (-d "$my_path" ) {
@@ -149,13 +149,13 @@ foreach my $comp ($OCN_TRACER_MODULES) {
     }
 }
 
-#-------------------------------------------------------------- 
-#  force gmake to recompile if any of the cppdefs are different 
-#-------------------------------------------------------------- 
+#--------------------------------------------------------------
+#  force gmake to recompile if any of the cppdefs are different
+#--------------------------------------------------------------
 my $recompile = 'FALSE';
 if (-e "$OBJROOT/ocn/obj/POP_cppdefs") {
     if (compare("$OBJROOT/ocn/obj/POP_cppdefs.new", "$OBJROOT/ocn/obj/POP_cppdefs") != 0) {
-	$recompile = 'TRUE'; 
+	$recompile = 'TRUE';
     }
     # NOTE - the following remove statements are what force pop to recompile if
     # the cppdefs are different
@@ -173,7 +173,7 @@ my $cppdefs = `./xmlquery POP_CPPDEFS -value`;
 chomp($cppdefs);
 
 print " ----------------------------------------------------------------- \n";
-print "  Build pop library \n";
+print "  Build pop library LIBROOT is $LIBROOT\n";
 print " ----------------------------------------------------------------- \n";
 
 chdir "${OBJROOT}/ocn/obj";
@@ -182,18 +182,18 @@ print file "$OBJROOT/ocn/source \n";
 close(file);
 
 chdir "${OBJROOT}/ocn/cvmix";
-my $sysmod = "$GMAKE -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
+my $sysmod = "$GMAKE -j $GMAKE_J LIBROOT=$LIBROOT -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
 system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 chdir "${OBJROOT}/ocn/obj";
-my $sysmod = "$GMAKE complib -j $GMAKE_J MODEL=pop COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$cppdefs\" -f $CASETOOLS/Makefile"; 
+my $sysmod = "$GMAKE complib -j $GMAKE_J LIBROOT=$LIBROOT MODEL=pop COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$cppdefs\" -f $CASETOOLS/Makefile";
 system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 print " \n";
 print " ---------------------------------------------------------------------------- \n";
 print "  Note that f90 files may not exist on all machines \n";
 print " ---------------------------------------------------------------------------- \n";
-    
+
 my $f90_dir = "$OBJROOT/ocn/source/f90";
 if (! -d  "$f90_dir" ) {
     my $sysmod = "mkdir -p $f90_dir";

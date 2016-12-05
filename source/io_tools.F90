@@ -227,6 +227,41 @@
  
  end subroutine document_real
  
+!***********************************************************************
+!BOP
+! !IROUTINE: document
+! !INTERFACE:
+ subroutine document_dblf (sub_name,message,dval)
+
+! !DESCRIPTION:
+!  This routine writes out the calling subroutine name and an
+!  associated message
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic document
+!  routine corresponding to a r8 variable
+
+! !INPUT PARAMETERS:
+   character (*) :: sub_name, message
+   real (r8)     :: dval
+ 
+!EOP
+!BOC
+
+   character(*),parameter :: fmt = "(  5x, '(',a,') ',a,' = ',F30.16)" 
+ 
+   if (my_task == master_task) then
+      write(stdout,fmt)  sub_name, message, dval
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+   endif
+ 
+!EOC
+ 
+ end subroutine document_dblf
+ 
  
  end module io_tools
 

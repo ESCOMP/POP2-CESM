@@ -1374,6 +1374,8 @@
    if (my_task == master_task) then
       allocate(IOBUFI(nx_global,ny_global))
       read(data_file%id(1),rec=start_record) IOBUFI
+   else
+      allocate(IOBUFI(1,1))
    endif
 
 !-----------------------------------------------------------------------
@@ -1385,7 +1387,7 @@
    call scatter_global(INT2D, IOBUFI, master_task, distrb_clinic, &
                        field_loc, field_type)
 
-   if (my_task == master_task) deallocate(IOBUFI)
+   deallocate(IOBUFI)
 #endif
 
 !-----------------------------------------------------------------------
@@ -1468,6 +1470,8 @@
    if (my_task == master_task) then
       allocate(IOBUFR(nx_global,ny_global))
       read(data_file%id(1),rec=start_record) IOBUFR
+   else
+      allocate(IOBUFR(1,1))
    endif
 
 !-----------------------------------------------------------------------
@@ -1479,7 +1483,7 @@
    call scatter_global(REAL2D, IOBUFR, master_task, distrb_clinic, &
                        field_loc, field_type)
 
-   if (my_task == master_task) deallocate(IOBUFR)
+   deallocate(IOBUFR)
 #endif
 
 !-----------------------------------------------------------------------
@@ -1561,6 +1565,8 @@
    if (my_task == master_task) then
       allocate(IOBUFD(nx_global,ny_global))
       read(data_file%id(1),rec=start_record) IOBUFD
+   else
+      allocate(IOBUFD(1,1))
    endif
 
 !-----------------------------------------------------------------------
@@ -1572,7 +1578,7 @@
    call scatter_global(DBL2D, IOBUFD, master_task, distrb_clinic, &
                        field_loc, field_type)
 
-   if (my_task == master_task) deallocate(IOBUFD)
+   deallocate(IOBUFD)
 #endif
 
 !-----------------------------------------------------------------------
@@ -1667,9 +1673,11 @@
       krecs = nz/data_file%num_iotasks + 1
    endif
 
-   if (my_task < data_file%num_iotasks) &
+   if (my_task < data_file%num_iotasks) then
       allocate(IOBUFI(nx_global,ny_global))
-
+   else
+      allocate(IOBUFI(nx_global,ny_global))
+   endif
 !-----------------------------------------------------------------------
 !
 !  each i/o process reads a horizontal slab from a record and sends
@@ -1697,7 +1705,7 @@
 
    end do
 
-   if (my_task < data_file%num_iotasks) deallocate(IOBUFI)
+   deallocate(IOBUFI)
 #endif
 
 !-----------------------------------------------------------------------
@@ -1791,9 +1799,11 @@
       krecs = nz/data_file%num_iotasks + 1
    endif
 
-   if (my_task < data_file%num_iotasks) &
+   if (my_task < data_file%num_iotasks) then
       allocate(IOBUFR(nx_global,ny_global))
-
+   else
+      allocate(IOBUFR(1,1))
+   end if
 !-----------------------------------------------------------------------
 !
 !  each i/o process reads a horizontal slab from a record and sends
@@ -1821,7 +1831,7 @@
 
    end do
 
-   if (my_task < data_file%num_iotasks) deallocate(IOBUFR)
+   deallocate(IOBUFR)
 #endif
 
 !-----------------------------------------------------------------------
@@ -1915,9 +1925,11 @@
       krecs = nz/data_file%num_iotasks + 1
    endif
 
-   if (my_task < data_file%num_iotasks) &
+   if (my_task < data_file%num_iotasks) then
       allocate(IOBUFD(nx_global,ny_global))
-
+   else
+      allocate(IOBUFD(1,1))
+   end if
 !-----------------------------------------------------------------------
 !
 !  each i/o process reads a horizontal slab from a record and sends
@@ -1945,7 +1957,7 @@
 
    end do
 
-   if (my_task < data_file%num_iotasks) deallocate(IOBUFD)
+   deallocate(IOBUFD)
 #endif
 
 !-----------------------------------------------------------------------
@@ -2015,8 +2027,11 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) allocate(IOBUFI(nx_global,ny_global))
-
+   if (my_task == master_task) then
+      allocate(IOBUFI(nx_global,ny_global))
+   else
+      allocate(IOBUFI(1,1))
+   end if
    call gather_global(IOBUFI, INT2D, master_task, distrb_clinic)
 
 !-----------------------------------------------------------------------
@@ -2027,8 +2042,8 @@
 
    if (my_task == master_task) then
       write(data_file%id(1),rec=start_record) IOBUFI
-      deallocate(IOBUFI)
    endif
+   deallocate(IOBUFI)
 #endif
 
 !-----------------------------------------------------------------------
@@ -2098,7 +2113,11 @@
      deallocate(lbuf_r4)
 #else
 
-   if (my_task == master_task) allocate(IOBUFR(nx_global,ny_global))
+   if (my_task == master_task) then
+      allocate(IOBUFR(nx_global,ny_global))
+   else
+      allocate(IOBUFR(1,1))
+   end if
    call gather_global(IOBUFR, REAL2D, master_task, distrb_clinic)
 
 !-----------------------------------------------------------------------
@@ -2109,8 +2128,8 @@
 
    if (my_task == master_task) then
       write(data_file%id(1),rec=start_record) IOBUFR
-      deallocate(IOBUFR)
    endif
+   deallocate(IOBUFR)
 #endif
 
 !-----------------------------------------------------------------------
@@ -2183,7 +2202,11 @@
      deallocate(lbuf_r8)
 #else
 
-   if (my_task == master_task) allocate(IOBUFD(nx_global,ny_global))
+   if (my_task == master_task) then
+      allocate(IOBUFD(nx_global,ny_global))
+   else
+      allocate(IOBUFD(1,1))
+   end if
    call gather_global(IOBUFD, DBL2D, master_task, distrb_clinic)
 
 !-----------------------------------------------------------------------
@@ -2194,8 +2217,8 @@
 
    if (my_task == master_task) then
       write(data_file%id(1),rec=start_record) IOBUFD
-      deallocate(IOBUFD)
    endif
+   deallocate(IOBUFD)
 #endif
 
 !-----------------------------------------------------------------------
@@ -2283,9 +2306,11 @@
       krecs = nz/data_file%num_iotasks + 1
    endif
 
-   if (my_task < data_file%num_iotasks) &
+   if (my_task < data_file%num_iotasks) then
       allocate(IOBUFI(nx_global,ny_global))
-
+   else
+      allocate(IOBUFI(1,1))
+   end if
 !-----------------------------------------------------------------------
 !
 !  gather and write num_iotasks records at a time to keep the
@@ -2327,7 +2352,7 @@
 
 !-----------------------------------------------------------------------
 
-   if (my_task < data_file%num_iotasks) deallocate(IOBUFI)
+   deallocate(IOBUFI)
 #endif
 
 !-----------------------------------------------------------------------
@@ -2421,9 +2446,11 @@
       krecs = nz/data_file%num_iotasks + 1
    endif
 
-   if (my_task < data_file%num_iotasks) &
+   if (my_task < data_file%num_iotasks) then
       allocate(IOBUFR(nx_global,ny_global))
-
+   else
+      allocate(IOBUFR(1,1))
+   end if
 !-----------------------------------------------------------------------
 !
 !  gather and write num_iotasks records at a time to keep the
@@ -2465,7 +2492,7 @@
 
 !-----------------------------------------------------------------------
 
-   if (my_task < data_file%num_iotasks) deallocate(IOBUFR)
+   deallocate(IOBUFR)
 #endif
 
 !-----------------------------------------------------------------------
@@ -2563,8 +2590,11 @@
       krecs = nz/data_file%num_iotasks + 1
    endif
 
-   if (my_task < data_file%num_iotasks) &
+   if (my_task < data_file%num_iotasks) then
       allocate(IOBUFD(nx_global,ny_global))
+   else
+      allocate(IOBUFD(1,1))
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -2607,7 +2637,7 @@
 
 !-----------------------------------------------------------------------
 
-   if (my_task < data_file%num_iotasks) deallocate(IOBUFD)
+   deallocate(IOBUFD)
 #endif
 
 !-----------------------------------------------------------------------

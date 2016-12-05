@@ -261,12 +261,15 @@ contains
             x2o(index_x2o_Faxa_dstwet1,n) + x2o(index_x2o_Faxa_dstwet2,n) + &
             x2o(index_x2o_Faxa_dstwet3,n) + x2o(index_x2o_Faxa_dstwet4,n) + &
             x2o(index_x2o_Faxa_dstdry1,n) + x2o(index_x2o_Faxa_dstdry2,n) + &
-            x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n))
+            x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n) + &
+            x2o(index_x2o_Fioi_flxdst,n))
 
          ! convert black carbon flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
          BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
             x2o(index_x2o_Faxa_bcphidry,n) + x2o(index_x2o_Faxa_bcphodry,n) + &
-            x2o(index_x2o_Faxa_bcphiwet,n))
+            x2o(index_x2o_Faxa_bcphiwet,n) + x2o(index_x2o_Fioi_bcpho,n) +    &
+            x2o(index_x2o_Fioi_bcphi,n))
+               
       enddo
       enddo
 

@@ -15,25 +15,26 @@
 ! !USES:
 
    use kinds_mod
+   use blocks
    use constants
    use exit_mod
    use time_management
    use tavg
 
    implicit none
-   private
+   public
    save
 
-! !PUBLIC MEMBER FUNCTIONS:
-
-   public :: init_qflux
- 
 !EOP
 !BOC
 
-   integer (int_kind) :: &
-      tavg_QFLUX          ! tavg id for QFLUX 
+   integer (int_kind) :: tavg_QFLUX       ! tavg id for QFLUX 
 
+
+   real (r8) ::  &
+      q0_mean_budget  ! <Q_0> Robert Filter budget diagnostic term
+
+   
 !EOC
 !***********************************************************************
 
@@ -46,6 +47,12 @@
    character (char_len) :: string
  
    
+!-----------------------------------------------------------------------
+!
+!  time-averaged field definition
+!
+!-----------------------------------------------------------------------
+ 
    string = 'Internal Ocean Heat Flux Due to Ice Formation; ' /&
              &/ 'heat of fusion > 0 or ice-melting potential < 0 '
  
@@ -55,6 +62,10 @@
                           units='Watts/meter^2',              &
                           coordinates  ='TLONG TLAT time',    &
                           grid_loc ='2111')
+
+   string = 'Internal Ocean Heat Flux Due to Ice Formation for Robert Filter diagnostics; ' /&
+             &/ 'heat of fusion > 0 or ice-melting potential < 0 '
+ 
 
    end subroutine init_qflux
  

@@ -10,7 +10,7 @@
 !  1. Estuary parameterization:
 !     Sun et al., A Box Model for Representing Estuarine Physical Processes in Earth System Models, Ocean. Model, submitted
 !  2. Global salinity correction:
-!     Tseng et al., Impacts of the Representation of Riverine Freshwater Input in the Community Earth System Model, in revision
+!     Tseng et al. (2016), Impacts of the Representation of Riverine Freshwater Input in the Community Earth System Model, Ocean Modell., 105, 71-86.
 ! !USES:
 
    use POP_KindsMod
@@ -23,11 +23,13 @@
    use io_types
    use grid
    use forcing_fields,only:ROFF_F
+   use forcing_shf,only:MASK_SR
    use time_management
-   use prognostic,only:TRACER,curtime   
+   use prognostic,only:TRACER, curtime, tracer_d 
    use global_reductions, only: global_sum_prod
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
-!   use diagnostics, only: ldiag_global
+   use diagnostics, only: ldiag_global,DIAG_TRACER_ROFF_VSF_2D,DIAG_TRACER_EXCHCIRC_2D
+
    implicit none
    private
    save
@@ -45,28 +47,31 @@
 
    logical, public :: lestuary_on, lvsf_river, lebm_on
    real(r8), public :: vsf_river_correction
-
+   ! Surface Virtual Salt Flux Associated with Rivers
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), public ::&
+        FLUX_ROFF_VSF_SRF
 ! !PRIVATE DATA MEMBERS:
 
    ! Maximum layer index to consider estuary contributions
    integer :: kmax_estuary = 15
-
-   ! Surface Virtual Salt Flux Associated with Rivers
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::& 
-        FLUX_ROFF_VSF_SRF
+   ! Number of tracer used for Estuary box model (2: temperature+salinity)
+   ! Will be changed in the future to include all tracers
+   integer :: ntest = 2 
+!   ! Surface Virtual Salt Flux Associated with Rivers
+!   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) ::& 
+!        FLUX_ROFF_VSF_SRF
 
    ! Vertical Salt Flux Across Upper/Lower Layer Interface (From box model)
-   REAL (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   REAL (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) :: &
         FLUX_EXCH_INTRF
 
    ! Vertical salt fluxes across top and bottom of a cell interface
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::& 
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) ::& 
         FLUX_ROFF_VSF, FLUX_ROFF_VSF_KM1, &
-        FLUX_EXCH,     FLUX_EXCH_KM1
-
+        FLUX_EXCH,  FLUX_EXCH_KM1
 
 ! EBM parameters expanded to 2D fields
-   real (r8), dimension(nx_block,ny_block, max_blocks_clinic) :: &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
         & est_tide_amp,&
         & est_mouth_width, &
         & est_mouth_depth, &
@@ -77,9 +82,13 @@
         & est_thick_lower
 
 ! EBM input and output fields
-   real (r8), dimension(nx_block,ny_block, max_blocks_clinic) :: &
-        & S_lower_layer, S_upper_layer, &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+        & S_upper_layer, &
         & Q_river, Q_lower, Q_upper
+
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) :: &
+        & tracer_upper_layer, & !Upper-layer tracer value (MMW)
+        & tracer_lower_layer    !Lower-layer tracer value (MMW)
 
 !-----------------------------------------------------------------------
 !
@@ -87,15 +96,17 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-         tavg_FLUX_ROFF_VSF_SRF, &!Surf virt salt flux from river
-         tavg_FLUX_EXCH_INTRF,   &!Vert salt flux across layer interface from EBM
-         tavg_FLUX_ROFF_VSF,     &!Vert salt flux across cell level interface
-         tavg_FLUX_EXCH,         &!Vert salt flux across cell level interface from exchange circ.
+   integer (int_kind) :: &  !(MMWhitney: all-tracer exchange)
          tavg_S_lower_layer,     &!Lower layer salinity
          tavg_S_upper_layer,     &!Upper layer salinity
          tavg_Q_lower,           &!Lower layer flow rate
          tavg_Q_upper             !Upper layer flow rate         
+ 
+   integer (int_kind), dimension(nt) :: &   !(MMWhitney: all-tracer exchange)
+         tavg_FLUX_ROFF_VSF_SRF, &!Surf virt salt flux from river
+         tavg_FLUX_ROFF_VSF,     &!Vert salt flux across cell level interface
+         tavg_FLUX_EXCH_INTRF,   &!Vert tracer flux across layer interface from EBM
+         tavg_FLUX_EXCH           !Vert tracer flux across cell level interface from exchange circ.
 !EOC
 !***********************************************************************
 
@@ -127,7 +138,7 @@
    type(io_dim) :: i_dim, j_dim
    character(char_len) :: io_field_name
    integer(i4) :: io_field_loc, io_field_type
-   real (r8), allocatable, dimension(:,:,:) :: TEMP_DATA   ! temporary data array
+   real (r8), allocatable, dimension(:,:,:), target :: TEMP_DATA   ! temporary data array
 
    !Set parameters to the same value for all estuaries (simple test)
    !Eventually replace this with an input file
@@ -351,38 +362,104 @@
 !  define tavg fields related to EBM
 !
 !-----------------------------------------------------------------------
-   call define_tavg_field(tavg_FLUX_ROFF_VSF_SRF,'FLUX_ROFF_VSF_SRF',2,          &
-                    long_name='Surface Virtual Salt Flux Associated with Rivers',&
-                          units='g/kg*cm/s', grid_loc='2110',                    &
-                          coordinates='TLONG TLAT time')
-   call define_tavg_field(tavg_FLUX_EXCH_INTRF,'FLUX_EXCH_INTRF',2,              &
-                    long_name='Vertical Salt Flux Across Upper/Lower Layer Interface (From EBM)',&
-                          units='g/kg*cm/s', grid_loc='2110',                    &
-                          coordinates='TLONG TLAT time')                          
-   call define_tavg_field(tavg_FLUX_ROFF_VSF,'FLUX_ROFF_VSF',3,                  &
-                          long_name='Vertical salt fluxes across the cell interface from ROFF',  &
-                          units='g/kg*cm/s', grid_loc='3112',                    &
-                          coordinates='TLONG TLAT z_w time')
-   call define_tavg_field(tavg_FLUX_EXCH,'FLUX_EXCH',3,                          &
-                          long_name='Vertical salt fluxes across the cell interface from exchange circ',&
-                          units='g/kg*cm/s', grid_loc='3112',                    &
-                          coordinates='TLONG TLAT z_w time')
    call define_tavg_field(tavg_S_lower_layer,'S_lower_layer',2,                  &
                           long_name='Lower layer salinity in EBM',               &
                           units='gram/kilogram', grid_loc='2110',                &
                           coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_S_upper_layer,'S_upper_layer',2,                  &
                           long_name='Upper layer salinity in EBM',               &
                           units='gram/kilogram', grid_loc='2110',                &
                           coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_Q_lower,'Q_lower',2,                              &
                           long_name='Lower layer flow rate in EBM',              &
                           units='m^3/s', grid_loc='2110',                        &
                           coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_Q_upper,'Q_upper',2,                              &
                           long_name='Upper layer flow rate in EBM',              &
                           units='m^3/s', grid_loc='2110',                        &
                           coordinates='TLONG TLAT time')
+
+!QS: define the tavg field for all tracers
+   call define_tavg_field(tavg_FLUX_ROFF_VSF_SRF(1),'T_FLUX_ROFF_VSF_SRF',2,     &
+                    long_name='Surface Temperature Virtual Salt Flux Associated with Rivers',&
+                          units='degC*cm/s', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_FLUX_ROFF_VSF_SRF(2),'S_FLUX_ROFF_VSF_SRF',2,     &
+                    long_name='Surface Salt Virtual Salt Flux Associated with Rivers',&
+                          units='g/kg*cm/s', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_FLUX_ROFF_VSF(1),'T_FLUX_ROFF_VSF',3,             &
+                          long_name='Vertical temperature fluxes across the cell interface from ROFF',  &
+                          units='degC*cm/s', grid_loc='3112',                    &
+                          coordinates='TLONG TLAT z_w time')
+
+   call define_tavg_field(tavg_FLUX_ROFF_VSF(2),'S_FLUX_ROFF_VSF',3,             &
+                          long_name='Vertical salt fluxes across the cell interface from ROFF',  &
+                          units='g/kg*cm/s', grid_loc='3112',                    &
+                          coordinates='TLONG TLAT z_w time')
+
+   call define_tavg_field(tavg_FLUX_EXCH_INTRF(1),'T_FLUX_EXCH_INTRF',2,         &
+         long_name='Vertical Temperature Flux Across Upper/Lower Layer Interface (From EBM)',&
+                          units='degC*cm/s', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')   !(MMW)                          
+
+   call define_tavg_field(tavg_FLUX_EXCH_INTRF(2),'S_FLUX_EXCH_INTRF',2,         &
+         long_name='Vertical Salt Flux Across Upper/Lower Layer Interface (FromEBM)',&
+                          units='g/kg*cm/s', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')   !(MMW)                          
+
+   call define_tavg_field(tavg_FLUX_EXCH(1),'T_FLUX_EXCH',3,                     &
+         long_name='Vertical temperature fluxes across the cell interface from exchange circ',&
+                          units='degC*cm/s', grid_loc='3112',                    &
+                          coordinates='TLONG TLAT z_w time')   !(MMW)
+
+   call define_tavg_field(tavg_FLUX_EXCH(2),'S_FLUX_EXCH',3,                     &
+         long_name='Vertical salt fluxes across the cell interface from exchange circ',&
+                          units='g/kg*cm/s', grid_loc='3112',                    &
+                          coordinates='TLONG TLAT z_w time')   !(MMW)
+
+
+   DO n=3,nt
+     call define_tavg_field(tavg_FLUX_ROFF_VSF_SRF(n),                             &
+                            trim(tracer_d(n)%short_name)//'_FLUX_ROFF_VSF_SRF',2,  &
+                            long_name='Surface '//trim(tracer_d(n)%short_name)/&
+                                      &/' Virtual Salt Flux Associatedwith Rivers',&
+                            units=trim(tracer_d(n)%tend_units),                    &
+                            grid_loc='2110',                                       &
+                            coordinates='TLONG TLAT time')
+
+     call define_tavg_field(tavg_FLUX_ROFF_VSF(n),                               &
+                             trim(tracer_d(n)%short_name)//'_FLUX_ROFF_VSF',3,   &
+                          long_name='Vertical '//trim(tracer_d(n)%short_name)/&
+                                  &/' fluxes across the cellinterface from ROFF',&
+                          units=trim(tracer_d(n)%tend_units),                    &
+                          grid_loc='3112',                                       &
+                          coordinates='TLONG TLAT z_w time')
+
+     call define_tavg_field(tavg_FLUX_EXCH_INTRF(n),                             &
+                              trim(tracer_d(n)%short_name)//'_FLUX_EXCH_INTRF',2,&
+                             long_name='Vertical '//trim(tracer_d(n)%short_name)/&
+                                    &/ ' Flux Across Upper/Lower Layer Interface (From EBM)', &
+                             units=trim(tracer_d(n)%tend_units),                 &
+                             scale_factor=tracer_d(n)%scale_factor,              &
+                             grid_loc='2110',                                    &
+                             coordinates='ULONG TLAT time')
+
+     call define_tavg_field(tavg_FLUX_EXCH(n),                                   &
+                              trim(tracer_d(n)%short_name)//'_FLUX_EXCH',3,      &
+                             long_name='Vertical '//trim(tracer_d(n)%short_name)/&
+                                    &/ ' fluxes across the cell interface from exchange circ', &
+                             units=trim(tracer_d(n)%tend_units),                 &
+                             scale_factor=tracer_d(n)%scale_factor,              &
+                             grid_loc='3112',                                    &
+                             coordinates='ULONG TLAT z_w time')
+   ENDDO 
+
 !-----------------------------------------------------------------------
       return
    end subroutine init_estuary
@@ -415,34 +492,43 @@
 !
 !-----------------------------------------------------------------------
 
-   integer :: iblock
+   integer :: iblock,n
 
    real(r8) :: gsum_vsf_sref, gsum_vsf_sloc
 
 !-----------------------------------------------------------------------
 
    ! Compute surface virtual salt flux using local salinity
-   do iblock=1,nblocks_clinic
-   ! fwmass_to_fwflux = 0.1_r8, ROFF_F>0
-   ! VSF at surface = -(ROFF*fwmass_to_fwflux)*Su
-   ! But set FLUX_ROFF_VSF_SRF>0 at surface (postive upward)
-      FLUX_ROFF_VSF_SRF(:,:,iblock) = fwmass_to_fwflux*ROFF_F(:,:,iblock)* &
-           &                          TRACER(:,:,1,2,curtime,iblock)*      &
-           &                          RCALCT(:,:,iblock)
-   enddo
+   DO n=1,ntest
+     do iblock=1,nblocks_clinic
+       IF (n .EQ. 2) THEN
+       ! fwmass_to_fwflux = 0.1_r8, ROFF_F>0
+       ! VSF at surface = -(ROFF*fwmass_to_fwflux)*Su
+       ! But set FLUX_ROFF_VSF_SRF>0 at surface (postive upward)
+         FLUX_ROFF_VSF_SRF(:,:,n,iblock) = fwmass_to_fwflux*ROFF_F(:,:,iblock)* &
+              &                            TRACER(:,:,1,2,curtime,iblock)*      &
+!              &                            RCALCT(:,:,iblock)
+              &                            MASK_SR(:,:,iblock)
+       ELSE
+         FLUX_ROFF_VSF_SRF(:,:,n,iblock) = c0
+       ENDIF
+     enddo
+   ENDDO
 
    ! Compute correction for global conservation
    ! salinity_factor  = - ocn_ref_salinity(psu) * fwflux_factor
    ! ocn_ref_salinity = 34.7_r8      ! (psu)
    ! fwflux_factor    = 1.e-4_r8
-   gsum_vsf_sref = global_sum_prod(ROFF_F,TAREA,distrb_clinic,&
-        & field_loc_center, RCALCT)*salinity_factor
+   gsum_vsf_sref = global_sum_prod(ROFF_F,TAREA(:,:,:),distrb_clinic,&
+!        & field_loc_center, RCALCT)*salinity_factor
+        & field_loc_center, MASK_SR*c1)*salinity_factor
 
    !VSF at surface = -Su*(ROFF*fwmass_to_fwflux)
-   gsum_vsf_sloc = -global_sum_prod(FLUX_ROFF_VSF_SRF,TAREA,distrb_clinic,&
-        & field_loc_center, RCALCT)
+   gsum_vsf_sloc = -global_sum_prod(FLUX_ROFF_VSF_SRF(:,:,2,:),TAREA,distrb_clinic,&
+!        & field_loc_center, RCALCT)
+        & field_loc_center, MASK_SR*c1)
 
-   vsf_river_correction = (gsum_vsf_sref - gsum_vsf_sloc)/area_t
+   vsf_river_correction = (gsum_vsf_sref - gsum_vsf_sloc)/(area_t-area_t_marg)
 !   if (ldiag_global) then
      if ( my_task == master_task) then    
       write(stdout,*)  'ESTUARY FORCING (in estuary_mod)'
@@ -485,11 +571,13 @@
    real(r8) :: z_layer_top, z_layer_bot    ! depths of top and bottom of lower layer
    real(r8) :: z_cell_top, z_cell_bot    ! depths of top and bottom of grid cell
    real (r8) :: wgt
-   integer :: i,j,k,iblock
+   integer :: i,j,n,k,iblock   !(MMWhitney: all-tracer exchange)
+   real (r8) :: unit_cvrt ! converting factor for the tracer calculation
 
    !-----------------------------------------------------------------------
 
-   S_lower_layer = c0
+   tracer_upper_layer = c0
+   tracer_lower_layer = c0  !(MMW)
    Q_river = fwmass_to_fwflux*ROFF_F*TAREA*1.0e-6_r8   ! kg/m^2/s -> m^3/s
    FLUX_EXCH_INTRF = c0
 
@@ -499,7 +587,7 @@
          do i=1,nx_block
 
             if ( est_thick_lower(i,j,iblock) == c0 .OR. &
-                 & Q_river(i,j,iblock) == 0 ) cycle     ! no estuary at this point
+                 & Q_river(i,j,iblock) .LE. 0._r8 ) cycle     ! no estuary at this point
 
             z_layer_top = est_thick_upper(i,j,iblock)
             z_layer_bot = est_thick_upper(i,j,iblock)+est_thick_lower(i,j,iblock)
@@ -513,34 +601,65 @@
                endif
                z_cell_bot = zw(k)
 
-               if ( z_cell_bot < z_layer_top ) cycle      ! still above lower layer
+!               if ( z_cell_bot < z_layer_top ) cycle      ! still above lower layer
                if ( z_cell_top > z_layer_bot ) exit       ! now bleow lower layer
 
-               ! Fraction of the lower layer in this cell
-               wgt = (min(z_cell_bot,z_layer_bot) - &
-                    & max(z_cell_top,z_layer_top))/est_thick_lower(i,j,iblock)
+               DO n=1,ntest
 
-               S_lower_layer(i,j,iblock) = S_lower_layer(i,j,iblock) + &
-                                           wgt*TRACER(i,j,k,2,curtime,iblock)*c1000
+                 IF(n .EQ. 2) THEN ! salinity
+                   unit_cvrt=c1000
+                 ELSE
+                   unit_cvrt=c1
+                 ENDIF
+
+                 ! Fraction of the upper layer in this cell
+                 IF ( z_cell_top < z_layer_top ) THEN ! upper layer
+                   wgt = ( min(z_cell_bot,z_layer_top) - z_cell_top ) / est_thick_upper(i,j,iblock)
+
+                   tracer_upper_layer(i,j,n,iblock) = tracer_upper_layer(i,j,n,iblock) + &
+                                           wgt*TRACER(i,j,k,n,curtime,iblock)*unit_cvrt
+                 ENDIF
+
+                 ! Fraction of the lower layer in this cell
+                 IF ( z_cell_bot > z_layer_top ) THEN ! lower layer
+                   wgt = ( min(z_cell_bot,z_layer_bot) - max(z_cell_top,z_layer_top) ) &
+                      & / est_thick_lower(i,j,iblock)
+
+                   tracer_lower_layer(i,j,n,iblock) = tracer_lower_layer(i,j,n,iblock) + &
+                                           wgt*TRACER(i,j,k,n,curtime,iblock)*unit_cvrt
+                 ENDIF
+
+               ENDDO ! tracer n-loop
             enddo
 
             ! Run the estuary box model to get the exchange flow volume flux
-            call estuary_box_model(Q_river(i,j,iblock),&
-                 &                 est_tide_amp(i,j,iblock),S_lower_layer(i,j,iblock),&
-                 &                 est_mouth_width(i,j,iblock),est_mouth_depth(i,j,iblock),&
-                 &                 est_length_a1(i,j,iblock),est_tidal_pump_a2(i,j,iblock),&
-                 &                 est_lower_depth_ratio(i,j,iblock),&
-                 &                 Q_upper(i,j,iblock),Q_lower(i,j,iblock),S_upper_layer(i,j,iblock))
+            call estuary_box_model(Q_river(i,j,iblock),                                       &
+                 &                 est_tide_amp(i,j,iblock),tracer_lower_layer(i,j,2,iblock), &
+                 &                 est_mouth_width(i,j,iblock), est_mouth_depth(i,j,iblock),  &
+                 &                 est_length_a1(i,j,iblock), est_tidal_pump_a2(i,j,iblock),  &
+                 &                 est_lower_depth_ratio(i,j,iblock), Q_upper(i,j,iblock),    &
+                 &                 Q_lower(i,j,iblock), S_upper_layer(i,j,iblock))
 
             !  Translate the exchange flow volume flux into a vertical salt flux
-	    ! NB Q_lower is negative
-            FLUX_EXCH_INTRF(i,j,iblock) = -Q_lower(i,j,iblock)*(1.e6_r8)* &          ! m^3/s -> cm^3/s
-                 &                         S_lower_layer(i,j,iblock)*(1.0e-3_r8)/ &  ! psu -> msu
-                 &                         TAREA(i,j,iblock)*RCALCT(i,j,iblock)
-         enddo
-      enddo
-   enddo
+            ! NB Q_lower is negative
+            DO n=1,ntest  !(MMW)
+              IF (n .EQ. 2) THEN
+                FLUX_EXCH_INTRF(i,j,n,iblock) =-Q_lower(i,j,iblock)*(1.e6_r8)*    &          ! m^3/s -> cm^3/s
+                   &   ( tracer_lower_layer(i,j,n,iblock)-S_upper_layer(i,j,iblock) )*(1.0e-3_r8)/ &  ! psu -> msu
+                   &   TAREA(i,j,iblock)*RCALCT(i,j,iblock)
+              ELSE
+                FLUX_EXCH_INTRF(i,j,n,iblock) =-Q_lower(i,j,iblock)*(1.e6_r8)* &          ! m^3/s -> cm^3/s
+                   &   ( tracer_lower_layer(i,j,n,iblock)-tracer_upper_layer(i,j,n,iblock) )/&        ! no tracer unit conversion needed
+                   &   TAREA(i,j,iblock)*RCALCT(i,j,iblock)
+              ENDIF
+           ENDDO ! tracer n loop
+
+         enddo ! i: nx_block loop
+      enddo ! j: ny_block loop
+   enddo ! iblock: cblock_climic loop
+
    return
+
  end subroutine set_estuary_exch_circ
 
 !***********************************************************************
@@ -587,11 +706,10 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      i,j,bid
+      i,j,n,bid   !(MMWhitney: all-tracer exchange)
  
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK1    ! temporary work space
-
+   real (r8), dimension(nx_block,ny_block,nt) :: &
+      WORK1    ! temporary work space (MMW)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -605,77 +723,139 @@
       bid = this_block%local_id
 
       !  Set fluxes at top of top cell
-      if ( k == 1 ) then
-         FLUX_ROFF_VSF_KM1(:,:,bid) = FLUX_ROFF_VSF_SRF(:,:,bid)   ! Virtual salt flux from runoff at sea surface
-         FLUX_EXCH_KM1(:,:,bid) = c0                               ! Vertical salt flux across interface between
-      endif
+      DO n=1,ntest
+        if ( k == 1 ) then
+!          FLUX_ROFF_VSF_KM1(:,:,:,bid) = FLUX_ROFF_VSF_SRF(:,:,:,bid)   ! Virtual salt flux from runoff at sea surface
+!          FLUX_EXCH_KM1(:,:,:,bid) = c0
+          WHERE ( MASK_SR(:,:,bid) == 0 )
+            FLUX_ROFF_VSF_KM1(:,:,n,bid) = c0                           ! Marginal Seas
+          ELSEWHERE
+            FLUX_ROFF_VSF_KM1(:,:,n,bid) = FLUX_ROFF_VSF_SRF(:,:,n,bid) ! Virtual salt flux from runoff at sea surface
+          ENDWHERE
+            FLUX_EXCH_KM1(:,:,n,bid) = c0                               ! Vertical salt flux across interface between
+        endif
+      ENDDO
 
       ! Set virtual salt flux at bottom of cell
       ! NB zw(k) always > 0, so should not get divide by zero if est_thick_upper = 0
-      do j=1,ny_block
-         do i=1,nx_block
+      DO n=1,ntest
+        do j=1,ny_block
+          do i=1,nx_block
             if ( zw(k) <= est_thick_upper(i,j,bid) ) then
-               FLUX_ROFF_VSF(i,j,bid) = FLUX_ROFF_VSF_SRF(i,j,bid)*&
-                    &              (c1 - zw(k)/est_thick_upper(i,j,bid))
+              FLUX_ROFF_VSF(i,j,n,bid) = FLUX_ROFF_VSF_SRF(i,j,n,bid)*     &
+                       &              (c1 - zw(k)/est_thick_upper(i,j,bid))
             else
-               FLUX_ROFF_VSF(i,j,bid) = c0
+              FLUX_ROFF_VSF(i,j,n,bid) = c0
             endif
-         enddo
-      enddo
+          enddo
+        enddo
+      ENDDO
 
       ! Set exchange flow flux at bottom of cell
-      do j=1,ny_block
-         do i=1,nx_block
+      DO n=1,ntest
+        do j=1,ny_block
+          do i=1,nx_block
             if ( est_thick_lower(i,j,bid) == c0 ) cycle  ! Guard against divide by zero
 
             if ( zw(k) <= est_thick_upper(i,j,bid) ) then
-               FLUX_EXCH(i,j,bid) =  FLUX_EXCH_INTRF(i,j,bid)*zw(k)/est_thick_upper(i,j,bid)
+               FLUX_EXCH(i,j,n,bid) = FLUX_EXCH_INTRF(i,j,n,bid)*zw(k)/est_thick_upper(i,j,bid)
             elseif ( zw(k) <= est_thick_upper(i,j,bid)+est_thick_lower(i,j,bid) ) then
-               FLUX_EXCH(i,j,bid) =  FLUX_EXCH_INTRF(i,j,bid)*&
+               FLUX_EXCH(i,j,n,bid) =  FLUX_EXCH_INTRF(i,j,n,bid)*   &
                     & (est_thick_upper(i,j,bid)+est_thick_lower(i,j,bid)-zw(k))/est_thick_lower(i,j,bid)
             else
-               FLUX_EXCH(i,j,bid) = c0
+               FLUX_EXCH(i,j,n,bid) = c0
             endif
 
-         enddo
-      enddo
-
+          enddo
+        enddo
+      ENDDO
       ! Make sure there is no flux through the sea floor
-      where(k >= KMT(:,:,bid)) 
-         FLUX_ROFF_VSF(:,:,bid) = c0
-         FLUX_EXCH(:,:,bid) = c0
-      endwhere
+      DO n=1,ntest
+        where(k >= KMT(:,:,bid) .or. MASK_SR(:,:,bid) == 0) 
+          FLUX_ROFF_VSF(:,:,n,bid) = c0
+          FLUX_EXCH(:,:,n,bid) = c0  !(MMW)
+        endwhere
+      ENDDO
 
       ! Compute contribution to tendency from divergence of flux
       ! Surface Virtual salt flux contribution
       ! Positive upward dS/dt=-(F_{k-1}-F_{k})/dz 
-      if ( partial_bottom_cells ) then
-         WORK1 = RCALCT(:,:,bid)*(FLUX_ROFF_VSF(:,:,bid) - FLUX_ROFF_VSF_KM1(:,:,bid))/DZT(:,:,k,bid)
-      else
-         WORK1 = RCALCT(:,:,bid)*(FLUX_ROFF_VSF(:,:,bid) - FLUX_ROFF_VSF_KM1(:,:,bid))*dzr(k)
+      DO n=1,ntest
+        if ( partial_bottom_cells ) then
+           WORK1(:,:,n) = RCALCT(:,:,bid)*(FLUX_ROFF_VSF(:,:,n,bid) - FLUX_ROFF_VSF_KM1(:,:,n,bid))/DZT(:,:,k,bid)
+        else
+           WORK1(:,:,n) = RCALCT(:,:,bid)*(FLUX_ROFF_VSF(:,:,n,bid) - FLUX_ROFF_VSF_KM1(:,:,n,bid))/dz(k)
+        endif
+        T_SOURCE(:,:,n) = T_SOURCE(:,:,n) + WORK1(:,:,n)
+      ENDDO
+
+
+      if (ldiag_global) then
+        if (partial_bottom_cells) then
+          DO n=1,ntest
+           IF (n==2) &
+            where (k <= KMT(:,:,bid))            &
+               DIAG_TRACER_ROFF_VSF_2D(:,:,n,bid) = &
+               DIAG_TRACER_ROFF_VSF_2D(:,:,n,bid) + &
+               WORK1(:,:,n)*DZT(:,:,k,bid)
+          ENDDO
+        else
+          DO n=1,ntest
+           IF (n==2) &
+            where (k <= KMT(:,:,bid))            &
+              DIAG_TRACER_ROFF_VSF_2D(:,:,n,bid) = &
+              DIAG_TRACER_ROFF_VSF_2D(:,:,n,bid) + &
+              WORK1(:,:,n)*dz(k)
+          ENDDO 
+        endif
       endif
-      T_SOURCE(:,:,2) = T_SOURCE(:,:,2) + WORK1
 
       ! Exchange flow contribution
       ! Positive upward dS/dt=-(F_{k-1}-F_{k})/dz
-      if ( partial_bottom_cells ) then
-         WORK1 = RCALCT(:,:,bid)*(FLUX_EXCH(:,:,bid) - FLUX_EXCH_KM1(:,:,bid))/DZT(:,:,k,bid)
-      else
-         WORK1 = RCALCT(:,:,bid)*(FLUX_EXCH(:,:,bid) - FLUX_EXCH_KM1(:,:,bid))*dzr(k)
+      DO n=1,ntest
+        if ( partial_bottom_cells ) then
+          WORK1(:,:,n) = RCALCT(:,:,bid)*(FLUX_EXCH(:,:,n,bid) - FLUX_EXCH_KM1(:,:,n,bid))/DZT(:,:,k,bid)
+        else
+          WORK1(:,:,n) = RCALCT(:,:,bid)*(FLUX_EXCH(:,:,n,bid) - FLUX_EXCH_KM1(:,:,n,bid))/dz(k)
+        endif
+        T_SOURCE(:,:,n) = T_SOURCE(:,:,n) + WORK1(:,:,n)
+      ENDDO
+
+
+      if (ldiag_global) then
+        if (partial_bottom_cells) then
+          DO n=1,ntest
+           IF (n==2) &
+            where (k <= KMT(:,:,bid))            &
+               DIAG_TRACER_EXCHCIRC_2D(:,:,n,bid) = &
+               DIAG_TRACER_EXCHCIRC_2D(:,:,n,bid) + &
+               WORK1(:,:,n)*DZT(:,:,k,bid)
+          ENDDO
+        else
+          DO n=1,ntest
+           IF (n==2) &
+            where (k <= KMT(:,:,bid))            &
+              DIAG_TRACER_EXCHCIRC_2D(:,:,n,bid) = &
+              DIAG_TRACER_EXCHCIRC_2D(:,:,n,bid) + &
+              WORK1(:,:,n)*dz(k)
+          ENDDO
+        endif
       endif
-      T_SOURCE(:,:,2) = T_SOURCE(:,:,2) + WORK1
 !-----------------------------------------------------------------------
 !
 !  compute diagnostics if necessary.
 !
 !-----------------------------------------------------------------------
       if (k == 1)  then
-         call accumulate_tavg_field(FLUX_ROFF_VSF_SRF(:,:,bid), &
-                                    tavg_FLUX_ROFF_VSF_SRF,bid,1)
-         call accumulate_tavg_field(FLUX_EXCH_INTRF(:,:,bid), &
-                                    tavg_FLUX_EXCH_INTRF,bid,1)
-         call accumulate_tavg_field(S_lower_layer(:,:,bid), &
+        DO n=1,ntest
+          call accumulate_tavg_field(FLUX_ROFF_VSF_SRF(:,:,n,bid), &
+                                    tavg_FLUX_ROFF_VSF_SRF(n),bid,1)
+          call accumulate_tavg_field(FLUX_EXCH_INTRF(:,:,n,bid),  &
+                                    tavg_FLUX_EXCH_INTRF(n),bid,1)
+
+         call accumulate_tavg_field(tracer_lower_layer(:,:,n,bid), &
                                     tavg_S_lower_layer,bid,1)
+        ENDDO
          call accumulate_tavg_field(S_upper_layer(:,:,bid), &
                                     tavg_S_upper_layer,bid,1)
          call accumulate_tavg_field(Q_lower(:,:,bid), &
@@ -683,14 +863,17 @@
          call accumulate_tavg_field(Q_upper(:,:,bid), &
                                     tavg_Q_upper,bid,1)                                  
       endif
-      call accumulate_tavg_field(FLUX_ROFF_VSF_KM1(:,:,bid),tavg_FLUX_ROFF_VSF,bid,k)
-      call accumulate_tavg_field(FLUX_EXCH_KM1(:,:,bid),tavg_FLUX_EXCH,bid,k)
+
+      DO n=1,ntest
+        call accumulate_tavg_field(FLUX_ROFF_VSF_KM1(:,:,n,bid),tavg_FLUX_ROFF_VSF(n),bid,k)
+        call accumulate_tavg_field(FLUX_EXCH_KM1(:,:,n,bid),tavg_FLUX_EXCH(n),bid,k)
+      ENDDO
 !-----------------------------------------------------------------------
 
       ! Move the bottom vsf to the top of the cell
       ! Move lower face flux to upper face for next call
-      FLUX_ROFF_VSF_KM1(:,:,bid) = FLUX_ROFF_VSF(:,:,bid)
-      FLUX_EXCH_KM1(:,:,bid) = FLUX_EXCH(:,:,bid)
+      FLUX_ROFF_VSF_KM1(:,:,:,bid) = FLUX_ROFF_VSF(:,:,:,bid)
+      FLUX_EXCH_KM1(:,:,:,bid) = FLUX_EXCH(:,:,:,bid)  !(MMWhitney: all-tracer exchange)
 
       return
 

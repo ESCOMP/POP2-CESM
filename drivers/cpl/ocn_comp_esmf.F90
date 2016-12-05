@@ -27,6 +27,7 @@ module ocn_comp_esmf
    use POP_InitMod,       only: POP_Initialize1, POP_Initialize2
    use POP_InitMod,       only: timer_total, cpl_ts 
 
+   use mct_mod
    use esmf
    use esmfshr_util_mod, only : esmfshr_util_StateArrayDestroy
    use esmfshr_util_mod, only : esmfshr_util_ArrayGetIndex
@@ -113,7 +114,6 @@ module ocn_comp_esmf
    ! These variables are pointed to in POP_MCT_vars_mod
    type(mct_gsMap), target  :: gsmap_o
    type(mct_gGrid), target  :: dom_o
-   integer                  :: OCNID      
 
 !=======================================================================
 
@@ -208,16 +208,22 @@ contains
     integer                :: nfields
     real(R8), pointer      :: fptr (:,:)          ! data pointer into ESMF array
 
-!-----------------------------------------------------------------------
-!
-!  set cdata pointers
-!
-!-----------------------------------------------------------------------
-
-    call POP_CplIndicesSet()
+!----------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
  
+    call shr_file_getLogUnit (shrlogunit)
+    call shr_file_getLogLevel(shrloglev)
+!----------------------------------------------------------------------------
+!
+! reset shr logging to my log file
+!  (tcraig, moved to io_types)
+!
+!----------------------------------------------------------------------------
+!    call shr_file_setLogUnit (stdout)
+   
+    call POP_CplIndicesSet()
+
   
     ! duplicate the mpi communicator from the current VM 
     call ESMF_VMGetCurrent(vm, rc=rc)
@@ -233,7 +239,7 @@ contains
     print * , 'after mpicom setup'
     
     ! Initialize pop id
-    call ESMF_AttributeGet(export_state, name="ID", value=OCNID, rc=rc)
+    call ESMF_AttributeGet(export_state, name="ID", value=POP_MCT_OCNID, rc=rc)
     if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
 #ifdef _OPENMP
@@ -286,9 +292,9 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   inst_name   = seq_comm_name(OCNID)
-   inst_index  = seq_comm_inst(OCNID)
-   inst_suffix = seq_comm_suffix(OCNID)
+   inst_name   = seq_comm_name(POP_MCT_OCNID)
+   inst_index  = seq_comm_inst(POP_MCT_OCNID)
+   inst_suffix = seq_comm_suffix(POP_MCT_OCNID)
 
    print * , 'begin pop init1'
    call t_startf ('pop_init')
@@ -329,16 +335,6 @@ contains
 
    call t_stopf ('pop_init')
 
-!----------------------------------------------------------------------------
-!
-! reset shr logging to my log file
-!
-!----------------------------------------------------------------------------
-
-    call shr_file_getLogUnit (shrlogunit)
-    call shr_file_getLogLevel(shrloglev)
-    call shr_file_setLogUnit (stdout)
-   
 !-----------------------------------------------------------------------
 !
 !  check for consistency of pop and sync clock initial time
@@ -388,7 +384,7 @@ contains
     call ESMF_ArraySpecSet(arrayspec, rank=2, typekind=ESMF_TYPEKIND_R8, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-    distgrid = ocn_distgrid_esmf(gsize)
+    distgrid = ocn_distgrid_esmf(gsize,POP_MCT_GSMap3d_o,mpicom_ocn)
 
     call ESMF_AttributeSet(export_state, name="gsize", value=gsize, rc=rc)
     if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
@@ -408,7 +404,7 @@ contains
 
     ! Set values of dom (needs ocn initialization info)
 
-    call ocn_domain_esmf(dom)
+    call ocn_domain_esmf(dom,POP_MCT_dom3d_o,mpicom_ocn)
    
     !----------------------------------------- 
     !  Create o2x 
@@ -451,7 +447,7 @@ contains
     call ESMF_StateAdd(import_state, (/x2o/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
    
-    call esmf2mct_init(distgrid, OCNID, gsmap_o, mpicom_ocn, gsize=gsize, rc=rc)
+    call esmf2mct_init(distgrid, POP_MCT_OCNID, gsmap_o, mpicom_ocn, gsize=gsize, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
     call esmf2mct_init(dom, dom_o, rc=rc)
@@ -459,7 +455,6 @@ contains
 
     POP_MCT_gsMap_o => gsMap_o
     POP_MCT_dom_o   => dom_o
-    POP_MCT_OCNID   =  OCNID
 
     call esmfshr_util_ArrayGetSize(o2x, lsize1=nsend, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
@@ -538,15 +533,7 @@ contains
    call ESMF_AttributeSet(export_state, name="ocn_ny", value=ny_global, rc=rc)
    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-!----------------------------------------------------------------------------
-!
-! Reset shr logging to original values
-!
-!----------------------------------------------------------------------------
-
    print * , 'done esmf export'
-   call shr_file_setLogUnit (shrlogunit)
-   call shr_file_setLogLevel(shrloglev)
 
 #if (defined _MEMTRACE)
    if(iam  == 0) then
@@ -649,6 +636,15 @@ contains
 !    call ESMF_AttributeSet(comp, "ResponsiblePartyRole", "contact", &
 !                           convention=convCIM, purpose=purpComp, rc=rc)
 #endif
+
+!----------------------------------------------------------------------------
+!
+! Reset shr logging to original values
+!
+!----------------------------------------------------------------------------
+
+   call shr_file_setLogUnit (shrlogunit)
+   call shr_file_setLogLevel(shrloglev)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -956,7 +952,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !IROUTINE: ocn_SetGSMap_esmf
 ! !INTERFACE:
 
-  type(ESMF_DistGrid) function ocn_DistGrid_esmf(gsize)
+  type(ESMF_DistGrid) function ocn_DistGrid_esmf(gsize, gsmap3d_ocn, mpicom_ocn)
 
 ! !DESCRIPTION:
 !  This routine creates the ocean distgrid
@@ -967,7 +963,9 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 ! !INPUT/OUTPUT PARAMETERS:
 
     implicit none
-    integer, intent(out)            :: gsize
+    integer, intent(out)           :: gsize
+    type(mct_gsMap), intent(inout) :: gsMap3d_ocn
+    integer, intent(in)            :: mpicom_ocn
 
 !EOP
 !BOC
@@ -981,7 +979,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
       gindex(:)
 
     integer (int_kind) ::   &
-      i,j, n, iblock, &
+      i,j, n, iblock, k, &
       lsize,   &
       rc,      &
       ier
@@ -1000,6 +998,8 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
     enddo
     lsize = n
     allocate(gindex(lsize),stat=ier)
+
+    !--- 2d ---
 
     ! not correct for padding, use "n" above
     !    lsize = block_size_x*block_size_y*nblocks_clinic
@@ -1021,6 +1021,30 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
     deallocate(gindex)
 
+    !--- 3d ---
+
+    gsize = nx_global*ny_global*km
+    lsize = lsize*km
+    allocate(gindex(lsize),stat=ier)
+
+    n = 0
+    do k = 1,km
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+       do i=this_block%ib,this_block%ie
+          n=n+1
+          gindex(n) = (k-1)*(nx_global*ny_global) + &
+             (this_block%j_glob(j)-1)*(nx_global) + this_block%i_glob(i) 
+       enddo
+       enddo
+    enddo
+    enddo
+
+    call mct_gsMap_init( gsMap3d_ocn, gindex, mpicom_ocn, POP_MCT_OCNID, lsize, gsize )
+
+    deallocate(gindex)
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -1031,7 +1055,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 ! !IROUTINE: ocn_domain_esmf
 ! !INTERFACE:
 
- subroutine ocn_domain_esmf( dom )
+ subroutine ocn_domain_esmf( dom, dom3d_o, mpicom_ocn )
 
 ! !DESCRIPTION:
 !  This routine creates the ocean domain
@@ -1042,7 +1066,9 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 ! !INPUT/OUTPUT PARAMETERS:
 
     implicit none
-    type(ESMF_Array), intent(inout)     :: dom
+    type(ESMF_Array), intent(inout) :: dom
+    type(mct_gGrid) , intent(inout) :: dom3d_o
+    integer         , intent(in)    :: mpicom_ocn
 
 !EOP
 !BOC
@@ -1055,7 +1081,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
     integer (int_kind) :: rc
 
     integer (int_kind) ::   &
-      i,j, n, iblock
+      i,j, n, iblock, k, klev, n3, ncnt, lsize
 
     integer (int_kind) ::   &
       klon,klat,karea,kmask,kfrac ! domain fields
@@ -1069,6 +1095,14 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
     real(R8)  :: &
       frac                ! temporary var to compute frac/mask from KMT
 
+    integer, pointer :: &
+      idata(:)
+
+    real(r8), pointer :: &
+      data(:)
+
+    character(len=*), parameter  :: &
+         SubName = "ocn_domain_esmf"
 !-----------------------------------------------------------------------
 
     call ESMF_ArrayGet(dom, localDe=0, farrayPtr=fptr, rc=rc)
@@ -1099,7 +1133,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
     fptr(:,:) = -9999.0_R8
     n=0
-
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j=this_block%jb,this_block%je
@@ -1115,6 +1148,76 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
        enddo
        enddo
     enddo
+
+    !--- initialize 3d domain ---
+
+    lsize = mct_gsMap_lsize(POP_MCT_gsmap3d_o, mpicom_ocn)
+    call mct_gGrid_init( GGrid=dom3d_o, CoordChars=trim(seq_flds_dom_coord), &
+       OtherChars=trim(seq_flds_dom_other), lsize=lsize )
+    call mct_aVect_zero(dom3d_o%data)
+
+    call mct_gsMap_orderedPoints(POP_MCT_gsMap3d_o, my_task, idata)
+    call mct_gGrid_importIAttr(dom3d_o,'GlobGridNum',idata,lsize)
+
+    allocate(data(lsize))
+    
+    data(:) = -9999.0_R8
+    call mct_gGrid_importRAttr(dom3d_o,"lat"  ,data,lsize)
+    call mct_gGrid_importRAttr(dom3d_o,"lon"  ,data,lsize)
+    call mct_gGrid_importRAttr(dom3d_o,"area" ,data,lsize)
+    call mct_gGrid_importRAttr(dom3d_o,"aream",data,lsize)
+    data(:) = 0.0_R8
+    call mct_gGrid_importRAttr(dom3d_o,"mask",data,lsize)
+    call mct_gGrid_importRAttr(dom3d_o,"frac",data,lsize)
+
+    if (mod(lsize,n) /= 0) then
+       write(stdout,*) trim(subname),' ERROR: 2d/3d size ',lsize,n
+       call shr_sys_abort( SubName//":: 2d/3d size mismatch")
+    else
+       klev = lsize/n
+    endif
+
+    ncnt = n
+    n3=0
+    do k = 1,klev
+    do n = 1,ncnt
+       n3=n3+1
+       data(n3) = fptr(klon,n)
+    enddo
+    enddo
+    call mct_gGrid_importRattr(dom3d_o,"lon",data,lsize) 
+
+    n3=0
+    do k = 1,klev
+    do n = 1,ncnt
+       n3=n3+1
+       data(n3) = fptr(klat,n)
+    enddo
+    enddo
+    call mct_gGrid_importRattr(dom3d_o,"lat",data,lsize) 
+
+    n3=0
+    do k = 1,klev
+    do n = 1,ncnt
+       n3=n3+1
+       data(n3) = fptr(karea,n)
+    enddo
+    enddo
+    call mct_gGrid_importRattr(dom3d_o,"area",data,lsize) 
+
+    n3=0
+    do k = 1,klev
+    do n = 1,ncnt
+       n3=n3+1
+       data(n3) = fptr(kfrac,n)
+    enddo
+    enddo
+    call mct_gGrid_importRattr(dom3d_o,"mask",data,lsize) 
+    call mct_gGrid_importRattr(dom3d_o,"frac",data,lsize) 
+
+    deallocate(data)
+    deallocate(idata)
+
 
 !-----------------------------------------------------------------------
 !EOC

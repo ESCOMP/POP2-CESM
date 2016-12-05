@@ -58,7 +58,6 @@
 
    implicit none
    private
-   save
 
   include 'mpif.h'
 
@@ -3956,8 +3955,7 @@ subroutine ovf_reg_avgs(time_level)
             ovf(ovf_id)%Mp     = Mp
             ! recompute phi based on actual transports
             phi = ovf(ovf_id)%Me / (ovf(ovf_id)%Mp + c1)
-            ! if time averaging time step, include last time step 
-            !*** do we need a similar mod if using Robert filtering?
+            ! if time averaging or Robert filtering time step, include last time step 
             if( avg_ts ) then
                phi = (ovf(ovf_id)%Me_n + ovf(ovf_id)%Me) / (ovf(ovf_id)%Mp_n + ovf(ovf_id)%Mp + c1)
             endif
@@ -4088,8 +4086,7 @@ subroutine ovf_reg_avgs(time_level)
         ovf(ovf_id)%Mp     = Mp
         ! recompute phi based on actual transports
         phi = ovf(ovf_id)%Me / (ovf(ovf_id)%Mp + c1)
-        ! if time averaging time step, include last time step 
-        !*** do we need a similar mod if using Robert filtering?
+        ! if time averaging, include last time step 
         if( avg_ts ) then
            phi = (ovf(ovf_id)%Me_n + ovf(ovf_id)%Me) / (ovf(ovf_id)%Mp_n + ovf(ovf_id)%Mp + c1)
         endif
@@ -4232,7 +4229,7 @@ subroutine ovf_reg_avgs(time_level)
    logical (log_kind), dimension(:), allocatable :: post_array
 
    if(prnt .and. my_task == master_task) then
-      write(stdout,*) 'ovf_loc_prd called '
+      write(stdout,*) 'ovf_loc_prd called nsteps_total = ', nsteps_total
       call shr_sys_flush(stdout)
    endif
 
@@ -4326,9 +4323,9 @@ subroutine ovf_reg_avgs(time_level)
                                 (ovf(ovf_id)%rho_adj%prd(m)-c1)*c1000, &
                                 k_p,T_p,S_p,zt(k_p),(rho_p-c1)*c1000
                         end if
-5                    format(' neutral lev search- m rho_adj_m-1 rho_adj_m ', &
-                          'k_p T_p S_p zt(k_p) rho_p =',/ &
-                          2x,i2,2x,2(f12.8,2x),4x,i2,4(f12.8,2x))
+5                    format('(ovf_loc_prd) neutral lev search- m rho_adj_m-1 rho_adj_m ', &
+                          'k_p T_p S_p zt(k_p) rho_p =',  &    ! no line break
+                          1x,i2,1x,2(f12.8,1x),i2,2(f20.16,1x),f19.8,1x,f12.8)
                   end if
                   if(rho_p .gt. ovf(ovf_id)%rho_adj%prd(m)) then
                      m_neut = m+1
@@ -4351,7 +4348,7 @@ subroutine ovf_reg_avgs(time_level)
             ovf(ovf_id)%prd_set   = m_neut
             if (prnt) then
                write(stdout,20) n,T_p,S_p*c1000,(rho_p-c1)*c1000,m_neut
-20             format(' For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
+20             format('(ovf_loc_prd) For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
             end if
             if( m_neut_org .ne. 0 .and. m_neut_org .ne. m_neut ) then
                ! product point has moved
@@ -4365,7 +4362,7 @@ subroutine ovf_reg_avgs(time_level)
                m = ovf(ovf_id)%prd_set  ! product set for insertion
                do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
                   kprd = ovf(ovf_id)%loc_prd(m,mp)%k
-                  ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
+                  ufrc = c1/real((ovf(ovf_id)%num_prd(m)-1),r8)
                   do iblock = 1,nblocks_clinic
                      this_block = get_block(blocks_clinic(iblock),iblock)
                      ib = this_block%ib
@@ -4397,8 +4394,8 @@ subroutine ovf_reg_avgs(time_level)
                                  if(prnt) then
                                     write(stdout,30) ovf(ovf_id)%loc_prd(m,mp)%i,ovf(ovf_id)%loc_prd(m,mp)%j, &
                                          ovf(ovf_id)%loc_prd(m,mp)%k,ovf(ovf_id)%Mp_nm1,ufrc,dz(kprd),Uovf_nm1
-30                                  format(' loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe10.3,1x), &
-                                         'Uovf_nm1=',1pe10.3)
+30                                  format('(ovf_loc_prd) loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe25.15,1x), &
+                                         'Uovf_nm1=',1pe25.15)
                                  endif
                               endif
                            end do  ! i
@@ -4450,9 +4447,9 @@ subroutine ovf_reg_avgs(time_level)
                   rb7 = myRecvBuff(loc+6)
                   rb8 = myRecvBuff(loc+7)
                   write(stdout,50) ib1, rb2, rb3, ib4, rb5, rb6, rb7, rb8
-50                format(' neutral lev search- m rho_adj_m-1 rho_adj_m ', &
-                       'k_p T_p S_p zt(k_p) rho_p =',/ &
-                       2x,i2,2x,2(f12.8,2x),4x,i2,4(f12.8,2x))
+50                format('(ovf_loc_prd) neutral lev search- m rho_adj_m-1 rho_adj_m ', &
+                       'k_p T_p S_p zt(k_p) rho_p =',  &  ! no line break
+                       1x,i2,1x,2(f12.8,1x),i2,2(f20.16,1x),f19.8,1x,f12.8)
                   loc = loc + len !advance for next one
                end do ! i
                ib1 = int(myRecvBuff(loc)) 
@@ -4461,7 +4458,7 @@ subroutine ovf_reg_avgs(time_level)
                rb4 = myRecvBuff(loc+3)
                ib5 = int( myRecvBuff(loc+4))
                write(stdout,200) ib1, rb2, rb3, rb4, ib5
-200            format(' For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
+200            format('(ovf_loc_prd) For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
             end if !print
          end if !end of master not in ovf 
       end do !ovf loop
@@ -4534,7 +4531,7 @@ subroutine ovf_reg_avgs(time_level)
          !error check
          if( m_neut .eq. 0 ) then
             write(stdout,101) T_p,S_p,rho_p
-101         format(' ovf_loc_prd: no prd lev found for T,S,rho=', &
+101         format('(ovf_loc_prd) no prd lev found for T,S,rho=', &
                  3(f10.5,2x))
             call shr_sys_flush(stdout)
             call exit_POP(sigAbort,'ERROR no product level found')
@@ -4577,7 +4574,7 @@ subroutine ovf_reg_avgs(time_level)
             m = ovf(ovf_id)%prd_set  ! product set for insertion
             do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
                kprd = ovf(ovf_id)%loc_prd(m,mp)%k
-               ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
+               ufrc = c1/real((ovf(ovf_id)%num_prd(m)-1),r8)
                do iblock = 1,nblocks_clinic
                   this_block = get_block(blocks_clinic(iblock),iblock)
                   ib = this_block%ib
@@ -4609,8 +4606,8 @@ subroutine ovf_reg_avgs(time_level)
                               if(prnt) then
                                  write(stdout,31) ovf(ovf_id)%loc_prd(m,mp)%i,ovf(ovf_id)%loc_prd(m,mp)%j, &
                                       ovf(ovf_id)%loc_prd(m,mp)%k,ovf(ovf_id)%Mp_nm1,ufrc,dz(kprd),Uovf_nm1
-31                               format(' loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe10.3,1x), &
-                                      'Uovf_nm1=',1pe10.3)
+31                               format('(ovf_loc_prd) loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe25.15,1x), &
+                                      'Uovf_nm1=',1pe25.15)
                               endif
                            endif
                         end do  ! i
@@ -4720,7 +4717,7 @@ subroutine ovf_reg_avgs(time_level)
       ovf_id = ovf_groups%groupIds(n)
 ! src
       do m=1,ovf(ovf_id)%num_src  ! source
-         ufrc = c1/real(ovf(ovf_id)%num_src-1)
+         ufrc = c1/real((ovf(ovf_id)%num_src-1),r8)
          if(m==1 .or. m==ovf(ovf_id)%num_src) ufrc = ufrc/c2
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
@@ -4750,7 +4747,7 @@ subroutine ovf_reg_avgs(time_level)
       end do  ! source
 ! ent
       do m=1,ovf(ovf_id)%num_ent  ! entrainment
-         ufrc = c1/real(ovf(ovf_id)%num_ent-1)
+         ufrc = c1/real((ovf(ovf_id)%num_ent-1),r8)
          if(m==1 .or. m==ovf(ovf_id)%num_ent) ufrc = ufrc/c2
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
@@ -4787,7 +4784,7 @@ subroutine ovf_reg_avgs(time_level)
       end do
       m = ovf(ovf_id)%prd_set  ! product set for insertion
       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
-         ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
+         ufrc = c1/real((ovf(ovf_id)%num_prd(m)-1),r8)
          if(mp==1 .or. mp==ovf(ovf_id)%num_prd(m)) ufrc = ufrc/c2
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
@@ -4883,7 +4880,7 @@ subroutine ovf_reg_avgs(time_level)
 ! src
       do m=1,ovf(ovf_id)%num_src  ! source
          ksrc = ovf(ovf_id)%loc_src(m)%k
-         ufrc = c1/real(ovf(ovf_id)%num_src-1)
+         ufrc = c1/real((ovf(ovf_id)%num_src-1),r8)
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4934,7 +4931,7 @@ subroutine ovf_reg_avgs(time_level)
 ! ent
       do m=1,ovf(ovf_id)%num_ent  ! entrainment
          kent = ovf(ovf_id)%loc_ent(m)%k
-         ufrc = c1/real(ovf(ovf_id)%num_ent-1)
+         ufrc = c1/real((ovf(ovf_id)%num_ent-1),r8)
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4986,7 +4983,7 @@ subroutine ovf_reg_avgs(time_level)
       m = ovf(ovf_id)%prd_set  ! product set for insertion
       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
          kprd = ovf(ovf_id)%loc_prd(m,mp)%k
-         ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
+         ufrc = c1/real((ovf(ovf_id)%num_prd(m)-1),r8)
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib

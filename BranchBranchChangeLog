@@ -1,6 +1,83 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    5 December 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n49_marbl_dev_n23_cesm_pop_2_1_20161116
+Tag Summary: Merge marbl_dev_n23 onto this branch
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/config_files/definition.xml
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildlib
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg
+M       cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg
+M       cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+ M      drivers/cpl
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/POP_MCT_vars_mod.F90
+M       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+ M      drivers/cpl_none
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/ocn.ecosys.tavg.csh
+M       mpi/POP_BroadcastMod.F90
+M       mpi/POP_CommMod.F90
+M       mpi/POP_HaloMod.F90
+M       mpi/POP_RedistributeMod.F90
+M       mpi/POP_ReductionsMod.F90
+M       source/baroclinic.F90
+M       source/budget_diagnostics.F90
+M       source/cfc11_mod.F90
+M       source/diagnostics.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_ap.F90
+M       source/forcing_coupled.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/forcing_sfwf.F90
+M       source/forcing_shf.F90
+M       source/forcing_ws.F90
+M       source/grid.F90
+M       source/hmix_gm.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/io_binary.F90
+M       source/io_tools.F90
+M       source/io_types.F90
+M       source/overflows.F90
+M       source/qflux_mod.F90
+M       source/restart.F90
+M       source/step_mod.F90
+M       source/strdata_interface_mod.F90
+M       source/surface_hgt.F90
+M       source/sw_absorption.F90
+M       source/tavg.F90
+M       source/time_management.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 October 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n48_marbl_dev_n15_cesm_pop_2_1_20160513
 Tag Summary: Merge marbl_dev_n15 onto this branch
