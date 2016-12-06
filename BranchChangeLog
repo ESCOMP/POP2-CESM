@@ -1,5 +1,19 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    5 December 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n24_cesm_pop_2_1_20161116
+Tag Summary: Update MARBL to 0.9.2
+
+Testing:     Bit for bit with marbl_dev_n23 out of cesm2_0_beta04 sandbox
+             on yellowstone_intel and yellowstone_gnu (klindsay verified
+             hobart_nag)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
 Developers:  jet
 Tag Date:    21 November 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n23_cesm_pop_2_1_20161116
