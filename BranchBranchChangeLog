@@ -7,7 +7,8 @@ Tag Summary: First pass at bringing in generalized interior forcing (also
              requires update of POP side of surface forcing to be consistent)
 
              Bit-for-bit with marbl_dev_n23 in aux_pop_MARBL test suite on
-             yellowstone_intel, yellowstone_gnu, and hobart_nag
+             yellowstone_intel, yellowstone_gnu, and hobart_nag (except that
+             tracer restoring does not work properly yet)
 
 Files Modified:
 M       source/ecosys_driver.F90
