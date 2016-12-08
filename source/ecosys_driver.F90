@@ -27,6 +27,7 @@ module ecosys_driver
   use communicate               , only : my_task, master_task
 
   use marbl_sizes               , only : num_surface_forcing_fields 
+  use marbl_sizes               , only : num_interior_forcing_fields 
 
   use marbl_config_mod          , only : lflux_gas_co2
 
@@ -105,10 +106,6 @@ module ecosys_driver
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
   integer :: flux_co2_id
   integer :: totalChl_id
-
-  ! Set by surface flux and used by interior
-  ! FIXME - this should be moved to be read in by set_interior if possible
-  real (r8) :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)     ! dust flux not stored in STF since dust is not prognostic
 
   ! Variables related to global averages
 
@@ -493,8 +490,8 @@ contains
                              num_elements,                                    &
                              fe_frac_dust,                                    &
                              fe_frac_bc,                                      &
-                             marbl_instances(1)%surface_forcing_metadata,     &
-                             marbl_instances(1)%interior_forcing_input%tracer_names, &
+                             marbl_instances(1)%surface_input_forcings,       &
+                             marbl_instances(1)%interior_input_forcings,      &
                              tmp_nl_buffer)
 
     !--------------------------------------------------------------------
@@ -683,8 +680,16 @@ contains
     use grid               , only : partial_bottom_cells
     use mcog               , only : mcog_nbins
     use state_mod          , only : ref_pressure
+    use ecosys_forcing_mod , only : interior_forcing_fields
     use ecosys_forcing_mod , only : ecosys_tracer_restore_data_3D
-    use ecosys_forcing_mod , only : fesedflux
+    use ecosys_forcing_mod , only : ecosys_forcing_set_interior_forcing_data
+    use ecosys_forcing_mod , only : dust_flux_in
+    use ecosys_forcing_mod , only : dustflux_ind
+    use ecosys_forcing_mod , only : PAR_col_frac_ind
+    use ecosys_forcing_mod , only : surf_shortwave_ind
+    use ecosys_forcing_mod , only : temperature_ind
+    use ecosys_forcing_mod , only : salinity_ind
+    use ecosys_forcing_mod , only : pressure_ind
 
     implicit none
 
@@ -710,6 +715,8 @@ contains
     integer (int_kind)      :: k   ! vertical level index
     integer (int_kind)      :: bid ! local block address for this block
     integer (int_kind)      :: n, d, ncols
+    real (r8), dimension(nx_block, ny_block, km) :: temperature, salinity
+    real (r8), dimension(nx_block, ny_block, km) :: pressure
     !-----------------------------------------------------------------------
 
     bid = this_block%local_id
@@ -719,17 +726,29 @@ contains
 
     call timer_start(ecosys_interior_timer, block_id=bid)
 
+    associate(marbl_interior_forcings => marbl_instances(bid)%interior_input_forcings)
+
+    !-----------------------------------------------------------------------
+    ! Set input surface forcing data and surface saved state data
+    !-----------------------------------------------------------------------
+
+    temperature = p5*(temp_old + temp_cur)
+    salinity = p5*(salt_old + salt_cur)*salt_to_ppt
+    do k=1,km
+      ! NOTE: ref_pressure is a function, not an array
+       pressure(:,:,k) = ref_pressure(k)
+    end do
+    call ecosys_forcing_set_interior_forcing_data(FRACR_bin, QSW_RAW_BIN,     &
+                        QSW_BIN, temperature, salinity, pressure,             &
+                        ecosys_qsw_distrb_const, bid)
+
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
-
-          !-----------------------------------------------------------
-          ! Copy data form slab to column
-          !-----------------------------------------------------------
 
           if (land_mask(i,c,bid)) then
 
              !-----------------------------------------------------------
-             ! Copy data form slab to column
+             ! Copy data from slab to column
              !-----------------------------------------------------------
 
              ! --- set marbl_domain kmt and if partial bottom cells then also delta_z ---
@@ -739,23 +758,18 @@ contains
                 marbl_instances(bid)%domain%delta_z(:) = DZT(i, c, :, bid)
              end if
 
-             ! --- marbl_interior_forcing from gcm ---
-             
-             marbl_instances(bid)%interior_forcing_input%PAR_col_frac(:) = FRACR_BIN(i, c, :)
-             if (ecosys_qsw_distrb_const) then ! select short-wave forcing
-                marbl_instances(bid)%interior_forcing_input%surf_shortwave(:) = QSW_RAW_BIN(i, c, :)
-             else
-                marbl_instances(bid)%interior_forcing_input%surf_shortwave(:) = QSW_BIN(i, c, :)
-             end if
-             marbl_instances(bid)%interior_forcing_input%dust_flux = dust_flux_in(i, c, bid)
-             marbl_instances(bid)%interior_forcing_input%temperature(:) = p5*(temp_old(i, c, :) + temp_cur(i, c, :))
-             marbl_instances(bid)%interior_forcing_input%salinity(:)    = p5*(salt_old(i, c, :) + salt_cur(i, c, :))*salt_to_ppt
-             do k=1,km
-               ! NOTE: ref_pressure is a function, not an array
-                marbl_instances(bid)%interior_forcing_input%pressure(k) = ref_pressure(k)
+             ! --- set forcing fields ---
+
+             do n = 1, num_interior_forcing_fields
+               if (allocated(interior_forcing_fields(n)%field_0d)) then
+                 marbl_instances(bid)%interior_input_forcings(n)%field_0d(1) = &
+                      interior_forcing_fields(n)%field_0d(i,c,bid)
+               else
+                 marbl_instances(bid)%interior_input_forcings(n)%field_1d(1,:) = &
+                      interior_forcing_fields(n)%field_1d(i,c,:,bid)
+               end if
              end do
-             marbl_instances(bid)%interior_forcing_input%fesedflux(:)  = fesedflux(i, c, :, bid)
-             
+
              ! --- set column tracers ---
 
              do n = 1, marbl_tracer_cnt
@@ -818,6 +832,8 @@ contains
        end do ! do i
     end do ! do c
     
+    end associate
+
     call timer_stop(ecosys_interior_timer, block_id=bid)
 
   end subroutine ecosys_driver_set_interior
@@ -843,7 +859,8 @@ contains
     use named_field_mod      , only : named_field_set
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
-    use ecosys_forcing_mod   , only : ecosys_forcing_set_forcing_data
+    use ecosys_forcing_mod   , only : ecosys_forcing_set_surface_forcing_data
+    use ecosys_forcing_mod   , only : surface_forcing_fields
 
     implicit none
 
@@ -866,14 +883,13 @@ contains
     integer (int_kind) :: index_marbl                                 ! marbl index
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
     integer (int_kind) :: glo_scalar_cnt
-    real    (r8)       :: input_forcing_data(nx_block, ny_block, num_surface_forcing_fields, max_blocks_clinic)
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
-    call ecosys_forcing_set_forcing_data( &
+    call ecosys_forcing_set_surface_forcing_data( &
          ciso_on,                         &
          land_mask,                       &
          u10_sqr,                         &
@@ -882,11 +898,7 @@ contains
          dust_flux,                       &
          black_carbon_flux,               &
          sst,                             &
-         sss,                             &
-         input_forcing_data)
-
-    ! The following is used in ecosys_driver_set_interior on the next timestep
-    dust_flux_in(:,:,:) = input_forcing_data(:,:, marbl_instances(1)%surface_forcing_ind%dust_flux_id,:)
+         sss)
 
     !-----------------------------------------------------------------------
     ! Set output surface tracer fluxes
@@ -908,8 +920,8 @@ contains
              index_marbl = i + (j-1)*nx_block
 
              do n = 1,num_surface_forcing_fields
-                marbl_instances(iblock)%surface_input_forcings(index_marbl,n) = &
-                     input_forcing_data(i,j,n,iblock)
+                marbl_instances(iblock)%surface_input_forcings(n)%field_0d(index_marbl) = &
+                     surface_forcing_fields(n)%field_0d(i,j,iblock)
              end do
 
              do n = 1,marbl_tracer_cnt
