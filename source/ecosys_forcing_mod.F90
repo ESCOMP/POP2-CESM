@@ -146,7 +146,6 @@ module ecosys_forcing_mod
 
   type(forcing_fields_metadata_type) :: surface_forcing_metadata
   type(forcing_fields_metadata_type) :: interior_forcing_metadata
-  type(forcing_file_type), dimension(:), allocatable :: interior_restore_files
 
   !---------------------------------------------------------------------
   !  Variables read in via &ecosys_forcing_data_nml
@@ -236,7 +235,6 @@ module ecosys_forcing_mod
 
   ! Surface and interior forcing fields
   real(r8), target         :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
-  real(r8), target         :: fesedflux(nx_block, ny_block, km, max_blocks_clinic)
   real(r8),         public :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
 
@@ -249,9 +247,6 @@ module ecosys_forcing_mod
 
   integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_shr_strdata_advance_timer
-
-  type(ecosys_restoring_data_type), allocatable, dimension(:), public ::      &
-                                                ecosys_tracer_restore_data_3D
 
   ! Some surface forcing fields need special treatment, so we store indices
   integer(int_kind) :: dust_ind     = 0, &
@@ -300,6 +295,8 @@ contains
                                  fe_frac_bc, surface_forcings,                &
                                  interior_forcings, forcing_nml)
 
+    use passive_tracer_tools, only : read_field
+
     use POP_CommMod, only : POP_Barrier
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
@@ -333,11 +330,12 @@ contains
     !-----------------------------------------------------------------------
     character(*), parameter  :: subname = 'ecosys_forcing_mod:ecosys_forcing_init'
     character(len=char_len)  :: err_msg
-     character(char_len)     :: marbl_varname, units
+    character(char_len)      :: marbl_varname, tracer_name, units
     integer (int_kind)       :: nml_error                  ! error flag for nml read
     character(char_len_long) :: ioerror_msg
-    integer                  :: m, n, match
+    integer                  :: m, n
     type(forcing_monthly_every_ts), pointer :: file_details
+    logical                  :: var_processed
 
     ! Virtual fluxes set in namelist
     real(r8) :: surf_avg_dic_const
@@ -835,7 +833,7 @@ contains
                               id=n)
 
         case DEFAULT
-          write(err_msg, "(A,1X,A)") trim(surface_forcings(n)%metadata%varname),         &
+          write(err_msg, "(A,1X,A)") trim(surface_forcings(n)%metadata%varname), &
                          'is not a valid surface forcing field name.'
           call document(subname, err_msg)
           call exit_POP(sigAbort, 'Stopping in ' // subname)
@@ -852,55 +850,94 @@ contains
 
     allocate(interior_forcing_fields(num_interior_forcing_fields))
     call interior_forcing_metadata%construct(1, num_interior_forcing_fields)
+
     do n=1,num_interior_forcing_fields
+      var_processed = .false.
       marbl_varname = interior_forcings(n)%metadata%varname
       units = interior_forcings(n)%metadata%field_units
-      select case (trim(interior_forcings(n)%metadata%varname))
-        case ('Dust Flux')
-          dustflux_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='dust_flux', id=n)
-          allocate(interior_forcing_fields(n)%field_0d(nx_block, ny_block, nblocks_clinic))
-        case ('PAR Column Fraction')
-          PAR_col_frac_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='PAR_col_frac', id=n)
-          allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, mcog_nbins, nblocks_clinic))
-        case ('Surface Shortwave')
-          surf_shortwave_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='surf_shortwave', id=n)
-          allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, mcog_nbins, nblocks_clinic))
-        case ('Temperature')
-          temperature_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='temperature', id=n)
-          allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
-        case ('Salinity')
-          salinity_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='salinity', id=n)
-          allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
-        case ('Pressure')
-          pressure_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='pressure', id=n)
-          allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
-        case ('Iron Sediment Flux')
-          fesedflux_ind = n
-          call interior_forcing_metadata%add_forcing_field(field_source='driver', &
-                     marbl_varname=marbl_varname, field_units=units,              &
-                     driver_varname='iron_flux', id=n)
-          allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
-        case DEFAULT
-          print*, "MNL MNL"
-      end select
+
+      ! Check to see if this forcing field is tracer restoring
+      if (index(marbl_varname,'Restoring').gt.0) then
+        tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
+        do m=1,marbl_tracer_cnt
+          if (trim(tracer_name).eq.trim(restore_short_names(m))) then
+            ! Check to make sure restore_filenames and restore_file_varnames
+            ! have both been provided by namelist
+            if (len_trim(restore_filenames(m))*                               &
+                len_trim(restore_file_varnames(m)).ne.0) then
+              if (my_task.eq.master_task) then
+                write(stdout, "(6A)") "Will restore ", trim(tracer_name),     &
+                                    " with ", trim(restore_file_varnames(m)), &
+                                    " from ", trim(restore_filenames(m))
+              end if
+              call interior_forcing_metadata%add_forcing_field(               &
+                         field_source='file_time_invariant',                  &
+                         marbl_varname=marbl_varname, field_units=units,      &
+                         filename=restore_filenames(m),                       &
+                         file_varname=restore_file_varnames(m),               &
+                         id=n)
+              allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+              var_processed = .true.
+            end if
+            exit
+          end if
+        end do
+      end if
+
+      if (.not.var_processed) then
+        select case (trim(interior_forcings(n)%metadata%varname))
+          case ('Dust Flux')
+            dustflux_ind = n
+            call interior_forcing_metadata%add_forcing_field(field_source='driver', &
+                       marbl_varname=marbl_varname, field_units=units,              &
+                       driver_varname='dust_flux', id=n)
+            allocate(interior_forcing_fields(n)%field_0d(nx_block, ny_block, nblocks_clinic))
+          case ('PAR Column Fraction')
+            PAR_col_frac_ind = n
+            call interior_forcing_metadata%add_forcing_field(field_source='driver', &
+                       marbl_varname=marbl_varname, field_units=units,              &
+                       driver_varname='PAR_col_frac', id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, mcog_nbins, nblocks_clinic))
+          case ('Surface Shortwave')
+            surf_shortwave_ind = n
+            call interior_forcing_metadata%add_forcing_field(field_source='driver', &
+                       marbl_varname=marbl_varname, field_units=units,              &
+                       driver_varname='surf_shortwave', id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, mcog_nbins, nblocks_clinic))
+          case ('Temperature')
+            temperature_ind = n
+            call interior_forcing_metadata%add_forcing_field(field_source='driver', &
+                       marbl_varname=marbl_varname, field_units=units,              &
+                       driver_varname='temperature', id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+          case ('Salinity')
+            salinity_ind = n
+            call interior_forcing_metadata%add_forcing_field(field_source='driver', &
+                       marbl_varname=marbl_varname, field_units=units,              &
+                       driver_varname='salinity', id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+          case ('Pressure')
+            pressure_ind = n
+            call interior_forcing_metadata%add_forcing_field(field_source='driver', &
+                       marbl_varname=marbl_varname, field_units=units,              &
+                       driver_varname='pressure', id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+          case ('Iron Sediment Flux')
+            fesedflux_ind = n
+            call interior_forcing_metadata%add_forcing_field(                 &
+                       field_source='file_time_invariant',                    &
+                       marbl_varname=marbl_varname, field_units=units,        &
+                       filename=fesedflux_input%filename,                     &
+                       file_varname=fesedflux_input%file_varname,             &
+                       id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+          case DEFAULT
+            write(err_msg, "(A,1X,A)") trim(interior_forcings(n)%metadata%varname), &
+                           'is not a valid interior forcing field name.'
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
+        end select
+      end if
     end do
 
     if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
@@ -910,93 +947,45 @@ contains
     end if
 
     !--------------------------------------------------------------------------
-    !  Tracer restoring
+    !  Read any forcing fields that are time invariant
     !--------------------------------------------------------------------------
 
-    allocate(ecosys_tracer_restore_data_3D(0))
-    allocate(interior_restore_files(0))
-#if 0
-    ! Check if data are provided for all tracers that MARBL wants to restore
-    allocate(ecosys_tracer_restore_data_3D(size(tracer_restore)))
-
-    allocate(interior_restore_files(size(tracer_restore)))
-    do n=1,size(tracer_restore)
-      match = 0
-      do m=1,marbl_tracer_cnt
-        if (trim(tracer_restore(n)).eq.trim(restore_short_names(m))) then
-          match = m
-          interior_restore_files(n)%filename = restore_filenames(m)
-          interior_restore_files(n)%file_varname = restore_file_varnames(m)
-          if (my_task.eq.master_task) then
-            write(stdout, "(6A)") "Will restore ", trim(tracer_restore(n)),   &
-                                  " with ", trim(restore_file_varnames(m)),   &
-                                  " from ", trim(restore_filenames(m))
+    do n=1,num_interior_forcing_fields
+      associate (forcing_field =>interior_forcing_metadata%forcing_fields(n))
+        if (trim(forcing_field%field_source).eq. 'file_time_invariant') then
+          if (allocated(interior_forcing_fields(n)%field_0d)) then
+            call read_field('nc', forcing_field%field_file_info%filename,     &
+                            forcing_field%field_file_info%file_varname,       &
+                            interior_forcing_fields(n)%field_0d)
+          else
+            call read_field('nc', forcing_field%field_file_info%filename,     &
+                            forcing_field%field_file_info%file_varname,       &
+                            interior_forcing_fields(n)%field_1d)
           end if
-          exit
         end if
-      end do
-      if (match.eq.0) then
-        write(err_msg, "(2A)") "No restoring data provided for ",             &
-                               trim(tracer_restore(n))
-        call document(subname, err_msg)
-        call exit_POP(sigAbort, 'Stopping in ' // subname)
-      end if
+      end associate
     end do
-#endif
 
   end subroutine ecosys_forcing_init
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_read_interior_data(land_mask, ecosys_restore)
+  subroutine ecosys_forcing_read_interior_data(land_mask)
 
-    use marbl_restore_mod   , only : marbl_restore_type
     use passive_tracer_tools, only : read_field
     use grid                , only : KMT
 
     implicit none
 
     logical,                  intent(in)  :: land_mask(nx_block,ny_block,max_blocks_clinic)
-    type(marbl_restore_type), intent(inout) :: ecosys_restore
-
     integer :: i, j, iblock, k, n
     real (r8) :: subsurf_fesed      ! sum of subsurface fesed values
 
     !-----------------------------------------------------------------------
-    !  load restoring fields (if required)
+    !  subsurf_fesed adjustment
     !-----------------------------------------------------------------------
 
-    do n=1,size(ecosys_tracer_restore_data_3D)
-       associate(&
-            marbl_tracer => ecosys_restore%tracer_restore(n), &
-            global_field => ecosys_tracer_restore_data_3D(n)  &
-            )
-
-       call global_field%init()
-       call read_field('nc', interior_restore_files(n)%filename,        &
-            interior_restore_files(n)%file_varname,                     &
-            global_field%data)
-       do iblock=1,nblocks_clinic
-          do k=1,km
-             where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
-                global_field%data(:,:,k,iblock) = c0
-             end where
-          end do
-       end do
-
-       end associate
-    end do
-
-    !-----------------------------------------------------------------------
-    !  load fesedflux
-    !  add subsurface positives to 1 level shallower, to accomodate overflow pop-ups
-    !-----------------------------------------------------------------------
-
-    call read_field(fesedflux_input%file_fmt, &
-         fesedflux_input%filename, &
-         fesedflux_input%file_varname, &
-         fesedflux)
-
+    associate (fesedflux => interior_forcing_fields(fesedflux_ind)%field_1d)
     do iblock=1,nblocks_clinic
       do j=1, ny_block
         do i=1, nx_block
@@ -1017,6 +1006,7 @@ contains
         fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
       enddo
     enddo
+    end associate
 
   end subroutine ecosys_forcing_read_interior_data
 
@@ -1043,16 +1033,6 @@ contains
 
     associate(fields => interior_forcing_metadata%forcing_fields)
 
-      if (first_call) then
-        do index= 1,num_interior_forcing_fields
-          select case (fields(index)%field_source)
-            case ('file_time_invariant')
-              print*, "MNL MNL MNL"
-          end select
-        end do
-        first_call = .false.
-      end if
-
       do index= 1,num_interior_forcing_fields
         select case (fields(index)%field_source)
           case('driver')
@@ -1072,8 +1052,6 @@ contains
               interior_forcing_fields(index)%field_1d(:,:,:,bid) = salinity
             else if (index.eq.pressure_ind) then
               interior_forcing_fields(index)%field_1d(:,:,:,bid) = pressure
-            else if (index.eq.fesedflux_ind) then
-              interior_forcing_fields(index)%field_1d(:,:,:,bid) = fesedflux(:,:,:,bid)
             end if
         end select
       end do
@@ -2277,7 +2255,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(len=char_len), dimension(7) :: valid_field_sources
+    character(len=char_len), dimension(8) :: valid_field_sources
     integer(kind=int_kind)  :: n
     logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
@@ -2289,9 +2267,10 @@ contains
     valid_field_sources(2) = "driver"
     valid_field_sources(3) = "named_field"
     valid_field_sources(4) = "file"
-    valid_field_sources(5) = "marbl"
-    valid_field_sources(6) = "POP monthly calendar"
-    valid_field_sources(7) = "none"
+    valid_field_sources(5) = "file_time_invariant"
+    valid_field_sources(6) = "marbl"
+    valid_field_sources(7) = "POP monthly calendar"
+    valid_field_sources(8) = "none"
 
     ! check for valid source
     has_valid_source = .false.
@@ -2356,7 +2335,7 @@ contains
           call this%field_named_info%initialize(named_field)
        endif
 
-    case('file') 
+    case('file','file_time_invariant') 
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then

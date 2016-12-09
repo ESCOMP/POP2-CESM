@@ -445,7 +445,7 @@ contains
     endif
 
     !--------------------------------------------------------------------
-    !  Initialize ecosys forcing fields / restore fields
+    !  Initialize ecosys forcing fields
     !--------------------------------------------------------------------
 
     ! Determine MARBL tracer indices for tracers that use virtual fluxes
@@ -498,7 +498,7 @@ contains
     !  If tracer restoring is enabled, read restoring data
     !--------------------------------------------------------------------
 
-    call ecosys_forcing_read_interior_data(land_mask, marbl_instances(1)%restoring)
+    call ecosys_forcing_read_interior_data(land_mask)
 
     !--------------------------------------------------------------------
     !  Initialize ecosys_driver module variables
@@ -633,7 +633,7 @@ contains
     use running_mean_mod     , only : running_mean_init_var
 
     type(marbl_running_mean_0d_type), intent(in)  :: marbl_running_mean_var(:)
-    character(char_len)             , intent(out) :: ecosys_restart_filename
+    character(char_len)             , intent(in)  :: ecosys_restart_filename
     integer (int_kind), allocatable , intent(out) :: rmean_ind(:)
 
     !-----------------------------------------------------------------------
@@ -681,7 +681,6 @@ contains
     use mcog               , only : mcog_nbins
     use state_mod          , only : ref_pressure
     use ecosys_forcing_mod , only : interior_forcing_fields
-    use ecosys_forcing_mod , only : ecosys_tracer_restore_data_3D
     use ecosys_forcing_mod , only : ecosys_forcing_set_interior_forcing_data
     use ecosys_forcing_mod , only : dust_flux_in
     use ecosys_forcing_mod , only : dustflux_ind
@@ -775,13 +774,6 @@ contains
              do n = 1, marbl_tracer_cnt
                 marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
              end do 
-
-             ! --- set tracer restore fields ---
-
-             do n=1,size(ecosys_tracer_restore_data_3D)
-                marbl_instances(bid)%restoring%tracer_restore(n)%data(:) =    &
-                     ecosys_tracer_restore_data_3D(n)%data(i,c,:,bid)
-             end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
              do n=1,size(saved_state_interior)

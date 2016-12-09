@@ -1,6 +1,27 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    9 December 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n51_marbl_dev_n23_cesm_pop_2_1_20161116
+Tag Summary: First pass to make tracer restoring in MARBL functional again.
+             Updates on the MARBL side allow the library to get the restoring
+             fields directly from interior forcing, which means the POP driver
+             doesn't need any restoring-specific code (beyond the namelist
+             variables controlling how to read the data).
+
+             Also fixed a bug with intent of ecosys_restart_file when reading
+             running means from restart!
+
+             Bit-for-bit with marbl_dev_n23 in aux_pop_MARBL test suite on
+             yellowstone_intel, yellowstone_gnu, and hobart_nag (including the
+             tracer restoring tests)
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    8 December 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n50_marbl_dev_n23_cesm_pop_2_1_20161116
 Tag Summary: First pass at bringing in generalized interior forcing (also
