@@ -6416,6 +6416,23 @@ Default:
 </entry>
 
 <entry 
+id="restore_inv_tau_opt"
+type="char*256"
+category="ecosys"
+group="ecosys_forcing_data_nml"
+valid_values="const">
+Default: 'const'
+</entry>
+
+<entry 
+id="restore_inv_tau_const"
+type="real"
+category="ecosys"
+group="ecosys_forcing_data_nml">
+Default: 2.3e-6
+</entry>
+
+<entry 
 id="surf_avg_dic_const"
 type="real"
 category="ecosys"
@@ -6942,37 +6959,6 @@ Short name for tracers to apply restoring to
 Default:
 </entry>
 
-<entry 
-id="rest_time_inv_surf"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_time_inv_deep"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z0"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z1"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_driver_nml        - -->

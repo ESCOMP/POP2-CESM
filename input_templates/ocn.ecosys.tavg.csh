@@ -236,6 +236,7 @@ echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
 1  STF_${tracer}
 1  J_${tracer}
 1  ${tracer}_RESTORE
+1  ${tracer}_INV_TAU
 EOF
   end
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF

@@ -47,14 +47,6 @@ module ecosys_forcing_mod
 
   !*****************************************************************************
 
-  type :: ecosys_restoring_data_type
-    real(r8), allocatable :: data(:,:,:,:)
-  contains
-    procedure :: init => ecosys_restoring_data_init
-  end type ecosys_restoring_data_type
-
-  !*****************************************************************************
-
   type, private :: forcing_constant_type
      real(kind=r8) :: field_constant           ! constant value for field_source
    contains
@@ -202,6 +194,8 @@ module ecosys_forcing_mod
   character(char_len), dimension(marbl_tracer_cnt) :: restore_filenames
   character(char_len), dimension(marbl_tracer_cnt) :: restore_file_varnames
   character(char_len), dimension(marbl_tracer_cnt) :: restore_short_names
+  character(char_len)                              :: restore_inv_tau_opt
+  real(r8)                                         :: restore_inv_tau_const
 
   !-----------------------------------------------------------------------
   !  input surface forcing
@@ -359,8 +353,9 @@ contains
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
          ciso_atm_model_year, ciso_atm_data_year, restore_filenames,          &
-         restore_file_varnames, restore_short_names, surf_avg_alk_const,      &
-         surf_avg_dic_const, surf_avg_di13c_const, surf_avg_di14c_const
+         restore_file_varnames, restore_short_names, restore_inv_tau_opt,     &
+         restore_inv_tau_const, surf_avg_alk_const, surf_avg_dic_const,       &
+         surf_avg_di13c_const, surf_avg_di14c_const
 
     !-----------------------------------------------------------------------
     !  Set module variables from intent(in)
@@ -418,9 +413,11 @@ contains
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
 
-    restore_filenames = ''
+    restore_filenames     = ''
     restore_file_varnames = ''
-    restore_short_names = ''
+    restore_short_names   = ''
+    restore_inv_tau_opt   = 'const'
+    restore_inv_tau_const = 2.3e-6_r8
 
     surf_avg_alk_const   = 2225.0_r8
     surf_avg_dic_const   = 1944.0_r8
@@ -884,6 +881,36 @@ contains
         end do
       end if
 
+      ! Check to see if this forcing field is a restoring time scale
+      if (index(marbl_varname,'Inverse Timescale').gt.0) then
+        tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
+        do m=1,marbl_tracer_cnt
+          if (trim(tracer_name).eq.trim(restore_short_names(m))) then
+            select case (trim(restore_inv_tau_opt))
+              case('const')
+                call interior_forcing_metadata%add_forcing_field(                 &
+                           field_source='constant',                               &
+                           marbl_varname=marbl_varname, field_units=units,        &
+                           field_constant = restore_inv_tau_const,                &
+                           id=n)
+              ! case('file')
+              ! NOT SUPPORTED YET
+              ! will require additional namelist variables, and we can consider
+              ! reading in one file per tracer instead of using the same mask
+              ! for all restoring fields
+              case DEFAULT
+                write(err_msg, "(A,1X,A)") trim(restore_inv_tau_opt),             &
+                     'is not a valid option for restore_inv_tau_opt'
+                call document(subname, err_msg)
+                call exit_POP(sigAbort, 'Stopping in ' // subname)
+            end select
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+            var_processed = .true.
+            exit
+          end if
+        end do
+      end if
+
       if (.not.var_processed) then
         select case (trim(interior_forcings(n)%metadata%varname))
           case ('Dust Flux')
@@ -947,22 +974,32 @@ contains
     end if
 
     !--------------------------------------------------------------------------
-    !  Read any forcing fields that are time invariant
+    !  Set any constant forcing fields and
+    !  read any forcing fields that are time invariant
     !--------------------------------------------------------------------------
 
     do n=1,num_interior_forcing_fields
       associate (forcing_field =>interior_forcing_metadata%forcing_fields(n))
-        if (trim(forcing_field%field_source).eq. 'file_time_invariant') then
-          if (allocated(interior_forcing_fields(n)%field_0d)) then
-            call read_field('nc', forcing_field%field_file_info%filename,     &
-                            forcing_field%field_file_info%file_varname,       &
-                            interior_forcing_fields(n)%field_0d)
-          else
-            call read_field('nc', forcing_field%field_file_info%filename,     &
-                            forcing_field%field_file_info%file_varname,       &
-                            interior_forcing_fields(n)%field_1d)
-          end if
-        end if
+        select case (trim(forcing_field%field_source))
+          case ('constant')
+            if (allocated(interior_forcing_fields(n)%field_0d)) then
+              interior_forcing_fields(n)%field_0d =                           &
+                             forcing_field%field_constant_info%field_constant
+            else
+              interior_forcing_fields(n)%field_1d =                           &
+                             forcing_field%field_constant_info%field_constant
+            end if
+          case ('file_time_invariant')
+            if (allocated(interior_forcing_fields(n)%field_0d)) then
+              call read_field('nc', forcing_field%field_file_info%filename,   &
+                              forcing_field%field_file_info%file_varname,     &
+                              interior_forcing_fields(n)%field_0d)
+            else
+              call read_field('nc', forcing_field%field_file_info%filename,   &
+                              forcing_field%field_file_info%file_varname,     &
+                              interior_forcing_fields(n)%field_1d)
+            end if
+        end select
       end associate
     end do
 
@@ -2126,16 +2163,6 @@ contains
     call broadcast_array(ciso_atm_d14c_data_yr, master_task)
 
   end subroutine ciso_read_atm_D14C_data
-
-  !*****************************************************************************
-
-  subroutine ecosys_restoring_data_init(this)
-
-    class (ecosys_restoring_data_type), intent(inout) :: this
-
-    allocate(this%data(nx_block, ny_block, km, max_blocks_clinic))
-
-  end subroutine ecosys_restoring_data_init
 
   !*****************************************************************************
 

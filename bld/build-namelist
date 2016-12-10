@@ -1567,6 +1567,8 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'restore_filenames_derived');
   my $restore_file="12*" . $nl->get_value('restore_filenames_derived');
   add_default($nl, 'restore_filenames', 'val'=>"$restore_file", 'quote'=>'FALSE');
+  add_default($nl, 'restore_inv_tau_opt');
+  add_default($nl, 'restore_inv_tau_const');
 
   add_default($nl, 'surf_avg_dic_const');
   add_default($nl, 'surf_avg_alk_const');

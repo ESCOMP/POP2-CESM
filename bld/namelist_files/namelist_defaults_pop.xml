@@ -1205,6 +1205,9 @@
 <restore_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</restore_filenames_derived>
 <restore_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_filenames_derived>
 
+<restore_inv_tau_opt>const</restore_inv_tau_opt>
+<restore_inv_tau_const>2.3e-6</restore_inv_tau_const>
+
 <surf_avg_dic_const>1944.0</surf_avg_dic_const>          
 <surf_avg_alk_const>2225.0</surf_avg_alk_const>          
 <surf_avg_di13c_const>1944.0</surf_avg_di13c_const>  

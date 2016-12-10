@@ -2,6 +2,43 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    9 December 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n52_marbl_dev_n23_cesm_pop_2_1_20161116
+Tag Summary: MARBL wants the GCM to provide the inverse timescale for
+             restoring rather than computing it based on a piece-wise linear
+             parameterization. I introduced the namelist variable
+             restore_inv_tau_opt, which currently only accepts 'constant' as a
+             valid value but will be expanded to 'file' as well in the future.
+             The constant value used for inv_tau is determined by the
+             restore_inv_tau_const namelist variable (default = 2.3e-6). It
+             should be noted that the only testing we did previously used
+             MARBL's piece-wise linear function to define inv_tau = 2.3e-6
+             globally so this is bit-for-bit with the existing test suite.
+
+             MARBL now provides the inverse timescale as diagnostic output,
+             and POP writes it to tavg when lecosys_debug = .true.
+
+             Requires MARBL 049465d
+
+Testing:     Bit-for-bit with marbl_dev_n23 in aux_pop_MARBL test suite on
+             yellowstone_intel, yellowstone_gnu, and hobart_nag (including the
+             tracer restoring tests), except I added $NT new output fields
+             because the inverse timescale is now available for history files.
+             Also, the tests fail the NLCOMP because I added two new namelist
+             variables to ecosys_forcing_nml (and also removed two variables
+             from marbl_parms_nml which were only written by the
+             ecosys_restore_gx3v7 test).
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 December 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n51_marbl_dev_n23_cesm_pop_2_1_20161116
 Tag Summary: First pass to make tracer restoring in MARBL functional again.
              Updates on the MARBL side allow the library to get the restoring
