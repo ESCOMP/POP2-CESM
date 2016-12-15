@@ -904,7 +904,7 @@
    type (io_dim) :: &
       i_dim, j_dim, k_dim ! dimension descriptors
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), target, allocatable :: &
       TEMP_DATA           ! temp array for reading T,S data
 
    real (r8), dimension(:,:,:,:), allocatable :: &

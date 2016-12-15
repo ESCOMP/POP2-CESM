@@ -26,12 +26,15 @@ from CIME.utils import run_cmd
 logger = logging.getLogger(__name__)
 
 # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
-####################################################################################
-def _buildnml_pop(case):
-####################################################################################
-    """Write out the namelist for this component."""
+###############################################################################
+def buildnml(case, caseroot, compname):
+###############################################################################
+    """Build the pop namelist """
 
-    caseroot = case.get_value("CASEROOT")
+    # Build the component namelist 
+    if compname != "pop":
+        raise AttributeError
+
     cimeroot = case.get_value("CIMEROOT")
     srcroot = case.get_value("SRCROOT")
     din_loc_root = case.get_value("DIN_LOC_ROOT")
@@ -129,7 +132,7 @@ def _buildnml_pop(case):
 
         format = 'bin'
         if check_pointer_file:
-            if 'RESTART_FMT=nc' in open(rpointer_file).read():
+            if 'RESTART_FMT=nc' in open(pointer_file).read():
                 format = 'nc'
         os.environ["RESTART_INPUT_TS_FMT"] = format
                         
@@ -170,6 +173,10 @@ def _buildnml_pop(case):
         if err is not None:
             logger.info("     %s"%err)
 
+        # Note that build-namelist AND configure invoke xmlchange - so must re-read the xml files variables
+        # back into case 
+        case.read_xml()
+
         # copy pop namelist files from confdir to rundir
         if os.path.isdir(rundir):
             file_src  = os.path.join(confdir, "pop_in")
@@ -189,9 +196,7 @@ def _main_func():
 
     caseroot = parse_input(sys.argv)
     with Case(caseroot) as case:
-        _buildnml_pop(case)
-
-###############################################################################
+        buildnml(case, caseroot, "pop")
 
 if __name__ == "__main__":
     _main_func()

@@ -37,6 +37,7 @@ def _copy_files_to_blddir(case):
     # copy source files into obj dir
     srcroot = case.get_value("SRCROOT")
     glob_dirs = [os.path.join(srcroot,"components","pop","source"),
+                 os.path.join(srcroot,"components","pop","source","cvmix"),
                  os.path.join(srcroot,"components","pop","source","marbl"),
                  os.path.join(srcroot,"components","pop","mpi"),
                  os.path.join(srcroot,"components","pop","drivers","cpl")]
@@ -121,7 +122,6 @@ def _copy_files_to_blddir(case):
     # 5) Make sure both domain_size.F90 and POP_DomainSizeMod.F90 exist for the specified grid
 
     if POP_FOUND_d_s == 0:
-        print "DEBUG: i am here"
         expect(False, "you need either $OCN_GRID_domain_size.F90 or domain_size.F90")
 
     if POP_FOUND_DSM == 0:
@@ -180,14 +180,6 @@ def _build_pop():
 
         # build the library
         makefile = os.path.join(casetools, "Makefile")
-
-        libname = os.path.join(libroot,"libcvmix.a")
-        cmd = "%s -j %d -f %s %s" \
-            % (gmake, gmake_j, makefile, libname)
-
-        rc, out, err = run_cmd(cmd, from_dir=os.path.join(objroot,"ocn","cvmix"))
-        expect(rc == 0, "Command %s failed rc=%d\nout=%s\nerr=%s" % (cmd, rc, out, err))
-
         complib = os.path.join(libroot,"libocn.a")
         cmd = "%s complib -j %d MODEL=pop COMPLIB=%s -f %s USER_CPPDEFS=\"%s\"" \
             % (gmake, gmake_j, complib, makefile, pop_cppdefs )

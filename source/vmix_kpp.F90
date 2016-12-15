@@ -1265,6 +1265,8 @@
          where (USTAR > c0 )
             VISC(:,:,k) = (DBSFC(:,:,k)-DBSFC(:,:,k-1))/ &
                           (p5*(DZT(:,:,k,bid) + DZT(:,:,k-1,bid)))
+         elsewhere
+            VISC(:,:,k) = c0
          end where
          where ( VISC(:,:,k) >= USTAR .and.              &
                 (VISC(:,:,k)-VISC(:,:,k-1)) /= c0 .and.  &
@@ -1293,6 +1295,8 @@
          where (USTAR > c0 )
             VISC(:,:,k) = (DBSFC(:,:,k)-DBSFC(:,:,k-1))/ &
                           (zt(k) - zt(k-1))
+         elsewhere
+            VISC(:,:,k) = c0
          end where
          where ( VISC(:,:,k) >= USTAR .and.              &
                 (VISC(:,:,k)-VISC(:,:,k-1)) /= c0 .and.  &
@@ -1578,7 +1582,11 @@
             VISC(i,j,:) = VISC_COL
             VDC(i,j,:,1) = DIFF_COL
             VDC(i,j,:,2) = DIFF_COL
-         end if
+          else
+            VISC(i,j,:) = c0
+            VDC(i,j,:,1) = c0
+            VDC(i,j,:,2) = c0
+          end if
        end do
      end do
    else ! not lcvmix

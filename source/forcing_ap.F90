@@ -147,7 +147,7 @@
    real (r8), dimension(nx_block,ny_block) :: &
       WORK
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), target, allocatable :: &
       TEMP_DATA   ! temp array for reading monthly data
 
    namelist /forcing_ap_nml/ ap_data_type,   ap_data_inc,    &
