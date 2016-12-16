@@ -8,42 +8,222 @@ from CIME.utils import run_cmd_no_fail, expect
 import glob, shutil
 logger = logging.getLogger(__name__)
 
-def configure_pop(case):
+_config_cache_template = """
+<?xml version="1.0"?>
+<config_definition>
+<commandline></commandline>
+<entry id="comp_wav" value="{comp_wav}" list="" valid_values="">wave component</entry>
+<entry id="cppdefs" value="{cppdefs}" list="" valid_values="">CPPDEF used during POP build</entry>
+<entry id="irf_mode" value="{IRF_MODE}" list="" valid_values="NK_precond,offline_transport">IRF tracer module mode</entry>
+<entry id="irf_nt" value="{IRF_NT}" list="" valid_values="">Number of IRF tracers</entry>
+<entry id="ocn_grid" value="{ocn_grid}" list="" valid_values="">Ocean grid used for POP</entry>
+<entry id="use_abio" value="{use_abio}" list="" valid_values="FALSE,TRUE">Use abio tracer module</entry>
+<entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
+<entry id="use_ciso" value="{use_ciso}" list="" valid_values="FALSE,TRUE">Use ciso tracer module</entry>
+<entry id="use_ecosys" value="{use_ecosys}" list="" valid_values="FALSE,TRUE">Use ecosys tracer module</entry>
+<entry id="use_iage" value="{use_iage}" list="" valid_values="FALSE,TRUE">Use ideal age tracer module</entry>
+<entry id="use_irf" value="{use_irf}" list="" valid_values="FALSE,TRUE">Use IRF tracer module</entry>
+<entry id="use_sf6" value="{use_sf6}" list="" valid_values="FALSE,TRUE">Use sf6 tracer module</entry>
+</config_definition>
+"""
 
-    exeroot = case.get_value("EXEROOT")
-    srcroot = case.get_value("SRCROOT")
+###############################################################################
+def determine_tracer_count(case, decomp_cppdefs):
+###############################################################################
+
+    ECOSYS_NT       = 27
+    ZOOPLANKTON_CNT = 1
+    AUTOTROPH_CNT   = 3
+    GRAZER_PREY_CNT = 3
+    IRF_NT          = 0
+    IRF_MODE        = "NK_precond"
+
+    #----------------------------------------------------
+    # Parse OCN_TRACER_MODULES_OPT
+    #----------------------------------------------------
+
+    ocn_tracer_modules_opt = case.get_value("OCN_TRACER_MODULES_OPT")
+    if ocn_tracer_modules_opt:
+        module_opts = ocn_tracer_modules_opt.split(" ")
+        for module_opt in module_opts:
+            varname = module_opt.split("=")[0]
+            value = module_opt.split("=")[1]
+            if varname == "ECOSYS_NT":
+                ECOSYS_NT = int(value)
+            elif varname == "ZOOPLANKTON_CNT":
+                ZOOPLANKTON_CNT = int(value)
+            elif varname == "AUTOTROPH_CNT":
+                AUTOTROPH_CNT = int(value)
+            elif varname == "GRAZER_PREY_CNT":
+                GRAZER_PREY_CNT = int(value)
+            elif varname == "IRF_NT":
+                IRF_NT = int(value)
+            elif varname == "IRF_MODE":
+                IRF_MODE = int(value)
+            else:
+                expect(False, "POP configure: %s is not a valid value in OCN_TRACER_MODULES_OPT" %(varname))
+
+    #----------------------------------------------------
+    # Parse OCN_TRACER_MODULES
+    #----------------------------------------------------
+
+    use_iage   = "FALSE"
+    use_cfc    = "FALSE"
+    use_sf6    = "FALSE"
+    use_abio   = "FALSE"
+    use_ciso   = "FALSE"
+    use_ecosys = "FALSE"
+    use_irf    = "FALSE"
+
+    NT = 2
+    MARBL_NT = 0
+    ocn_tracer_modules = case.get_value("OCN_TRACER_MODULES").split(" ")
+    for module in ocn_tracer_modules:
+        if module == "iage":
+            use_iage = "TRUE"
+            NT = NT + 1
+        elif module == "cfc":
+            use_cfc = "TRUE"
+            NT = NT + 2
+        elif module == "sf6":
+            use_sf6 = "TRUE"
+            NT = NT +  1;
+        elif module == "abio_dic_dic14":
+            use_abio = "TRUE"
+            NT = NT + 2
+        elif module == "ciso":
+            use_ciso = "TRUE"
+            MARBL_NT = MARBL_NT + 14
+        elif module == "ecosys":
+            use_ecosys = "TRUE"
+            MARBL_NT = MARBL_NT + ECOSYS_NT
+        elif module == "IRF":
+            use_irf = "TRUE"
+            if IRF_NT == 0:
+                if IRF_MODE == "offline_transport" and ocn_grid == "gx3v7":
+                    IRF_NT = 156
+                elif IRF_MODE == "offline_transport" and ocn_grid == "gx1v6":
+                    IRF_NT = 178
+                elif IRF_MODE == "NK_precond":
+                    IRF_NT = 36
+                else:
+                    expect (False, "configure_pop: IRF_MODE %s is not a valid choice for IRF_MODE!" %IRF_MODE)
+            NT = NT + IRF_NT
+        else:
+            expect(Fasle, "configure_pop: module %s is not a valid value in OCN_TRACER_MODULES!" %module)
+    NT = NT + MARBL_NT
+
+    #----------------------------------------------------
+    # Determine tracer cppdefs and update pop_cppdefs
+    #----------------------------------------------------
+
+    tracer_cppdefs = " -DNT=%d -DECOSYS_NT=%d -DMARBL_NT=%d -DZOOPLANKTON_CNT=%d -DAUTOTROPH_CNT=%d -DGRAZER_PREY_CNT=%d -DIRF_NT=%d " \
+                     %(NT, ECOSYS_NT, MARBL_NT, ZOOPLANKTON_CNT, AUTOTROPH_CNT, GRAZER_PREY_CNT, IRF_NT)
+
+    if "tx0.1" in case.get_value("OCN_GRID"): 
+        tracer_cppdefs = tracer_cppdefs + "-D_HIRES "
+
+    if case.get_value("OCN_ICE_FORCING") == 'inactive':
+        tracer_cppdefs = tracer_cppdefs + "-DZERO_SEA_ICE_REF_SAL "
+
+    if case.get_value("POP_TAVG_R8") == "TRUE":
+        tracer_cppdefs = tracer_cppdefs + "-DTAVG_R8 "
+
+    pop_cppdefs = "-DCCSMCOUPLED " + decomp_cppdefs + tracer_cppdefs
+
+    #----------------------------------------------------
+    # Create config_cache.xml file
+    #----------------------------------------------------
+
+    config_cache_text = _config_cache_template.format(
+        comp_wav=case.get_value("COMP_WAV"), 
+        cppdefs=pop_cppdefs,
+        IRF_MODE=IRF_MODE,
+        IRF_NT=IRF_NT,
+        ocn_grid=case.get_value("OCN_GRID"),
+        use_abio=use_abio,
+        use_cfc=use_cfc,
+        use_ciso=use_ciso,
+        use_ecosys=use_ecosys,
+        use_iage=use_iage,
+        use_irf=use_irf,
+        use_sf6=use_sf6)
+
     caseroot = case.get_value("CASEROOT")
+    config_cache_path = os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml")
+    with open(config_cache_path, 'w') as config_cache_file:
+        config_cache_file.write(config_cache_text)
 
-    # determine configure directory 
-    configure_dir = os.path.join(srcroot,"components","pop","bld")
-    if os.path.isfile(os.path.join(caseroot,"SourceMods","src.pop","configure")):
-        configure_dir = os.path.join(caseroot,"SourceMods","src.pop")
+    return pop_cppdefs
 
+###############################################################################
+def configure_pop(case):
+###############################################################################
+
+    #----------------------------------------------------
     # create $CASEROOT/Buildconf/popconf if it does not exist
+    #----------------------------------------------------
+
+    caseroot = case.get_value("CASEROOT")
     popconf_dir = os.path.join(caseroot,"Buildconf","popconf")
     if not os.path.exists(popconf_dir):
         os.makedirs(popconf_dir)
 
-    # run configure from $CASEROOT/Buildconf/popconf
-    # running configure writes out the following xml variables in env_build.xml
-    # POP_BLCKX, POP_BLCKY, POP_MXBLCKS, POP_DECOMPTYPE, POP_NX_BLOCKS, POP_NY_BLOCKS, POP_CPPDEFS
+    #----------------------------------------------------
+    # determine decomposition xml variables if POP_AUTO_DECOMP is true
+    #----------------------------------------------------
 
-    command = os.path.join(configure_dir,"configure")
-    cmd = "%s %s" %(command, caseroot)
-    rc, out, err = run_cmd(cmd, from_dir=popconf_dir)
+    # - invoke generate_pop_decomp.pl and update env_build.xml settings to 
+    # reflect changes in the configuration this will trigger 
+    pop_auto_decomp = case.get_value("POP_AUTO_DECOMP")
+    if pop_auto_decomp:
+        ntasks_ocn = case.get_value("NTASKS_OCN")
+        nthrds_ocn = case.get_value("NTHRDS_OCN")
+        ninst_ocn = case.get_value("NINST_OCN")
+        ntasks = int(ntasks_ocn / ninst_ocn)
+        ocn_grid = case.get_value("OCN_GRID")
+        srcroot = case.get_value("SRCROOT")
 
-    expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(command,rc,out,err))
-    if out is not None:
-        logger.info("     %s"%out)
-    if err is not None:
-        logger.info("     %s"%err)
+        cmd = os.path.join(srcroot, "components", "pop", "bld", "generate_pop_decomp.pl")
+        command = "%s -ccsmroot %s -res %s -nproc %s -thrds %s -output %s "  \
+                  % (cmd, srcroot, ocn_grid, ntasks, nthrds_ocn, "all")
+        rc, out, err = run_cmd(command)
+
+        expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
+        if out is not None:
+            logger.info("     %s"%out)
+        if err is not None:
+            logger.info("     %s"%err)
+
+        config = out.split()
+        if config[0] > 0:
+            case.set_value("POP_BLCKX", config[2])
+            case.set_value("POP_BLCKY", config[3])
+            case.set_value("POP_MXBLCKS",config[4])
+            case.set_value("POP_DECOMPTYPE", config[5])
+            case.set_value("POP_NX_BLOCKS", config[6])
+            case.set_value("POP_NY_BLOCKS", config[7])
+
+    # set decomposition block sizes
+    pop_blckx   = case.get_value("POP_BLCKX")
+    pop_blcky   = case.get_value("POP_BLCKY")
+    pop_mxblcks = case.get_value("POP_MXBLCKS")
+    decomp_cppdefs = " -DBLCKX=%d -DBLCKY=%d -DMXBLCKS=%d" %(pop_blckx, pop_blcky, pop_mxblcks) 
+
+    #----------------------------------------------------
+    # determine the tracer count cpp variables, create_config_cache.xml
+    # and update cppdefs accordingly
+    #----------------------------------------------------
+
+    pop_cppdefs = determine_tracer_count(case, decomp_cppdefs)
 
     # Verify that config_cache.xml exists
     if not os.path.isfile(os.path.join(popconf_dir,"config_cache.xml")):
         expect(False, "config_cache.xml is missing after configure command")
 
-    # since env_build.xml has been updated above - must update case with the new file
-    case.read_xml()
+    pop_cppdefs = case.set_value("POP_CPPDEFS", pop_cppdefs)
+    case.flush()
 
-    pop_cppdefs = case.get_value("POP_CPPDEFS")
     return pop_cppdefs
+
+

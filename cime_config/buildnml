@@ -75,7 +75,7 @@ def buildnml(case, caseroot, compname):
     # created by the call to configure_call is used to generate the pop namelist
 
     if case.get_value("POP_CPPDEFS") == 'UNSET':
-        logger.info("Calling pop's configure")
+        logger.info("     ...calling pop's configure")
         sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
         from configure_pop import configure_pop
         pop_cppdefs = configure_pop(case)

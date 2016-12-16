@@ -98,7 +98,7 @@ my $dcmp = Decomp::Config->new( \%opts );
 my %decomp = ( maxblocks=>0, bsize_x=>0, bsize_y=>0, decomptype=>"",
                nlats=>0, nlons=>0, nx_blocks=>0, ny_blocks=>0 );
 
-my $file = "$cesmroot/components/pop/bld/pop_decomp.xml";
+my $file = "$cesmroot/components/pop/bld/generate_pop_decomp.xml";
 my $matches = $dcmp->ReadXML( $file, \%decomp );
 
 # if no xml entry, try to generate something

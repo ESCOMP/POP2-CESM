@@ -469,10 +469,11 @@ if ($tmp > 0) {
   while (not valid_date(\$iday0, \$imonth0, \$iyear0, $CALENDAR)) {}
 }
 
-print "POP build-namelist: ocn_grid is $OCN_GRID \n";
-print "POP build-namelist: ocn_tracer_modules are @OCN_TRACER_MODULES \n";
-
-if ($print>=2) { print "Inputdata root directory: $DIN_LOC_ROOT$eol"; }
+if ($print>=2) {
+    print "POP build-namelist: ocn_grid is $OCN_GRID \n";
+    print "POP build-namelist: ocn_tracer_modules are @OCN_TRACER_MODULES \n";
+    print "Inputdata root directory: $DIN_LOC_ROOT$eol"; 
+}
 
 #-----------------------------------------------------------------------------------------------
 # Determine namelist 
@@ -1213,7 +1214,6 @@ add_default($nl, "sf6_on");
 add_default($nl, "ciso_on");
 add_default($nl, "abio_dic_dic14_on");
 add_default($nl, "ecosys_on");
-add_default($nl, "moby_on");
 add_default($nl, "irf_on");
 
 ##########################################
@@ -1692,99 +1692,7 @@ if ($ecosys_on eq "TRUE") {
     }
  
 ##########################################
-# namelist group: moby_nml               #
-##########################################
-
-my $moby_on = $cfg->get("use_moby");
-if ($moby_on eq "TRUE") {
-    
-    my $temp;
-
-    add_default($nl, 'moby_log_filename', 'val'=>"${RUNDIR}/moby${inst_string}.log.$LID"); 
-    add_default($nl, "lmoby");
-    add_default($nl, "ldarwin");
-    add_default($nl, 'init_moby_option', 'val'=>"ccsm_${RUN_TYPE}");
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'init_moby_init_file', 'val'=>"unknown", 'noprepend'=>"1");
-    } else {
-      add_default($nl, 'init_moby_init_file', 'val'=>"same_as_TS", 'noprepend'=>"1");
-    }
-    add_default($nl, 'init_moby_init_file_fmt', 'val'=>'nc');
-
-    add_default($nl, 'moby_comp_surf_avg_freq');
-    add_default($nl, 'moby_comp_surf_avg_freq_opt');
-
-    add_default($nl, 'moby_iron_flux_input%filename');
-    add_default($nl, 'moby_iron_flux_input%file_fmt');
-    add_default($nl, 'moby_iron_flux_input%file_varname');
-    add_default($nl, 'moby_iron_flux_input%scale_factor');
-    
-    add_default($nl, 'moby_lecovars_full_depth_tavg');
-    my $lflux_gas_co2;
-    if ($CCSM_BGC eq "CO2C") {
-      $lflux_gas_co2 = ".true.";
-    } else {
-      $lflux_gas_co2 = ".false.";
-    }
-    add_default($nl, 'moby_lflux_gas_co2','val'=>"$lflux_gas_co2");
-
-    add_default($nl, 'moby_lmarginal_seas');
-    add_default($nl, 'moby_lrest_no3');
-    add_default($nl, 'moby_lrest_po4');
-    add_default($nl, 'moby_lrest_sio3');
-    add_default($nl, 'moby_nutr_rest_file');
-
-    add_default($nl, 'moby_qsw_distrb_const');
-    add_default($nl, 'moby_surf_avg_alk_const');
-    add_default($nl, 'moby_surf_avg_dic_const');
-    add_default($nl, 'moby_tadvect_ctype');
-
-    add_default($nl, 'moby_tracer_init_ext(1)%mod_varname');
-    add_default($nl, 'moby_tracer_init_ext(1)%scale_factor');
-    add_default($nl, 'moby_tracer_init_ext(2)%mod_varname');
-    add_default($nl, 'moby_tracer_init_ext(2)%scale_factor');
-
-    add_default($nl, 'moby_use_nml_surf_vals', 'runtype'=>"${RUN_TYPE}");
-
-    # Build moby namelist- ${RUNDIR}/moby_in
-
-    my $fh_in  = new IO::File;
-    my $fh_out = new IO::File;
-    $fh_out->open(">${RUNDIR}/moby_in") or die "** can't open file: ${RUNDIR}/moby_in\n";
-    foreach my $file ( "${OCN_GRID}_data", 
-                       "${OCN_GRID}_data.ptracers",
-                       "${OCN_GRID}_data.gchem" ,
-                       "${OCN_GRID}_data.$OCN_TRACER_MODULES_OPT" ,
-                       "${OCN_GRID}_data.misc", 
-                       "${OCN_GRID}_data.pkg" ) 
-    {
-  my $datafile;
-  if (-e "$CASEROOT/SourceMods/src.pop/src.moby/$file") {
-      $datafile = "${CASEROOT}/SourceMods/src.pop/src.moby/$file";
-  } elsif ( -e "$SRCROOT/components/pop/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file") {
-      $datafile = "$SRCROOT/components/pop/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file";
-  } else {
-      die "MOBY error for input file $file \n";
-  }
-  $fh_in->open("<$datafile") or die "** can't open file: $datafile\n";
-  while (my $line = <$fh_in>) {
-    if ($line =~ m/\#/) {
-      # do nothing
-    } else {
-      $line =~ s/POPVERTGRID/using_POP_grid_through_interface_layer/g;
-      my $path = "${DIN_LOC_ROOT}/ocn/moby";
-      $line =~ s/INPUTDATA/$path/g;
-      $line =~ s/OCN_GRID/$OCN_GRID/g;
-      print $fh_out "$line";
-    }
-  }
-  $fh_in->close;
-    }
-  $fh_out->close;
-}
-
-##########################################
-# namelist group: moby_nml               #
+# namelist group: irf_nml                #
 ##########################################
 
 my $IRF_on = $cfg->get("use_irf");
@@ -2142,9 +2050,6 @@ if ($sf6_on eq "TRUE" ) {
 if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml ecosys_restore_nml);
 }    
-if ($moby_on eq "TRUE" ) {
-    push @groups, qw(moby_nml moby_parms_nml );
-}
 if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
 }
