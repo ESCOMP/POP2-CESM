@@ -80,8 +80,6 @@
       <value compset="HIST">cfc</value>
       <value compset="5505">cfc</value>
       <value compset="_POP2%ECO">ecosys</value>
-      <value compset="_POP2%DAR">$OCN_SUBMODEL</value>
-      <value compset="1850.*_BGC-BDRDDARWIN">iage $OCN_SUBMODEL</value>
     </values>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
@@ -92,26 +90,9 @@
     <type>char</type>
     <valid_values></valid_values>
     <default_value></default_value>
-    <values>
-      <value compset="_POP2%DAR">darwin</value>
-      <value compset="1850.*_BGC-BDRDDARWIN">darwin</value>
-    </values>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Optional ocean tracers option.  Any one of: darwin quota mono</desc>
-  </entry>
-
-  <entry id="OCN_SUBMODEL">
-    <type>char</type>
-    <valid_values></valid_values>
-    <default_value></default_value>
-    <group>build_component_pop</group>
-    <file>env_build.xml</file>
-    <desc>Optional ocean submodel option.  Any one of: moby</desc>
-    <values>
-      <value compset="_POP2%DAR">moby</value>
-      <value compset="1850.*_BGC-BDRDDARWIN">moby</value>
-    </values>
+    <desc>Optional ocean tracers option (keyword=value pairs)</desc>
   </entry>
 
   <entry id="OCN_COUPLING">
@@ -269,7 +250,6 @@
     <desc compset="_POP2"    >POP2 default:</desc>
     <desc compset="_POP2%1D" >Single column POP2:</desc>
     <desc compset="_POP2%ECO">POP2/Ecosystem:</desc>
-    <desc compset="_POP2%DAR">Darwin marine ecosystem: (requires additional MOBY code)</desc>
   </description>
 
   <help>

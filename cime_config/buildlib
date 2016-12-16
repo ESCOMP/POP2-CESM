@@ -127,27 +127,6 @@ def _copy_files_to_blddir(case):
     if POP_FOUND_DSM == 0:
         expect(False, "you need either $OCN_GRID_POP_DomainSizeMod.F90 or POP_DomainSizeMod.F90")
 
-    logger.info(" -------------------------------------------------------------------------")
-    logger.info(" Checking for any auxilliary ocean-component models before building pop")   
-    logger.info(" -------------------------------------------------------------------------" )
-
-    ocn_tracer_modules = case.get_value("OCN_TRACER_MODULES")
-    for comp in ocn_tracer_modules:
-        if "moby" in comp:
-            logger.info("Building moby")
-            casebuild = case.get_value("CASEBUILD")
-            if not os.path.isfile(os.path.join(casebuild,"moby.buildlib")):
-                shutil.copy2(os.path.join(srcroot,"components","pop","aux","moby","pop","bld","moby.buildlib.csh"),
-                             os.path.join(casebuild,"moby.buildlib"))
-
-            command = os.path.join("moby.buildlib")
-            rc, out, err = run_cmd(command, from_dir=casebuild)
-            expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
-            if out is not None:
-                logger.info("     %s"%out)
-            if err is not None:
-                logger.info("     %s"%err)
-
 ###############################################################################
 def _build_pop():
 ###############################################################################
