@@ -1,9 +1,22 @@
+#!/usr/bin/env python
+
 """
-API for POP's configure
+Set POP cppdefs and config_cache.xml file (the latter is used for namelist generation)
 """
 
-from CIME.XML.standard_module_setup import *
+import os, sys 
+
+CIMEROOT = os.environ.get("CIMEROOT")
+if CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
+
 from CIME.utils import run_cmd_no_fail, expect
+from CIME.utils import run_cmd
+from CIME.case import Case
+from CIME.buildnml import parse_input
 
 import glob, shutil
 logger = logging.getLogger(__name__)
@@ -13,7 +26,6 @@ _config_cache_template = """
 <config_definition>
 <commandline></commandline>
 <entry id="comp_wav" value="{comp_wav}" list="" valid_values="">wave component</entry>
-<entry id="cppdefs" value="{cppdefs}" list="" valid_values="">CPPDEF used during POP build</entry>
 <entry id="irf_mode" value="{IRF_MODE}" list="" valid_values="NK_precond,offline_transport">IRF tracer module mode</entry>
 <entry id="irf_nt" value="{IRF_NT}" list="" valid_values="">Number of IRF tracers</entry>
 <entry id="ocn_grid" value="{ocn_grid}" list="" valid_values="">Ocean grid used for POP</entry>
@@ -191,9 +203,9 @@ def configure_pop(case):
 
         expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
         if out is not None:
-            logger.info("     %s"%out)
+            logger.debug("     %s"%out)
         if err is not None:
-            logger.info("     %s"%err)
+            logger.debug("     %s"%err)
 
         config = out.split()
         if config[0] > 0:
@@ -226,4 +238,13 @@ def configure_pop(case):
 
     return pop_cppdefs
 
+###############################################################################
+def _main_func():
 
+    caseroot = parse_input(sys.argv)
+    with Case(caseroot) as case:
+        pop_cppdefs = configure_pop(case)
+    logger.info("POP_CPPDEFS: %s" %pop_cppdefs)
+
+if __name__ == "__main__":
+    _main_func()

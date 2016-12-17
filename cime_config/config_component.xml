@@ -243,7 +243,7 @@
     <default_value>UNSET</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>POP cpp definitions (setup automatically - DO NOT EDIT)</desc>
+    <desc>POP cpp definitions (for diagnostic use only, setup automatically, overwritten by configure_pop.py - DO NOT EDIT)</desc>
   </entry>
 
   <description>

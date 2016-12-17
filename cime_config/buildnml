@@ -9,7 +9,7 @@
 # Disable these because this is our standard setup
 # pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position
 
-import os, shutil, sys, glob, stat
+import os, shutil, sys, glob, stat, filecmp
 
 CIMEROOT = os.environ.get("CIMEROOT")
 if CIMEROOT is None:
@@ -73,10 +73,17 @@ def buildnml(case, caseroot, compname):
     # call configure_pop to obtain pop_cppdefs if it is not set in env_build.xml
     # NOTE: pop_cppdefs is not used here - but the caseroot/Buildconf/popconf/config_cache.xml
     # created by the call to configure_call is used to generate the pop namelist
-
-    if case.get_value("POP_CPPDEFS") == 'UNSET':
-        logger.info("     ...calling pop's configure")
+    call_configure = False
+    if not os.path.exists(os.path.join(caseroot,"LockedFiles","env_build.xml")):
+        call_configure = True
+    else:
+        file1 = os.path.join(caseroot,"env_build.xml")  
+        file2 = os.path.join(caseroot,"LockedFiles","env_build.xml")
+        if not filecmp.cmp(file1, file2):
+            call_configure = True
+    if call_configure:
         sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
+        logger.info("     ...calling pop's configure to set build time options")
         from configure_pop import configure_pop
         pop_cppdefs = configure_pop(case)
 
@@ -85,6 +92,10 @@ def buildnml(case, caseroot, compname):
     if not os.path.isdir(confdir):
         os.makedirs(confdir)
 
+    # Make sure that rundir exists, if not make it 
+    if not os.path.exists(rundir):
+        os.makedirs(rundir)
+        
     # Loop over instances
     inst_counter = 1;
     inst_string = ""
@@ -169,11 +180,11 @@ def buildnml(case, caseroot, compname):
         rc, out, err = run_cmd(command, from_dir=confdir)
         expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
         if out is not None:
-            logger.info("     %s"%out)
+            logger.debug("     %s"%out)
         if err is not None:
-            logger.info("     %s"%err)
+            logger.debug("     %s"%err)
 
-        # Note that build-namelist AND configure invoke xmlchange - so must re-read the xml files variables
+        # Note that pop's build-namelist invokes xmlchange - so must re-read the xml files variables
         # back into case 
         case.read_xml()
 
