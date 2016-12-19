@@ -36,10 +36,10 @@ $NINST_OCN               = `./xmlquery NINST_OCN              -value`;
 $OCN_ICE_FORCING         = `./xmlquery OCN_ICE_FORCING        -value`;
 $COMP_WAV                = `./xmlquery COMP_WAV               -value`;
 
-# Decomposition 
+# Decomposition
 auto_decomp();
 
-# The root directory for the perl5 required utilities 
+# The root directory for the perl5 required utilities
 my $perl5lib = "$CIMEROOT/utils/perl5lib";
 
 # The Build::Config module provides utilities to access the configuration information
@@ -89,7 +89,7 @@ sub auto_decomp {
   # If POP_AUTO_DECOMP eq "TRUE", set POP_BLCKX, etc
 
   # Is only run when POP_AUTO_DECOMP == TRUE
-  if ($POP_AUTO_DECOMP ne 'true') {
+  if ($POP_AUTO_DECOMP ne 'TRUE') {
     return;
   }
 
@@ -236,7 +236,7 @@ sub set_cppdefs {
   $cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT";
   $cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
   $cppdefs = "$cppdefs -DIRF_NT=$IRF_NT";
-    
+
   # write out cppdefs to env_build.xml
   # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
   chdir "$CASEROOT";
@@ -253,6 +253,6 @@ sub set_cppdefs {
       print file "$cppdefs \n";
       close(file);
   }
-    
+
 }
 
