@@ -1221,9 +1221,8 @@ contains
     do index = 1, num_surface_forcing_fields
     associate(fields => surface_forcing_fields(index)%metadata)
 
-      surface_forcing_fields(index)%field_0d = c0
-
       ! Initialize fluxes to 0
+      surface_forcing_fields(index)%field_0d = c0
 
        select case (fields%field_source)
 
