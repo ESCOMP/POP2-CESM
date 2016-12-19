@@ -99,7 +99,7 @@ module ecosys_forcing_mod
   type, private :: forcing_fields_metadata_type
      character(char_len)                  :: marbl_varname
      character(char_len)                  :: field_units      ! field data units, not the file (driver must do unit conversion)
-     character(char_len)                  :: field_source     ! "file", "driver", "POP monthly calendar", "constant", "none"
+     character(char_len)                  :: field_source     ! see valid_field_source in forcing_field_metadata_set
      character(char_len)                  :: temporal_interp  ! information on interpolation scheme used to populate field data
      real(kind=r8)                        :: unit_conv_factor ! unit conversion factor, incorporates scale_factor
      type (forcing_constant_type)         :: field_constant_info
@@ -494,51 +494,51 @@ contains
       select case (trim(surface_forcings(n)%metadata%varname))
         case ('surface_mask')
           mask_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='SURFACE_MASK', id=n)
 
         case ('d13c')
           d13c_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='D13C', id=n)
 
         case ('d14c')
           d14c_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='D14C', id=n)
 
         case ('d14c_gloavg')
           d14c_glo_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='D14C_GLOAVG', id=n)
 
         case ('u10_sqr')
           u10sqr_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='U10_SQR', id=n)
 
         case ('sst')
           sst_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='SST', id=n)
 
         case ('sss')
           sss_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                               marbl_varname=marbl_varname, field_units=units,    &
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='SSS', id=n)
 
         case ('xco2')
           xco2_ind = n
           if (trim(atm_co2_opt).eq.'const') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='constant', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
+                                 marbl_varname=marbl_varname, field_units=units,   &
                                  field_constant=atm_co2_const, id=n)
           else if (trim(atm_co2_opt).eq.'drv_prog') then
             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
@@ -557,8 +557,8 @@ contains
 
         case ('xco2_alt_co2')
           if (trim(atm_alt_co2_opt).eq.'const') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='constant', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
+                                 marbl_varname=marbl_varname, field_units=units,   &
                                  field_constant=atm_alt_co2_const, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_alt_co2_opt),                 &
@@ -570,8 +570,8 @@ contains
         case ('Ice Fraction')
           ifrac_ind = n
           if (trim(gas_flux_forcing_opt).eq.'drv') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                                 marbl_varname=marbl_varname, field_units=units,    &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
                                  driver_varname='ICE Fraction', id=n)
           else if (trim(gas_flux_forcing_opt).eq.'file') then
             file_details => fice_file_loc
@@ -590,8 +590,8 @@ contains
         case ('Atmospheric Pressure')
           ap_ind = n
           if (trim(gas_flux_forcing_opt).eq.'drv') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                                 marbl_varname=marbl_varname, field_units=units,    &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
                                  driver_varname='AP_FILE_INPUT', id=n)
           else if (trim(gas_flux_forcing_opt).eq.'file') then
             file_details => ap_file_loc
@@ -610,8 +610,8 @@ contains
         case ('Dust Flux')
           dust_ind = n
           if (trim(dust_flux_source).eq.'driver') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                                 marbl_varname=marbl_varname, field_units=units,    &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
                                  driver_varname='DUST_FLUX', id=n)
           else if (trim(dust_flux_source).eq.'monthly-calendar') then
             file_details => dust_flux_file_loc
@@ -630,8 +630,8 @@ contains
         case ('Iron Flux')
           if (trim(iron_flux_source).eq.'driver-derived') then
             bc_ind = n
-            call surface_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                                 marbl_varname=marbl_varname, field_units=units,    &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
                                  driver_varname='BLACK_CARBON_FLUX', id=n)
           else if (trim(iron_flux_source).eq.'monthly-calendar') then
             Fe_ind = n
@@ -651,7 +651,7 @@ contains
         case ('NOx Flux')
           nox_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='file', &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
                                  marbl_varname=marbl_varname, field_units=units,  &
                                  unit_conv_factor=ndep_shr_stream_scale_factor,   &
                                  file_varname='NOy_deposition',                   &
@@ -676,7 +676,7 @@ contains
         case ('NHy Flux')
           nhy_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='file', &
+            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
                                  marbl_varname=marbl_varname, field_units=units,  &
                                  unit_conv_factor=ndep_shr_stream_scale_factor,   &
                                  file_varname='NHx_deposition',                   &
@@ -829,11 +829,11 @@ contains
             select case (trim(restore_inv_tau_opt))
               case('const')
                 call interior_forcing_fields(n)%add_forcing_field(            &
-                           field_source='constant',                           &
+                           field_source='const',                              &
                            marbl_varname=marbl_varname, field_units=units,    &
                            field_constant = restore_inv_tau_const,            &
                            id=n)
-              ! case('file')
+              ! case('shr_stream')
               ! NOT SUPPORTED YET
               ! will require additional namelist variables, and we can consider
               ! reading in one file per tracer instead of using the same mask
@@ -855,38 +855,38 @@ contains
         select case (trim(interior_forcings(n)%metadata%varname))
           case ('Dust Flux')
             dustflux_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                          marbl_varname=marbl_varname, field_units=units,            &
+            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                          marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='dust_flux', id=n)
             allocate(interior_forcing_fields(n)%field_0d(nx_block, ny_block, nblocks_clinic))
           case ('PAR Column Fraction')
             PAR_col_frac_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                          marbl_varname=marbl_varname, field_units=units,            &
+            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                          marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='PAR_col_frac', id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, mcog_nbins, nblocks_clinic))
           case ('Surface Shortwave')
             surf_shortwave_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                          marbl_varname=marbl_varname, field_units=units,            &
+            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                          marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='surf_shortwave', id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, mcog_nbins, nblocks_clinic))
           case ('Temperature')
             temperature_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                          marbl_varname=marbl_varname, field_units=units,            &
+            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                          marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='temperature', id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
           case ('Salinity')
             salinity_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                          marbl_varname=marbl_varname, field_units=units,            &
+            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                          marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='salinity', id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
           case ('Pressure')
             pressure_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='driver', &
-                          marbl_varname=marbl_varname, field_units=units,            &
+            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                          marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='pressure', id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
           case ('Iron Sediment Flux')
@@ -921,7 +921,7 @@ contains
     do n=1,num_interior_forcing_fields
       associate (forcing_field =>interior_forcing_fields(n)%metadata)
         select case (trim(forcing_field%field_source))
-          case ('constant')
+          case ('const','zero')
             if (allocated(interior_forcing_fields(n)%field_0d)) then
               interior_forcing_fields(n)%field_0d =                           &
                              forcing_field%field_constant_info%field_constant
@@ -1010,7 +1010,7 @@ contains
 
     do index= 1,num_interior_forcing_fields
       select case (interior_forcing_fields(index)%metadata%field_source)
-        case('driver')
+        case('internal')
           if (index.eq.dustflux_ind) then
             interior_forcing_fields(index)%field_0d(:,:,bid) = dust_flux_in(:, :, bid)
           else if (index.eq.PAR_col_frac_ind) then
@@ -1135,7 +1135,7 @@ contains
           select case (fields%field_source)
 
           !------------------------------------
-          case ("POP monthly calendar")
+          case ('POP monthly calendar')
           !------------------------------------
 
              file => fields%field_monthly_calendar_info%forcing_calendar_name
@@ -1177,7 +1177,7 @@ contains
              deallocate(work_read)
 
           !------------------------------------
-          case ("file")
+          case ('shr_stream')
           !------------------------------------
 
              if (trim(ndep_data_type) == 'shr_stream') then
@@ -1230,7 +1230,7 @@ contains
        select case (fields%field_source)
 
        !------------------------------------
-       case ("POP monthly calendar")
+       case ('POP monthly calendar')
        !------------------------------------
 
           file => fields%field_monthly_calendar_info%forcing_calendar_name
@@ -1274,13 +1274,13 @@ contains
           endif
 
        !------------------------------------
-       case ("constant")
+       case ('const')
        !------------------------------------
 
           surface_forcing_fields(index)%field_0d = fields%field_constant_info%field_constant
 
        !------------------------------------
-       case ("named_field")
+       case ('named_field')
        !------------------------------------
 
        do iblock = 1,nblocks_clinic
@@ -1288,7 +1288,7 @@ contains
                                surface_forcing_fields(index)%field_0d(:,:,iblock))
        end do
        !------------------------------------
-       case ("driver")
+       case ('internal')
        !------------------------------------
 
           do iblock = 1,nblocks_clinic
@@ -1344,7 +1344,7 @@ contains
           end do
 
        !------------------------------------
-       case ("file")
+       case ('shr_stream')
        !------------------------------------
 
           ! FIXME - move stream_index in forcing_field_file_type 
@@ -1433,7 +1433,7 @@ contains
 
        index = ifrac_ind
        if (index.gt.0) then
-         if (surface_forcing_fields(index)%metadata%field_source == 'driver') then
+         if (surface_forcing_fields(index)%metadata%field_source == 'internal') then
            where (surface_forcing_fields(index)%field_0d(:,:,iblock) < c0)    &
                 surface_forcing_fields(index)%field_0d(:,:,iblock) = c0
            where (surface_forcing_fields(index)%field_0d(:,:,iblock) > c1)    &
@@ -2220,7 +2220,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(len=char_len), dimension(8) :: valid_field_sources
+    character(len=char_len), dimension(7) :: valid_field_sources
     integer(kind=int_kind)  :: n
     logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
@@ -2228,14 +2228,13 @@ contains
     character(len=char_len) :: log_message
     !-----------------------------------------------------------------------
 
-    valid_field_sources(1) = "constant"
-    valid_field_sources(2) = "driver"
-    valid_field_sources(3) = "named_field"
-    valid_field_sources(4) = "file"
-    valid_field_sources(5) = "file_time_invariant"
-    valid_field_sources(6) = "marbl"
-    valid_field_sources(7) = "POP monthly calendar"
-    valid_field_sources(8) = "none"
+    valid_field_sources(1) = 'const'
+    valid_field_sources(2) = 'zero'
+    valid_field_sources(3) = 'internal'
+    valid_field_sources(4) = 'named_field'
+    valid_field_sources(5) = 'shr_stream'
+    valid_field_sources(6) = 'file_time_invariant'
+    valid_field_sources(7) = 'POP monthly calendar'
 
     ! check for valid source
     has_valid_source = .false.
@@ -2273,19 +2272,25 @@ contains
 
     select case (trim(field_source))
 
-    case('constant')
+    case('const')
        if (.not.present(field_constant)) has_valid_inputs = .false.
        if (has_valid_inputs) then
           write(log_message,"(2A)") "Adding constant forcing_field_type for ", &
-                                   trim(this%marbl_varname)
+                                    trim(this%marbl_varname)
           call document(subname, log_message)
           call forcing_constant_init(this%field_constant_info, field_constant)
        endif
 
-    case('driver')
+    case('zero')
+       write(log_message,"(2A)") "Adding constant (0) forcing_field_type for ", &
+                                 trim(this%marbl_varname)
+       call document(subname, log_message)
+       call forcing_constant_init(this%field_constant_info, c0)
+
+    case('internal')
        if (.not.present(driver_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message, "(2A)") "Adding driver forcing_field_type for ",  &
+          write(log_message, "(2A)") "Adding internal forcing_field_type for ",  &
                                     trim(this%marbl_varname)
           call document(subname, log_message)
           call this%field_driver_info%initialize(driver_varname)
@@ -2300,7 +2305,7 @@ contains
           call this%field_named_info%initialize(named_field)
        endif
 
-    case('file','file_time_invariant') 
+    case('shr_stream','file_time_invariant') 
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then
