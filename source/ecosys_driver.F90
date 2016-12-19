@@ -494,10 +494,6 @@ contains
                              marbl_instances(1)%interior_input_forcings,      &
                              tmp_nl_buffer)
 
-    !--------------------------------------------------------------------
-    !  If tracer restoring is enabled, read restoring data
-    !--------------------------------------------------------------------
-
     call ecosys_forcing_read_interior_data(land_mask)
 
     !--------------------------------------------------------------------
@@ -682,7 +678,6 @@ contains
     use state_mod          , only : ref_pressure
     use ecosys_forcing_mod , only : interior_forcing_fields
     use ecosys_forcing_mod , only : ecosys_forcing_set_interior_forcing_data
-    use ecosys_forcing_mod , only : dust_flux_in
     use ecosys_forcing_mod , only : dustflux_ind
     use ecosys_forcing_mod , only : PAR_col_frac_ind
     use ecosys_forcing_mod , only : surf_shortwave_ind

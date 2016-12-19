@@ -215,8 +215,8 @@ module ecosys_forcing_mod
   type    (strdata_input_type)  :: strdata_inputlist(shr_stream_var_cnt)  ! FIXME - need to make this more flexible
 
   ! Surface and interior forcing fields
-  real(r8), target         :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
-  real(r8),         public :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
+  real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
+  real(r8)         :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
 
   !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
@@ -277,8 +277,6 @@ contains
                                  interior_forcings, forcing_nml)
 
     use passive_tracer_tools, only : read_field
-
-    use POP_CommMod, only : POP_Barrier
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
     use ecosys_tracers_and_saved_state_mod, only : dic_ind
