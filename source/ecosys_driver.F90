@@ -853,7 +853,7 @@ contains
     use named_field_mod      , only : named_field_set
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
-    use ecosys_forcing_mod   , only : ecosys_forcing_set_surface_forcing_data
+    use ecosys_forcing_mod   , only : ecosys_forcing_set_surface_time_varying_forcing_data
     use ecosys_forcing_mod   , only : surface_forcing_fields
 
     implicit none
@@ -883,7 +883,7 @@ contains
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
-    call ecosys_forcing_set_surface_forcing_data( &
+    call ecosys_forcing_set_surface_time_varying_forcing_data( &
          ciso_on,                         &
          land_mask,                       &
          u10_sqr,                         &

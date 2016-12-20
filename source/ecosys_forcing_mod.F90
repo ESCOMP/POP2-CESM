@@ -40,7 +40,7 @@ module ecosys_forcing_mod
   private
 
   public :: ecosys_forcing_init
-  public :: ecosys_forcing_set_surface_forcing_data
+  public :: ecosys_forcing_set_surface_time_varying_forcing_data
   public :: ecosys_forcing_set_interior_time_varying_forcing_data
   public :: ecosys_forcing_tracer_ref_val
 
@@ -1141,11 +1141,20 @@ contains
       end select
     end do
 
+    call adjust_interior_time_varying_data()
+
   end subroutine ecosys_forcing_set_interior_time_varying_forcing_data
+
+  !***********************************************************************
+
+  subroutine adjust_interior_time_varying_data()
+    ! This subroutine is empty because there are no interior forcing fields
+    ! that need to be modified before being passed to MARBL
+  end subroutine adjust_interior_time_varying_data
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_set_surface_forcing_data( &
+  subroutine ecosys_forcing_set_surface_time_varying_forcing_data( &
        ciso_on,                               &
        land_mask,                             &
        u10_sqr,                               &
@@ -1185,7 +1194,6 @@ contains
     use passive_tracer_tools  , only : read_field
     use marbl_sizes           , only : num_surface_forcing_fields
     use marbl_constants_mod   , only : molw_Fe
-    use marbl_parms           , only : parm_Fe_bioavail
 
 
     implicit none
@@ -1203,7 +1211,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character (*), parameter       :: subname = 'ecosys_forcing_mod:ecosys_forcing_set_surface_forcing_data'
+    character (*), parameter       :: subname = 'ecosys_forcing_mod:ecosys_forcing_set_surface_time_varying_forcing_data'
     logical   (log_kind)           :: first_call = .true.
     type      (block)              :: this_block                                            ! block info for the current block
     integer   (int_kind)           :: index                                                 ! field index
@@ -1443,8 +1451,24 @@ contains
     end associate
     end do  ! index
 
+    call adjust_surface_time_varying_data()
+
+    call timer_stop(ecosys_pre_sflux_timer)
+
+  end subroutine ecosys_forcing_set_surface_time_varying_forcing_data
+
+  !***********************************************************************
+
+  subroutine adjust_surface_time_varying_data()
+
+    use time_management, only : imonth
+    use marbl_parms    , only : parm_Fe_bioavail
+
+    integer :: index, iblock
+
     !-----------------------------------------------------------------------
-    ! Modify above data if necessary
+    ! Some surface forcing fields need to be modified before being
+    ! sent to MARBL
     !-----------------------------------------------------------------------
 
     do iblock = 1,nblocks_clinic
@@ -1501,10 +1525,7 @@ contains
       dust_flux_in = surface_forcing_fields(index)%field_0d
     end if
 
-
-    call timer_stop(ecosys_pre_sflux_timer)
-
-  end subroutine ecosys_forcing_set_surface_forcing_data
+  end subroutine adjust_surface_time_varying_data
 
   !***********************************************************************
 
