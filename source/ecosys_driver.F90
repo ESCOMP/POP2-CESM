@@ -173,7 +173,6 @@ contains
     use named_field_mod       , only : named_field_set
     use running_mean_mod      , only : running_mean_get_var
     use ecosys_forcing_mod    , only : ecosys_forcing_init
-    use ecosys_forcing_mod    , only : ecosys_forcing_read_interior_data
     use marbl_logging         , only : marbl_log_type
 
     implicit none
@@ -497,13 +496,12 @@ contains
 
     call ecosys_forcing_init(ciso_on,                                         &
                              num_elements,                                    &
+                             land_mask,                                       &
                              fe_frac_dust,                                    &
                              fe_frac_bc,                                      &
                              marbl_instances(1)%surface_input_forcings,       &
                              marbl_instances(1)%interior_input_forcings,      &
                              tmp_nl_buffer)
-
-    call ecosys_forcing_read_interior_data(land_mask)
 
     !--------------------------------------------------------------------
     !  Initialize ecosys_driver module variables

@@ -40,7 +40,6 @@ module ecosys_forcing_mod
   private
 
   public :: ecosys_forcing_init
-  public :: ecosys_forcing_read_interior_data
   public :: ecosys_forcing_set_surface_forcing_data
   public :: ecosys_forcing_set_interior_forcing_data
   public :: ecosys_forcing_tracer_ref_val
@@ -279,11 +278,9 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_init(ciso_on, num_elements, fe_frac_dust,         &
-                                 fe_frac_bc, surface_forcings,                &
+  subroutine ecosys_forcing_init(ciso_on, num_elements, land_mask,            &
+                                 fe_frac_dust,fe_frac_bc, surface_forcings,   &
                                  interior_forcings, forcing_nml)
-
-    use passive_tracer_tools, only : read_field
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
     use ecosys_tracers_and_saved_state_mod, only : dic_ind
@@ -305,6 +302,7 @@ contains
 
     logical,                         intent(in)    :: ciso_on
     integer,                         intent(in)    :: num_elements
+    logical,                         intent(in)    :: land_mask(:,:,:)
     real(r8),                        intent(in)    :: fe_frac_dust
     real(r8),                        intent(in)    :: fe_frac_bc
     type(marbl_forcing_fields_type), intent(in)    :: surface_forcings(:)
@@ -922,48 +920,67 @@ contains
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
-    !--------------------------------------------------------------------------
-    !  Set any constant forcing fields and
-    !  read any forcing fields that are time invariant
-    !--------------------------------------------------------------------------
+    call forcing_init_set_time_invariant(interior_forcing_fields)
 
-    do n=1,num_interior_forcing_fields
-      associate (forcing_field =>interior_forcing_fields(n)%metadata)
-        select case (trim(forcing_field%field_source))
-          case ('const','zero')
-            if (allocated(interior_forcing_fields(n)%field_0d)) then
-              interior_forcing_fields(n)%field_0d =                           &
-                             forcing_field%field_constant_info%field_constant
-            else
-              interior_forcing_fields(n)%field_1d =                           &
-                             forcing_field%field_constant_info%field_constant
-            end if
-          case ('file_time_invariant')
-            if (allocated(interior_forcing_fields(n)%field_0d)) then
-              call read_field('nc', forcing_field%field_file_info%filename,   &
-                              forcing_field%field_file_info%file_varname,     &
-                              interior_forcing_fields(n)%field_0d)
-            else
-              call read_field('nc', forcing_field%field_file_info%filename,   &
-                              forcing_field%field_file_info%file_varname,     &
-                              interior_forcing_fields(n)%field_1d)
-            end if
-        end select
-      end associate
-    end do
+    call forcing_init_post_processing(land_mask)
 
   end subroutine ecosys_forcing_init
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_read_interior_data(land_mask)
+  subroutine forcing_init_set_time_invariant(forcing_fields_in)
+
+    use passive_tracer_tools, only : read_field
+
+    type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
+
+    integer :: n
+
+    !--------------------------------------------------------------------------
+    !  Set any constant forcing fields and
+    !  read any forcing fields that are time invariant
+    !
+    !  For POP monthly calendar surface forcing fields, read all
+    !  12 months of data
+    !--------------------------------------------------------------------------
+
+    do n=1, size(forcing_fields_in)
+      associate (forcing_field =>forcing_fields_in(n)%metadata)
+        select case (trim(forcing_field%field_source))
+          case ('const','zero')
+            if (allocated(forcing_fields_in(n)%field_0d)) then
+              forcing_fields_in(n)%field_0d =                                 &
+                             forcing_field%field_constant_info%field_constant
+            else
+              forcing_fields_in(n)%field_1d =                                 &
+                             forcing_field%field_constant_info%field_constant
+            end if
+          case ('file_time_invariant')
+            if (allocated(forcing_fields_in(n)%field_0d)) then
+              call read_field('nc', forcing_field%field_file_info%filename,   &
+                              forcing_field%field_file_info%file_varname,     &
+                              forcing_fields_in(n)%field_0d)
+            else
+              call read_field('nc', forcing_field%field_file_info%filename,   &
+                              forcing_field%field_file_info%file_varname,     &
+                              forcing_fields_in(n)%field_1d)
+            end if
+        end select
+
+      end associate
+    end do
+
+  end subroutine forcing_init_set_time_invariant
+
+  !*****************************************************************************
+
+  subroutine forcing_init_post_processing(land_mask)
 
     use passive_tracer_tools, only : read_field
     use grid                , only : KMT
 
-    implicit none
+    logical, intent(in)  :: land_mask(:,:,:)
 
-    logical,                  intent(in)  :: land_mask(nx_block,ny_block,max_blocks_clinic)
     integer :: i, j, iblock, k, n
     real (r8) :: subsurf_fesed      ! sum of subsurface fesed values
 
@@ -994,7 +1011,7 @@ contains
     enddo
     end associate
 
-  end subroutine ecosys_forcing_read_interior_data
+  end subroutine forcing_init_post_processing
 
   !*****************************************************************************
 
@@ -1103,7 +1120,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character (*), parameter       :: subname = 'ecosys_forcing_mod:ecosys_forcing_set_restore_data'
+    character (*), parameter       :: subname = 'ecosys_forcing_mod:ecosys_forcing_set_surface_forcing_data'
     logical   (log_kind)           :: first_call = .true.
     type      (block)              :: this_block                                            ! block info for the current block
     integer   (int_kind)           :: index                                                 ! field index
