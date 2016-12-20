@@ -6383,23 +6383,23 @@ Default: 1
 </entry>
 
 <entry 
-id="restore_short_names"
-type="char*256(100)"
+id="restoreable_tracer_names"
+type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default:
 </entry>
 
 <entry 
-id="restore_filenames"
-type="char*256(100)"
+id="restore_data_filenames"
+type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default:
 </entry>
 
 <entry 
-id="restore_filenames_derived"
+id="restore_data_filenames_derived"
 type="char*256"
 category="ecosys"
 group="derived" 
@@ -6408,8 +6408,8 @@ Default:
 </entry>
 
 <entry 
-id="restore_file_varnames"
-type="char*256(100)"
+id="restore_data_file_varnames"
+type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default:

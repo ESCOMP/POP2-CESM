@@ -178,9 +178,16 @@ module ecosys_forcing_mod
   character(char_len),  target :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
   character(char_len),  target :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
   character(char_len),  target :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
-  character(char_len), dimension(marbl_tracer_cnt) :: restore_filenames
-  character(char_len), dimension(marbl_tracer_cnt) :: restore_file_varnames
-  character(char_len), dimension(marbl_tracer_cnt) :: restore_short_names
+
+  ! For tracer restoring, we need three things:
+  ! (1) list of tracers to apply restoring to
+  character(char_len), dimension(marbl_tracer_cnt) :: restoreable_tracer_names
+  ! (2) List of files containing the restoring fields
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_data_filenames
+  ! (3) List of the name of the variable in (2) that we will restore (1) towards
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_data_file_varnames
+
+  ! Also need to know what time scale to restore on
   character(char_len)                              :: restore_inv_tau_opt
   real(r8)                                         :: restore_inv_tau_const
 
@@ -337,10 +344,10 @@ contains
          liron_patch, iron_patch_flux_filename, iron_patch_month,             &
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
-         ciso_atm_model_year, ciso_atm_data_year, restore_filenames,          &
-         restore_file_varnames, restore_short_names, restore_inv_tau_opt,     &
-         restore_inv_tau_const, surf_avg_alk_const, surf_avg_dic_const,       &
-         surf_avg_di13c_const, surf_avg_di14c_const
+         ciso_atm_model_year, ciso_atm_data_year, restore_data_filenames,     &
+         restore_data_file_varnames, restoreable_tracer_names,                &
+         restore_inv_tau_opt, restore_inv_tau_const, surf_avg_alk_const,      &
+         surf_avg_dic_const, surf_avg_di13c_const, surf_avg_di14c_const
 
     !-----------------------------------------------------------------------
     !  Set module variables from intent(in)
@@ -398,9 +405,9 @@ contains
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
 
-    restore_filenames     = ''
-    restore_file_varnames = ''
-    restore_short_names   = ''
+    restore_data_filenames     = ''
+    restore_data_file_varnames = ''
+    restoreable_tracer_names   = ''
     restore_inv_tau_opt   = 'const'
     restore_inv_tau_const = 2.3e-6_r8
 
@@ -795,25 +802,34 @@ contains
       if (index(marbl_varname,'Restoring').gt.0) then
         tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
         do m=1,marbl_tracer_cnt
-          if (trim(tracer_name).eq.trim(restore_short_names(m))) then
-            ! Check to make sure restore_filenames and restore_file_varnames
-            ! have both been provided by namelist
-            if (len_trim(restore_filenames(m))*                               &
-                len_trim(restore_file_varnames(m)).ne.0) then
-              if (my_task.eq.master_task) then
-                write(stdout, "(6A)") "Will restore ", trim(tracer_name),     &
-                                    " with ", trim(restore_file_varnames(m)), &
-                                    " from ", trim(restore_filenames(m))
-              end if
-              call interior_forcing_fields(n)%add_forcing_field(              &
-                         field_source='file_time_invariant',                  &
-                         marbl_varname=marbl_varname, field_units=units,      &
-                         filename=restore_filenames(m),                       &
-                         file_varname=restore_file_varnames(m),               &
-                         id=n)
-              allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
-              var_processed = .true.
+          if (trim(tracer_name).eq.trim(restoreable_tracer_names(m))) then
+            ! Check to make sure restore_data_filenames and
+            ! restore_data_file_varnames have both been provided by namelist
+            if (len_trim(restore_data_filenames(m)).eq.0) then
+              write(err_msg, "(3A)") "No file provided to read restoring ",   &
+                                     "field for ", trim(tracer_name)
+              call document(subname, err_msg)
+              call exit_POP(sigAbort, 'Stopping in ' // subname)
             end if
+            if (len_trim(restore_data_file_varnames(m)).eq.0) then
+              write(err_msg, "(3A)") "No variable name provided to read ",    &
+                                     "restoring field for ", trim(tracer_name)
+              call document(subname, err_msg)
+              call exit_POP(sigAbort, 'Stopping in ' // subname)
+            end if
+            if (my_task.eq.master_task) then
+              write(stdout, "(6A)") "Will restore ", trim(tracer_name),       &
+                            " with ", trim(restore_data_file_varnames(m)),    &
+                            " from ", trim(restore_data_filenames(m))
+            end if
+            call interior_forcing_fields(n)%add_forcing_field(                &
+                       field_source='file_time_invariant',                    &
+                       marbl_varname=marbl_varname, field_units=units,        &
+                       filename=restore_data_filenames(m),                    &
+                       file_varname=restore_data_file_varnames(m),            &
+                       id=n)
+            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+            var_processed = .true.
             exit
           end if
         end do

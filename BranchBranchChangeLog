@@ -3,14 +3,23 @@ Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    19 December 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n54_marbl_dev_n23_cesm_pop_2_1_20161116
-Tag Summary: Clean up field_source options in forcing_field_type: remove
-             'marbl', change 'driver' to 'internal', change 'none' to 'zero',
-             shorten 'constant' to 'const', and change 'file' to 'shr_stream'.
+Tag Summary: Lots of clean-up following code review with klindsay. Some
+             highlights --
+             * Clean up field_source options in forcing_field_type: remove
+               'marbl', change 'driver' to 'internal', change 'none' to 'zero',
+               shorten 'constant' to 'const', and change 'file' to 'shr_stream'
+             * Clearer namelist variable names for tracer restoring and also
+               better array sizes in definitions (and better logic for size of
+               restore_data_filenames in build-namelist)
+             * Better error handling in restoring block
 
 Testing:     Bit-for-bit with marbl_dev_levy_n53 in aux_pop_MARBL test suite
              testing with yellowstone_intel, yellowstone_gnu, and hobart_nag
 
 Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
 M       source/ecosys_driver.F90
 M       source/ecosys_forcing_mod.F90
 M       source/passive_tracers.F90

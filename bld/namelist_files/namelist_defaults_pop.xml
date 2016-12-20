@@ -1200,10 +1200,10 @@
 <ciso_atm_model_year>1</ciso_atm_model_year>
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
-<restore_short_names>  'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC_ALT_CO2', 'ALK', 'DOC', 'DON', 'DOP'</restore_short_names>
-<restore_file_varnames>'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC',         'ALK', 'DOC', 'DON', 'DOP'</restore_file_varnames>
-<restore_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</restore_filenames_derived>
-<restore_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_filenames_derived>
+<restoreable_tracer_names>  'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC_ALT_CO2', 'ALK', 'DOC', 'DON', 'DOP'</restoreable_tracer_names>
+<restore_data_file_varnames>'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC',         'ALK', 'DOC', 'DON', 'DOP'</restore_data_file_varnames>
+<restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</restore_data_filenames_derived>
+<restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_data_filenames_derived>
 
 <restore_inv_tau_opt>const</restore_inv_tau_opt>
 <restore_inv_tau_const>2.3e-6</restore_inv_tau_const>
