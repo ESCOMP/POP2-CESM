@@ -919,8 +919,9 @@ contains
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
-    call forcing_init_set_time_invariant(surface_forcing_fields, land_mask)
+    call forcing_init_set_time_invariant(surface_forcing_fields)
     call forcing_init_set_time_invariant(interior_forcing_fields)
+    call forcing_init_read_monthly_calendar(surface_forcing_fields, land_mask)
 
     call forcing_init_post_processing(land_mask)
 
@@ -928,19 +929,13 @@ contains
 
   !*****************************************************************************
 
-  subroutine forcing_init_set_time_invariant(forcing_fields_in, land_mask)
+  subroutine forcing_init_set_time_invariant(forcing_fields_in)
 
     use passive_tracer_tools, only : read_field
-    use forcing_tools       , only : find_forcing_times
 
     type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
-    logical, optional,         intent(in)    :: land_mask(:,:,:)
 
-    character(*), parameter  :: subname = 'ecosys_forcing_mod:forcing_init_set_time_invariant'
-    character(len=char_len)  :: err_msg
-    type(forcing_monthly_every_ts), pointer :: file
-    real(r8), allocatable, target :: work_read(:,:,:,:)
-    integer :: m, n, iblock
+    integer :: n
 
     !--------------------------------------------------------------------------
     !  Set any constant forcing fields and
@@ -953,54 +948,6 @@ contains
     do n=1, size(forcing_fields_in)
       associate (forcing_field =>forcing_fields_in(n)%metadata)
         select case (trim(forcing_field%field_source))
-          case ('POP monthly calendar')
-
-             if (.not.present(land_mask)) then
-               write(err_msg, "(3A)") "land_mask is needed to process ",      &
-                                      trim(forcing_field%marbl_varname),      &
-                                      " as POP monthly calendar forcing field"
-               call document(subname, err_msg)
-               call exit_POP(sigAbort, 'Stopping in ' // subname)
-             end if
-
-             file => forcing_field%field_monthly_calendar_info%forcing_calendar_name
-
-             allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))  
-             if (trim(file%input%filename) == 'unknown') then
-                file%input%filename = gas_flux_forcing_file
-             end if
-             if (trim(file%input%filename) /= 'none') then
-                allocate(file%data(nx_block, ny_block, max_blocks_clinic, 1, 12))
-                call read_field(file%input%file_fmt, file%input%filename, file%input%file_varname, work_read)
-                do iblock=1, nblocks_clinic
-                   do m=1, 12
-                      file%data(:, :, iblock, 1, m) = work_read(:, :, m, iblock)
-                      where (.not. land_mask(:, :, iblock)) file%data(:, :, iblock, 1, m) = c0
-                      file%data(:, :, iblock, 1, m) = file%data(:, :, iblock, 1, m) * file%input%scale_factor
-                   end do
-                end do
-                call find_forcing_times(     &
-                     file%data_time, file%data_inc, file%interp_type, file%data_next, &
-                     file%data_time_min_loc, file%data_update, file%data_type)
-                file%has_data = .true.
-             else
-                file%has_data = .false.
-             endif
-
-             !  load iron PATCH flux fields (if required)
-             !  assume patch file has same normalization and format as deposition file
-             if (n == Fe_ind .and. liron_patch) then
-                call read_field(file%input%file_fmt, file%input%filename, iron_patch_flux_filename, iron_patch_flux)
-                do iblock=1, nblocks_clinic
-                   do m=1, 12
-                      where (.not. land_mask(:, :, iblock)) iron_patch_flux(:, :, iblock) = c0
-                      file%data(:, :, iblock, 1, m) = iron_patch_flux(:, :, iblock) * file%input%scale_factor
-                   end do
-                end do
-             end if
-
-             deallocate(work_read)
-
           case ('const','zero')
             if (allocated(forcing_fields_in(n)%field_0d)) then
               forcing_fields_in(n)%field_0d =                                 &
@@ -1025,6 +972,82 @@ contains
     end do
 
   end subroutine forcing_init_set_time_invariant
+
+  !*****************************************************************************
+
+  subroutine forcing_init_read_monthly_calendar(forcing_fields_in, land_mask)
+
+    use passive_tracer_tools, only : read_field
+    use forcing_tools       , only : find_forcing_times
+
+    type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
+    logical, optional,         intent(in)    :: land_mask(:,:,:)
+
+    character(*), parameter  :: subname = 'ecosys_forcing_mod:forcing_init_set_time_invariant'
+    character(len=char_len)  :: err_msg
+    type(forcing_monthly_every_ts), pointer :: file
+    real(r8), allocatable, target :: work_read(:,:,:,:)
+    integer :: m, n, iblock
+
+    !--------------------------------------------------------------------------
+    !  For POP monthly calendar surface forcing fields, read all
+    !  12 months of data
+    !--------------------------------------------------------------------------
+
+    do n=1, size(forcing_fields_in)
+      associate (forcing_field =>forcing_fields_in(n)%metadata)
+        if (trim(forcing_field%field_source).eq.'POP monthly calendar') then
+           if (.not.present(land_mask)) then
+             write(err_msg, "(3A)") "land_mask is needed to process ",      &
+                                    trim(forcing_field%marbl_varname),      &
+                                    " as POP monthly calendar forcing field"
+             call document(subname, err_msg)
+             call exit_POP(sigAbort, 'Stopping in ' // subname)
+           end if
+
+           file => forcing_field%field_monthly_calendar_info%forcing_calendar_name
+
+           allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))  
+           if (trim(file%input%filename) == 'unknown') then
+              file%input%filename = gas_flux_forcing_file
+           end if
+           if (trim(file%input%filename) /= 'none') then
+              allocate(file%data(nx_block, ny_block, max_blocks_clinic, 1, 12))
+              call read_field(file%input%file_fmt, file%input%filename, file%input%file_varname, work_read)
+              do iblock=1, nblocks_clinic
+                 do m=1, 12
+                    file%data(:, :, iblock, 1, m) = work_read(:, :, m, iblock)
+                    where (.not. land_mask(:, :, iblock)) file%data(:, :, iblock, 1, m) = c0
+                    file%data(:, :, iblock, 1, m) = file%data(:, :, iblock, 1, m) * file%input%scale_factor
+                 end do
+              end do
+              call find_forcing_times(     &
+                   file%data_time, file%data_inc, file%interp_type, file%data_next, &
+                   file%data_time_min_loc, file%data_update, file%data_type)
+              file%has_data = .true.
+           else
+              file%has_data = .false.
+           endif
+
+           !  load iron PATCH flux fields (if required)
+           !  assume patch file has same normalization and format as deposition file
+           if (n == Fe_ind .and. liron_patch) then
+              call read_field(file%input%file_fmt, file%input%filename, iron_patch_flux_filename, iron_patch_flux)
+              do iblock=1, nblocks_clinic
+                 do m=1, 12
+                    where (.not. land_mask(:, :, iblock)) iron_patch_flux(:, :, iblock) = c0
+                    file%data(:, :, iblock, 1, m) = iron_patch_flux(:, :, iblock) * file%input%scale_factor
+                 end do
+              end do
+           end if
+
+           deallocate(work_read)
+
+        end if
+      end associate
+    end do
+
+  end subroutine forcing_init_read_monthly_calendar
 
   !*****************************************************************************
 
@@ -1250,9 +1273,6 @@ contains
     do index = 1, num_surface_forcing_fields
     associate(fields => surface_forcing_fields(index)%metadata)
 
-      ! Initialize fluxes to 0
-      surface_forcing_fields(index)%field_0d = c0
-
        select case (fields%field_source)
 
        !------------------------------------
@@ -1298,12 +1318,6 @@ contains
 
              surface_forcing_fields(index)%field_0d = interp_work(:, :, :, 1)
           endif
-
-       !------------------------------------
-       case ('const')
-       !------------------------------------
-
-          surface_forcing_fields(index)%field_0d = fields%field_constant_info%field_constant
 
        !------------------------------------
        case ('named_field')
