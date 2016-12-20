@@ -783,6 +783,10 @@ contains
       ! All surface forcing fields are 0d; if a 1d field is introduced later,
       ! move this allocate into the select case
       allocate(surface_forcing_fields(n)%field_0d(nx_block, ny_block, nblocks_clinic))
+
+      ! Zero out forcing field. If a 1d field is introduced later, check to see
+      ! which of field_0d and field_1d is allocated.
+      surface_forcing_fields(n)%field_0d = c0
     end do
 
     !--------------------------------------------------------------------------
@@ -912,6 +916,13 @@ contains
             call exit_POP(sigAbort, 'Stopping in ' // subname)
         end select
       end if
+
+      ! Zero out field
+      if (allocated(interior_forcing_fields(n)%field_0d)) then
+        interior_forcing_fields(n)%field_0d = c0
+      else
+        interior_forcing_fields(n)%field_1d = c0
+      end if
     end do
 
     if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
@@ -922,8 +933,9 @@ contains
     call set_time_invariant_forcing_data(surface_forcing_fields)
     call set_time_invariant_forcing_data(interior_forcing_fields)
     call read_monthly_calendar_forcing_data(surface_forcing_fields, land_mask)
-
     call forcing_init_post_processing(land_mask)
+    call mask_time_invariant_forcing_data(surface_forcing_fields, land_mask)
+    call mask_time_invariant_forcing_data(interior_forcing_fields, land_mask)
 
   end subroutine ecosys_forcing_init
 
@@ -981,10 +993,8 @@ contains
     use forcing_tools       , only : find_forcing_times
 
     type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
-    logical, optional,         intent(in)    :: land_mask(:,:,:)
+    logical,                   intent(in)    :: land_mask(:,:,:)
 
-    character(*), parameter  :: subname = 'ecosys_forcing_mod:read_monthly_calendar_forcing_data'
-    character(len=char_len)  :: err_msg
     type(forcing_monthly_every_ts), pointer :: file
     real(r8), allocatable, target :: work_read(:,:,:,:)
     integer :: m, n, iblock
@@ -997,14 +1007,6 @@ contains
     do n=1, size(forcing_fields_in)
       associate (forcing_field =>forcing_fields_in(n)%metadata)
         if (trim(forcing_field%field_source).eq.'POP monthly calendar') then
-           if (.not.present(land_mask)) then
-             write(err_msg, "(3A)") "land_mask is needed to process ",      &
-                                    trim(forcing_field%marbl_varname),      &
-                                    " as POP monthly calendar forcing field"
-             call document(subname, err_msg)
-             call exit_POP(sigAbort, 'Stopping in ' // subname)
-           end if
-
            file => forcing_field%field_monthly_calendar_info%forcing_calendar_name
 
            allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))  
@@ -1080,15 +1082,49 @@ contains
       enddo
 
       do k = 1, km
-        where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
-          fesedflux(:, :, k, iblock) = c0
+        where (land_mask(:, :, iblock) .and. (k.le.KMT(:, :, iblock)))
+          fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
         end where
-        fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
       enddo
     enddo
     end associate
 
   end subroutine forcing_init_post_processing
+
+  !*****************************************************************************
+
+  subroutine mask_time_invariant_forcing_data(forcing_fields_in, land_mask)
+
+    use grid, only : KMT
+
+    type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
+    logical,                   intent(in)    :: land_mask(:,:,:)
+
+    integer :: k, iblock, n
+
+    do n=1,size(forcing_fields_in)
+      associate (forcing_field =>forcing_fields_in(n)%metadata)
+        if ((trim(forcing_field%field_source).eq.'const') .or.                &
+            (trim(forcing_field%field_source).eq.'zero')  .or.                &
+            (trim(forcing_field%field_source).eq.'file_time_invariant')) then
+          do iblock=1,nblocks_clinic
+            if (allocated(forcing_fields_in(n)%field_0d)) then
+              where (.not.land_mask(:, :, iblock))
+                forcing_fields_in(n)%field_0d(:,:,iblock) = c0
+              endwhere
+            else
+              do k=1,km
+                where (.not.land_mask(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
+                  forcing_fields_in(n)%field_1d(:,:,k,iblock) = c0
+                end where
+              end do
+            end if
+          end do
+        end if
+      end associate
+    end do
+    
+  end subroutine mask_time_invariant_forcing_data
 
   !*****************************************************************************
 
