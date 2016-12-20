@@ -822,31 +822,26 @@ contains
       ! Check to see if this forcing field is a restoring time scale
       if (index(marbl_varname,'Inverse Timescale').gt.0) then
         tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
-        do m=1,marbl_tracer_cnt
-          if (trim(tracer_name).eq.trim(restore_short_names(m))) then
-            select case (trim(restore_inv_tau_opt))
-              case('const')
-                call interior_forcing_fields(n)%add_forcing_field(            &
-                           field_source='const',                              &
-                           marbl_varname=marbl_varname, field_units=units,    &
-                           field_constant = restore_inv_tau_const,            &
-                           id=n)
-              ! case('shr_stream')
-              ! NOT SUPPORTED YET
-              ! will require additional namelist variables, and we can consider
-              ! reading in one file per tracer instead of using the same mask
-              ! for all restoring fields
-              case DEFAULT
-                write(err_msg, "(A,1X,A)") trim(restore_inv_tau_opt),             &
-                     'is not a valid option for restore_inv_tau_opt'
-                call document(subname, err_msg)
-                call exit_POP(sigAbort, 'Stopping in ' // subname)
-            end select
-            allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
-            var_processed = .true.
-            exit
-          end if
-        end do
+        select case (trim(restore_inv_tau_opt))
+          case('const')
+            call interior_forcing_fields(n)%add_forcing_field(                &
+                       field_source='const',                                  &
+                       marbl_varname=marbl_varname, field_units=units,        &
+                       field_constant = restore_inv_tau_const,                &
+                       id=n)
+          ! case('shr_stream')
+          ! NOT SUPPORTED YET
+          ! will require additional namelist variables, and we can consider
+          ! reading in one file per tracer instead of using the same mask
+          ! for all restoring fields
+          case DEFAULT
+            write(err_msg, "(A,1X,A)") trim(restore_inv_tau_opt),             &
+                 'is not a valid option for restore_inv_tau_opt'
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
+        end select
+        allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+        var_processed = .true.
       end if
 
       if (.not.var_processed) then
