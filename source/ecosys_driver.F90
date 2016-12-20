@@ -26,9 +26,6 @@ module ecosys_driver
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use communicate               , only : my_task, master_task
 
-  use marbl_sizes               , only : num_surface_forcing_fields 
-  use marbl_sizes               , only : num_interior_forcing_fields 
-
   use marbl_config_mod          , only : lflux_gas_co2
 
   use marbl_logging             , only : marbl_log_type
@@ -761,7 +758,7 @@ contains
 
              ! --- set forcing fields ---
 
-             do n = 1, num_interior_forcing_fields
+             do n = 1, size(interior_forcing_fields)
                if (allocated(interior_forcing_fields(n)%field_0d)) then
                  marbl_instances(bid)%interior_input_forcings(n)%field_0d(1) = &
                       interior_forcing_fields(n)%field_0d(i,c,bid)
@@ -913,7 +910,7 @@ contains
           do i = 1,nx_block
              index_marbl = i + (j-1)*nx_block
 
-             do n = 1,num_surface_forcing_fields
+             do n = 1,size(surface_forcing_fields)
                 marbl_instances(iblock)%surface_input_forcings(n)%field_0d(index_marbl) = &
                      surface_forcing_fields(n)%field_0d(i,j,iblock)
              end do

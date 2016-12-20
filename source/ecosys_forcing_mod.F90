@@ -291,8 +291,6 @@ contains
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
     use marbl_interface_types, only : marbl_forcing_fields_type
-    use marbl_sizes, only : num_surface_forcing_fields
-    use marbl_sizes, only : num_interior_forcing_fields
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
 
@@ -490,8 +488,8 @@ contains
     alk_riv_flux_file_loc%input     = alk_riv_flux_input
     doc_riv_flux_file_loc%input     = doc_riv_flux_input
 
-    allocate(surface_forcing_fields(num_surface_forcing_fields))
-    do n=1,num_surface_forcing_fields
+    allocate(surface_forcing_fields(size(surface_forcings)))
+    do n=1,size(surface_forcing_fields)
       marbl_varname = surface_forcings(n)%metadata%varname
       units         = surface_forcings(n)%metadata%field_units
       select case (trim(surface_forcings(n)%metadata%varname))
@@ -793,9 +791,9 @@ contains
     !  Interior forcing
     !--------------------------------------------------------------------------
 
-    allocate(interior_forcing_fields(num_interior_forcing_fields))
+    allocate(interior_forcing_fields(size(interior_forcings)))
 
-    do n=1,num_interior_forcing_fields
+    do n=1,size(interior_forcing_fields)
       marbl_varname = interior_forcings(n)%metadata%varname
       units = interior_forcings(n)%metadata%field_units
 
@@ -1133,7 +1131,6 @@ contains
                                          temperature, salinity, pressure,     &
                                          ecosys_qsw_distrb_const, bid)
   
-    use marbl_sizes, only : num_interior_forcing_fields
     use mcog, only : mcog_nbins
 
     real(r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: FRACR_BIN
@@ -1154,7 +1151,7 @@ contains
       first_call = .false.
     end if
 
-    do index= 1,num_interior_forcing_fields
+    do index= 1,size(interior_forcing_fields)
       select case (interior_forcing_fields(index)%metadata%field_source)
         case('internal')
           if (index.eq.dustflux_ind) then
@@ -1228,7 +1225,6 @@ contains
     use strdata_interface_mod , only : POP_strdata_advance 
     use strdata_interface_mod , only : POP_strdata_create
     use passive_tracer_tools  , only : read_field
-    use marbl_sizes           , only : num_surface_forcing_fields
     use marbl_constants_mod   , only : molw_Fe
 
 
@@ -1281,7 +1277,7 @@ contains
     !-----------------------------------------------------------------------
 
     if (first_call) then
-       do index = 1, num_surface_forcing_fields
+       do index = 1, size(surface_forcing_fields)
        associate(fields => surface_forcing_fields(index)%metadata)
           if (fields%field_source.eq.'shr_stream') then
              if (trim(ndep_data_type) == 'shr_stream') then
@@ -1321,7 +1317,7 @@ contains
     !  loop through forcing fields
     !-----------------------------------------------------------------------
 
-    do index = 1, num_surface_forcing_fields
+    do index = 1, size(surface_forcing_fields)
     associate(fields => surface_forcing_fields(index)%metadata)
 
        select case (fields%field_source)
