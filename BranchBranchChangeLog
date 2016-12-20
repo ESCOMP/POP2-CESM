@@ -2,6 +2,16 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    20 December 2016
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n57_marbl_dev_n24_cesm_pop_2_1_20161116
+Tag Summary: merged and tagged MARBL development, needed to update externals
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    20 December 2016
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n56_marbl_dev_n24_cesm_pop_2_1_20161116
 Tag Summary: Last set of code clean-up for generalized interior forcing
 
