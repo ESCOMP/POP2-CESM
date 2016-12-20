@@ -799,7 +799,7 @@ contains
 
       var_processed = .false.
       ! Check to see if this forcing field is tracer restoring
-      if (index(marbl_varname,'Restoring').gt.0) then
+      if (index(marbl_varname,'Restoring Field').gt.0) then
         tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
         do m=1,marbl_tracer_cnt
           if (trim(tracer_name).eq.trim(restoreable_tracer_names(m))) then
@@ -836,7 +836,7 @@ contains
       end if
 
       ! Check to see if this forcing field is a restoring time scale
-      if (index(marbl_varname,'Inverse Timescale').gt.0) then
+      if (index(marbl_varname,'Restoring Inverse Timescale').gt.0) then
         tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
         select case (trim(restore_inv_tau_opt))
           case('const')
