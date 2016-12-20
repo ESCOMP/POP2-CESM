@@ -915,11 +915,11 @@ contains
     end do
 
     if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
-      write(err_msg, "(A)") "If deriving iron flux, must provide dust flux!"
-      call document(subname, err_msg)
+      call document(subname, "If deriving iron flux, must provide dust flux!")
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
+    call forcing_init_set_time_invariant(surface_forcing_fields, land_mask)
     call forcing_init_set_time_invariant(interior_forcing_fields)
 
     call forcing_init_post_processing(land_mask)
@@ -928,13 +928,19 @@ contains
 
   !*****************************************************************************
 
-  subroutine forcing_init_set_time_invariant(forcing_fields_in)
+  subroutine forcing_init_set_time_invariant(forcing_fields_in, land_mask)
 
     use passive_tracer_tools, only : read_field
+    use forcing_tools       , only : find_forcing_times
 
     type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
+    logical, optional,         intent(in)    :: land_mask(:,:,:)
 
-    integer :: n
+    character(*), parameter  :: subname = 'ecosys_forcing_mod:forcing_init_set_time_invariant'
+    character(len=char_len)  :: err_msg
+    type(forcing_monthly_every_ts), pointer :: file
+    real(r8), allocatable, target :: work_read(:,:,:,:)
+    integer :: m, n, iblock
 
     !--------------------------------------------------------------------------
     !  Set any constant forcing fields and
@@ -947,6 +953,54 @@ contains
     do n=1, size(forcing_fields_in)
       associate (forcing_field =>forcing_fields_in(n)%metadata)
         select case (trim(forcing_field%field_source))
+          case ('POP monthly calendar')
+
+             if (.not.present(land_mask)) then
+               write(err_msg, "(3A)") "land_mask is needed to process ",      &
+                                      trim(forcing_field%marbl_varname),      &
+                                      " as POP monthly calendar forcing field"
+               call document(subname, err_msg)
+               call exit_POP(sigAbort, 'Stopping in ' // subname)
+             end if
+
+             file => forcing_field%field_monthly_calendar_info%forcing_calendar_name
+
+             allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))  
+             if (trim(file%input%filename) == 'unknown') then
+                file%input%filename = gas_flux_forcing_file
+             end if
+             if (trim(file%input%filename) /= 'none') then
+                allocate(file%data(nx_block, ny_block, max_blocks_clinic, 1, 12))
+                call read_field(file%input%file_fmt, file%input%filename, file%input%file_varname, work_read)
+                do iblock=1, nblocks_clinic
+                   do m=1, 12
+                      file%data(:, :, iblock, 1, m) = work_read(:, :, m, iblock)
+                      where (.not. land_mask(:, :, iblock)) file%data(:, :, iblock, 1, m) = c0
+                      file%data(:, :, iblock, 1, m) = file%data(:, :, iblock, 1, m) * file%input%scale_factor
+                   end do
+                end do
+                call find_forcing_times(     &
+                     file%data_time, file%data_inc, file%interp_type, file%data_next, &
+                     file%data_time_min_loc, file%data_update, file%data_type)
+                file%has_data = .true.
+             else
+                file%has_data = .false.
+             endif
+
+             !  load iron PATCH flux fields (if required)
+             !  assume patch file has same normalization and format as deposition file
+             if (n == Fe_ind .and. liron_patch) then
+                call read_field(file%input%file_fmt, file%input%filename, iron_patch_flux_filename, iron_patch_flux)
+                do iblock=1, nblocks_clinic
+                   do m=1, 12
+                      where (.not. land_mask(:, :, iblock)) iron_patch_flux(:, :, iblock) = c0
+                      file%data(:, :, iblock, 1, m) = iron_patch_flux(:, :, iblock) * file%input%scale_factor
+                   end do
+                end do
+             end if
+
+             deallocate(work_read)
+
           case ('const','zero')
             if (allocated(forcing_fields_in(n)%field_0d)) then
               forcing_fields_in(n)%field_0d =                                 &
@@ -1099,7 +1153,6 @@ contains
     use strdata_interface_mod , only : POP_strdata_advance 
     use strdata_interface_mod , only : POP_strdata_create
     use passive_tracer_tools  , only : read_field
-    use forcing_tools         , only : find_forcing_times
     use marbl_sizes           , only : num_surface_forcing_fields
     use marbl_constants_mod   , only : molw_Fe
     use marbl_parms           , only : parm_Fe_bioavail
@@ -1134,8 +1187,7 @@ contains
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     real      (r8)                 :: d14c_glo_avg                                          ! global average D14C over the ocean, computed from current D14C field
-    type      (forcing_monthly_every_ts), pointer :: file
-    real      (r8), allocatable, target :: work_read(:,:,:,:)
+    type(forcing_monthly_every_ts), pointer :: file
     integer   (int_kind)          :: stream_index
     integer   (int_kind)          :: nf_ind
     !-----------------------------------------------------------------------
@@ -1157,57 +1209,8 @@ contains
     if (first_call) then
        do index = 1, num_surface_forcing_fields
        associate(fields => surface_forcing_fields(index)%metadata)
-
-          select case (fields%field_source)
-
-          !------------------------------------
-          case ('POP monthly calendar')
-          !------------------------------------
-
-             file => fields%field_monthly_calendar_info%forcing_calendar_name
-
-             allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))  
-             if (trim(file%input%filename) == 'unknown') then
-                file%input%filename = gas_flux_forcing_file
-             end if
-             if (trim(file%input%filename) /= 'none') then
-                allocate(file%data(nx_block, ny_block, max_blocks_clinic, 1, 12))
-                call read_field(file%input%file_fmt, file%input%filename, file%input%file_varname, work_read)
-                do iblock=1, nblocks_clinic
-                   do n=1, 12
-                      file%data(:, :, iblock, 1, n) = work_read(:, :, n, iblock)
-                      where (.not. land_mask(:, :, iblock)) file%data(:, :, iblock, 1, n) = c0
-                      file%data(:, :, iblock, 1, n) = file%data(:, :, iblock, 1, n) * file%input%scale_factor
-                   end do
-                end do
-                call find_forcing_times(     &
-                     file%data_time, file%data_inc, file%interp_type, file%data_next, &
-                     file%data_time_min_loc, file%data_update, file%data_type)
-                file%has_data = .true.
-             else
-                file%has_data = .false.
-             endif
-
-             !  load iron PATCH flux fields (if required)
-             !  assume patch file has same normalization and format as deposition file
-             if (index == Fe_ind .and. liron_patch) then
-                call read_field(file%input%file_fmt, file%input%filename, iron_patch_flux_filename, iron_patch_flux)
-                do iblock=1, nblocks_clinic
-                   do n=1, 12
-                      where (.not. land_mask(:, :, iblock)) iron_patch_flux(:, :, iblock) = c0
-                      file%data(:, :, iblock, 1, n) = iron_patch_flux(:, :, iblock) * file%input%scale_factor
-                   end do
-                end do
-             end if
-
-             deallocate(work_read)
-
-          !------------------------------------
-          case ('shr_stream')
-          !------------------------------------
-
+          if (fields%field_source.eq.'shr_stream') then
              if (trim(ndep_data_type) == 'shr_stream') then
-
                 stream_index = 0
                 if (index == nox_ind) stream_index = shr_stream_no_ind
                 if (index == nhy_ind) stream_index = shr_stream_nh_ind
@@ -1223,9 +1226,7 @@ contains
                    call POP_strdata_create(strdata_inputlist(stream_index)) !FIXME - need more general scheme
                 end if
              end if
-
-          end select
-
+          end if
        end associate
        end do
        first_call = .false.
