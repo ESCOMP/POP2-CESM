@@ -59,7 +59,12 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
-  use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
+  ! Provide marbl_tracer_cnt to passive_tracers.F90 (as ecosys_tracer_cnt)
+  use ecosys_tracers_and_saved_state_mod, only : ecosys_tracer_cnt => marbl_tracer_cnt
+  ! Provide ecosys_forcing_tracer_ref_val to passive_tracers.F90
+  ! (as ecosys_driver_tracer_ref_val)
+  use ecosys_forcing_mod, only : ecosys_driver_tracer_ref_val => ecosys_forcing_tracer_ref_val
 
   implicit none
   private
@@ -74,6 +79,10 @@ module ecosys_driver
   public :: ecosys_driver_tavg_forcing
   public :: ecosys_driver_write_restart
   public :: ecosys_driver_unpack_source_sink_terms
+
+  ! These are public so passive_tracers.F90 only uses ecosys_driver
+  public :: ecosys_driver_tracer_ref_val
+  public :: ecosys_tracer_cnt
 
   private :: ecosys_driver_init_rmean_var
   private :: ecosys_driver_update_scalar_rmeans
@@ -371,10 +380,10 @@ contains
        call marbl_instances(iblock)%StatusLog%erase()
 
        ! Make sure MARBL tracer count lines up with what POP expects
-       if (marbl_actual_tracer_cnt.ne.marbl_tracer_cnt) then
+       if (marbl_actual_tracer_cnt.ne.ecosys_tracer_cnt) then
          write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
                     marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
-                    marbl_tracer_cnt
+                    ecosys_tracer_cnt
          call document(subname, log_message)
          call exit_POP(sigAbort, 'Stopping in ' // subname)
        end if
@@ -408,7 +417,7 @@ contains
 
     ! Initialize tracer_d_module input argument (needed before reading
     ! tracers from restart file)
-    do n = 1, marbl_tracer_cnt
+    do n = 1, ecosys_tracer_cnt
        tracer_d_module(n)%short_name       = marbl_instances(1)%tracer_metadata(n)%short_name      
        tracer_d_module(n)%long_name        = marbl_instances(1)%tracer_metadata(n)%long_name       
        tracer_d_module(n)%units            = marbl_instances(1)%tracer_metadata(n)%units           
@@ -504,7 +513,7 @@ contains
     allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, nblocks_clinic))
     end associate
 
-    tadvect_ctype(1:marbl_tracer_cnt) = ecosys_tadvect_ctype
+    tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -766,7 +775,7 @@ contains
 
              ! --- set column tracers ---
 
-             do n = 1, marbl_tracer_cnt
+             do n = 1, ecosys_tracer_cnt
                 marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
              end do 
 
@@ -798,7 +807,7 @@ contains
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
                 
-             do n = 1, marbl_tracer_cnt
+             do n = 1, ecosys_tracer_cnt
                 dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
              end do
 
@@ -911,7 +920,7 @@ contains
                      surface_forcing_fields(n)%field_0d(i,j,iblock)
              end do
 
-             do n = 1,marbl_tracer_cnt
+             do n = 1,ecosys_tracer_cnt
                 marbl_instances(iblock)%surface_vals(index_marbl,n) = &
                      p5*(surface_vals_old(i,j,n,iblock) + surface_vals_cur(i,j,n,iblock))
 
@@ -957,7 +966,7 @@ contains
                   marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
              end do
              
-             do n = 1,marbl_tracer_cnt
+             do n = 1,ecosys_tracer_cnt
                 stf_module(i,j,n,iblock) = &
                      marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)  
              end do
