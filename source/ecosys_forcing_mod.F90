@@ -41,7 +41,7 @@ module ecosys_forcing_mod
 
   public :: ecosys_forcing_init
   public :: ecosys_forcing_set_surface_forcing_data
-  public :: ecosys_forcing_set_interior_forcing_data
+  public :: ecosys_forcing_set_interior_time_varying_forcing_data
   public :: ecosys_forcing_tracer_ref_val
 
   !*****************************************************************************
@@ -919,9 +919,9 @@ contains
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
-    call forcing_init_set_time_invariant(surface_forcing_fields)
-    call forcing_init_set_time_invariant(interior_forcing_fields)
-    call forcing_init_read_monthly_calendar(surface_forcing_fields, land_mask)
+    call set_time_invariant_forcing_data(surface_forcing_fields)
+    call set_time_invariant_forcing_data(interior_forcing_fields)
+    call read_monthly_calendar_forcing_data(surface_forcing_fields, land_mask)
 
     call forcing_init_post_processing(land_mask)
 
@@ -929,7 +929,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine forcing_init_set_time_invariant(forcing_fields_in)
+  subroutine set_time_invariant_forcing_data(forcing_fields_in)
 
     use passive_tracer_tools, only : read_field
 
@@ -971,11 +971,11 @@ contains
       end associate
     end do
 
-  end subroutine forcing_init_set_time_invariant
+  end subroutine set_time_invariant_forcing_data
 
   !*****************************************************************************
 
-  subroutine forcing_init_read_monthly_calendar(forcing_fields_in, land_mask)
+  subroutine read_monthly_calendar_forcing_data(forcing_fields_in, land_mask)
 
     use passive_tracer_tools, only : read_field
     use forcing_tools       , only : find_forcing_times
@@ -983,7 +983,7 @@ contains
     type(forcing_fields_type), intent(inout) :: forcing_fields_in(:)
     logical, optional,         intent(in)    :: land_mask(:,:,:)
 
-    character(*), parameter  :: subname = 'ecosys_forcing_mod:forcing_init_set_time_invariant'
+    character(*), parameter  :: subname = 'ecosys_forcing_mod:read_monthly_calendar_forcing_data'
     character(len=char_len)  :: err_msg
     type(forcing_monthly_every_ts), pointer :: file
     real(r8), allocatable, target :: work_read(:,:,:,:)
@@ -1047,7 +1047,7 @@ contains
       end associate
     end do
 
-  end subroutine forcing_init_read_monthly_calendar
+  end subroutine read_monthly_calendar_forcing_data
 
   !*****************************************************************************
 
@@ -1092,9 +1092,10 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_set_interior_forcing_data(FRACR_BIN, QSW_RAW_BIN, &
-                            QSW_BIN, temperature, salinity, pressure,         &
-                            ecosys_qsw_distrb_const, bid)
+  subroutine ecosys_forcing_set_interior_time_varying_forcing_data(           &
+                                         FRACR_BIN, QSW_RAW_BIN, QSW_BIN,     &
+                                         temperature, salinity, pressure,     &
+                                         ecosys_qsw_distrb_const, bid)
   
     use marbl_sizes, only : num_interior_forcing_fields
     use mcog, only : mcog_nbins
@@ -1110,6 +1111,12 @@ contains
 
     logical(log_kind) :: first_call = .true.
     integer :: index
+
+    if (first_call) then
+      ! If in the future interior forcings come from shr_stream we will need
+      ! the first_call block
+      first_call = .false.
+    end if
 
     do index= 1,num_interior_forcing_fields
       select case (interior_forcing_fields(index)%metadata%field_source)
@@ -1134,7 +1141,7 @@ contains
       end select
     end do
 
-  end subroutine ecosys_forcing_set_interior_forcing_data
+  end subroutine ecosys_forcing_set_interior_time_varying_forcing_data
 
   !*****************************************************************************
 

@@ -684,7 +684,7 @@ contains
     use mcog               , only : mcog_nbins
     use state_mod          , only : ref_pressure
     use ecosys_forcing_mod , only : interior_forcing_fields
-    use ecosys_forcing_mod , only : ecosys_forcing_set_interior_forcing_data
+    use ecosys_forcing_mod , only : ecosys_forcing_set_interior_time_varying_forcing_data
     use ecosys_forcing_mod , only : dustflux_ind
     use ecosys_forcing_mod , only : PAR_col_frac_ind
     use ecosys_forcing_mod , only : surf_shortwave_ind
@@ -739,9 +739,9 @@ contains
       ! NOTE: ref_pressure is a function, not an array
        pressure(:,:,k) = ref_pressure(k)
     end do
-    call ecosys_forcing_set_interior_forcing_data(FRACR_bin, QSW_RAW_BIN,     &
-                        QSW_BIN, temperature, salinity, pressure,             &
-                        ecosys_qsw_distrb_const, bid)
+    call ecosys_forcing_set_interior_time_varying_forcing_data(FRACR_bin,     &
+                            QSW_RAW_BIN, QSW_BIN, temperature, salinity,      &
+                            pressure, ecosys_qsw_distrb_const, bid)
 
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
