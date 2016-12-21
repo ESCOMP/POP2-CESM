@@ -6383,23 +6383,23 @@ Default: 1
 </entry>
 
 <entry 
-id="restore_short_names"
-type="char*256(100)"
+id="restoreable_tracer_names"
+type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default:
 </entry>
 
 <entry 
-id="restore_filenames"
-type="char*256(100)"
+id="restore_data_filenames"
+type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default:
 </entry>
 
 <entry 
-id="restore_filenames_derived"
+id="restore_data_filenames_derived"
 type="char*256"
 category="ecosys"
 group="derived" 
@@ -6408,11 +6408,28 @@ Default:
 </entry>
 
 <entry 
-id="restore_file_varnames"
-type="char*256(100)"
+id="restore_data_file_varnames"
+type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default:
+</entry>
+
+<entry 
+id="restore_inv_tau_opt"
+type="char*256"
+category="ecosys"
+group="ecosys_forcing_data_nml"
+valid_values="const">
+Default: 'const'
+</entry>
+
+<entry 
+id="restore_inv_tau_const"
+type="real"
+category="ecosys"
+group="ecosys_forcing_data_nml">
+Default: 2.3e-6
 </entry>
 
 <entry 
@@ -6942,37 +6959,6 @@ Short name for tracers to apply restoring to
 Default:
 </entry>
 
-<entry 
-id="rest_time_inv_surf"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_time_inv_deep"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z0"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z1"
-type="real"
-category="ecosys"
-group="marbl_parms_nml" >
-Default: none provided
-</entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_driver_nml        - -->

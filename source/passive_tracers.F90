@@ -43,11 +43,8 @@
    use io_tools, only: document
    use passive_tracer_tools, only: set_tracer_indices
 
-   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
-
-   use ecosys_forcing_mod, only : ecosys_forcing_tracer_ref_val
-
    use ecosys_driver, only:               &
+       ecosys_tracer_cnt,                 &
        ecosys_driver_init,                &
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
@@ -55,6 +52,7 @@
        ecosys_driver_set_global_scalars,  &
        ecosys_driver_comp_global_averages,&
        ecosys_driver_write_restart,       &
+       ecosys_driver_tracer_ref_val,      &
        ecosys_driver_unpack_source_sink_terms
 
    use cfc_mod, only:              &
@@ -344,7 +342,7 @@
    cumulative_nt = 2
 
    if (ecosys_on) then
-      call set_tracer_indices('ECOSYS_DRIVER', marbl_tracer_cnt, cumulative_nt, &
+      call set_tracer_indices('ECOSYS_DRIVER', ecosys_tracer_cnt, cumulative_nt, &
                               ecosys_driver_ind_begin, ecosys_driver_ind_end)
    end if
 
@@ -1618,7 +1616,7 @@
 
    if (ecosys_on) then
       if (ind >= ecosys_driver_ind_begin .and. ind <= ecosys_driver_ind_end) then
-         tracer_ref_val = ecosys_forcing_tracer_ref_val(ind - ecosys_driver_ind_begin + 1)
+         tracer_ref_val = ecosys_driver_tracer_ref_val(ind - ecosys_driver_ind_begin + 1)
       endif
    endif
 
