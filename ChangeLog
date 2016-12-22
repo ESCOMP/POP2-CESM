@@ -1,4 +1,23 @@
 ===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    
+Tag Name:    
+Tag Summary: oneline change in build-namelist, perl can no longer access NTASKS_OCN or NINST_OCN
+
+Testing: cesm2_0_alpha05b 
+
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    19 DEC 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161219
+Tag Summary: oneline change in configure, xmlquery now returns "TRUE" instead of "true"
+
+Testing: cesm2_0_alpha05b 
+
+
+===============================================================================
 Tag Creator: jet
 Developers:  jet,mlevy
 Tag Date:    28 Nov 2016

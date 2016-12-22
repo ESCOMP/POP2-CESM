@@ -302,7 +302,7 @@
                     MaxLanczosStep, PcsiMaxEigs,PcsiMinEigs, errorCode)
 
         if (POP_myTask == POP_masterTask) then 
-            write(POP_stdout,*) "LANCZOS EIGS: ",PcsiMinEigs, PcsiMaxEigs
+            write(POP_stdout,*) "LANCZOS EIGS: ",PcsiMinEigs, PcsiMaxEigs, POP_nxBlock, POP_nyBlock, numBlocks
         endif 
       endif 
 
