@@ -9,7 +9,7 @@
 # Disable these because this is our standard setup
 # pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position
 
-import os, shutil, sys, glob, stat, filecmp
+import os, shutil, sys, glob, stat, filecmp, imp
 
 CIMEROOT = os.environ.get("CIMEROOT")
 if CIMEROOT is None:
@@ -70,22 +70,23 @@ def buildnml(case, caseroot, compname):
                 st = os.stat(destfile)
                 os.chmod(destfile, st.st_mode | stat.S_IWUSR)
 
-    # call configure_pop to obtain pop_cppdefs if it is not set in env_build.xml
-    # NOTE: pop_cppdefs is not used here - but the caseroot/Buildconf/popconf/config_cache.xml
-    # created by the call to configure_call is used to generate the pop namelist
-    call_configure = False
+    # call buildcpp to obtain config_cache.xml file which is needed to set pop namelist
+    call_buildcpp = False
     if not os.path.exists(os.path.join(caseroot,"LockedFiles","env_build.xml")):
-        call_configure = True
+        call_buildcpp = True
     else:
         file1 = os.path.join(caseroot,"env_build.xml")  
         file2 = os.path.join(caseroot,"LockedFiles","env_build.xml")
         if not filecmp.cmp(file1, file2):
-            call_configure = True
-    if call_configure:
-        sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
-        logger.info("     ...calling pop's configure to set build time options")
-        from configure_pop import configure_pop
-        pop_cppdefs = configure_pop(case)
+            call_buildcpp = True
+    if call_buildcpp:
+        cmd = os.path.join(os.path.join(srcroot,"components","pop","cime_config","buildcpp"))
+        logger.info("     ...calling pop buildcpp to set build time options")
+        try:
+            mod = imp.load_source("buildcpp", cmd)
+            mod.buildcpp(case)
+        except:
+            raise
 
     # Set pop configuration directory
     confdir = os.path.join(caseroot,"Buildconf","popconf")

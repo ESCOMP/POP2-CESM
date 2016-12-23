@@ -73,7 +73,7 @@ def determine_tracer_count(case, decomp_cppdefs):
             elif varname == "IRF_MODE":
                 IRF_MODE = int(value)
             else:
-                expect(False, "POP configure: %s is not a valid value in OCN_TRACER_MODULES_OPT" %(varname))
+                expect(False, "%s is not a valid value in OCN_TRACER_MODULES_OPT" %(varname))
 
     #----------------------------------------------------
     # Parse OCN_TRACER_MODULES
@@ -119,10 +119,10 @@ def determine_tracer_count(case, decomp_cppdefs):
                 elif IRF_MODE == "NK_precond":
                     IRF_NT = 36
                 else:
-                    expect (False, "configure_pop: IRF_MODE %s is not a valid choice for IRF_MODE!" %IRF_MODE)
+                    expect (False, "IRF_MODE %s is not a valid choice for IRF_MODE!" %IRF_MODE)
             NT = NT + IRF_NT
         else:
-            expect(Fasle, "configure_pop: module %s is not a valid value in OCN_TRACER_MODULES!" %module)
+            expect(Fasle, "module %s is not a valid value in OCN_TRACER_MODULES!" %module)
     NT = NT + MARBL_NT
 
     #----------------------------------------------------
@@ -169,7 +169,7 @@ def determine_tracer_count(case, decomp_cppdefs):
     return pop_cppdefs
 
 ###############################################################################
-def configure_pop(case):
+def buildcpp(case):
 ###############################################################################
 
     #----------------------------------------------------
@@ -231,7 +231,7 @@ def configure_pop(case):
 
     # Verify that config_cache.xml exists
     if not os.path.isfile(os.path.join(popconf_dir,"config_cache.xml")):
-        expect(False, "config_cache.xml is missing after configure command")
+        expect(False, "config_cache.xml is missing after configure call")
 
     pop_cppdefs = case.set_value("POP_CPPDEFS", pop_cppdefs)
     case.flush()
@@ -243,7 +243,7 @@ def _main_func():
 
     caseroot = parse_input(sys.argv)
     with Case(caseroot) as case:
-        pop_cppdefs = configure_pop(case)
+        pop_cppdefs = buildcpp(case)
     logger.info("POP_CPPDEFS: %s" %pop_cppdefs)
 
 if __name__ == "__main__":

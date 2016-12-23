@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, shutil, sys, glob
+import os, shutil, sys, glob, imp
 
 CIMEROOT = os.environ.get("CIMEROOT")
 if CIMEROOT is None:
@@ -142,10 +142,14 @@ def _build_pop():
         # copy all F90 files to $OBJROOT/ocn/source
         _copy_files_to_blddir(case)
 
-        # call pop's configure to set the cppdefs
-        sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
-        from configure_pop import configure_pop
-        pop_cppdefs = configure_pop(case)
+        # call pop's buildcpp to set the cppdefs
+        cmd = os.path.join(os.path.join(srcroot,"components","pop","cime_config","buildcpp"))
+        logger.info("     ...calling pop buildcpp to set build time options")
+        try:
+            mod = imp.load_source("buildcpp", cmd)
+            pop_cppdefs = mod.buildcpp(case)
+        except:
+            raise
 
         # create Filepath file
         objroot = case.get_value("OBJROOT")
