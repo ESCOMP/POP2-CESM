@@ -15,8 +15,8 @@
 
   <entry id="OCN_PE_CHANGE_REQUIRES_REBUILD">
     <type>logical</type>
-    <valid_values>true,false</valid_values>
-    <default_value>true</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>TRUE</default_value>
     <group>case_comp</group>
     <file>env_case.xml</file>
     <desc>This component requires a clean build if the pelayout changes, if this variable is
@@ -43,7 +43,7 @@
   </entry>
 
   <entry id="OCN_TAVG_TRACER_BUDGET">
-    <type>char</type>
+    <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <group>run_component_pop</group>
@@ -52,7 +52,7 @@
   </entry>
 
   <entry id="OCN_TAVG_HIFREQ">
-    <type>char</type>
+    <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <group>run_component_pop</group>
@@ -61,7 +61,7 @@
   </entry>
 
   <entry id="OCN_ONEDIM">
-    <type>char</type>
+    <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <values>
@@ -166,7 +166,7 @@
   </entry>
 
   <entry id="POP_TAVG_R8">
-    <type>char</type>
+    <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <group>build_component_pop</group>

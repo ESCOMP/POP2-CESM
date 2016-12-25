@@ -188,7 +188,7 @@ def buildcpp(case):
     # - invoke generate_pop_decomp.pl and update env_build.xml settings to 
     # reflect changes in the configuration this will trigger 
     pop_auto_decomp = case.get_value("POP_AUTO_DECOMP")
-    if pop_auto_decomp:
+    if pop_auto_decomp == "true":
         ntasks_ocn = case.get_value("NTASKS_OCN")
         nthrds_ocn = case.get_value("NTHRDS_OCN")
         ninst_ocn = case.get_value("NINST_OCN")
