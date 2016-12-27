@@ -49,6 +49,8 @@ def buildnml(case, caseroot, compname):
     run_refdate = case.get_value("RUN_REFDATE")
     rundir = case.get_value("RUNDIR")
     testcase = case.get_value("TESTCASE")
+    ntasks_ocn = case.get_value("NTASKS_OCN")
+    ntasks = ntasks_ocn / ninst
 
     # Obtain correct pop rpointer files
     if testcase != 'SBN':
@@ -172,11 +174,11 @@ def buildnml(case, caseroot, compname):
         else:
             inst_string_arg = ""
         if inst_string:
-            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -inst_string %s" \
-                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, inst_string)
+            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s-inst_string %s " \
+                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks, inst_string)
         else:
-            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s " \
-                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid)
+            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s" \
+                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks)
         
         rc, out, err = run_cmd(command, from_dir=confdir)
         expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))

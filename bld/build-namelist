@@ -50,7 +50,7 @@ OPTIONS
                            If not defined, location is set as \$ProgDir or \$cwd
                            (Needed to run build-namelist from SourceMods dir)
      -inst_string          inst_string variable
-
+     -ntasks               number of ocean tasks
 
 NOTE: The precedence for setting the values of namelist variables is (highest to lowest):
       1. namelist values set by specific command-line options, i.e. (none right now)
@@ -90,6 +90,7 @@ my %opts = ( help        => 0,
              inst_string => undef,
              ocn_grid    => undef,
              cfg_dir     => $cfgdir,
+	     ntasks      => undef, 
            );
 
 GetOptions(
@@ -103,6 +104,7 @@ GetOptions(
     "ocn_grid=s"    => \$opts{'ocn_grid'},
     "cfg_dir=s"     => \$opts{'cfg_dir'},
     "preview"       => \$opts{'preview'},
+    "ntasks=s"      => \$opts{'ntasks'},
 )  or usage();
 
 # Give usage message.
@@ -130,6 +132,7 @@ my $CASEROOT    = $opts{'caseroot'};
 my $CIMEROOT    = $opts{'cimeroot'};
 my $OCN_GRID    = $opts{'ocn_grid'};
 my $inst_string = $opts{'inst_string'};
+my $ntasks      = $opts{'ntasks'};
 $cfgdir         = $opts{'cfg_dir'};
 
 # Validate some of the commandline option values.
@@ -341,8 +344,6 @@ my $OCN_TRACER_MODULES_OPT = "$xmlvars{'OCN_TRACER_MODULES_OPT'}";
 my $OCN_TAVG_TRACER_BUDGET = "$xmlvars{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$xmlvars{'OCN_TAVG_HIFREQ'}";
 my $OCN_ONEDIM             = "$xmlvars{'OCN_ONEDIM'}";
-my $NTASKS_OCN             = `$CASEROOT/xmlquery NTASKS --subgroup OCN --value --caseroot $CASEROOT`;
-my $NINST_OCN              = `$CASEROOT/xmlquery NINST  --subgroup OCN --value --caseroot $CASEROOT`;
 my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
 my $INFO_DBUG              = "$xmlvars{'INFO_DBUG'}";
 my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
@@ -366,8 +367,6 @@ if ($inst_string) {
 # Environment variables set in pop.buildnml.csh that are not xml variables
 my $RESTART_INPUT_TS_FMT = "$ENV{'RESTART_INPUT_TS_FMT'}"; 
 my $LID = $ENV{'LID'};
-
-my $ntasks = $NTASKS_OCN / $NINST_OCN; 
 
 if ($CONTINUE_RUN eq 'TRUE') {$RUN_TYPE = "continue";}
 

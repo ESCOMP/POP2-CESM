@@ -132,16 +132,15 @@ def determine_tracer_count(case, decomp_cppdefs):
     tracer_cppdefs = " -DNT=%d -DECOSYS_NT=%d -DMARBL_NT=%d -DZOOPLANKTON_CNT=%d -DAUTOTROPH_CNT=%d -DGRAZER_PREY_CNT=%d -DIRF_NT=%d " \
                      %(NT, ECOSYS_NT, MARBL_NT, ZOOPLANKTON_CNT, AUTOTROPH_CNT, GRAZER_PREY_CNT, IRF_NT)
 
+    other_cppdefs = ""
     if "tx0.1" in case.get_value("OCN_GRID"): 
-        tracer_cppdefs = tracer_cppdefs + "-D_HIRES "
-
+        other_cppdefs = other_cppdefs + " -D_HIRES "
     if case.get_value("OCN_ICE_FORCING") == 'inactive':
-        tracer_cppdefs = tracer_cppdefs + "-DZERO_SEA_ICE_REF_SAL "
+        other_cppdefs = other_cppdefs + " -DZERO_SEA_ICE_REF_SAL "
+    if case.get_value("POP_TAVG_R8"):
+        other_cppdefs = other_cppdefs + " -DTAVG_R8 "
 
-    if case.get_value("POP_TAVG_R8") == "TRUE":
-        tracer_cppdefs = tracer_cppdefs + "-DTAVG_R8 "
-
-    pop_cppdefs = "-DCCSMCOUPLED " + decomp_cppdefs + tracer_cppdefs
+    pop_cppdefs = "-DCCSMCOUPLED " + decomp_cppdefs + other_cppdefs + tracer_cppdefs
 
     #----------------------------------------------------
     # Create config_cache.xml file
@@ -188,7 +187,7 @@ def buildcpp(case):
     # - invoke generate_pop_decomp.pl and update env_build.xml settings to 
     # reflect changes in the configuration this will trigger 
     pop_auto_decomp = case.get_value("POP_AUTO_DECOMP")
-    if pop_auto_decomp == "true":
+    if pop_auto_decomp:
         ntasks_ocn = case.get_value("NTASKS_OCN")
         nthrds_ocn = case.get_value("NTHRDS_OCN")
         ninst_ocn = case.get_value("NINST_OCN")
