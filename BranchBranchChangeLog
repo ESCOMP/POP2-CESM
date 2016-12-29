@@ -2,6 +2,38 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    29 Dec 2016
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n26_marbl_dev_n25_cesm_pop_2_1_20161116
+Tag Summary: merge marbl_dev_n25 tag to this branch
+
+Testing:
+MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n25 tag)
+   all tests pass, except for
+      NLCOMP fails because some namelist variables changed names
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    3 Dec 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n25_marbl_dev_n23_cesm_pop_2_1_20161116
 Tag Summary: incorporate suggestions from code review
