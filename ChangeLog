@@ -1,4 +1,66 @@
 ===============================================================================
+Tag Creator: mvertens
+Developers:  mvetesn
+Tag Date:    29 Dec 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161229
+Tag Summary: pythonization of buildnml and buildlib and removal of moby
+
+Testing:
+Ran aux_pop and aux_pop_MARBL test suites - bfb with cesm_pop_2_1_20161219
+Ran prealpha test suite - bfb with alpha05c 
+
+The creation of the pop Filepath file, the cpp variables and the config_cachel.xml file
+is now done in a new cime_config/buildcpp script
+The config_cache.xml file is needed to generate namelists
+The Filepath and cpp variables are needed to build the model
+  - the buildcpp script is now always called from buildlib
+  - the buildcpp script is ONLY called from buildnml if necessary 
+    (i.e. if you are trying to generate a namelist and you have have
+    not created the config_cache.xml file)
+The new pythonized buildnml script still calls the perl bld/build-namelist script, 
+which will by pythonized in a future commit.
+	
+- pythonization of buildml and buildlib and introduction of new buildcpp
+  build-namelist has a modified interface to deal with new CIME schemas 
+  for pe-layouts. However, this is backwards compatible with the current
+  version of CIME.
+  
+M       bld/build-namelist
+A       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+
+- the following has been incorporated into the new buildcpp script - so
+  these files are no longer needed
+
+D       bld/configure
+D       bld/config_files
+D       bld/config_files/definition.xml
+D       bld/config_files/definition.xsl
+
+- the following has been renamed to be consistent with generate_pop_decomp.pl
+
+D       bld/pop_decomp.xml
+A       bld/generate_pop_decomp.xml
+M       bld/generate_pop_decomp.pl
+
+- removal of moby
+
+D       source/moby_mod.F90
+M       source/passive_tracers.F90
+D       source/moby_parms.F90
+D       bld/moby_activate.csh
+D       bld/moby_deactivate.csh
+M       drivers/cpl/POP_FinalMod.F90
+D       input_templates/ocn.moby.tavg.csh
+M       cime_config/config_component.xml 
+	- (removed OCN_SUBMODEL and DARWIN attributes)
+M       cime_config/config_compsets.xml
+        - (removed DARWIN compsets)
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+
+===============================================================================
 Tag Creator: jedwards
 Developers:  jedwards
 Tag Date:    

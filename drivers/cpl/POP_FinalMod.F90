@@ -25,7 +25,6 @@
    use output, only: final_output
    use io_types
    use timers, only: timer_print_all
-   use moby_mod, only: lmoby, POP_mobyFinal
 
    implicit none
    private
@@ -113,16 +112,6 @@
       write(stdout,*) 'completed POP_Final'
       write(stdout,*) '==================='
     endif
-
-!-----------------------------------------------------------------------
-!
-!  write final message to MIT moby output log
-!
-!-----------------------------------------------------------------------
-
-   if (lmoby) then
-      call POP_mobyFinal
-   endif
 
 !-----------------------------------------------------------------------
 !
