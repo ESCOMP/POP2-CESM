@@ -174,7 +174,7 @@ def buildnml(case, caseroot, compname):
         else:
             inst_string_arg = ""
         if inst_string:
-            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s-inst_string %s " \
+            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s -inst_string %s " \
                   % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks, inst_string)
         else:
             command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s" \
