@@ -984,6 +984,7 @@ add_default($nl, 'reset_to_freezing');
 add_default($nl,'lactive_ice', 'ocn_ice_forcing'=>"$OCN_ICE_FORCING");
 add_default($nl,'ice_freq_opt');
 add_default($nl,'ice_freq');
+add_default($nl,'licecesm2');
 add_default($nl,'kmxice');
 
 ##########################################

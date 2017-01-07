@@ -1,4 +1,56 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  jet
+Tag Date:    7 Jan 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170107
+Tag Summary: Set New Defaults for pop.  Dependent on cime tag. Added frequency
+	     attribute to pop history and cleaned up EBM.
+
+	1 hr ocn coupling
+	   fit_freq = 24
+	   dt_count = 24
+	   iday0 = 1
+	   ihour0 = 1
+	   coupled_frq = 1
+	   coupled_frq_opt = nhour
+
+           drv_in (cpl_seq_option = "RASM_OPTION1")
+
+	Estuary Box Model ON
+	   ebm_param_file_fmt = 'nc'
+	   ebm_param_filename='EBMparameter_global_HU20HL20_allROFF_CESM2B.nc'
+	   ebm_param_option = 'file'
+	   estuary_option = 'on'
+	   estuary_type = 'vsf_ebm'
+	   rof2ocn_liq_rmapname =  map_r05_to_gx1v6_ac_nn_160304.nc
+
+	Robert Filtering On
+	   time_mix_opt = 'robert'
+	   robert_nu  = .1
+
+	Radiation SW distribution cosz => const
+
+	Enhanced diffusivity at depth
+	   kappa_isop_deep = 0.2
+
+	CESM2 default for forming ice every timestep when coupled
+	   licecesm2 = .true.
+	     (merged to esmci master https://github.com/ESMCI/cime/pull/840 via pull request)
+
+Testing: aux_pop all tests past with the exception of some MEM leak tests and one ERS test all
+	 failing before this commit. No baselines were run because they will be different due
+	 to the new parameter set.
+
+	M       cesm_pop_2_1_20161229/source/forcing.F90
+	M       cesm_pop_2_1_20161229/source/forcing_coupled.F90
+	M       cesm_pop_2_1_20161229/source/estuary_vsf_mod.F90
+	M       cesm_pop_2_1_20161229/source/tavg.F90
+	M       cesm_pop_2_1_20161229/bld/build-namelist
+	M       cesm_pop_2_1_20161229/bld/namelist_files/namelist_defaults_pop.xml
+	M       cesm_pop_2_1_20161229/bld/namelist_files/namelist_definition_pop.xml
+	M       cesm_pop_2_1_20161229/input_templates/test_pop2_in_build.csh
+	
+===============================================================================
 Tag Creator: mvertens
 Developers:  mvetesn
 Tag Date:    29 Dec 2016
