@@ -1,5 +1,31 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    21 December 2016
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n25_cesm_pop_2_1_20161116
+Tag Summary: Bring in generalized interior forcing specification from
+             marbl_dev_levy (also bumps MARBL to v0.10.0)
+
+Testing:     Bit for bit with marbl_dev_n24 out of cesm2_0_beta04 sandbox
+             on yellowstone_intel, yellowstone_gnu, and hobart_nag (aux_pop
+             and aux_pop_MARBL testlists.) Changes in the way restoring is
+             handled causes namelist fails in all CECO and GECO compsets but
+             it is not answer-changing in the code.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    5 December 2016
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n24_cesm_pop_2_1_20161116
