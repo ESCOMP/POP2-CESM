@@ -6424,7 +6424,7 @@ Default: 1
 </entry>
 
 <entry 
-id="restoreable_tracer_names"
+id="restorable_tracer_names"
 type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
@@ -6461,7 +6461,7 @@ id="restore_inv_tau_opt"
 type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
-valid_values="const">
+valid_values="const,file_time_invariant">
 Default: 'const'
 </entry>
 
@@ -6471,6 +6471,47 @@ type="real"
 category="ecosys"
 group="ecosys_forcing_data_nml">
 Default: 2.3e-6
+</entry>
+
+<entry 
+id="restore_inv_tau_input%filename"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml"
+input_pathname="abs" >
+Default: none provided
+</entry>
+
+<entry 
+id="restore_inv_tau_input%file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'REST_INV_TAU_MS_ONLY'
+</entry>
+
+<entry 
+id="restore_inv_tau_input%file_fmt"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="restore_inv_tau_input%scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="restore_inv_tau_input%default_val"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: none provided
 </entry>
 
 <entry 

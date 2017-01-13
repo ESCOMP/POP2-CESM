@@ -55,10 +55,11 @@ module strdata_interface_mod
 
 contains
 
-  subroutine POP_strdata_create(inputlist,depthflag)
+  subroutine POP_strdata_create(inputlist,depthflag,tintalgo)
 
     type(strdata_input_type), intent(inout) :: inputlist
-    logical, optional, intent(in) :: depthflag    ! true means 3d data expected
+    logical,        optional, intent(in)    :: depthflag   ! true means 3d data expected
+    character(*),   optional, intent(in)    :: tintalgo    ! time interpolation algorithm
 
     !--- local ---
     logical :: depthflag_loc
@@ -91,7 +92,8 @@ contains
                             fldListModel=inputlist%field_list,                &
                             pio_subsystem=shr_pio_getiosys(inst_name),        &
                             pio_iotype=shr_pio_getiotype(inst_name),          &
-                            fillalgo='none', mapalgo='none')
+                            fillalgo='none', mapalgo='none',                  &
+                            tintalgo=tintalgo)
     else
        call shr_strdata_create(inputlist%sdat, name='not_used',               &
                             mpicom=POP_communicator,                          &
@@ -113,7 +115,8 @@ contains
                             fldListModel=inputlist%field_list,                &
                             pio_subsystem=shr_pio_getiosys(inst_name),        &
                             pio_iotype=shr_pio_getiotype(inst_name),          &
-                            fillalgo='none', mapalgo='none')
+                            fillalgo='none', mapalgo='none',                  &
+                            tintalgo=tintalgo)
     endif
 
     if (my_task == master_task) then

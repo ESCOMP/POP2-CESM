@@ -2,6 +2,49 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    12 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n27_marbl_dev_n25_cesm_pop_2_1_20161116
+Tag Summary: implement restore_inv_tau_opt='file_time_invariant', change restore field_source='shr_stream'
+
+reorder k and block loops for definition of POP_MCT_gsMap3d_o, POP_MCT_dom3d_o
+add tintalgo argument to POP_strdata_create in strdata_interface_mod.F90
+split ecosys_driver_set_interior_forcing out of ecosys_driver_set_interior
+generalize tracking of shr_stream forcing indices
+   add strdata_inputlist_ind to forcing_file_type type
+write restoring tendency to tavg when lecosys_debug == ".false."
+redefine ecosys_restore_gx3v7 testdef to be bfb with baseline while using new features
+   used modified data file that is compatible with shr_stream
+   use restore_inv_tau_opt='file_time_invariant', with temporary file
+
+Testing:
+MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n25 tag)
+   all tests pass, except for
+      NLCOMP fails because some namelist variables changed names
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+M       drivers/cpl/ocn_comp_mct.F90
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/passive_tracers.F90
+M       source/strdata_interface_mod.F90
+
+Performing status on external item at 'source/cvmix':
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    29 Dec 2016
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n26_marbl_dev_n25_cesm_pop_2_1_20161116
 Tag Summary: merge marbl_dev_n25 tag to this branch

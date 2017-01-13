@@ -19,6 +19,7 @@ endif
 @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
 set lecosys_debug = $2
+set tracer_restore_vars = $3
 
 if ($lecosys_debug == ".false.") then
 
@@ -490,6 +491,11 @@ $s1  ${autotroph}Si
 $s1  ${autotroph}_SiO3_lim
 EOF
   end
+
+# restoring terms for tracers that have restoring enabled
+foreach tracer_restore_var ( `echo $tracer_restore_vars | tr ',' ' '` )
+  echo "$s1  ${tracer_restore_var}_RESTORE" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+end
 
   setenv OCN_TAVG_DIC_ALT_CO2 FALSE
 

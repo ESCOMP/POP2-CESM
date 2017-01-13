@@ -48,6 +48,7 @@
        ecosys_driver_init,                &
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
+       ecosys_driver_set_interior_forcing,&
        ecosys_driver_set_interior,        &
        ecosys_driver_set_global_scalars,  &
        ecosys_driver_comp_global_averages,&
@@ -908,6 +909,8 @@
    if (ecosys_on) then
       call ecosys_driver_set_global_scalars('interior')
 
+      call ecosys_driver_set_interior_forcing(FRACR_BIN, QSW_RAW_BIN, QSW_BIN)
+
       !$OMP PARALLEL DO PRIVATE(iblock, this_block, bid)
       do iblock = 1, nblocks_clinic
 
@@ -915,9 +918,6 @@
          bid = this_block%local_id
 
          call ecosys_driver_set_interior(&
-              FRACR_BIN(:, :, :, bid), QSW_RAW_BIN(:, :, :, bid), QSW_BIN(:, :, :, bid), &
-              TRACER(:, :, :, 1, oldtime, bid), TRACER(:, :, :, 1, curtime, bid), &
-              TRACER(:, :, :, 2, oldtime, bid), TRACER(:, :, :, 2, curtime, bid), &
               TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, oldtime, bid), &
               TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, curtime, bid), &
               ecosys_source_sink_3d(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, bid), &

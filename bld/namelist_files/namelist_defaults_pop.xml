@@ -1205,13 +1205,21 @@
 <ciso_atm_model_year>1</ciso_atm_model_year>
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
-<restoreable_tracer_names>  'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC_ALT_CO2', 'ALK', 'DOC', 'DON', 'DOP'</restoreable_tracer_names>
-<restore_data_file_varnames>'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC',         'ALK', 'DOC', 'DON', 'DOP'</restore_data_file_varnames>
+<restorable_tracer_names>   'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC_ALT_CO2', 'ALK', 'DOC', 'DON', 'DOP'</restorable_tracer_names>
+
 <restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_data_filenames_derived>
 
+<restore_data_file_varnames>'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC',         'ALK', 'DOC', 'DON', 'DOP'</restore_data_file_varnames>
+
 <restore_inv_tau_opt>const</restore_inv_tau_opt>
 <restore_inv_tau_const>2.3e-6</restore_inv_tau_const>
+
+<restore_inv_tau_input%filename ocn_grid="gx3v7">/glade/u/home/klindsay/ncl/rest_inv_tau_gx3v7_20170106.nc</restore_inv_tau_input%filename> 
+<restore_inv_tau_input%filename ocn_grid="gx1v6">/glade/u/home/klindsay/ncl/rest_inv_tau_gx1v6_20170106.nc</restore_inv_tau_input%filename>
+<restore_inv_tau_input%file_varname>REST_INV_TAU_MS_ONLY</restore_inv_tau_input%file_varname>
+<restore_inv_tau_input%file_fmt>nc</restore_inv_tau_input%file_fmt>
+<restore_inv_tau_input%scale_factor>1.0</restore_inv_tau_input%scale_factor>
 
 <surf_avg_dic_const>1944.0</surf_avg_dic_const>          
 <surf_avg_alk_const>2225.0</surf_avg_alk_const>          

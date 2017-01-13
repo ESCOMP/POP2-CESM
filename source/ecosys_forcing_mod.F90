@@ -81,6 +81,7 @@ module ecosys_forcing_mod
      integer   (kind=int_kind) :: year_align
      integer   (kind=int_kind) :: date
      integer   (kind=int_kind) :: time
+     integer   (kind=int_kind) :: strdata_inputlist_ind
    contains
      procedure :: initialize  => forcing_file_init
   end type forcing_file_type
@@ -179,17 +180,26 @@ module ecosys_forcing_mod
   character(char_len),  target :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
   character(char_len),  target :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
 
-  ! For tracer restoring, we need three things:
-  ! (1) list of tracers to apply restoring to
-  character(char_len), dimension(marbl_tracer_cnt) :: restoreable_tracer_names
-  ! (2) List of files containing the restoring fields
-  character(char_len), dimension(marbl_tracer_cnt) :: restore_data_filenames
-  ! (3) List of the name of the variable in (2) that we will restore (1) towards
-  character(char_len), dimension(marbl_tracer_cnt) :: restore_data_file_varnames
+  !-----------------------------------------------------------------------
+  !  tracer restoring related variables
+  !-----------------------------------------------------------------------
+
+  character(char_len), dimension(marbl_tracer_cnt) :: restorable_tracer_names    ! list of tracers that we can apply restoring to
+                                                                                 !   (i.e., for which restoring fields are available)
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_data_filenames     ! list of files containing the restoring fields
+  character(char_len), dimension(marbl_tracer_cnt) :: restore_data_file_varnames ! file varnames in restore_data_filenames corresponding to tracers names in restorable_tracer_names
+  integer(int_kind), dimension(marbl_tracer_cnt)   :: restore_year_first         ! first year in stream to use
+  integer(int_kind), dimension(marbl_tracer_cnt)   :: restore_year_last          ! last year in stream to use
+  integer(int_kind), dimension(marbl_tracer_cnt)   :: restore_year_align         ! align restore_year_first with this model year
+  real(r8), dimension(marbl_tracer_cnt)            :: restore_scale_factor       ! unit conversion factor
 
   ! Also need to know what time scale to restore on
   character(char_len)                              :: restore_inv_tau_opt
   real(r8)                                         :: restore_inv_tau_const
+  type(tracer_read), target                        :: restore_inv_tau_input
+
+  integer (int_kind)                     :: shr_stream_interior_var_cnt   ! number of shr_stream variables for interior forcing
+  type (strdata_input_type), allocatable :: strdata_interior_inputlist(:)
 
   !-----------------------------------------------------------------------
   !  input surface forcing
@@ -216,10 +226,8 @@ module ecosys_forcing_mod
   type(forcing_monthly_every_ts), target :: alk_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: doc_riv_flux_file_loc
 
-  integer (int_kind), parameter :: shr_stream_var_cnt    = 2 ! number of variables in ndep shr_stream
-  integer (int_kind), parameter :: shr_stream_no_ind     = 1 ! index for NO forcing
-  integer (int_kind), parameter :: shr_stream_nh_ind     = 2 ! index for NH forcing
-  type    (strdata_input_type)  :: strdata_inputlist(shr_stream_var_cnt)  ! FIXME - need to make this more flexible
+  integer (int_kind)                     :: shr_stream_surface_var_cnt   ! number of shr_stream variables for surface forcing
+  type (strdata_input_type), allocatable :: strdata_surface_inputlist(:)
 
   ! Surface and interior forcing fields
   real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
@@ -234,7 +242,10 @@ module ecosys_forcing_mod
   integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d14c = -1 ! data index for D14C data
 
   integer (int_kind) :: ecosys_pre_sflux_timer
-  integer (int_kind) :: ecosys_shr_strdata_advance_timer
+  integer (int_kind) :: ecosys_surface_strdata_create_timer
+  integer (int_kind) :: ecosys_interior_strdata_create_timer
+  integer (int_kind) :: ecosys_surface_strdata_advance_timer
+  integer (int_kind) :: ecosys_interior_strdata_advance_timer
 
   ! Some surface forcing fields need special treatment, so we store indices
   integer(int_kind) :: dust_ind     = 0, &
@@ -341,10 +352,13 @@ contains
          liron_patch, iron_patch_flux_filename, iron_patch_month,             &
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
-         ciso_atm_model_year, ciso_atm_data_year, restore_data_filenames,     &
-         restore_data_file_varnames, restoreable_tracer_names,                &
-         restore_inv_tau_opt, restore_inv_tau_const, surf_avg_alk_const,      &
-         surf_avg_dic_const, surf_avg_di13c_const, surf_avg_di14c_const
+         ciso_atm_model_year, ciso_atm_data_year, restorable_tracer_names,    &
+         restore_data_filenames, restore_data_file_varnames,                  &
+         restore_year_first, restore_year_last, restore_year_align,           &
+         restore_scale_factor,                                                &
+         restore_inv_tau_opt, restore_inv_tau_const, restore_inv_tau_input,   &
+         surf_avg_alk_const, surf_avg_dic_const,                              &
+         surf_avg_di13c_const, surf_avg_di14c_const
 
     !-----------------------------------------------------------------------
     !  Set module variables from intent(in)
@@ -405,9 +419,16 @@ contains
 
     restore_data_filenames     = ''
     restore_data_file_varnames = ''
-    restoreable_tracer_names   = ''
+    restorable_tracer_names    = ''
+    restore_year_first         = 1
+    restore_year_last          = 1
+    restore_year_align         = 1
+    restore_scale_factor       = c1
+  
     restore_inv_tau_opt   = 'const'
     restore_inv_tau_const = 2.3e-6_r8
+
+    call set_defaults_tracer_read(restore_inv_tau_input, file_varname='REST_INV_TAU_MS_ONLY')
 
     surf_avg_alk_const   = 2225.0_r8
     surf_avg_dic_const   = 1944.0_r8
@@ -463,10 +484,11 @@ contains
        vflux_flag(di14c_ind) = .true.
     end if
 
-    call get_timer(ecosys_pre_sflux_timer    , 'ECOSYS_PRE_SFLUX'  , 1              , distrb_clinic%nprocs)
-    if (ndep_data_type == 'shr_stream') then
-       call get_timer(ecosys_shr_strdata_advance_timer, 'ecosys_shr_strdata_advance', 1, distrb_clinic%nprocs)
-    endif
+    call get_timer(ecosys_pre_sflux_timer               , 'ECOSYS_PRE_SFLUX'               , 1, distrb_clinic%nprocs)
+    call get_timer(ecosys_surface_strdata_create_timer  , 'ecosys_surface_strdata_create'  , 1, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_strdata_create_timer , 'ecosys_interior_strdata_create' , 1, distrb_clinic%nprocs)
+    call get_timer(ecosys_surface_strdata_advance_timer , 'ecosys_surface_strdata_advance' , 1, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_strdata_advance_timer, 'ecosys_interior_strdata_advance', 1, distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------------
     !  Surface forcing
@@ -491,6 +513,9 @@ contains
     doc_riv_flux_file_loc%input     = doc_riv_flux_input
 
     allocate(surface_forcing_fields(size(surface_forcings)))
+
+    shr_stream_surface_var_cnt = 0
+
     do n=1,size(surface_forcing_fields)
       marbl_varname = surface_forcings(n)%metadata%varname
       units         = surface_forcings(n)%metadata%field_units
@@ -654,6 +679,7 @@ contains
         case ('NOx Flux')
           nox_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
+            shr_stream_surface_var_cnt = shr_stream_surface_var_cnt + 1
             call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
                                  marbl_varname=marbl_varname, field_units=units,  &
                                  unit_conv_factor=ndep_shr_stream_scale_factor,   &
@@ -661,7 +687,9 @@ contains
                                  year_first = ndep_shr_stream_year_first,         &
                                  year_last = ndep_shr_stream_year_last,           &
                                  year_align = ndep_shr_stream_year_align,         &
-                                 filename = ndep_shr_stream_file, id=n)
+                                 filename = ndep_shr_stream_file,                 &
+                                 strdata_inputlist_ind=shr_stream_surface_var_cnt,&
+                                 id=n)
           else if (trim(ndep_data_type).eq.'monthly-calendar') then
             file_details => nox_flux_monthly_file_loc
             call init_monthly_surface_forcing_metadata(file_details)
@@ -679,6 +707,7 @@ contains
         case ('NHy Flux')
           nhy_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
+            shr_stream_surface_var_cnt = shr_stream_surface_var_cnt + 1
             call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
                                  marbl_varname=marbl_varname, field_units=units,  &
                                  unit_conv_factor=ndep_shr_stream_scale_factor,   &
@@ -686,7 +715,9 @@ contains
                                  year_first = ndep_shr_stream_year_first,         &
                                  year_last = ndep_shr_stream_year_last,           &
                                  year_align = ndep_shr_stream_year_align,         &
-                                 filename = ndep_shr_stream_file, id=n)
+                                 filename = ndep_shr_stream_file,                 &
+                                 strdata_inputlist_ind=shr_stream_surface_var_cnt,&
+                                 id=n)
           else if (trim(ndep_data_type).eq.'monthly-calendar') then
             file_details => nhy_flux_monthly_file_loc
             call init_monthly_surface_forcing_metadata(file_details)
@@ -789,11 +820,15 @@ contains
       surface_forcing_fields(n)%field_0d = c0
     end do
 
+    allocate(strdata_surface_inputlist(shr_stream_surface_var_cnt))
+
     !--------------------------------------------------------------------------
     !  Interior forcing
     !--------------------------------------------------------------------------
 
     allocate(interior_forcing_fields(size(interior_forcings)))
+
+    shr_stream_interior_var_cnt = 0
 
     do n=1,size(interior_forcing_fields)
       marbl_varname = interior_forcings(n)%metadata%varname
@@ -804,7 +839,7 @@ contains
       if (index(marbl_varname,'Restoring Field').gt.0) then
         tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
         do m=1,marbl_tracer_cnt
-          if (trim(tracer_name).eq.trim(restoreable_tracer_names(m))) then
+          if (trim(tracer_name).eq.trim(restorable_tracer_names(m))) then
             ! Check to make sure restore_data_filenames and
             ! restore_data_file_varnames have both been provided by namelist
             if (len_trim(restore_data_filenames(m)).eq.0) then
@@ -824,13 +859,20 @@ contains
                             " with ", trim(restore_data_file_varnames(m)),    &
                             " from ", trim(restore_data_filenames(m))
             end if
+            shr_stream_interior_var_cnt = shr_stream_interior_var_cnt + 1
             call interior_forcing_fields(n)%add_forcing_field(                &
-                       field_source='file_time_invariant',                    &
+                       field_source='shr_stream',                             &
                        marbl_varname=marbl_varname, field_units=units,        &
                        filename=restore_data_filenames(m),                    &
                        file_varname=restore_data_file_varnames(m),            &
+                       year_first=restore_year_first(m),                      &
+                       year_last=restore_year_last(m),                        &
+                       year_align=restore_year_align(m),                      &
+                       unit_conv_factor=restore_scale_factor(m),              &
+                       strdata_inputlist_ind=shr_stream_interior_var_cnt,     &
                        id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
+
             var_processed = .true.
             exit
           end if
@@ -839,7 +881,6 @@ contains
 
       ! Check to see if this forcing field is a restoring time scale
       if (index(marbl_varname,'Restoring Inverse Timescale').gt.0) then
-        tracer_name = trim(marbl_varname(1:scan(marbl_varname,' ')))
         select case (trim(restore_inv_tau_opt))
           case('const')
             call interior_forcing_fields(n)%add_forcing_field(                &
@@ -847,11 +888,13 @@ contains
                        marbl_varname=marbl_varname, field_units=units,        &
                        field_constant = restore_inv_tau_const,                &
                        id=n)
-          ! case('shr_stream')
-          ! NOT SUPPORTED YET
-          ! will require additional namelist variables, and we can consider
-          ! reading in one file per tracer instead of using the same mask
-          ! for all restoring fields
+          case('file_time_invariant')
+            call interior_forcing_fields(n)%add_forcing_field(                &
+                       field_source='file_time_invariant',                    &
+                       marbl_varname=marbl_varname, field_units=units,        &
+                       filename=restore_inv_tau_input%filename,               &
+                       file_varname=restore_inv_tau_input%file_varname,       &
+                       id=n)
           case DEFAULT
             write(err_msg, "(A,1X,A)") trim(restore_inv_tau_opt),             &
                  'is not a valid option for restore_inv_tau_opt'
@@ -925,6 +968,8 @@ contains
       end if
     end do
 
+    allocate(strdata_interior_inputlist(shr_stream_interior_var_cnt))
+
     if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
       call document(subname, "If deriving iron flux, must provide dust flux!")
       call exit_POP(sigAbort, 'Stopping in ' // subname)
@@ -952,9 +997,6 @@ contains
     !--------------------------------------------------------------------------
     !  Set any constant forcing fields and
     !  read any forcing fields that are time invariant
-    !
-    !  For POP monthly calendar surface forcing fields, read all
-    !  12 months of data
     !--------------------------------------------------------------------------
 
     do n=1, size(forcing_fields_in)
@@ -1108,20 +1150,41 @@ contains
         enddo
 
         do k = 1, km
-          if (lfeventflux) then
-            where (land_mask(:, :, iblock) .and. (k.le.KMT(:, :, iblock)))
-              fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor &
-                + feventflux(:, :, k, iblock) * feventflux_input%scale_factor
-            end where
-          else
             where (land_mask(:, :, iblock) .and. (k.le.KMT(:, :, iblock)))
               fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
+            end where
+          if (lfeventflux) then
+            where (land_mask(:, :, iblock) .and. (k.le.KMT(:, :, iblock)))
+              fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) &
+                + feventflux(:, :, k, iblock) * feventflux_input%scale_factor
             end where
           end if
         enddo
       enddo
       end associate
     endif
+
+    !-----------------------------------------------------------------------
+    ! apply restore_inv_tau_input%scale_factor to all occurances where this was read in
+    !-----------------------------------------------------------------------
+
+    if (restore_inv_tau_opt == 'file_time_invariant') then
+      do n=1,size(interior_forcing_fields)
+        associate (marbl_varname => interior_forcing_fields(n)%metadata%marbl_varname, &
+                   forcing_field => interior_forcing_fields(n)%field_1d)
+        ! Check to see if this forcing field is a restoring time scale
+        if (index(marbl_varname,'Restoring Inverse Timescale').gt.0) then
+          do iblock=1,nblocks_clinic
+            do k = 1, km
+              where (land_mask(:, :, iblock) .and. (k.le.KMT(:, :, iblock)))
+                forcing_field(:, :, k, iblock) = forcing_field(:, :, k, iblock) * restore_inv_tau_input%scale_factor
+              end where
+            enddo
+          enddo
+        end if
+        end associate
+      end do
+    end if
 
   end subroutine forcing_init_post_processing
 
@@ -1162,53 +1225,140 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_set_interior_time_varying_forcing_data(           &
-                                         FRACR_BIN, QSW_RAW_BIN, QSW_BIN,     &
-                                         temperature, salinity, pressure,     &
-                                         ecosys_qsw_distrb_const, bid)
+  subroutine ecosys_forcing_set_interior_time_varying_forcing_data( &
+         FRACR_BIN, QSW_RAW_BIN, QSW_BIN, ecosys_qsw_distrb_const, land_mask)
   
-    use mcog, only : mcog_nbins
+    use blocks                , only : get_block
+    use constants             , only : p5, salt_to_ppt
+    use domain                , only : blocks_clinic
+    use grid                  , only : KMT
+    use mcog                  , only : mcog_nbins
+    use prognostic            , only : TRACER, oldtime, curtime
+    use state_mod             , only : ref_pressure
+    use strdata_interface_mod , only : POP_strdata_create, POP_strdata_advance
+    use time_management       , only : iyear, imonth, iday
+    use time_management       , only : ihour, iminute, isecond
+    use time_management       , only : thour00
 
-    real(r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: FRACR_BIN
-    real(r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: QSW_RAW_BIN
-    real(r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: QSW_BIN
-    real(r8), dimension(nx_block, ny_block, km),         intent(in) :: temperature
-    real(r8), dimension(nx_block, ny_block, km),         intent(in) :: salinity
-    real(r8), dimension(nx_block, ny_block, km),         intent(in) :: pressure
-    logical, intent(in) :: ecosys_qsw_distrb_const
-    integer, intent(in) :: bid
+    real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: FRACR_BIN
+    real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: QSW_RAW_BIN
+    real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: QSW_BIN
+    logical,                                                             intent(in) :: ecosys_qsw_distrb_const
+    logical,                                                             intent(in) :: land_mask(:,:,:)
 
-    logical(log_kind) :: first_call = .true.
-    integer :: index
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character (*), parameter :: subname = 'ecosys_forcing_mod:ecosys_forcing_set_interior_time_varying_forcing_data'
+    logical(log_kind)        :: first_call = .true.
+    integer(int_kind)        :: bid                         ! local block address for this block
+    integer(int_kind)        :: field_index, i, j, k, iblock, n   ! loop indices
+    integer(int_kind)        :: n0(nblocks_clinic)
+    integer(int_kind)        :: stream_index                ! index into strdata_interior_inputlist array
+    type(block)              :: this_block                  ! block info for the current block
+    integer(int_kind)        :: errorCode                   ! errorCode from HaloUpdate call
+    integer(int_kind)        :: tracer_bndy_loc(1)          ! location   for ghost tracer_bndy_type cell updates
+    integer(int_kind)        :: tracer_bndy_type(1)         ! field type for ghost tracer_bndy_type cell updates
+
+    character(char_len)      :: marbl_varname, tracer_name
+    integer                  :: m
+
+    !-----------------------------------------------------------------------
+    ! Initialize strdata_interior_inputlist data type (only once)
+    !-----------------------------------------------------------------------
 
     if (first_call) then
-      ! If in the future interior forcings come from shr_stream we will need
-      ! the first_call block
+      if (shr_stream_interior_var_cnt > 0) then
+        call timer_start(ecosys_interior_strdata_create_timer)
+        do field_index = 1, size(interior_forcing_fields)
+          associate(fields => interior_forcing_fields(field_index)%metadata)
+          if (fields%field_source.eq.'shr_stream') then
+            stream_index = fields%field_file_info%strdata_inputlist_ind
+
+            strdata_interior_inputlist(stream_index)%timer_label = 'marbl_file'
+            strdata_interior_inputlist(stream_index)%year_first  = fields%field_file_info%year_first
+            strdata_interior_inputlist(stream_index)%year_last   = fields%field_file_info%year_last
+            strdata_interior_inputlist(stream_index)%year_align  = fields%field_file_info%year_align
+            strdata_interior_inputlist(stream_index)%file_name   = fields%field_file_info%filename
+            strdata_interior_inputlist(stream_index)%field_list  = fields%field_file_info%file_varname
+
+            call POP_strdata_create(strdata_interior_inputlist(stream_index), depthflag=.true., tintalgo='nearest')
+          end if
+        end associate
+        end do
+        call timer_stop(ecosys_interior_strdata_create_timer)
+      end if ! shr_stream_interior_var_cnt > 0
       first_call = .false.
+    end if ! first_call
+
+    call timer_start(ecosys_interior_strdata_advance_timer)
+    do n = 1, shr_stream_interior_var_cnt
+      strdata_interior_inputlist(n)%date = iyear*10000 + imonth*100 + iday
+      strdata_interior_inputlist(n)%time = isecond + 60 * (iminute + 60 * ihour)
+      call POP_strdata_advance(strdata_interior_inputlist(n))
+    end do
+    call timer_stop(ecosys_interior_strdata_advance_timer)
+
+    if (shr_stream_interior_var_cnt > 0) then
+      n0(1) = 0
+      do iblock = 1, nblocks_clinic-1
+        this_block = get_block(blocks_clinic(iblock), iblock)
+        n0(iblock+1) = n0(iblock) + km*(this_block%je-this_block%jb+1)*(this_block%ie-this_block%ib+1)
+      enddo
     end if
 
-    do index= 1,size(interior_forcing_fields)
-      select case (interior_forcing_fields(index)%metadata%field_source)
-        case('internal')
-          if (index.eq.dustflux_ind) then
-            interior_forcing_fields(index)%field_0d(:,:,bid) = dust_flux_in(:, :, bid)
-          else if (index.eq.PAR_col_frac_ind) then
-            interior_forcing_fields(index)%field_1d(:,:,:,bid) = FRACR_BIN
-          else if (index.eq.surf_shortwave_ind) then
-            if (ecosys_qsw_distrb_const) then
-              interior_forcing_fields(index)%field_1d(:,:,:,bid) = QSW_RAW_BIN
-            else
-              interior_forcing_fields(index)%field_1d(:,:,:,bid) = QSW_BIN
+    !$OMP PARALLEL DO PRIVATE(bid,this_block,field_index,k,stream_index,n,j,i)
+    do bid = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(bid), bid)
+      do field_index = 1, size(interior_forcing_fields)
+        associate(fields => interior_forcing_fields(field_index)%metadata)
+        select case (fields%field_source)
+          case('internal')
+            if (field_index .eq. dustflux_ind) then
+              interior_forcing_fields(field_index)%field_0d(:,:,bid) = dust_flux_in(:,:,bid)
+            else if (field_index .eq. PAR_col_frac_ind) then
+              interior_forcing_fields(field_index)%field_1d(:,:,:,bid) = FRACR_BIN(:,:,:,bid)
+            else if (field_index .eq. surf_shortwave_ind) then
+              if (ecosys_qsw_distrb_const) then
+                interior_forcing_fields(field_index)%field_1d(:,:,:,bid) = QSW_RAW_BIN(:,:,:,bid)
+              else
+                interior_forcing_fields(field_index)%field_1d(:,:,:,bid) = QSW_BIN(:,:,:,bid)
+              end if
+            else if (field_index .eq. temperature_ind) then
+              ! --- average 2 time levels into 1 ---
+              interior_forcing_fields(field_index)%field_1d(:,:,:,bid) = &
+                p5 * (TRACER(:,:,:,1,oldtime,bid) + TRACER(:,:,:,1,curtime,bid))
+            else if (field_index .eq. salinity_ind) then
+              ! --- average 2 time levels into 1, and convert from msu to psu ---
+              interior_forcing_fields(field_index)%field_1d(:,:,:,bid) = &
+                p5 * (TRACER(:,:,:,2,oldtime,bid) + TRACER(:,:,:,2,curtime,bid)) * salt_to_ppt
+            else if (field_index .eq. pressure_ind) then
+              do k = 1, km
+                interior_forcing_fields(field_index)%field_1d(:,:,k,bid) = ref_pressure(k)
+              end do
             end if
-          else if (index.eq.temperature_ind) then
-            interior_forcing_fields(index)%field_1d(:,:,:,bid) = temperature
-          else if (index.eq.salinity_ind) then
-            interior_forcing_fields(index)%field_1d(:,:,:,bid) = salinity
-          else if (index.eq.pressure_ind) then
-            interior_forcing_fields(index)%field_1d(:,:,:,bid) = pressure
-          end if
-      end select
+          case('shr_stream')
+            stream_index = fields%field_file_info%strdata_inputlist_ind
+            n = n0(bid)
+            do k=1,km
+              do j = this_block%jb, this_block%je
+                do i = this_block%ib, this_block%ie
+                  n = n + 1
+                  ! Note that each stream currently is assumed to have only 1 field in its
+                  ! attribute vector
+                  if (land_mask(i, j, bid) .and. k .le. KMT(i, j, bid)) then
+                    interior_forcing_fields(field_index)%field_1d(i,j,k,bid) = strdata_interior_inputlist(stream_index)%sdat%avs(1)%rAttr(1, n)
+                  else
+                    interior_forcing_fields(field_index)%field_1d(i,j,k,bid) = c0
+                  endif
+                enddo
+              enddo
+            enddo
+        end select
+        end associate
+      end do
     end do
+    !$OMP END PARALLEL DO
 
     call adjust_interior_time_varying_data()
 
@@ -1239,7 +1389,6 @@ contains
 
     use POP_HaloMod           , only : POP_HaloUpdate 
     use POP_GridHorzMod       , only : POP_gridHorzLocCenter 
-    use POP_CommMod           , only : POP_communicator 
     use POP_FieldMod          , only : POP_fieldKindScalar
     use POP_ErrorMod          , only : POP_Success
     use domain                , only : POP_haloClinic
@@ -1258,8 +1407,8 @@ contains
     use time_management       , only : imonth
     use time_management       , only : iyear
     use time_management       , only : thour00
-    use strdata_interface_mod , only : POP_strdata_advance 
     use strdata_interface_mod , only : POP_strdata_create
+    use strdata_interface_mod , only : POP_strdata_advance 
     use passive_tracer_tools  , only : read_field
     use marbl_constants_mod   , only : molw_Fe
 
@@ -1294,7 +1443,7 @@ contains
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     real      (r8)                 :: d14c_glo_avg                                          ! global average D14C over the ocean, computed from current D14C field
     type(forcing_monthly_every_ts), pointer :: file
-    integer   (int_kind)          :: stream_index
+    integer   (int_kind)          :: stream_index                                           ! index into strdata_surface_inputlist array
     integer   (int_kind)          :: nf_ind
     !-----------------------------------------------------------------------
 
@@ -1309,52 +1458,46 @@ contains
     end if
 
     !-----------------------------------------------------------------------
-    ! Initialize strdata_inputlist data type (only once)
+    ! Initialize strdata_surface_inputlist data type (only once)
     !-----------------------------------------------------------------------
 
     if (first_call) then
-       do index = 1, size(surface_forcing_fields)
-       associate(fields => surface_forcing_fields(index)%metadata)
-          if (fields%field_source.eq.'shr_stream') then
-             if (trim(ndep_data_type) == 'shr_stream') then
-                stream_index = 0
-                if (index == nox_ind) stream_index = shr_stream_no_ind
-                if (index == nhy_ind) stream_index = shr_stream_nh_ind
+       if (shr_stream_surface_var_cnt > 0) then
+          call timer_start(ecosys_surface_strdata_create_timer)
+          do index = 1, size(surface_forcing_fields)
+             associate(fields => surface_forcing_fields(index)%metadata)
+             if (fields%field_source.eq.'shr_stream') then
+                stream_index = fields%field_file_info%strdata_inputlist_ind
+                strdata_surface_inputlist(stream_index)%timer_label = 'marbl_file'
+                strdata_surface_inputlist(stream_index)%year_first  = fields%field_file_info%year_first
+                strdata_surface_inputlist(stream_index)%year_last   = fields%field_file_info%year_last
+                strdata_surface_inputlist(stream_index)%year_align  = fields%field_file_info%year_align
+                strdata_surface_inputlist(stream_index)%file_name   = fields%field_file_info%filename
+                strdata_surface_inputlist(stream_index)%field_list  = fields%field_file_info%file_varname
 
-                if (stream_index /= 0) then
-                   strdata_inputlist(stream_index)%timer_label = 'marbl_file'
-                   strdata_inputlist(stream_index)%year_first  = fields%field_file_info%year_first
-                   strdata_inputlist(stream_index)%year_last   = fields%field_file_info%year_last
-                   strdata_inputlist(stream_index)%year_align  = fields%field_file_info%year_align
-                   strdata_inputlist(stream_index)%file_name   = fields%field_file_info%filename
-                   strdata_inputlist(stream_index)%field_list  = fields%field_file_info%file_varname
-
-                   call POP_strdata_create(strdata_inputlist(stream_index)) !FIXME - need more general scheme
-                end if
+                call POP_strdata_create(strdata_surface_inputlist(stream_index))
              end if
-          end if
-       end associate
-       end do
+             end associate
+          end do
+          call timer_stop(ecosys_surface_strdata_create_timer)
+       end if ! shr_stream_surface_var_cnt > 0
        first_call = .false.
     end if ! first_call
 
-    if (trim(ndep_data_type) == 'shr_stream') then
-       !FIXME - this should be moved into select for the case file
-       ! call timer_start(ecosys_shr_strdata_advance_timer) FIXME - does not work
-       do n = 1, shr_stream_var_cnt
-          strdata_inputlist(n)%date = iyear*10000 + imonth*100 + iday
-          strdata_inputlist(n)%time = isecond + 60 * (iminute + 60 * ihour)
-          call POP_strdata_advance(strdata_inputlist(n))
-       end do
-       !call timer_stop(ecosys_shr_strdata_advance_timer) FIXME - does not work
-    end if
+    call timer_start(ecosys_surface_strdata_advance_timer)
+    do n = 1, shr_stream_surface_var_cnt
+       strdata_surface_inputlist(n)%date = iyear*10000 + imonth*100 + iday
+       strdata_surface_inputlist(n)%time = isecond + 60 * (iminute + 60 * ihour)
+       call POP_strdata_advance(strdata_surface_inputlist(n))
+    end do
+    call timer_stop(ecosys_surface_strdata_advance_timer)
 
     !-----------------------------------------------------------------------
     !  loop through forcing fields
     !-----------------------------------------------------------------------
 
     do index = 1, size(surface_forcing_fields)
-    associate(fields => surface_forcing_fields(index)%metadata)
+       associate(fields => surface_forcing_fields(index)%metadata)
 
        select case (fields%field_source)
 
@@ -1470,39 +1613,33 @@ contains
        case ('shr_stream')
        !------------------------------------
 
-          ! FIXME - move stream_index in forcing_field_file_type 
-          stream_index = 0
-          if (index == nox_ind) stream_index = shr_stream_no_ind
-          if (index == nhy_ind) stream_index = shr_stream_nh_ind
+          stream_index = fields%field_file_info%strdata_inputlist_ind
 
-          if (stream_index /= 0) then
-             n = 0
-             do iblock = 1, nblocks_clinic
-                this_block = get_block(blocks_clinic(iblock), iblock)
-                do j = this_block%jb, this_block%je
-                   do i = this_block%ib, this_block%ie
-                      n = n + 1
-                      ! Note that each stream currently is assumed to have only 1 field in its
-                      ! attribute vector
-                      shr_stream(i, j, iblock) = strdata_inputlist(stream_index)%sdat%avs(1)%rAttr(1, n)
-                   enddo
+          n = 0
+          do iblock = 1, nblocks_clinic
+             this_block = get_block(blocks_clinic(iblock), iblock)
+             do j = this_block%jb, this_block%je
+                do i = this_block%ib, this_block%ie
+                   n = n + 1
+                   ! Note that each stream currently is assumed to have only 1 field in its
+                   ! attribute vector
+                   shr_stream(i, j, iblock) = strdata_surface_inputlist(stream_index)%sdat%avs(1)%rAttr(1, n)
                 enddo
              enddo
+          enddo
 
-             call POP_HaloUpdate(shr_stream, POP_haloClinic, &
-                  POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
-             if (errorCode /= POP_Success) then
-                call document(subname, 'error updating halo for Ndep fields')
-                call exit_POP(sigAbort, 'Stopping in ' // subname)
-             endif
+          call POP_HaloUpdate(shr_stream, POP_haloClinic, &
+               POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
+          if (errorCode /= POP_Success) then
+             call document(subname, 'error updating halo for shr_stream field')
+             call exit_POP(sigAbort, 'Stopping in ' // subname)
+          endif
              
-             do iblock = 1, nblocks_clinic
-                where (land_mask(:, :, iblock))
-                   surface_forcing_fields(index)%field_0d(:,:,iblock) =       &
-                                                     shr_stream(:, :, iblock)
-                endwhere
-             enddo
-          end if
+          do iblock = 1, nblocks_clinic
+             where (land_mask(:, :, iblock))
+                surface_forcing_fields(index)%field_0d(:,:,iblock) = shr_stream(:, :, iblock)
+             endwhere
+          enddo
              
        end select ! file, constant, driver, shr_stream
 
@@ -1516,7 +1653,7 @@ contains
           enddo
        end if
           
-    end associate
+       end associate
     end do  ! index
 
     call adjust_surface_time_varying_data()
@@ -2277,7 +2414,7 @@ contains
   !*****************************************************************************
 
   subroutine forcing_file_init(this, filename, file_varname, temporal, year_first, &
-                                     year_last, year_align, date, time)
+                                     year_last, year_align, date, time, strdata_inputlist_ind)
 
 
     class(forcing_file_type),         intent(inout) :: this
@@ -2289,6 +2426,7 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_align
     integer(kind=int_kind), optional, intent(in)    :: date
     integer(kind=int_kind), optional, intent(in)    :: time
+    integer(kind=int_kind), optional, intent(in)    :: strdata_inputlist_ind
 
     this%filename     = filename
     this%file_varname = file_varname
@@ -2298,6 +2436,7 @@ contains
     if (present(year_align)) this%year_align = year_align
     if (present(date      )) this%date       = date
     if (present(time      )) this%time       = time
+    if (present(strdata_inputlist_ind)) this%strdata_inputlist_ind = strdata_inputlist_ind
 
   end subroutine forcing_file_init
 
@@ -2329,6 +2468,7 @@ contains
        year_first, year_last, year_align,     &
        date,                                  &
        time,                                  &
+       strdata_inputlist_ind,                 &
        forcing_calendar_name)
 
     use io_tools        , only : document
@@ -2351,6 +2491,7 @@ contains
     integer (kind=int_kind), optional,   intent(in)    :: year_align
     integer (kind=int_kind), optional,   intent(in)    :: date
     integer (kind=int_kind), optional,   intent(in)    :: time
+    integer (kind=int_kind), optional,   intent(in)    :: strdata_inputlist_ind
     type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
     !-----------------------------------------------------------------------
@@ -2441,9 +2582,21 @@ contains
           call this%field_named_info%initialize(named_field)
        endif
 
-    case('shr_stream','file_time_invariant') 
+    case('file_time_invariant') 
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
+       if (has_valid_inputs) then
+          write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
+                                   trim(this%marbl_varname)
+          call document(subname, log_message)
+          call this%field_file_info%initialize(&
+               filename, file_varname)
+       endif
+
+    case('shr_stream') 
+       if (.not.present(filename))     has_valid_inputs = .false.
+       if (.not.present(file_varname)) has_valid_inputs = .false.
+       if (.not.present(strdata_inputlist_ind)) has_valid_inputs = .false.
        if (has_valid_inputs) then
           write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
                                    trim(this%marbl_varname)
@@ -2452,7 +2605,8 @@ contains
                filename, file_varname, &
                temporal=temporal, year_first=year_first,   &
                year_last=year_last, year_align=year_align, &
-               date=date, time=time)
+               date=date, time=time, &
+               strdata_inputlist_ind=strdata_inputlist_ind)
        endif
 
     case('POP monthly calendar') 
@@ -2492,6 +2646,7 @@ contains
        temporal,                            &
        year_first, year_last, year_align,   &
        date, time,                          &
+       strdata_inputlist_ind,               &
        forcing_calendar_name)
 
     class(forcing_fields_type)      , intent(inout) :: this
@@ -2512,6 +2667,7 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_align
     integer(kind=int_kind), optional, intent(in)    :: date
     integer(kind=int_kind), optional, intent(in)    :: time
+    integer(kind=int_kind), optional, intent(in)    :: strdata_inputlist_ind
     type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
     integer (kind=int_kind) :: num_elem
@@ -2529,6 +2685,7 @@ contains
          temporal=temporal, year_first=year_first,       &
          year_last=year_last, year_align=year_align,     &
          date=date, time=time,                           &
+         strdata_inputlist_ind=strdata_inputlist_ind,    &
          forcing_calendar_name=forcing_calendar_name)
 
   end subroutine forcing_fields_add

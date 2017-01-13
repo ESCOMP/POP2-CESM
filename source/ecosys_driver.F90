@@ -69,6 +69,7 @@ module ecosys_driver
   ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_driver_init
+  public :: ecosys_driver_set_interior_forcing
   public :: ecosys_driver_set_interior
   public :: ecosys_driver_set_global_scalars
   public :: ecosys_driver_comp_global_averages
@@ -90,6 +91,7 @@ module ecosys_driver
   ! timers
   !-----------------------------------------------------------------------
 
+  integer (int_kind) :: ecosys_interior_forcing_timer
   integer (int_kind) :: ecosys_interior_timer
   integer (int_kind) :: ecosys_set_sflux_timer
   integer (int_kind) :: ecosys_comp_CO3terms_timer
@@ -308,9 +310,10 @@ contains
     !  timer init
     !-----------------------------------------------------------------------
 
-    call get_timer(ecosys_interior_timer     , 'ECOSYS_INTERIOR'   , nblocks_clinic , distrb_clinic%nprocs)
-    call get_timer(ecosys_set_sflux_timer    , 'ECOSYS_SET_SFLUX'  , 1              , distrb_clinic%nprocs)
-    call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms'     , nblocks_clinic , distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_forcing_timer, 'ECOSYS_INTERIOR_FORCING',       1 , distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_timer        , 'ECOSYS_INTERIOR' , nblocks_clinic , distrb_clinic%nprocs)
+    call get_timer(ecosys_set_sflux_timer       , 'ECOSYS_SET_SFLUX',              1 , distrb_clinic%nprocs)
+    call get_timer(ecosys_comp_CO3terms_timer   , 'comp_CO3terms'   , nblocks_clinic , distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------
     !  Initialize module variable land mask
@@ -663,10 +666,32 @@ contains
 
   !***********************************************************************
 
+  subroutine ecosys_driver_set_interior_forcing(FRACR_BIN, QSW_RAW_BIN, QSW_BIN)
+
+    ! !DESCRIPTION:
+    !  prepare forcing for computation of interior source-sink terms
+
+    use mcog               , only : mcog_nbins
+    use ecosys_forcing_mod , only : ecosys_forcing_set_interior_time_varying_forcing_data
+
+    implicit none
+
+    real (r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic) , intent(in)    :: FRACR_BIN         ! fraction of cell occupied by mcog bin
+    real (r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic) , intent(in)    :: QSW_RAW_BIN       ! raw (directly from cpl) shortwave into each mcog column (W/m^2)
+    real (r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic) , intent(in)    :: QSW_BIN           ! shortwave into each mcog bin, potentially modified by coszen factor (W/m^2)
+
+    call timer_start(ecosys_interior_forcing_timer)
+
+    call ecosys_forcing_set_interior_time_varying_forcing_data( &
+         FRACR_BIN, QSW_RAW_BIN, QSW_BIN, ecosys_qsw_distrb_const, land_mask)
+
+    call timer_stop(ecosys_interior_forcing_timer)
+
+  end subroutine ecosys_driver_set_interior_forcing
+
+  !***********************************************************************
+
   subroutine ecosys_driver_set_interior(     &
-       FRACR_BIN, QSW_RAW_BIN, QSW_BIN,      &
-       TEMP_OLD, TEMP_CUR,                   &
-       SALT_OLD, SALT_CUR,                   &
        TRACER_MODULE_OLD, TRACER_MODULE_CUR, &
        DTRACER_MODULE, this_block)
 
@@ -674,34 +699,17 @@ contains
     !  call subroutines for each tracer module that compute source-sink terms
     !  accumulate commnon tavg fields related to source-sink terms
 
-    use constants          , only : salt_to_ppt
     use grid               , only : KMT
     use grid               , only : DZT
     use grid               , only : partial_bottom_cells
-    use mcog               , only : mcog_nbins
-    use state_mod          , only : ref_pressure
     use ecosys_forcing_mod , only : interior_forcing_fields
-    use ecosys_forcing_mod , only : ecosys_forcing_set_interior_time_varying_forcing_data
-    use ecosys_forcing_mod , only : dustflux_ind
-    use ecosys_forcing_mod , only : PAR_col_frac_ind
-    use ecosys_forcing_mod , only : surf_shortwave_ind
-    use ecosys_forcing_mod , only : temperature_ind
-    use ecosys_forcing_mod , only : salinity_ind
-    use ecosys_forcing_mod , only : pressure_ind
 
     implicit none
 
-    real (r8), dimension(nx_block, ny_block, mcog_nbins) , intent(in)    :: FRACR_BIN         ! fraction of cell occupied by mcog bin
-    real (r8), dimension(nx_block, ny_block, mcog_nbins) , intent(in)    :: QSW_RAW_BIN       ! raw (directly from cpl) shortwave into each mcog column (W/m^2)
-    real (r8), dimension(nx_block, ny_block, mcog_nbins) , intent(in)    :: QSW_BIN           ! shortwave into each mcog bin, potentially modified by coszen factor (W/m^2)
-    real (r8), dimension(nx_block, ny_block, km)         , intent(in)    :: TEMP_OLD          ! old potential temperature (C)
-    real (r8), dimension(nx_block, ny_block, km)         , intent(in)    :: TEMP_CUR          ! current potential temperature (C)
-    real (r8), dimension(nx_block, ny_block, km)         , intent(in)    :: SALT_OLD          ! old salinity (msu)
-    real (r8), dimension(nx_block, ny_block, km)         , intent(in)    :: SALT_CUR          ! current salinity (msu)
-    real (r8), dimension(:,:,:,:)                        , intent(in)    :: TRACER_MODULE_OLD ! old tracer values
-    real (r8), dimension(:,:,:,:)                        , intent(in)    :: TRACER_MODULE_CUR ! current tracer values
-    type (block)                                         , intent(in)    :: this_block        ! block information for this block
-    real (r8), dimension(:,:,:,:)                        , intent(inout) :: DTRACER_MODULE    ! computed source/sink terms
+    real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_OLD ! old tracer values
+    real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_CUR ! current tracer values
+    type (block)                 , intent(in)    :: this_block        ! block information for this block
+    real (r8), dimension(:,:,:,:), intent(inout) :: DTRACER_MODULE    ! computed source/sink terms
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -710,35 +718,13 @@ contains
     character(len=char_len) :: log_message
     integer (int_kind)      :: i   ! nx_block loop index
     integer (int_kind)      :: c   ! ny_block / column loop index
-    integer (int_kind)      :: k   ! vertical level index
     integer (int_kind)      :: bid ! local block address for this block
     integer (int_kind)      :: n, d, ncols
-    real (r8), dimension(nx_block, ny_block, km) :: temperature, salinity
-    real (r8), dimension(nx_block, ny_block, km) :: pressure
     !-----------------------------------------------------------------------
 
     bid = this_block%local_id
 
-    ! NTOE: gcm dependent quantities (i.e. time stepping). need to be
-    ! averaged into a single quantity for marbl ecosys
-
     call timer_start(ecosys_interior_timer, block_id=bid)
-
-    associate(marbl_interior_forcings => marbl_instances(bid)%interior_input_forcings)
-
-    !-----------------------------------------------------------------------
-    ! Set input surface forcing data and surface saved state data
-    !-----------------------------------------------------------------------
-
-    temperature = p5*(temp_old + temp_cur)
-    salinity = p5*(salt_old + salt_cur)*salt_to_ppt
-    do k=1,km
-      ! NOTE: ref_pressure is a function, not an array
-       pressure(:,:,k) = ref_pressure(k)
-    end do
-    call ecosys_forcing_set_interior_time_varying_forcing_data(FRACR_bin,     &
-                            QSW_RAW_BIN, QSW_BIN, temperature, salinity,      &
-                            pressure, ecosys_qsw_distrb_const, bid)
 
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
@@ -768,7 +754,7 @@ contains
                end if
              end do
 
-             ! --- set column tracers ---
+             ! --- set column tracers, averaging 2 time levels into 1 ---
 
              do n = 1, ecosys_tracer_cnt
                 marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
@@ -823,8 +809,6 @@ contains
        end do ! do i
     end do ! do c
     
-    end associate
-
     call timer_stop(ecosys_interior_timer, block_id=bid)
 
   end subroutine ecosys_driver_set_interior

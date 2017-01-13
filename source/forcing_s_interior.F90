@@ -769,17 +769,17 @@
 
       S_INTERIOR_DATA(:,:,:,:,:) = c0
       n = 0
-      do k=1,km
       do iblock = 1, nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)
-         do j=this_block%jb,this_block%je
-         do i=this_block%ib,this_block%ie
-            n = n + 1
-            S_INTERIOR_DATA(i,j,k,iblock,1) = &
-               s_inputlist%sdat%avs(1)%rAttr(1,n)
+         do k=1,km
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+               n = n + 1
+               S_INTERIOR_DATA(i,j,k,iblock,1) = &
+                  s_inputlist%sdat%avs(1)%rAttr(1,n)
+            enddo
+            enddo
          enddo
-         enddo
-      enddo
       enddo
 
       call POP_HaloUpdate(S_INTERIOR_DATA(:,:,:,:,1),POP_haloClinic, &
