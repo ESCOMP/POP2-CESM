@@ -1771,6 +1771,8 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'caco3_bury_thres_depth');
   add_default($nl, 'pon_bury_coeff');
 
+  add_default($nl, 'tracer_restore_vars');
+
   if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_fract_factors');
   }

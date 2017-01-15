@@ -93,10 +93,8 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_restore_gx3v7">hobart</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_restore_gx3v7">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_restore_gx3v7">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">yellowstone</machine>
       </test>
       <test name="ERS_D_Ld3">

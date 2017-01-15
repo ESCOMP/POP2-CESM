@@ -417,18 +417,18 @@ contains
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
 
+    restorable_tracer_names    = ''
     restore_data_filenames     = ''
     restore_data_file_varnames = ''
-    restorable_tracer_names    = ''
     restore_year_first         = 1
     restore_year_last          = 1
     restore_year_align         = 1
     restore_scale_factor       = c1
   
     restore_inv_tau_opt   = 'const'
-    restore_inv_tau_const = 2.3e-6_r8
+    restore_inv_tau_const = c0
 
-    call set_defaults_tracer_read(restore_inv_tau_input, file_varname='REST_INV_TAU_MS_ONLY')
+    call set_defaults_tracer_read(restore_inv_tau_input, file_varname='RESTORE_INV_TAU_MARGINAL_SEA_ONLY')
 
     surf_avg_alk_const   = 2225.0_r8
     surf_avg_dic_const   = 1944.0_r8
@@ -1282,7 +1282,7 @@ contains
             strdata_interior_inputlist(stream_index)%file_name   = fields%field_file_info%filename
             strdata_interior_inputlist(stream_index)%field_list  = fields%field_file_info%file_varname
 
-            call POP_strdata_create(strdata_interior_inputlist(stream_index), depthflag=.true., tintalgo='nearest')
+            call POP_strdata_create(strdata_interior_inputlist(stream_index), depthflag=.true.)
           end if
         end associate
         end do
@@ -1347,7 +1347,8 @@ contains
                   ! Note that each stream currently is assumed to have only 1 field in its
                   ! attribute vector
                   if (land_mask(i, j, bid) .and. k .le. KMT(i, j, bid)) then
-                    interior_forcing_fields(field_index)%field_1d(i,j,k,bid) = strdata_interior_inputlist(stream_index)%sdat%avs(1)%rAttr(1, n)
+                    interior_forcing_fields(field_index)%field_1d(i,j,k,bid) = &
+                      strdata_interior_inputlist(stream_index)%sdat%avs(1)%rAttr(1, n)
                   else
                     interior_forcing_fields(field_index)%field_1d(i,j,k,bid) = c0
                   endif

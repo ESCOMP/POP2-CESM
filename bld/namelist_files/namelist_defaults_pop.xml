@@ -1205,19 +1205,24 @@
 <ciso_atm_model_year>1</ciso_atm_model_year>
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
-<restorable_tracer_names>   'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC_ALT_CO2', 'ALK', 'DOC', 'DON', 'DOP'</restorable_tracer_names>
+<restorable_tracer_names>'PO4','NO3','SiO3','O2','ALK'</restorable_tracer_names>
 
-<restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20151210.nc</restore_data_filenames_derived>
-<restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_data_filenames_derived>
+<restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_POP_gx3v7_20170113.nc</restore_data_filenames_derived>
+<restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
 
-<restore_data_file_varnames>'PO4', 'NO3', 'SiO3', 'NH4', 'Fe', 'O2', 'DIC', 'DIC',         'ALK', 'DOC', 'DON', 'DOP'</restore_data_file_varnames>
+<restore_data_file_varnames>'PO4','NO3','SiO3','O2','ALK'</restore_data_file_varnames>
 
 <restore_inv_tau_opt>const</restore_inv_tau_opt>
-<restore_inv_tau_const>2.3e-6</restore_inv_tau_const>
+<restore_inv_tau_opt ocn_grid="gx3v7">file_time_invariant</restore_inv_tau_opt>
+<restore_inv_tau_opt ocn_grid="gx1v6">file_time_invariant</restore_inv_tau_opt>
+<restore_inv_tau_opt ocn_grid="gx1v7">file_time_invariant</restore_inv_tau_opt>
 
-<restore_inv_tau_input%filename ocn_grid="gx3v7">/glade/u/home/klindsay/ncl/rest_inv_tau_gx3v7_20170106.nc</restore_inv_tau_input%filename> 
-<restore_inv_tau_input%filename ocn_grid="gx1v6">/glade/u/home/klindsay/ncl/rest_inv_tau_gx1v6_20170106.nc</restore_inv_tau_input%filename>
-<restore_inv_tau_input%file_varname>REST_INV_TAU_MS_ONLY</restore_inv_tau_input%file_varname>
+<restore_inv_tau_const>0.0</restore_inv_tau_const>
+
+<restore_inv_tau_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_inv_tau_POP_gx3v7_20170113.nc</restore_inv_tau_input%filename> 
+<restore_inv_tau_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_inv_tau_POP_gx1v6_20170113.nc</restore_inv_tau_input%filename>
+<restore_inv_tau_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_inv_tau_POP_gx1v6_20170113.nc</restore_inv_tau_input%filename>
+<restore_inv_tau_input%file_varname>RESTORE_INV_TAU_MARGINAL_SEA_ONLY</restore_inv_tau_input%file_varname>
 <restore_inv_tau_input%file_fmt>nc</restore_inv_tau_input%file_fmt>
 <restore_inv_tau_input%scale_factor>1.0</restore_inv_tau_input%scale_factor>
 
@@ -1404,6 +1409,10 @@
 
 <ciso_fract_factors>Laws</ciso_fract_factors>
 
+<tracer_restore_vars></tracer_restore_vars>
+<tracer_restore_vars ocn_grid="gx3v7">'PO4','NO3','SiO3','ALK'</tracer_restore_vars>
+<tracer_restore_vars ocn_grid="gx1v6">'PO4','NO3','SiO3','ALK'</tracer_restore_vars>
+<tracer_restore_vars ocn_grid="gx1v7">'PO4','NO3','SiO3','ALK'</tracer_restore_vars>
 
 <!---------------------------->
 <!--   ecosys_driver_nml    -->

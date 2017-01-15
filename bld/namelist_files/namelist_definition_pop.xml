@@ -6428,7 +6428,7 @@ id="restorable_tracer_names"
 type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
-Default:
+Default: 'PO4','NO3','SiO3','O2','ALK'
 </entry>
 
 <entry 
@@ -6436,7 +6436,7 @@ id="restore_data_filenames"
 type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
-Default:
+Default: none provided, constructed by build-namelist
 </entry>
 
 <entry 
@@ -6445,7 +6445,7 @@ type="char*256"
 category="ecosys"
 group="derived" 
 input_pathname="abs" >
-Default:
+Default: ecosys_restore_POP_gx3v7_20170113.nc (gx3v7), ecosys_restore_POP_gx1v6_20170113.nc (gx1v6,gx1v7)
 </entry>
 
 <entry 
@@ -6453,7 +6453,7 @@ id="restore_data_file_varnames"
 type="char*256(41)"
 category="ecosys"
 group="ecosys_forcing_data_nml">
-Default:
+Default: 'PO4','NO3','SiO3','O2','ALK'
 </entry>
 
 <entry 
@@ -6462,7 +6462,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 valid_values="const,file_time_invariant">
-Default: 'const'
+Default: 'file_time_invariant' for gx3v7, gx1v6, gx1v7 grids, 'const' otherwise
 </entry>
 
 <entry 
@@ -6470,7 +6470,7 @@ id="restore_inv_tau_const"
 type="real"
 category="ecosys"
 group="ecosys_forcing_data_nml">
-Default: 2.3e-6
+Default: 0.0
 </entry>
 
 <entry 
@@ -6479,7 +6479,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: none provided
+Default: ecosys_restore_inv_tau_POP_gx3v7_20170113.nc (gx3v7), ecosys_restore_inv_tau_POP_gx1v6_20170113.nc (gx1v6,gx1v7)
 </entry>
 
 <entry 
@@ -6487,7 +6487,7 @@ id="restore_inv_tau_input%file_varname"
 type="char*256" 
 category="ecosys"
 group="ecosys_forcing_data_nml" >
-Default: 'REST_INV_TAU_MS_ONLY'
+Default: 'RESTORE_INV_TAU_MARGINAL_SEA_ONLY'
 </entry>
 
 <entry 
@@ -7086,7 +7086,7 @@ type="char*256(100)"
 category="ecosys"
 group="marbl_parms_nml" >
 Short name for tracers to apply restoring to
-Default:
+Default: 'PO4','NO3','SiO3','ALK' for gx3v7, gx1v6, gx1v7 grids, empty otherwise
 </entry>
 
 

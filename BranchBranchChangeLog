@@ -2,6 +2,37 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    15 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n28_marbl_dev_n25_cesm_pop_2_1_20161116
+Tag Summary: enable restoring of PO4,NO3,SiO3,ALK in marginal seas by default
+
+restoring is to keep nutrients from drifting, which happens due to
+   imbalance between riverine inputs and sediment burial
+restoring timescale is 10 years (might change this later)
+remove ecosys_restore_gx3v7 test from aux_pop_MARBL
+
+Testing:
+MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n26 tag)
+   all tests pass, except for
+      BASELINE tests fails because of restoring being turned on
+      NLCOMP tests fails because some namelist did change
+      some MEMLEAK, MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    12 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n27_marbl_dev_n25_cesm_pop_2_1_20161116
 Tag Summary: implement restore_inv_tau_opt='file_time_invariant', change restore field_source='shr_stream'
@@ -20,7 +51,7 @@ Testing:
 MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
 tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
 
-aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n25 tag)
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n26 tag)
    all tests pass, except for
       NLCOMP fails because some namelist variables changed names
       some MEMLEAK failures
