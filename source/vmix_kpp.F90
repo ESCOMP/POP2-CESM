@@ -1978,7 +1978,6 @@
 
    if (present(SMFT)) then
       USTAR = sqrt(sqrt(SMFT(:,:,1)**2 + SMFT(:,:,2)**2))
-      USTAR = max(USTAR, eps)
    else
       WORK = sqrt(sqrt(SMF(:,:,1)**2 + SMF(:,:,2)**2))
       call ugrid_to_tgrid(USTAR,WORK,bid)

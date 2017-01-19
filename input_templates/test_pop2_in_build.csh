@@ -47,10 +47,10 @@ setenv NPROCS_CLINIC 4
 setenv NPROCS_TROPIC 4
 if ($OCN_GRID == tx0.1v2) then
 setenv OCN_CDF64 TRUE
-setenv OCN_NCPL  24
+setenv OCN_NCPL  4
 else
 setenv OCN_CDF64 FALSE
-setenv OCN_NCPL  24
+setenv OCN_NCPL  1
 endif
 setenv IYEAR0   0
 setenv IMONTH0  1

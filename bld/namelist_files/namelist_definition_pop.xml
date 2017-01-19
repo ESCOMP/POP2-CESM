@@ -2784,7 +2784,7 @@ category="ice"
 group="ice_nml" >
 CESM2 default for forming ice every timestep when coupled
 
-Default: .true.
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -6938,9 +6938,8 @@ Default: none
 id="ebm_param_filename"
 type="char*256"
 category="pop2"
-group="estuary_nml"
-input_pathname="abs" >
-Default: auto-filled by CESM scripts
+group="estuary_nml" >
+Default: none
 </entry>
 
 <entry
