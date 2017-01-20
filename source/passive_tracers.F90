@@ -44,13 +44,15 @@
    use passive_tracer_tools, only: set_tracer_indices
 
    use ecosys_driver, only:               &
-       marbl_tracer_cnt,                  &
+       ecosys_tracer_cnt,                 &
        ecosys_driver_init,                &
-       ecosys_driver_tracer_ref_val,      &
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
        ecosys_driver_set_interior,        &
+       ecosys_driver_set_global_scalars,  &
+       ecosys_driver_comp_global_averages,&
        ecosys_driver_write_restart,       &
+       ecosys_driver_tracer_ref_val,      &
        ecosys_driver_unpack_source_sink_terms
 
    use cfc_mod, only:              &
@@ -325,7 +327,7 @@
    cumulative_nt = 2
 
    if (ecosys_on) then
-      call set_tracer_indices('ECOSYS_DRIVER', marbl_tracer_cnt, cumulative_nt, &
+      call set_tracer_indices('ECOSYS_DRIVER', ecosys_tracer_cnt, cumulative_nt, &
                               ecosys_driver_ind_begin, ecosys_driver_ind_end)
    end if
 
@@ -855,6 +857,8 @@
 !  ECOSYS DRIVER modules 3D source-sink terms
 !-----------------------------------------------------------------------
    if (ecosys_on) then
+      call ecosys_driver_set_global_scalars('interior')
+
       !$OMP PARALLEL DO PRIVATE(iblock, this_block, bid)
       do iblock = 1, nblocks_clinic
 
@@ -872,6 +876,8 @@
 
       end do
       !$OMP END PARALLEL DO
+
+      call ecosys_driver_comp_global_averages('interior')
    end if
 
 !-----------------------------------------------------------------------

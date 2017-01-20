@@ -1,12 +1,105 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    20 Jan 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170120
+Tag Summary: Merged in marbl_dev_n25 tag to get new BGC developments in MARBL
+             MARBL external is now using v0.10.0, introducing the following:
+             1. Lots of infrastructure refactoring
+             2. Support time-varying bury coefficient
+             3. Compute NHx surface emissions
+             Also, this tag brings in support for 4D streams
+
+Testing:     generated aux_pop baselines from cesm2_0_beta05
+             [cime5.2.0-alpha.20, cice5_20170113, and cesm_pop_2_1_20161229]
+             with yellowstone_intel; also generated aux_pop_MARBL baselines
+             with yellowstone_intel, yellowstone_gnu, hobart_nag, and
+             hobart_intel. Used the same sandbox with this version of POP,
+             compared to those baselines. [Expected] failures all fell into one
+             of the following four categories:
+             1. all namelist comparisons failed
+                - new 4D stream code added new variables to PT and S forcing
+                  namelists
+                - ecosystem namelists were renamed and some variables were
+                  moved for consistency. MARBL reads &marbl_config_nml and
+                  &marbl_parms_nml while the POP driver reads
+                  &ecosys_driver_nml, &ecosys_forcing_data_nml, and
+                  &ecosys_tracer_init_nml
+             2. New tests (many of these with and without cice)
+                - added ecosys_daily_r4_tavg and ciso_daily_r4_tavg to test
+                  writing single precision tavg files (this also tests the
+                  default ecosystem output variable list instead of setting
+                  lecosys_debug =.true. and accumulating a large number of
+                  variables)
+                - added test turning on time-varying bury coefficient
+                - added test turning on NHx surface emissions
+                - added test for getting dust_flux from driver instead of from
+                  file (feature was added in last MARBL update but not tested)
+             3. Changes to inputdata files
+                *** Affects ciso tests and ecosys_restore_gx3v7 test
+                - CISO tracer initial conditions come from same file as rest
+                  of ecosystem tracers (previously used an older version) so
+                  all ciso tests fail
+                - ecosys_restore_gx3v7 test restores to current initial
+                  conditions instead of the old version of the file as well
+             4. Actual changes in the code
+                *** Affects tests using GECO compsets
+                - All GECO baseline comparisons will fail because of an order
+                  of operations change in computation of BLACK_CARBON_FLUX_CPL
+                  and DUST_FLUX_CPL.
+Testing Summary: C and G compsets are bit for bit with previous tag. CECO
+                 compsets are also bit for bit with previous tag unless you
+                 add ciso to OCN_TRACER_MODULES.
+
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys_apply_nhx_surface_emis
+M       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cice_ecosys_dust_flux_driver/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys_ladjust_bury_coeff
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/daily_r4_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_daily_r4_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_dust_flux_driver
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+ M      drivers/cpl
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/POP_MCT_vars_mod.F90
+M       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+ M      drivers/cpl_none
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+A  +    source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+A  +    source/ecosys_tracers_and_saved_state_mod.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/io_types.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+M       source/strdata_interface_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 Jan 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170119
 Tag Summary: Undo Jan 7th tag (going to add MARBL update before changing all
              these defaults)
 
-Testing: 
+Testing:     Verified that tag is identical to cesm_pop_2_1_20161229 aside
+             from ChangeLog contents and some svn:properties
 
 M       bld/build-namelist
 M       bld/namelist_files/namelist_defaults_pop.xml

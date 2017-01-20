@@ -215,7 +215,7 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_flux(flux_diags, marbl_instances)
+  subroutine ecosys_tavg_accumulate_flux(surface_forcing_diags, marbl_instances)
 
     ! Compute diagnostics for surface fluxes
 
@@ -223,7 +223,7 @@ contains
 
     implicit none
 
-    real (r8)                  , intent(in) :: flux_diags (:, :, :, :)
+    real (r8)                  , intent(in) :: surface_forcing_diags (:, :, :, :)
     type(marbl_interface_class), intent(in) :: marbl_instances(:)
 
     !-----------------------------------------------------------------------
@@ -233,7 +233,7 @@ contains
     integer :: nblocks_clinic
     !-----------------------------------------------------------------------
 
-    nblocks_clinic = size(flux_diags,4)
+    nblocks_clinic = size(surface_forcing_diags,4)
 
     !$OMP PARALLEL DO PRIVATE(iblock,i)
     do iblock=1,nblocks_clinic
@@ -241,24 +241,24 @@ contains
        associate (diag_cnt => marbl_instances(iblock)%surface_forcing_diags%diag_cnt)
 
        do i = 1,diag_cnt
-          call accumulate_tavg_field(FLUX_DIAGS(:,:,i,iblock), &
-               tavg_ids_surface_forcing(i), iblock, i)
+          call accumulate_tavg_field(surface_forcing_diags(:,:,i,iblock),     &
+               tavg_ids_surface_forcing(i), iblock, 1)
        end do
 
-       call accumulate_tavg_field(FLUX_diags(:,:,ind%ECOSYS_IFRAC,iblock),    &
-            tavg_ECOSYS_IFRAC_2, iblock, i)
+       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%ECOSYS_IFRAC,iblock), &
+            tavg_ECOSYS_IFRAC_2, iblock, 1)
 
-       call accumulate_tavg_field(FLUX_diags(:,:,ind%ECOSYS_XKW,iblock),      &
-            tavg_ECOSYS_XKW_2, iblock, i)
+       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%ECOSYS_XKW,iblock),   &
+            tavg_ECOSYS_XKW_2, iblock, 1)
 
-       call accumulate_tavg_field(FLUX_diags(:,:,ind%O2_GAS_FLUX,iblock),     &
-            tavg_O2_GAS_FLUX_2, iblock, i)
+       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%O2_GAS_FLUX,iblock),  &
+            tavg_O2_GAS_FLUX_2, iblock, 1)
 
-       call accumulate_tavg_field(FLUX_diags(:,:,ind%DpCO2,iblock),           &
-            tavg_DpCO2_2, iblock, i)
+       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%DpCO2,iblock),        &
+            tavg_DpCO2_2, iblock, 1)
 
-       call accumulate_tavg_field(FLUX_diags(:,:,ind%DIC_GAS_FLUX,iblock),    &
-            tavg_DIC_GAS_FLUX_2, iblock, i)
+       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%DIC_GAS_FLUX,iblock), &
+            tavg_DIC_GAS_FLUX_2, iblock, 1)
 
        end associate
 
