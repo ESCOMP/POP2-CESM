@@ -76,26 +76,6 @@
     <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
-  <!-- DARWIN -->
-
-  <compset>
-    <alias>G1850DARWIN</alias>     
-    <lname>1850_DATM%NYF_SLND_CICE_POP2%DAR_DROF_SGLC_WW3</lname>
-    <support>Requires MOBY code, which is outside the CESM distribution</support> 
-  </compset>
-
-  <compset>
-    <alias>GDARWIN</alias>         
-    <lname>2000_DATM%NYF_SLND_CICE_POP2%DAR_DROF_SGLC_WW3</lname>
-    <support>Requires MOBY code, which is outside the CESM distribution</support> 
-  </compset>
-
-  <compset>
-    <alias>CDARWIN</alias>         
-    <lname>1850_DATM%NYF_SLND_DICE%NYF_POP2%DAR_DROF_SGLC_WW3</lname>
-    <support>Requires MOBY code, which is outside the CESM distribution</support> 
-  </compset>
-
   <!-- Single Column POP -->
 
   <compset>
