@@ -2,6 +2,44 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    25 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n29_marbl_dev_n25_cesm_pop_2_1_20161116
+Tag Summary: incorporate suggestions from code review of restoring code in marbl_dev_klindsay_n27
+
+remove ecosys_restore_gx3v7 testmods_dirs and aux_pop_obgc_se test category
+code cleanup (more consistent variable names, indentation style)
+
+cleanup forcing_init_post_processing
+
+unit_conv_factor now applied consistently to all time-varying forcing_fields at runtime
+   and non-time-varying forcing_fields during init
+
+land mask and univ_conv_factor application to 3D vars does not KMT
+   if 3rd dimension is not depth (e.g. PAR_col_frac and surf_shortwave)
+
+Testing:
+MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n28 tag)
+   all tests pass, except for
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       cime_config/testdefs/testlist_pop.xml
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    15 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n28_marbl_dev_n25_cesm_pop_2_1_20161116
 Tag Summary: enable restoring of PO4,NO3,SiO3,ALK in marginal seas by default

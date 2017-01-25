@@ -102,9 +102,9 @@ module ecosys_driver
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
 
-  integer (int_kind)  :: totChl_surf_nf_ind = 0                ! total chlorophyll in surface layer 
-  integer (int_kind)  :: sflux_co2_nf_ind   = 0                ! air-sea co2 gas flux 
-  integer (int_kind)  :: num_elements  = nx_block*ny_block     ! number of surface elements passed to marbl
+  integer (int_kind)  :: totChl_surf_nf_ind   = 0                 ! total chlorophyll in surface layer 
+  integer (int_kind)  :: sflux_co2_nf_ind     = 0                 ! air-sea co2 gas flux 
+  integer (int_kind)  :: num_elements_surface = nx_block*ny_block ! number of surface elements passed to marbl
 
   character (char_len)                       :: ecosys_tadvect_ctype                  ! advection method for ecosys tracers
   logical   (log_kind) , public              :: ecosys_qsw_distrb_const
@@ -364,7 +364,7 @@ contains
             gcm_num_levels = km,                                              & 
             gcm_num_PAR_subcols = mcog_nbins,                                 &
             gcm_num_elements_interior_forcing = 1,                            & 
-            gcm_num_elements_surface_forcing = num_elements,                  &
+            gcm_num_elements_surface_forcing = num_elements_surface,          &
             gcm_dz = dz,                                                      &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
@@ -495,7 +495,6 @@ contains
     end if
 
     call ecosys_forcing_init(ciso_on,                                         &
-                             num_elements,                                    &
                              land_mask,                                       &
                              fe_frac_dust,                                    &
                              fe_frac_bc,                                      &
@@ -527,7 +526,7 @@ contains
     do iblock=1, nblocks_clinic
        ! Register flux_co2 with MARBL surface forcing outputs
        call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
-              num_elements = num_elements,                                    &
+              num_elements = num_elements_surface,                            &
               field_name   = "flux_co2",                                      &
               sfo_id       = flux_co2_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
@@ -541,7 +540,7 @@ contains
 
        ! Register totalChl with MARBL surface forcing outputs
        call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
-              num_elements = num_elements,                                    &
+              num_elements = num_elements_surface,                            &
               field_name   = "totalChl",                                      &
               sfo_id       = totalChl_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)

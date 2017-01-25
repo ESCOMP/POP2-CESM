@@ -1,6 +1,0 @@
-tracer_restore_vars = 'SiO3', 'NO3', 'PO4'
-restorable_tracer_names = 'SiO3', 'NO3', 'PO4', 'ALK'
-restore_data_file_varnames  = 'SiO3', 'NO3', 'PO4', 'ALK'
-restore_data_filenames_derived = '/glade/scratch/klindsay/temp/restore.tmp.gx3v7.nc'
-restore_inv_tau_opt = 'file_time_invariant'
-restore_inv_tau_input%file_varname = 'REST_INV_TAU'

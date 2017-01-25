@@ -138,7 +138,7 @@ Contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_tracers_and_saved_state_mod:ecosys_tracers_and_saved_state_init'
-    integer :: n, k, bid
+    integer :: n, k, iblock
     character(char_len) :: init_option, init_file_fmt
     integer (int_kind)                  :: nml_error                          ! error flag for nml read
     character(char_len_long)            :: ioerror_msg
@@ -371,12 +371,12 @@ Contains
 
     end do
 
-    do bid=1, nblocks_clinic
+    do iblock = 1, nblocks_clinic
        do n = 1, marbl_tracer_cnt
           do k = 1, km
-             where (.not. land_mask(:, :, bid) .or. k > KMT(:, :, bid))
-                TRACER_MODULE(:, :, k, n, curtime, bid) = c0
-                TRACER_MODULE(:, :, k, n, oldtime, bid) = c0
+             where (.not. land_mask(:, :, iblock) .or. k > KMT(:, :, iblock))
+                TRACER_MODULE(:, :, k, n, curtime, iblock) = c0
+                TRACER_MODULE(:, :, k, n, oldtime, iblock) = c0
              end where
           end do
        end do
