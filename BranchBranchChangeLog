@@ -3,6 +3,27 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    25 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n30_marbl_dev_n25_cesm_pop_2_1_20161116
+Tag Summary: change marginal sea restoring timescale to 2 years
+
+Testing:
+MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n29 tag)
+   all tests pass, baseline comparisons fail because of changed answers
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    25 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n29_marbl_dev_n25_cesm_pop_2_1_20161116
 Tag Summary: incorporate suggestions from code review of restoring code in marbl_dev_klindsay_n27
 

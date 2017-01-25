@@ -6479,7 +6479,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: ecosys_restore_inv_tau_POP_gx3v7_20170113.nc (gx3v7), ecosys_restore_inv_tau_POP_gx1v6_20170113.nc (gx1v6,gx1v7)
+Default: ecosys_restore_inv_tau_POP_gx3v7_20170125.nc (gx3v7), ecosys_restore_inv_tau_POP_gx1v6_20170125.nc (gx1v6,gx1v7)
 </entry>
 
 <entry 
