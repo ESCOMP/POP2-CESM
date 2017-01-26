@@ -74,18 +74,6 @@
        iage_set_interior,          &
        iage_reset
 
-   use moby_mod, only:             &
-       moby_init,                  &
-       moby_reset,                 &
-       moby_set_sflux,             &
-       moby_tavg_forcing,          &
-       moby_set_interior,          &
-       moby_set_interior_3D,       &
-       moby_tracer_cnt,            &
-       moby_tracer_ref_val,        &
-       moby_write_restart,         &
-       POP_mobySendTime
-
    use abio_dic_dic14_mod, only:      &
        abio_dic_dic14_tracer_cnt,     &
        abio_dic_dic14_init,           &
@@ -166,11 +154,11 @@
 !-----------------------------------------------------------------------
 
    logical (kind=log_kind) ::  &
-      ecosys_on, cfc_on, sf6_on, iage_on, moby_on, &
+      ecosys_on, cfc_on, sf6_on, iage_on,&
       abio_dic_dic14_on, ciso_on, IRF_on
 
    namelist /passive_tracers_on_nml/  &
-      ecosys_on, cfc_on, sf6_on, iage_on, moby_on, &
+      ecosys_on, cfc_on, sf6_on, iage_on, &
       abio_dic_dic14_on, ciso_on, IRF_on
 
 
@@ -183,7 +171,6 @@
       iage_ind_begin,            iage_ind_end,           &
       cfc_ind_begin,             cfc_ind_end,            &
       sf6_ind_begin,             sf6_ind_end,            &
-      moby_ind_begin,            moby_ind_end,           &
       abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end, &
       IRF_ind_begin,             IRF_ind_end
 
@@ -263,7 +250,6 @@
    cfc_on            = .false.
    sf6_on            = .false.
    iage_on           = .false.
-   moby_on           = .false.
    abio_dic_dic14_on = .false.
    IRF_on            = .false.
 
@@ -302,7 +288,6 @@
    call broadcast_scalar(cfc_on,            master_task)
    call broadcast_scalar(sf6_on,            master_task)
    call broadcast_scalar(iage_on,           master_task)
-   call broadcast_scalar(moby_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
    call broadcast_scalar(IRF_on,            master_task)
 
@@ -362,11 +347,6 @@
                               iage_ind_begin, iage_ind_end)
    end if
 
-   if (moby_on) then
-      call set_tracer_indices('MOBY', moby_tracer_cnt, cumulative_nt,  &
-                              moby_ind_begin, moby_ind_end)
-   end if
-
    if (abio_dic_dic14_on) then
       call set_tracer_indices('ABIO', abio_dic_dic14_tracer_cnt, cumulative_nt,  &
                               abio_dic_dic14_ind_begin, abio_dic_dic14_ind_end)
@@ -398,7 +378,7 @@
 
    ! FIXME (mnl, mvertens) -- for completeness, Mariana wants tracer_d
    ! initialized in ecosys_driver for the ecosystem tracers, which would
-   ! lead to the other tracer modules (iage, cfc, IRF, moby, abio) also
+   ! lead to the other tracer modules (iage, cfc, IRF, abio) also
    ! needing to initialize lfull_depth_tavg and scale_factor rather than
    ! counting on it being done in passive_tracers.
 
@@ -476,26 +456,6 @@
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
             'init_passive_tracers: error in iage_init')
-         return
-      endif
-
-   end if
-
-
-!-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-      call moby_init(init_ts_file_fmt, read_restart_filename, &
-                     tracer_d(moby_ind_begin:moby_ind_end), &
-                     TRACER(:,:,:,moby_ind_begin:moby_ind_end,:,:), &
-                     tadvect_ctype_passive_tracers(moby_ind_begin:moby_ind_end), &
-                     moby_ind_begin, errorCode)
-
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'init_passive_tracers: error in moby_init')
          return
       endif
 
@@ -805,15 +765,6 @@
    end if
 
 !-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-      call moby_set_interior (k, TRACER_SOURCE(:,:,moby_ind_begin:moby_ind_end), &
-           this_block)
-   endif
-
-!-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
 
@@ -942,18 +893,6 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-  if (moby_on) then
-     call moby_set_interior_3D (                               &
-         TRACER(:,:,:,1,oldtime,:), TRACER(:,:,:,1,curtime,:), &
-         TRACER(:,:,:,2,oldtime,:), TRACER(:,:,:,2,curtime,:), &
-         TRACER(:,:,:,moby_ind_begin:moby_ind_end,oldtime,:) , &
-         TRACER(:,:,:,moby_ind_begin:moby_ind_end,curtime,:)   )
-  endif
-
-!-----------------------------------------------------------------------
 !  ABIO DIC & DIC 14 does not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
 
@@ -1072,19 +1011,6 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-      call moby_set_sflux(                                     &
-         SHF_QSW_RAW, SHF_QSW,                                 &
-         U10_SQR, ICE_FRAC, PRESS,                             &
-         TRACER(:,:,1,moby_ind_begin:moby_ind_end,oldtime,:),  &
-         TRACER(:,:,1,moby_ind_begin:moby_ind_end,curtime,:),  &
-         STF(:,:,moby_ind_begin:moby_ind_end,:))
-   end if
-
-!-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
 
@@ -1173,14 +1099,6 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-      call moby_write_restart(restart_file, action)
-   end if
-
-!-----------------------------------------------------------------------
 !  ABIO DIC & DIC14  block
 !-----------------------------------------------------------------------
  if (abio_dic_dic14_on) then
@@ -1241,15 +1159,6 @@
    if (iage_on) then
       call iage_reset(  &
          TRACER_NEW(:,:,:,iage_ind_begin:iage_ind_end), bid)
-   end if
-
-!-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-      call moby_reset(  &
-         TRACER_NEW(:,:,:,moby_ind_begin:moby_ind_end), bid)
    end if
 
 !-----------------------------------------------------------------------
@@ -1497,14 +1406,6 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-     call moby_tavg_forcing(STF(:,:,moby_ind_begin:moby_ind_end,:))
-   endif
-
-!-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
 
@@ -1633,16 +1534,6 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  MOBY block
-!-----------------------------------------------------------------------
-
-   if (moby_on) then
-      if (ind >= moby_ind_begin .and. ind <= moby_ind_end) then
-         tracer_ref_val = moby_tracer_ref_val(ind-moby_ind_begin+1)
-      endif
-   endif
-
-!-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
 
@@ -1666,7 +1557,7 @@
  subroutine passive_tracers_send_time
 
 ! !DESCRIPTION:
-!  sends POP time information to the MOBY moby model
+!  sends POP time information 
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -1678,10 +1569,6 @@
 
 !EOP
 !BOC
-
-   if (moby_on) then
-     call POP_mobySendTime
-   endif
 
 !-----------------------------------------------------------------------
 !  IRF does not use virtual fluxes

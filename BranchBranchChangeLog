@@ -2,6 +2,53 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    26 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n31_marbl_dev_n27_cesm_pop_2_1_20170120
+Tag Summary: merge marbl_dev_n27 tag to this branch
+
+Testing:
+MARBL commit dacd523d88fc35ad67dbd6338e962f6eead8b218
+tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n30 tag)
+   all tests pass, except for
+      NLCOMP fails because some moby_on was removed from pop_in
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       bld/build-namelist
+D       bld/config_files
+D       bld/config_files/definition.xml
+D       bld/config_files/definition.xsl
+D       bld/configure
+M       bld/generate_pop_decomp.pl
+A  +    bld/generate_pop_decomp.xml
+D       bld/moby_activate.csh
+D       bld/moby_deactivate.csh
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+D       bld/pop_decomp.xml
+A  +    cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+ M      drivers/cpl
+M       drivers/cpl/POP_FinalMod.F90
+ M      drivers/cpl_none
+D       input_templates/ocn.moby.tavg.csh
+D       source/moby_mod.F90
+D       source/moby_parms.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    25 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n30_marbl_dev_n25_cesm_pop_2_1_20161116
 Tag Summary: change marginal sea restoring timescale to 2 years

@@ -928,9 +928,6 @@
 <ecosys_on>.false.</ecosys_on>
 <ecosys_on use_ecosys="TRUE">.true.</ecosys_on>
 
-<moby_on>.false.</moby_on>
-<moby_on use_moby="TRUE">.true.</moby_on>
-
 <irf_on>.false.</irf_on>
 <irf_on use_irf="TRUE">.true.</irf_on>
 
@@ -1422,62 +1419,6 @@
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
 <ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
-
-<!---------------------------->
-<!--moby_nml -->
-<!---------------------------->
-
-<lmoby>.true.</lmoby>
-
-<ldarwin>.true.</ldarwin>
-
-<moby_comp_surf_avg_freq>1</moby_comp_surf_avg_freq>
-
-<moby_comp_surf_avg_freq_opt>never</moby_comp_surf_avg_freq_opt>
-
-<moby_iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</moby_iron_flux_input%filename> 
-<moby_iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</moby_iron_flux_input%filename> 
-
-<moby_iron_flux_input%file_fmt>nc</moby_iron_flux_input%file_fmt>
-
-<moby_iron_flux_input%file_varname>DSTSF</moby_iron_flux_input%file_varname>
-
-<moby_iron_flux_input%scale_factor>0.62668</moby_iron_flux_input%scale_factor> <!--# kg/m^2/sec->mol/m^2/sec, 3.5% iron by weight-->
-
-<moby_lecovars_full_depth_tavg>.false.</moby_lecovars_full_depth_tavg>    
-
-<moby_lflux_gas_co2>.false.</moby_lflux_gas_co2>
-
-<moby_lmarginal_seas>.true.</moby_lmarginal_seas>
-
-<moby_lrest_no3>.false.</moby_lrest_no3>
-
-<moby_lrest_po4>.false.</moby_lrest_po4>
-
-<moby_lrest_sio3>.false.</moby_lrest_sio3>
-
-<moby_nutr_rest_file>'unknown'</moby_nutr_rest_file>
-
-<moby_qsw_distrb_const>.false.</moby_qsw_distrb_const> 
-
-<moby_surf_avg_alk_const>2225.0</moby_surf_avg_alk_const>
-
-<moby_surf_avg_dic_const>1944.0</moby_surf_avg_dic_const>
-
-<moby_tadvect_ctype>base_model</moby_tadvect_ctype>
-
-<moby_tracer_init_ext(1)%mod_varname>ALK</moby_tracer_init_ext(1)%mod_varname>
-
-<moby_tracer_init_ext(1)%scale_factor ocn_grid="gx3v7">1.025</moby_tracer_init_ext(1)%scale_factor>
-<moby_tracer_init_ext(1)%scale_factor ocn_grid="gx1v6">1.025</moby_tracer_init_ext(1)%scale_factor> 
-
-<moby_tracer_init_ext(2)%mod_varname>DIC</moby_tracer_init_ext(2)%mod_varname>
-
-<moby_tracer_init_ext(2)%scale_factor ocn_grid="gx3v7">1.025</moby_tracer_init_ext(2)%scale_factor>
-<moby_tracer_init_ext(2)%scale_factor ocn_grid="gx1v6">1.025</moby_tracer_init_ext(2)%scale_factor> 
-
-<moby_use_nml_surf_vals>.false.</moby_use_nml_surf_vals>
-<moby_use_nml_surf_vals runtype="startup">.true.</moby_use_nml_surf_vals>
 
 <!---------------------------->
 <!-- irf_nml                -->
