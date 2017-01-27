@@ -1731,6 +1731,8 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use passive_tracers, only : passive_tracers_timer_print_all
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -1936,6 +1938,7 @@
       endif ! master_task
 
       call timer_print_all()
+      call passive_tracers_timer_print_all()
       call document ('diag_print', 'file written: '// trim(diag_outfile))
 
 

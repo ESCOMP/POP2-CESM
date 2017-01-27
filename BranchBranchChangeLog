@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    27 January 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n61_marbl_dev_n27_cesm_pop_2_1_20170120
+Tag Summary: First pass at MARBL timing support -- requires bb820f3 commit of
+             MARBL; new routine in ecosys_driver.F90 parses MARBL-reported
+             timing data. Tested on yellowstone_intel, committing to test on
+             hobart_nag as well.
+
+Files Modified:
+M       cime_config/buildcpp
+M       drivers/cpl/POP_FinalMod.F90
+M       source/diagnostics.F90
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+M       source/timers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    10 January 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n60_marbl_dev_n27_cesm_pop_2_1_20170120
 Tag Summary: Merge marbl_dev_n27 onto this branch

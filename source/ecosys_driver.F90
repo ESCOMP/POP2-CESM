@@ -76,6 +76,7 @@ module ecosys_driver
   public :: ecosys_driver_tavg_forcing
   public :: ecosys_driver_write_restart
   public :: ecosys_driver_unpack_source_sink_terms
+  public :: ecosys_driver_print_marbl_timers
 
   ! These are public so passive_tracers.F90 only uses ecosys_driver
   public :: ecosys_driver_tracer_ref_val
@@ -1225,6 +1226,107 @@ contains
     endif
 
   end subroutine ecosys_driver_write_restart
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_print_marbl_timers(stats)
+
+    use timers, only : timer_format, stats_fmt1, stats_fmt2, stats_fmt3, stats_fmt4
+    use constants, only : bignum
+    use global_reductions, only : global_maxval, global_minval, global_sum
+    use domain, only : distrb_clinic
+
+    ! Accumulate timing data from MARBL structure
+    ! * marbl_instances(:)%timer_summary%cumulative_runtimes(:)
+    ! Process:
+    ! (1) Cycle through timers on per-block basis
+    !     * tell master_task if timer was ever run
+    !     * if so, pass cumulative_runtimes(timer_id) -> master_task
+    ! (2) master task tracks min, max, and total time for each block
+    !     from that, can compute min, max, and average per node that used timer
+
+    logical, optional, intent(in) :: stats
+
+    real(r8), allocatable, dimension(:,:) :: run_time
+    real(r8), allocatable, dimension(:) :: block_max, block_min, block_tot
+    real(r8) :: node_time, node_min, node_max, node_avg
+    integer :: iblock, nblocks, num_timers, timer_id
+    logical :: stats_local
+
+    if (present(stats)) then
+      stats_local = stats
+    else
+      stats_local = .false.
+    end if
+
+    ! FIXME: temporary workaround, need better place to call shutdown
+    if (stats_local) then
+      do iblock=1, nblocks_clinic
+        call marbl_instances(iblock)%shutdown
+      end do
+    end if
+
+    num_timers = marbl_instances(1)%timer_summary%num_timers
+    allocate(run_time(num_timers, nblocks_clinic))
+    allocate(block_min(num_timers))
+    allocate(block_max(num_timers))
+    allocate(block_tot(num_timers))
+    run_time(:,:) = c0
+    block_min(:) = c0
+    block_max(:) = c0
+    block_tot(:) = c0
+    do iblock=1,nblocks_clinic
+      associate(timers => marbl_instances(iblock)%timer_summary)
+        run_time(:,iblock) =timers%cumulative_runtimes(:)
+      end associate
+    end do
+    block_min = minval(run_time, dim=2)
+    block_max = maxval(run_time, dim=2)
+    block_tot = sum(run_time, dim=2)
+
+    nblocks   = global_sum(nblocks_clinic, distrb_clinic)
+
+    do timer_id=1,num_timers
+
+      if (marbl_instances(1)%timer_summary%is_threaded(timer_id)) then
+        node_time = block_max(timer_id)
+      else
+        node_time = block_tot(timer_id)
+      end if
+
+      node_min = global_minval(node_time)
+      node_max = global_maxval(node_time)
+      node_avg = global_sum(node_time, distrb_clinic)/real(distrb_clinic%nprocs, r8)
+
+      block_min(timer_id) = global_minval(block_min(timer_id))
+      block_max(timer_id) = global_maxval(block_max(timer_id))
+      block_tot(timer_id) = global_sum(block_tot(timer_id), distrb_clinic)
+
+      if (my_task.eq.master_task) then
+        write(stdout, timer_format) timer_id, node_max,                       &
+                  trim(marbl_instances(1)%timer_summary%names(timer_id))
+
+        if (stats_local) then
+          if (marbl_instances(1)%timer_summary%is_threaded(timer_id)) then
+            write(stdout, "(A)") "Per node stats come from max per block"
+          else
+            write(stdout, "(A)") "Per node stats come from sum per block"
+          end if ! is_threaded
+
+          write(stdout, stats_fmt1) node_min
+          write(stdout, stats_fmt2) node_max
+          write(stdout, stats_fmt3) node_avg
+          write(stdout, stats_fmt4) block_min(timer_id)
+          write(stdout, stats_fmt2) block_max(timer_id)
+          write(stdout, stats_fmt3) block_tot(timer_id)/real(nblocks, r8)
+                                    
+        end if ! stats_local
+      end if ! master task
+    end do ! timer loop
+
+    deallocate(run_time, block_min, block_max, block_tot)
+
+  end subroutine ecosys_driver_print_marbl_timers
 
   !*****************************************************************************
 
