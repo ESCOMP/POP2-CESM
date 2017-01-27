@@ -1232,7 +1232,7 @@ contains
   subroutine ecosys_driver_print_marbl_timers(stats)
 
     use timers, only : timer_format, stats_fmt1, stats_fmt2, stats_fmt3, stats_fmt4
-    use constants, only : bignum
+    use constants, only : bignum, blank_fmt, delim_fmt
     use global_reductions, only : global_maxval, global_minval, global_sum
     use domain, only : distrb_clinic
 
@@ -1259,12 +1259,9 @@ contains
       stats_local = .false.
     end if
 
-    ! FIXME: temporary workaround, need better place to call shutdown
-    if (stats_local) then
-      do iblock=1, nblocks_clinic
-        call marbl_instances(iblock)%shutdown
-      end do
-    end if
+    do iblock=1, nblocks_clinic
+      call marbl_instances(iblock)%update_timers()
+    end do
 
     num_timers = marbl_instances(1)%timer_summary%num_timers
     allocate(run_time(num_timers, nblocks_clinic))
@@ -1324,6 +1321,10 @@ contains
       end if ! master task
     end do ! timer loop
 
+    if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+    endif
     deallocate(run_time, block_min, block_max, block_tot)
 
   end subroutine ecosys_driver_print_marbl_timers
