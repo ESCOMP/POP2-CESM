@@ -43,7 +43,6 @@
   !-----------------------------------------------------------------------
 
   integer (int_kind), allocatable :: tavg_ids_interior_forcing(:)
-  integer (int_kind), allocatable :: tavg_ids_interior_restore(:)
   integer (int_kind), allocatable :: tavg_ids_surface_forcing(:)
 
   integer (int_kind) :: tavg_ECOSYS_IFRAC_2 ! ice fraction duplicate
@@ -79,12 +78,10 @@ contains
 
     associate(&
          cnt_interior_forcing => marbl_instance%interior_forcing_diags%diag_cnt, &
-         cnt_interior_restore => marbl_instance%interior_restore_diags%diag_cnt, &
          cnt_surface_forcing  => marbl_instance%surface_forcing_diags%diag_cnt   &
          )
 
     allocate(tavg_ids_interior_forcing(cnt_interior_forcing))
-    allocate(tavg_ids_interior_restore(cnt_interior_restore))
     allocate(tavg_ids_surface_forcing(cnt_surface_forcing))
 
     end associate
@@ -95,16 +92,12 @@ contains
 
     associate(&
          interior_forcing_diags => marbl_instance%interior_forcing_diags, &
-         interior_restore_diags => marbl_instance%interior_restore_diags, &
          surface_forcing_diags => marbl_instance%surface_forcing_diags    &
          )
 
     call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing_diags, &
          tavg_ids=tavg_ids_interior_forcing)
 
-    call ecosys_tavg_define_from_diag(marbl_diags=interior_restore_diags,  &
-         tavg_ids=tavg_ids_interior_restore)
-    
     call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing_diags,  &
          tavg_ids=tavg_ids_surface_forcing)
 
@@ -141,7 +134,6 @@ contains
 
   subroutine ecosys_tavg_accumulate(i, c, bid, &
        marbl_interior_forcing_diags,           &
-       marbl_interior_restore_diags,           &
        marbl_surface_forcing_diags)
 
     implicit none
@@ -150,7 +142,6 @@ contains
     integer ,               intent(in) :: bid ! block index
 
     type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_forcing_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_restore_diags
     type(marbl_diagnostics_type), optional, intent(in) :: marbl_surface_forcing_diags
     !-----------------------------------------------------------------------
 
@@ -159,13 +150,6 @@ contains
            marbl_diags = marbl_interior_forcing_diags,  &
            tavg_ids = tavg_ids_interior_forcing, &
            num_elements =marbl_interior_forcing_diags%num_elements)
-    end if
-
-    if (present(marbl_interior_restore_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_interior_restore_diags,   &
-           tavg_ids = tavg_ids_interior_restore, &
-           num_elements = marbl_interior_restore_diags%num_elements)
     end if
 
     if (present(marbl_surface_forcing_diags)) then

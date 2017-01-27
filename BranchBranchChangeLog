@@ -2,6 +2,26 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    27 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n32_marbl_dev_n27_cesm_pop_2_1_20170120
+Tag Summary: remove interior_restore_diags, move these diags into interior_forcing_diags
+
+Testing: (with cesm2_0_beta05)
+MARBL commit eb3589dd8e7dfc2719fe22b5e6c50974eb9d348a
+
+aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n31 tag)
+   all tests pass, except for
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    26 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n31_marbl_dev_n27_cesm_pop_2_1_20170120
 Tag Summary: merge marbl_dev_n27 tag to this branch
@@ -12,7 +32,7 @@ tested with WW3->SWAV in CECO definition (to get CECO ERI test to pass)
 
 aux_pop_MARBL yellowstone/intel, yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n30 tag)
    all tests pass, except for
-      NLCOMP fails because some moby_on was removed from pop_in
+      NLCOMP fails because moby_on was removed from pop_in
       some MEMLEAK failures
 
 Files Modified:

@@ -799,9 +799,8 @@ contains
           ! Update pop tavg diags
           !-----------------------------------------------------------
 
-             call ecosys_tavg_accumulate((/i/), (/c/), bid,                                   &
-                  marbl_interior_forcing_diags = marbl_instances(bid)%interior_forcing_diags, &
-                  marbl_interior_restore_diags = marbl_instances(bid)%interior_restore_diags)
+             call ecosys_tavg_accumulate((/i/), (/c/), bid, &
+                  marbl_interior_forcing_diags = marbl_instances(bid)%interior_forcing_diags)
  
           end if ! end if land_mask > 0
 
