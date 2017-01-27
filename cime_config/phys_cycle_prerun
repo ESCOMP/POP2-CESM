@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+"""pop physics cycle prerun script
+"""
+
+import os, shutil
+
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+
+from CIME.case import Case
+
+logger = logging.getLogger(__name__)
+
+###############################################################################
+def _phys_cycle_prerun(case):
+###############################################################################
+
+    # run_type cannot be branch
+    run_type = case.get_value("RUN_TYPE")
+    if (run_type != "branch"):
+        expect(False,
+               "RUN_TYPE of branch not implemented for POP physics cycling"
+               " because RUN_STARTDATE cannot be incremented")
+        
+    # stop_option must be nmonth, nmonths, nyear or neyars
+    stop_option = case.get_value("STOP_OPTION")
+    if (stop_option.find("nmonth") == -1) and  (stop_option.find("nyear") == -1):
+        expect(False,
+               "STOP_OPTION=%s not implemented for POP physics cycling" %stop_option)
+        
+    # -------------------------------------------------------------------------
+    # If this is the beginning of a physics cycle, store a copy of POP rpointer
+    # files for resetting of model physics at beginning of next cycle. This
+    # is not necessary for startup runs, since POP does not use restart files
+    # at the beginning of the physics cycle in that situation.
+    # -------------------------------------------------------------------------
+    
+    pop_phys_run_cur_mon = case.get_value("POP_PHYS_RUN_CUR_MON")
+    if pop_phys_run_cur_mon == 0 and run_type != "startup":
+        shutil.copy(os.path.join(rundir, "rpointer.ocn.restart"),
+                    os.path.join(caseroot,"Buildconf","pop2conf","rpointer.ocn.restart.orig"))
+        shutil.copy(os.path.join(rundir, "rpointer.ocn.ovf"),
+                    os.path.join(caseroot,"Buildconf","pop2conf","rpointer.ocn.ovf.orig"))
+                    
+###############################################################################
+def _main_func():
+###############################################################################
+    caseroot = sys.argv[1]
+    with Case(caseroot) as case:
+        pop_phys_run_cycle_len_year = case.get_value("POP_PHYS_RUN_CYCLE_LEN_YEAR")
+        if pop_phys_run_cycle_len_year:
+            if (pop_phys_run_cycle_len_year > 0):
+                _phys_cycle_prerun(case)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
