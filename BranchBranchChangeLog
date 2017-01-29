@@ -2,6 +2,26 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    29 Jan 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n33_marbl_dev_n27_cesm_pop_2_1_20170120
+Tag Summary: rename ${TRACER}_RESTORE diagnostic to ${TRACER}_RESTORE_TEND
+
+Testing: (with cesm2_0_beta05)
+MARBL commit a9d4fbff856fcad28199bd6e37433532b0635011
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n32 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because elemental Jint integrals changed
+      some TPUTCOMP, MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    27 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n32_marbl_dev_n27_cesm_pop_2_1_20170120
 Tag Summary: remove interior_restore_diags, move these diags into interior_forcing_diags

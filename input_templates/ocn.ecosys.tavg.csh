@@ -246,7 +246,7 @@ echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
 1  ${tracer}
 1  STF_${tracer}
 1  J_${tracer}
-1  ${tracer}_RESTORE
+1  ${tracer}_RESTORE_TEND
 EOF
   end
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
@@ -494,7 +494,7 @@ EOF
 
   # restoring terms for tracers that have restoring enabled
   foreach tracer_restore_var ( `echo $tracer_restore_vars | tr ',' ' '` )
-    echo "$s1  ${tracer_restore_var}_RESTORE" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+    echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   end
 
   # FIXME: setting of OCN_TAVG_DIC_ALT_CO2 should be dependent on OCN_TRANSIENT
