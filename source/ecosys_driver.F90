@@ -93,7 +93,6 @@ module ecosys_driver
 
   integer (int_kind) :: ecosys_interior_timer
   integer (int_kind) :: ecosys_set_sflux_timer
-  integer (int_kind) :: ecosys_comp_CO3terms_timer
   
   !-----------------------------------------------------------------------
   ! module variables 
@@ -311,7 +310,6 @@ contains
 
     call get_timer(ecosys_interior_timer     , 'ECOSYS_INTERIOR'   , nblocks_clinic , distrb_clinic%nprocs)
     call get_timer(ecosys_set_sflux_timer    , 'ECOSYS_SET_SFLUX'  , 1              , distrb_clinic%nprocs)
-    call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms'     , nblocks_clinic , distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------
     !  Initialize module variable land mask
