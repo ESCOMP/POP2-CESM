@@ -2,6 +2,49 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    1 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n34_marbl_dev_n27_cesm_pop_2_1_20170120
+Tag Summary: implement lvariable_PtoC flag
+
+default value for flag is TRUE
+flag is set in OCN_TRACER_MODULES_OPT in env_build.xml
+   (because tracer count depends on this flag)
+
+If lvariable_PtoC is FALSE, then following changes occur
+   tracers for P content of autotrophs are omitted (i.e., 1 fewer tracer per autotroph)
+   tavg vars related to P content of autotrophs are omitted
+
+introduce test with lvariable_PtoC=FALSE
+
+rename ECOSYS_NT -> ECOSYS_BASE_NT
+
+ignore extra whitespace when parsing OCN_TRACER_MODULES_OPT and OCN_TRACER_MODULES
+
+Testing: (with cesm2_0_beta05)
+MARBL commit fc80f73432baf542fb4f380677ee5ba1deaef0e1
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n33 tag)
+   all tests, except baseline compares, pass
+      nlcomp comparisons fail because of introduction of lvariable_PtoC
+      baseline comparisons fail because elemental Jint integrals have roundoff changes
+      some TPUTCOMP, MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/shell_commands
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    29 Jan 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n33_marbl_dev_n27_cesm_pop_2_1_20170120
 Tag Summary: rename ${TRACER}_RESTORE diagnostic to ${TRACER}_RESTORE_TEND

@@ -1427,6 +1427,8 @@ EOF
   add_default($nl, 'lflux_gas_co2');
   add_default($nl, 'lapply_nhx_surface_emis');
 
+  add_default($nl, 'lvariable_PtoC');
+
   # FIXME : replace following with ladjust_bury_coeff=.true. branch
   # when "restfile" is implemented for scalar saved state
   if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
@@ -2632,7 +2634,7 @@ sub module_tavg_script_args() {
   my $module = shift;
   my $cfg    = shift;
   if ($module eq "ecosys") {
-    return ($nl->get_value('lecosys_debug'), $nl->get_value('tracer_restore_vars'));
+    return ($nl->get_value('lecosys_debug'), $nl->get_value('lvariable_PtoC'), $nl->get_value('tracer_restore_vars'));
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");

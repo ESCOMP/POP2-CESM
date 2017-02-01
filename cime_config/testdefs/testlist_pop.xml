@@ -98,12 +98,14 @@
       </test>
       <test name="ERS_Ld5_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">yellowstone</machine>
       </test>
       <test name="SMS">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_ladjust_bury_coeff">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_apply_nhx_surface_emis">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">hobart</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">hobart</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_read_fallback_gx3v7">yellowstone</machine>
       </test>

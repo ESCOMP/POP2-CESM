@@ -5382,6 +5382,14 @@ group="marbl_config_nml" >
 Default: .false.
 </entry>
 
+<entry 
+id="lvariable_PtoC"
+type="logical" 
+category="ecosys"
+group="marbl_config_nml" >
+Default: .true.
+</entry>
+
 <entry
 id="init_bury_coeff_opt"
 type="char*128"

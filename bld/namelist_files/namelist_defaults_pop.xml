@@ -1030,6 +1030,9 @@
 <lflux_gas_co2>.true.</lflux_gas_co2>
 <lapply_nhx_surface_emis>.false.</lapply_nhx_surface_emis>
 
+<lvariable_PtoC lvariable_PtoC="TRUE" >.true. </lvariable_PtoC>
+<lvariable_PtoC lvariable_PtoC="FALSE">.false.</lvariable_PtoC>
+
 <ladjust_bury_coeff>.false.</ladjust_bury_coeff>
 
 <autotrophs_config(1)%sname>sp</autotrophs_config(1)%sname>

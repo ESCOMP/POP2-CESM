@@ -19,7 +19,8 @@ endif
 @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
 set lecosys_debug = $2
-set tracer_restore_vars = $3
+set lvariable_PtoC = $3
+set tracer_restore_vars = $4
 
 if ($lecosys_debug == ".false.") then
 
@@ -188,7 +189,6 @@ echo "#  AUTOTROPH TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_con
 #  ${autotroph} TRACER FIELDS
 1  photoC_${autotroph}_zint
 1  photoC_NO3_${autotroph}_zint
-1  ${autotroph}_Qp
 1  ${autotroph}_N_lim
 1  ${autotroph}_P_lim
 1  ${autotroph}_Fe_lim
@@ -209,6 +209,11 @@ echo "#  AUTOTROPH TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_con
 1  ${autotroph}_loss_doc
 1  ${autotroph}_agg
 EOF
+if ($lvariable_PtoC == ".true.") then
+    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+1  ${autotroph}_Qp
+EOF
+endif
   end
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 1  sp_CaCO3_form_zint
@@ -239,8 +244,8 @@ EOF
 
 echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   foreach tracer ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr \
-                   DOP DOPr DONr zooC spChl spC spP spFe spCaCO3 diatChl diatC \
-                   diatP diatFe diatSi diazChl diazC diazP diazFe )
+                   DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC \
+                   diatFe diatSi diazChl diazC diazFe )
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  ${tracer} TRACER FIELDS
 1  ${tracer}
@@ -249,6 +254,17 @@ echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
 1  ${tracer}_RESTORE_TEND
 EOF
   end
+if ($lvariable_PtoC == ".true.") then
+  foreach tracer ( spP diatP diazP )
+    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+#  ${tracer} TRACER FIELDS
+1  ${tracer}
+1  STF_${tracer}
+1  J_${tracer}
+1  ${tracer}_RESTORE_TEND
+EOF
+  end
+endif
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 1  FvPER_DIC
 1  FvPER_ALK
@@ -441,9 +457,7 @@ EOF
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}Chl
 $s1  ${autotroph}C
-$s1  ${autotroph}P
 $s1  ${autotroph}Fe
-$s1  ${autotroph}_Qp
 $s1  graze_${autotroph}
 $s1  ${autotroph}_agg
 $s1  photoC_${autotroph}
@@ -462,6 +476,12 @@ $s1  photoC_NO3_${autotroph}_zint
 $s2  ${autotroph}C_zint_100m
 $s2  ${autotroph}Chl_SURF
 EOF
+if ($lvariable_PtoC == ".true.") then
+    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+$s1  ${autotroph}P
+$s1  ${autotroph}_Qp
+EOF
+endif
     if !($autotroph == diaz) then
       cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}_N_lim
