@@ -748,6 +748,10 @@ contains
              ! Copy data from slab to column
              !-----------------------------------------------------------
 
+             ! NOT YET, but after timing comparison
+             ! timer for copy data into MARBL types
+             ! call timer_start(...)
+
              ! --- set marbl_domain kmt and if partial bottom cells then also delta_z ---
 
              marbl_instances(bid)%domain%kmt = KMT(i, c, bid)
@@ -771,13 +775,14 @@ contains
 
              do n = 1, ecosys_tracer_cnt
                 marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
-             end do 
+             end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
              do n=1,size(saved_state_interior)
                marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
                  saved_state_interior(n)%field_3d(i,c,:,bid)
              end do
+             ! call timer_stop(...)
 
              !-----------------------------------------------------------
              !  compute time derivatives for ecosystem state variables
@@ -796,11 +801,15 @@ contains
              ! copy marbl column data back to slab
              !-----------------------------------------------------------
 
+             ! NOT YET, but after timing comparison
+             ! timer for copy data from MARBL types
+             ! call timer_start(...)
+
              do n=1,size(saved_state_interior)
                saved_state_interior(n)%field_3d(i,c,:,bid) =               &
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
-                
+
              do n = 1, ecosys_tracer_cnt
                 dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
              end do
@@ -808,20 +817,26 @@ contains
              ! copy values to be used in computing requested global averages
              ! arrays have zero extent if none are requested
              glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
+             ! call timer_stop(...)
 
           !-----------------------------------------------------------
           ! Update pop tavg diags
           !-----------------------------------------------------------
 
+             ! NOT YET, but after timing comparison
+             ! timer for updating diagnostics from MARBL
+             ! call timer_start(...)
+
              call ecosys_tavg_accumulate((/i/), (/c/), bid,                                   &
                   marbl_interior_forcing_diags = marbl_instances(bid)%interior_forcing_diags, &
                   marbl_interior_restore_diags = marbl_instances(bid)%interior_restore_diags)
- 
+             ! call timer_stop(...)
+
           end if ! end if land_mask > 0
 
        end do ! do i
     end do ! do c
-    
+
     end associate
 
     call timer_stop(ecosys_interior_timer, block_id=bid)
@@ -1237,11 +1252,12 @@ contains
     ! Accumulate timing data from MARBL structure
     ! * marbl_instances(:)%timer_summary%cumulative_runtimes(:)
     ! Process:
-    ! (1) Cycle through timers on per-block basis
-    !     * tell master_task if timer was ever run
-    !     * if so, pass cumulative_runtimes(timer_id) -> master_task
-    ! (2) master task tracks min, max, and total time for each block
-    !     from that, can compute min, max, and average per node that used timer
+    ! (1) On each "node" (MPI task), compute total runtime across blocks
+    !     -- max over blocks in threaded regions, otherwise sum over blocks
+    ! (2) Master task will write the max across all nodes to ocn.log
+    ! (3) If additional stats are requested:
+    !     -- Pass node and block times to master task
+    !     -- Master task writes min, max, avg over both nodes and blocks to log
 
     logical, optional, intent(in) :: stats
 
@@ -1284,24 +1300,30 @@ contains
     do timer_id=1,num_timers
 
       if (marbl_instances(1)%timer_summary%is_threaded(timer_id)) then
+        ! FIXME: to account for situation where nblocks > num_threads > 1
+        !        we need to compute block stats better
+        ! call threaded_stats(run_time, block_min, block_max, block_tot)
         node_time = block_max(timer_id)
       else
         node_time = block_tot(timer_id)
       end if
 
-      node_min = global_minval(node_time)
       node_max = global_maxval(node_time)
-      node_avg = global_sum(node_time, distrb_clinic)/real(distrb_clinic%nprocs, r8)
-
-      block_min(timer_id) = global_minval(block_min(timer_id))
-      block_max(timer_id) = global_maxval(block_max(timer_id))
-      block_tot(timer_id) = global_sum(block_tot(timer_id), distrb_clinic)
 
       if (my_task.eq.master_task) then
         write(stdout, timer_format) timer_id, node_max,                       &
                   trim(marbl_instances(1)%timer_summary%names(timer_id))
+      end if
 
-        if (stats_local) then
+      if (stats_local) then
+        node_min = global_minval(node_time)
+        node_avg = global_sum(node_time, distrb_clinic)/real(distrb_clinic%nprocs, r8)
+
+        block_min(timer_id) = global_minval(block_min(timer_id))
+        block_max(timer_id) = global_maxval(block_max(timer_id))
+        block_tot(timer_id) = global_sum(block_tot(timer_id), distrb_clinic)
+
+        if (my_task.eq.master_task) then
           if (marbl_instances(1)%timer_summary%is_threaded(timer_id)) then
             write(stdout, "(A)") "Per node stats come from max per block"
           else
@@ -1314,9 +1336,9 @@ contains
           write(stdout, stats_fmt4) block_min(timer_id)
           write(stdout, stats_fmt2) block_max(timer_id)
           write(stdout, stats_fmt3) block_tot(timer_id)/real(nblocks, r8)
-                                    
-        end if ! stats_local
-      end if ! master task
+
+        end if ! master task
+      end if ! stats_local
     end do ! timer loop
 
     if (my_task == master_task) then
