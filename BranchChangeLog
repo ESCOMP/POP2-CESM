@@ -2,6 +2,15 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    3 February 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n29_cesm_pop_2_1_20170128
+Tag Summary: Add timer for setting ecosys forcing prior to MARBL call
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 February 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n28_cesm_pop_2_1_20170128
 Tag Summary: merge in latest trunk tag; sandboxes now require cime tag from
              cesm2_0_alpha06b or later
