@@ -92,6 +92,9 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   integer (int_kind) :: ecosys_interior_forcing_timer
+  integer (int_kind) :: ecosys_interior_pop_to_marbl
+  integer (int_kind) :: ecosys_interior_marbl_to_pop
+  integer (int_kind) :: ecosys_interior_marbl_tavg
   integer (int_kind) :: ecosys_interior_timer
   integer (int_kind) :: ecosys_set_sflux_timer
 
@@ -309,9 +312,12 @@ contains
     !  timer init
     !-----------------------------------------------------------------------
 
-    call get_timer(ecosys_interior_forcing_timer, 'ECOSYS_INTERIOR_FORCING',       1 , distrb_clinic%nprocs)
-    call get_timer(ecosys_interior_timer     , 'ECOSYS_INTERIOR'   , nblocks_clinic , distrb_clinic%nprocs)
-    call get_timer(ecosys_set_sflux_timer    , 'ECOSYS_SET_SFLUX'  , 1              , distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_forcing_timer, 'ECOSYS_INTERIOR_FORCING',           nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_pop_to_marbl , 'ECOSYS_INTERIOR_POP_TO_MARBL_XFER', nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_marbl_to_pop , 'ECOSYS_INTERIOR_MARBL_TO_POP_XFER', nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_marbl_tavg   , 'ECOSYS_INTERIOR_MARBL_TAVG'       , nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_timer        , 'ECOSYS_INTERIOR'                  , nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_set_sflux_timer       , 'ECOSYS_SET_SFLUX'                 , 1             , distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------
     !  Initialize module variable land mask
@@ -731,7 +737,7 @@ contains
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
-    call timer_start(ecosys_interior_forcing_timer)
+    call timer_start(ecosys_interior_forcing_timer, block_id=bid)
 
     temperature = p5*(temp_old + temp_cur)
     salinity = p5*(salt_old + salt_cur)*salt_to_ppt
@@ -743,7 +749,7 @@ contains
                             QSW_RAW_BIN, QSW_BIN, temperature, salinity,      &
                             pressure, ecosys_qsw_distrb_const, bid)
 
-    call timer_stop(ecosys_interior_forcing_timer)
+    call timer_stop(ecosys_interior_forcing_timer, block_id=bid)
 
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
@@ -754,9 +760,7 @@ contains
              ! Copy data from slab to column
              !-----------------------------------------------------------
 
-             ! NOT YET, but after timing comparison
-             ! timer for copy data into MARBL types
-             ! call timer_start(...)
+             call timer_start(ecosys_interior_pop_to_marbl, block_id=bid)
 
              ! --- set marbl_domain kmt and if partial bottom cells then also delta_z ---
 
@@ -788,7 +792,7 @@ contains
                marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
                  saved_state_interior(n)%field_3d(i,c,:,bid)
              end do
-             ! call timer_stop(...)
+             call timer_stop(ecosys_interior_pop_to_marbl, block_id=bid)
 
              !-----------------------------------------------------------
              !  compute time derivatives for ecosystem state variables
@@ -807,9 +811,7 @@ contains
              ! copy marbl column data back to slab
              !-----------------------------------------------------------
 
-             ! NOT YET, but after timing comparison
-             ! timer for copy data from MARBL types
-             ! call timer_start(...)
+             call timer_start(ecosys_interior_marbl_to_pop, block_id=bid)
 
              do n=1,size(saved_state_interior)
                saved_state_interior(n)%field_3d(i,c,:,bid) =               &
@@ -823,20 +825,18 @@ contains
              ! copy values to be used in computing requested global averages
              ! arrays have zero extent if none are requested
              glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
-             ! call timer_stop(...)
+             call timer_stop(ecosys_interior_marbl_to_pop, block_id=bid)
 
           !-----------------------------------------------------------
           ! Update pop tavg diags
           !-----------------------------------------------------------
 
-             ! NOT YET, but after timing comparison
-             ! timer for updating diagnostics from MARBL
-             ! call timer_start(...)
+             call timer_start(ecosys_interior_marbl_tavg, block_id=bid)
 
              call ecosys_tavg_accumulate((/i/), (/c/), bid,                                   &
                   marbl_interior_forcing_diags = marbl_instances(bid)%interior_forcing_diags, &
                   marbl_interior_restore_diags = marbl_instances(bid)%interior_restore_diags)
-             ! call timer_stop(...)
+             call timer_stop(ecosys_interior_marbl_tavg, block_id=bid)
 
           end if ! end if land_mask > 0
 
