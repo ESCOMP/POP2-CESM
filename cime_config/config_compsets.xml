@@ -76,6 +76,11 @@
     <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
+  <compset>
+    <alias>GECO_SPINUP</alias>
+    <lname>1850_DATM%S1850OCN_SLND_CICE_POP2%ECO_DROF%CPLHIST_SGLC_WW3</lname>
+  </compset>
+
   <!-- Single Column POP -->
 
   <compset>

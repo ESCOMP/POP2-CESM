@@ -31,7 +31,7 @@
     <values>
       <value compset="_POP2%ECO"             >prognostic</value>
       <value compset="_DATM.*CICE.*_POP2%ECO">diagnostic</value>
-      <value compset="_POP2%DAR"             >diagnostic</value>
+      <value compset="_DATM%S1850OCN.*CICE.*_POP2%ECO">prognostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -157,6 +157,7 @@
     <values>
       <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%ECO.*_BGC%BDRD">diagnostic</value>
+      <value compset="_DATM%S1850OCN.*_POP2%ECO">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
