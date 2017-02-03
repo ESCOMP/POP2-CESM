@@ -509,7 +509,12 @@ add_default($nl, 'runid', 'val'=>"$CASE");
 add_default($nl, 'time_mix_opt');
 add_default($nl, 'time_mix_freq');
 add_default($nl, 'dt_option');
-add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM");
+
+my $time_mix_opt = $nl->get_value('time_mix_opt');
+$time_mix_opt =~ s/^\s+//;
+$time_mix_opt =~ s/\s+$//;
+add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM", 'time_mix'=>"$time_mix_opt");
+
 add_default($nl, 'impcor');
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
@@ -984,6 +989,7 @@ add_default($nl, 'reset_to_freezing');
 add_default($nl,'lactive_ice', 'ocn_ice_forcing'=>"$OCN_ICE_FORCING");
 add_default($nl,'ice_freq_opt');
 add_default($nl,'ice_freq');
+add_default($nl,'licecesm2');
 add_default($nl,'kmxice');
 
 ##########################################
