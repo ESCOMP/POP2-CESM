@@ -120,7 +120,7 @@
 !BOC
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 500+24*nt   ! limit on available fields - can
+      max_avail_tavg_fields = 500+29*nt   ! limit on available fields - can
                                           !   be pushed as high as necessary practical
                                           !   (total of all fields in all streams)
 
@@ -227,7 +227,8 @@
    character (char_len), dimension(max_avail_tavg_streams) ::  &
       tavg_freq_opt,    &! choice for frequency of tavg output
       tavg_start_opt,   &! choice for starting averaging
-      tavg_fmt_in        ! format (nc or bin) for reading
+      tavg_fmt_in,      &! format (nc or bin) for reading
+      time_period_freq   ! global attribute used for postprocessing
 
    integer (i4), dimension(max_avail_tavg_streams) ::  &
       tavg_freq_iopt,   &! frequency option for writing tavg
@@ -598,6 +599,7 @@
    ltavg_streams_index_present = .true.
    ltavg_has_offset_date       = .false.
    ltavg_ignore_extra_streams  = .false.
+   time_period_freq            = 'undefined'         ! for postprocessing
 
    avail_tavg_fields(:)%stream_number    = -999
    tavg_streams(:)%infile                = 'unknown_tavg_infile'
@@ -687,26 +689,34 @@
       case ('once')
          tavg_freq_iopt(ns) = freq_opt_once
          write(stdout,'(a,i3,a)') 'stream #', ns, 'tavg fields written once (time-invariant fields)'
+	 write(time_period_freq(ns),'(a)') 'once'
       case ('nyear')
          tavg_freq_iopt(ns) = freq_opt_nyear
          write(stdout,freq_fmt) ns, tavg_freq(ns),' years  '
+         write(time_period_freq(ns),'(a,i0)') 'year_',tavg_freq_iopt(ns)
       case ('nmonth')
          tavg_freq_iopt(ns) = freq_opt_nmonth
          write(stdout,freq_fmt) ns, tavg_freq(ns),' months '
+	 write(time_period_freq(ns),'(a,i0)') 'month_',tavg_freq_iopt(ns)
       case ('nday')
          tavg_freq_iopt(ns) = freq_opt_nday
          write(stdout,freq_fmt) ns, tavg_freq(ns),' days   '
+	 write(time_period_freq(ns),'(a,i0)') 'day_',tavg_freq_iopt(ns)
       case ('nhour')
          tavg_freq_iopt(ns) = freq_opt_nhour
          write(stdout,freq_fmt) ns, tavg_freq(ns),' hours  '
+	 write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_freq_iopt(ns)
       case ('nsecond')
          tavg_freq_iopt(ns) = freq_opt_nsecond
          write(stdout,freq_fmt) ns, tavg_freq(ns),' seconds'
+	 write(time_period_freq(ns),'(a,i0)') 'second_',tavg_freq_iopt(ns)
       case ('nstep')
          tavg_freq_iopt(ns) = freq_opt_nstep
          write(stdout,freq_fmt) ns, tavg_freq(ns),' steps  '
+	 write(time_period_freq(ns),'(a,i0)') 'step_',tavg_freq_iopt(ns)
       case default
          tavg_freq_iopt(ns) = -1000
+	 write(time_period_freq(ns),'(a)') 'undefined'
       end select
 
       if (tavg_freq_iopt(ns) /= freq_opt_never) then
@@ -806,6 +816,7 @@
       call broadcast_scalar(tavg_offset_months(ns),      master_task)
       call broadcast_scalar(tavg_offset_days(ns),        master_task)
       call broadcast_scalar(ltavg_one_time_header(ns),   master_task)
+      call broadcast_scalar(time_period_freq(ns),        master_task)
     enddo ! ns
 
 !-----------------------------------------------------------------------
@@ -1872,22 +1883,22 @@
     'POP TAVG file created: ',date_created,time_created
 
     if (ltavg_fmt_out_nc) then
-      tavg_file_desc(ns)  = construct_file(tavg_fmt_out(ns),  &
-                          root_name  = trim(tavg_outfile),    &
-                          file_suffix= trim(file_suffix),     &
-                          title      = trim(runid),           &
-                          conventions=trim(cf_conventions),   &
-                          record_length = rec_type_real,      &
-                          recl_words=nx_global*ny_global)
+      tavg_file_desc(ns)  = construct_file(tavg_fmt_out(ns),          &
+                          root_name        = trim(tavg_outfile),      &
+                          file_suffix      = trim(file_suffix),       &
+                          title            = trim(runid),             &
+                          conventions      = trim(cf_conventions),    &
+                          record_length    = rec_type_real,           &
+                          recl_words       = nx_global*ny_global)
     else
-      tavg_file_desc(ns) = construct_file(tavg_fmt_out(ns),   &
-                          root_name  = trim(tavg_outfile),    &
-                          file_suffix= trim(file_suffix),     &
-                          title      ='POP TAVG file',        &
-                          conventions='POP TAVG conventions', &
-                          history    = trim(hist_string),     &
-                          record_length = rec_type_real,      &
-                          recl_words=nx_global*ny_global)
+      tavg_file_desc(ns) = construct_file(tavg_fmt_out(ns),           &
+                          root_name        = trim(tavg_outfile),      &
+                          file_suffix      = trim(file_suffix),       &
+                          title            = 'POP TAVG file',         &
+                          conventions      = 'POP TAVG conventions',  &
+                          history          = trim(hist_string),       &
+                          record_length    = rec_type_real,           &
+                          recl_words       = nx_global*ny_global)
     endif !ltavg_fmt_out_nc
 
 !-----------------------------------------------------------------------
@@ -1896,14 +1907,15 @@
 !
 !-----------------------------------------------------------------------
 
-    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'    , tavg_sum(ns))
-    call add_attrib_file(tavg_file_desc(ns), 'nsteps_total', nsteps_total)
+    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'        , tavg_sum(ns))
+    call add_attrib_file(tavg_file_desc(ns), 'nsteps_total'    , nsteps_total)
+    call add_attrib_file(tavg_file_desc(ns), 'time_period_freq', time_period_freq(ns))
 
     if (tavg_streams(ns)%ltavg_qflux_method_on) &
     call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-      call tavg_add_attrib_file_ccsm (tavg_file_desc(ns)) 
+      call tavg_add_attrib_file_ccsm (tavg_file_desc(ns))
     else
       call add_attrib_file(tavg_file_desc(ns), 'tday'      , tday)
       call add_attrib_file(tavg_file_desc(ns), 'iyear'     , iyear)
@@ -4868,7 +4880,7 @@
 !  same as module
 
 ! !INPUT/OUTPUT PARAMETERS:
- type (datafile), intent(inout) :: tavg_file_desc    ! IO file descriptor
+ type (datafile), intent(inout)   :: tavg_file_desc    ! IO file descriptor
  
 !EOP
 !BOC
@@ -4886,7 +4898,6 @@
     cell_methods,  &
     calendar
 
-
  call add_attrib_file(tavg_file_desc, 'contents', 'Diagnostic and Prognostic Variables')
  call add_attrib_file(tavg_file_desc, 'source', 'CCSM POP2, the CCSM Ocean Component')
  call add_attrib_file(tavg_file_desc, 'revision', &
@@ -4901,18 +4912,17 @@
  endif
  call add_attrib_file(tavg_file_desc, 'calendar', trim(calendar))
 
- 
  if (my_task.eq.master_task) then
    call date_and_time(date=current_date, time=current_time)
  end if
  call broadcast_scalar(current_date, master_task)
  call broadcast_scalar(current_time, master_task)
+
  start_time = char_blank
  write(start_time,1000) current_date(1:4), current_date(5:6),  &
                         current_date(7:8), current_time(1:2),  &
                         current_time(3:4), current_time(5:8)
  call add_attrib_file(tavg_file_desc, 'start_time', trim(start_time))
-
 
  cell_methods = char_blank
  cell_methods = 'cell_methods = time: mean ==> the variable values ' /&
