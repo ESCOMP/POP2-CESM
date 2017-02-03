@@ -91,22 +91,23 @@ module ecosys_driver
   ! timers
   !-----------------------------------------------------------------------
 
+  integer (int_kind) :: ecosys_interior_forcing_timer
   integer (int_kind) :: ecosys_interior_timer
   integer (int_kind) :: ecosys_set_sflux_timer
-  
+
   !-----------------------------------------------------------------------
-  ! module variables 
+  ! module variables
   !-----------------------------------------------------------------------
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
 
-  integer (int_kind)  :: totChl_surf_nf_ind = 0                ! total chlorophyll in surface layer 
-  integer (int_kind)  :: sflux_co2_nf_ind   = 0                ! air-sea co2 gas flux 
+  integer (int_kind)  :: totChl_surf_nf_ind = 0                ! total chlorophyll in surface layer
+  integer (int_kind)  :: sflux_co2_nf_ind   = 0                ! air-sea co2 gas flux
   integer (int_kind)  :: num_elements  = nx_block*ny_block     ! number of surface elements passed to marbl
 
   character (char_len)                       :: ecosys_tadvect_ctype                  ! advection method for ecosys tracers
   logical   (log_kind) , public              :: ecosys_qsw_distrb_const
-  logical   (log_kind)                       :: ciso_on 
+  logical   (log_kind)                       :: ciso_on
   logical   (log_kind) , allocatable         :: land_mask(:, :, :)
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
@@ -308,6 +309,7 @@ contains
     !  timer init
     !-----------------------------------------------------------------------
 
+    call get_timer(ecosys_interior_forcing_timer, 'ECOSYS_INTERIOR_FORCING',       1 , distrb_clinic%nprocs)
     call get_timer(ecosys_interior_timer     , 'ECOSYS_INTERIOR'   , nblocks_clinic , distrb_clinic%nprocs)
     call get_timer(ecosys_set_sflux_timer    , 'ECOSYS_SET_SFLUX'  , 1              , distrb_clinic%nprocs)
 
@@ -729,6 +731,8 @@ contains
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
+    call timer_start(ecosys_interior_forcing_timer)
+
     temperature = p5*(temp_old + temp_cur)
     salinity = p5*(salt_old + salt_cur)*salt_to_ppt
     do k=1,km
@@ -738,6 +742,8 @@ contains
     call ecosys_forcing_set_interior_time_varying_forcing_data(FRACR_bin,     &
                             QSW_RAW_BIN, QSW_BIN, temperature, salinity,      &
                             pressure, ecosys_qsw_distrb_const, bid)
+
+    call timer_stop(ecosys_interior_forcing_timer)
 
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
