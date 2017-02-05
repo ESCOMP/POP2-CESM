@@ -3,13 +3,16 @@
 """pop physics cycle prerun script
 """
 
-import os, shutil
+import os, shutil, sys
 
 _CIMEROOT = os.environ.get("CIMEROOT")
 if _CIMEROOT is None:
     raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
 
+from standard_script_setup import *
 from CIME.case import Case
+from CIME.utils import expect
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +22,9 @@ def _phys_cycle_prerun(case):
 
     # run_type cannot be branch
     run_type = case.get_value("RUN_TYPE")
-    if (run_type != "branch"):
+    if (run_type == "branch"):
         expect(False,
-               "RUN_TYPE of branch not implemented for POP physics cycling"
+               "RUN_TYPE set to branch not implemented for POP physics cycling"
                " because RUN_STARTDATE cannot be incremented")
         
     # stop_option must be nmonth, nmonths, nyear or neyars
@@ -37,23 +40,40 @@ def _phys_cycle_prerun(case):
     # at the beginning of the physics cycle in that situation.
     # -------------------------------------------------------------------------
     
-    pop_phys_run_cur_mon = case.get_value("POP_PHYS_RUN_CUR_MON")
-    if pop_phys_run_cur_mon == 0 and run_type != "startup":
-        shutil.copy(os.path.join(rundir, "rpointer.ocn.restart"),
-                    os.path.join(caseroot,"Buildconf","pop2conf","rpointer.ocn.restart.orig"))
-        shutil.copy(os.path.join(rundir, "rpointer.ocn.ovf"),
-                    os.path.join(caseroot,"Buildconf","pop2conf","rpointer.ocn.ovf.orig"))
+    if run_type != "startup":
+        pop_phys_run_cur_mon = case.get_value("POP_PHYS_RUN_CUR_MON")
+        if pop_phys_run_cur_mon == 0:
+            logger.info("Beginning of a physics cycle")
+            logger.info("Storing a copy of POP rpointer files for resetting model physics")
+            rundir = case.get_value("RUNDIR")
+            caseroot = case.get_value("CASEROOT")
+
+            sfile = os.path.join(rundir, "rpointer.ocn.restart")
+            dfile = os.path.join(caseroot,"Buildconf","pop2conf","rpointer.ocn.restart.orig")
+            expect(os.path.isfile(sfile), "required pop file %s is missing" %sfile)
+            shutil.copy(sfile, dfile)
+
+            sfile = os.path.join(rundir, "rpointer.ocn.ovf")
+            dfile = os.path.join(caseroot,"Buildconf","pop2conf","rpointer.ocn.ovf.orig")
+            expect(os.path.isfile(sfile), "required pop file %s is missing" %sfile)
+            shutil.copy(sfile,dfile)
                     
 ###############################################################################
 def _main_func():
 ###############################################################################
+    if len(sys.argv) == 1:
+        expect(False, "caseroot is a required input argument")
+
     caseroot = sys.argv[1]
     with Case(caseroot) as case:
         pop_phys_run_cycle_len_year = case.get_value("POP_PHYS_RUN_CYCLE_LEN_YEAR")
+        logger.info("pop_phys_run_cycle_len_year is %s",pop_phys_run_cycle_len_year)
         if pop_phys_run_cycle_len_year:
             if (pop_phys_run_cycle_len_year > 0):
                 _phys_cycle_prerun(case)
 
+if __name__ == "__main__":
+    _main_func()
 
 
 

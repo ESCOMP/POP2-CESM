@@ -146,6 +146,9 @@ def buildnml(case, caseroot, compname):
 
         format = 'bin'
         if check_pointer_file:
+            expect(os.path.isfile(pointer_file),
+                   "Missing required pointer_file %s ---"
+                   "has pop initial data been prestaged to %s?" %(pointer_file,rundir))
             if 'RESTART_FMT=nc' in open(pointer_file).read():
                 format = 'nc'
         os.environ["RESTART_INPUT_TS_FMT"] = format

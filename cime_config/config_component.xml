@@ -247,6 +247,31 @@
     <desc>POP cpp definitions (for diagnostic use only, setup automatically, overwritten by configure_pop.py - DO NOT EDIT)</desc>
   </entry>
 
+  <entry id="POP_PHYS_RUN_CYCLE_LEN_YEAR">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>number of years to run before cycling POP physics, POP
+    physics cycling only occurs if POP_PHYS_RUN_CYCLE_LEN_YEAR>0</desc>
+  </entry>
+    
+  <entry id="POP_PHYS_RUN_CUR_MON">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>number of months run since most recent POP physics cycling</desc>
+  </entry>
+
+  <entry id="POP_RESTART_OVERRIDE">
+    <type>char</type>
+    <default_value>default</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>filename for ocean override restart file</desc>
+  </entry>
+
   <description>
     <desc compset="_POP2"    >POP2 default:</desc>
     <desc compset="_POP2%1D" >Single column POP2:</desc>
