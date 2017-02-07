@@ -74,7 +74,7 @@ module ecosys_tracers_and_saved_state_mod
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: ecosys_tracers_and_saved_state_init
   public :: ecosys_saved_state_setup
-  public :: ecosys_saved_state_construct_io_fields
+  public :: ecosys_saved_state_write_restart
   public :: set_defaults_tracer_read
 
   !-----------------------------------------------------------------------
@@ -503,8 +503,7 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  function ecosys_saved_state_construct_io_fields(restart_file, state, num_fields) &
-    result(io_desc)
+  subroutine ecosys_saved_state_write_restart(restart_file, action, state, io_desc)
 
     use domain     , only : nblocks_clinic
     use domain_size, only : nx_global
@@ -523,46 +522,52 @@ Contains
 
     implicit none
 
-    type (datafile), intent(inout) :: restart_file
-    type(ecosys_saved_state_type), dimension(:), intent(in) :: state
-    integer, intent(in) :: num_fields
-    type(io_field_desc), dimension(num_fields) :: io_desc
+    type (datafile),                             intent(inout) :: restart_file
+    character(*),                                intent(in)    :: action
+    type(ecosys_saved_state_type), dimension(:), intent(in)    :: state
+    type(io_field_desc),           dimension(:), intent(inout) :: io_desc
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:ecosys_saved_state_construct_io_fields'
+    character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:ecosys_saved_state_write_restart'
     character(len=char_len) :: log_message
     integer (int_kind)         :: n
     type (io_dim)              :: i_dim, j_dim ! dimension descriptors
     type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
 
-    i_dim = construct_io_dim('i', nx_global)
-    j_dim = construct_io_dim('j', ny_global)
-    k_dim = construct_io_dim('k', km)
+    if (trim(action) .eq. 'define') then
+      i_dim = construct_io_dim('i', nx_global)
+      j_dim = construct_io_dim('j', ny_global)
+      k_dim = construct_io_dim('k', km)
 
-    do n=1,num_fields
-      select case (state(n)%rank)
-        case (2)
-          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
-                       j_dim, units = trim(state(n)%units), grid_loc = '2110',&
-                       field_loc  = field_loc_center,                         &
-                       field_type = field_type_scalar,                        &
-                       d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
-        case (3)
-          io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
-                       j_dim, k_dim,                                          &
-                       units = trim(state(n)%units), grid_loc = '3111',       &
-                       field_loc  = field_loc_center,                         &
-                       field_type = field_type_scalar,                        &
-                       d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
-      end select
-      write(log_message, "(3A)") "Setting up IO field for ",                  &
-                                 trim(state(n)%file_varname), " (in restart)"
-      call document(subname, log_message)
-      call data_set (restart_file, 'define', io_desc(n))
-    end do
+      do n=1,size(state)
+        select case (state(n)%rank)
+          case (2)
+            io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                         j_dim, units = trim(state(n)%units), grid_loc = '2110',&
+                         field_loc  = field_loc_center,                         &
+                         field_type = field_type_scalar,                        &
+                         d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
+          case (3)
+            io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                         j_dim, k_dim,                                          &
+                         units = trim(state(n)%units), grid_loc = '3111',       &
+                         field_loc  = field_loc_center,                         &
+                         field_type = field_type_scalar,                        &
+                         d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
+        end select
+        write(log_message, "(3A)") "Setting up IO field for ",                  &
+                                   trim(state(n)%file_varname), " (in restart)"
+        call document(subname, log_message)
+        call data_set (restart_file, 'define', io_desc(n))
+      end do
+    else if (trim(action) .eq. 'write') then
+      do n=1,size(state)
+        call data_set (restart_file, 'write', io_desc(n))
+      end do
+    end if
 
-  end function ecosys_saved_state_construct_io_fields
+  end subroutine ecosys_saved_state_write_restart
 
   !-----------------------------------------------------------------------
 

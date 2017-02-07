@@ -50,7 +50,6 @@ module ecosys_driver
 
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
-  use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_construct_io_fields
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
   use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
@@ -1207,8 +1206,8 @@ contains
     ! !DESCRIPTION:
     !  write auxiliary fields & scalars to restart files
 
+    use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_write_restart
     use io_types, only : io_field_desc
-    use io      , only : data_set
     use io      , only : datafile
 
     implicit none
@@ -1224,24 +1223,17 @@ contains
     if (trim(action) == 'define') then
 
        allocate(surf_iodesc(size(saved_state_surf)))
-       surf_iodesc = ecosys_saved_state_construct_io_fields(restart_file,     &
-            saved_state_surf, size(saved_state_surf))
-
        allocate(col_iodesc(size(saved_state_interior)))
-       col_iodesc = ecosys_saved_state_construct_io_fields(restart_file,      &
-           saved_state_interior, size(saved_state_interior))
+    end if
 
-    else if (trim(action) == 'write') then
+    call ecosys_saved_state_write_restart(restart_file, action,               &
+                                          saved_state_surf, surf_iodesc)
+    call ecosys_saved_state_write_restart(restart_file, action,               &
+                                          saved_state_interior, col_iodesc)
 
-       do n=1,size(saved_state_surf)
-          call data_set (restart_file, 'write', surf_iodesc(n))
-       end do
-       do n=1,size(saved_state_interior)
-          call data_set (restart_file, 'write', col_iodesc(n))
-       end do
+    if (trim(action) == 'write') then
        deallocate(surf_iodesc)
        deallocate(col_iodesc)
-
     endif
 
   end subroutine ecosys_driver_write_restart
