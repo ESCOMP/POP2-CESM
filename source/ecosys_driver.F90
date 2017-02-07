@@ -1280,7 +1280,7 @@ contains
     end if
 
     do iblock=1, nblocks_clinic
-      call marbl_instances(iblock)%update_timers()
+      call marbl_instances(iblock)%extract_timing()
     end do
 
     num_timers = marbl_instances(1)%timer_summary%num_timers
