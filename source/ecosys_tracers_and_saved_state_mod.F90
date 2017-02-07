@@ -36,12 +36,15 @@ module ecosys_tracers_and_saved_state_mod
 
      ! (nx_block, ny_block, max_blocks_clinic)
      real (r8), allocatable, dimension(:,:,:)   :: field_2d
-     ! (nx_block, ny_block, km, max_blocks_clinic)
+     ! (km, nx_block, ny_block, max_blocks_clinic) [column-first for MARBL!]
      real (r8), allocatable, dimension(:,:,:,:) :: field_3d
   end type ecosys_saved_state_type
 
   type(ecosys_saved_state_type), allocatable, dimension(:), public :: saved_state_surf
   type(ecosys_saved_state_type), allocatable, dimension(:), public :: saved_state_interior
+  ! Transpose field_3d into this array before writing restart
+  ! (nx_block, ny_block, km, max_blocks_clinic)
+  real(r8), allocatable, dimension(:,:,:,:), public :: saved_state_field_3d
 
   !-----------------------------------------------------------------------
   ! public variables
@@ -402,17 +405,20 @@ Contains
 
   subroutine read_restart_saved_state(file_fmt, filename, state)
 
-    use passive_tracer_tools  , only : field_exists_in_file
-    use passive_tracer_tools  , only : read_field
-    use io_tools              , only : document
+    use passive_tracer_tools, only : field_exists_in_file
+    use passive_tracer_tools, only : read_field
+    use io_tools            , only : document
+    use blocks              , only : nx_block, ny_block
+    use domain_size         , only : km, max_blocks_clinic
 
     character(len=*), intent(in) :: file_fmt
     character(len=*), intent(in) :: filename
+    real(r8) :: tmp_field_3d(nx_block, ny_block, km, max_blocks_clinic)
     type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
 
     character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:read_restart_saved_state'
     character(len=char_len) :: log_message
-    integer :: n
+    integer :: k, n
 
     call set_saved_state_zero(state)
     do n=1,size(state)
@@ -423,7 +429,11 @@ Contains
                  state(n)%field_2d(:,:,:))
           case (3)
             call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 state(n)%field_3d(:,:,:,:))
+                 tmp_field_3d)
+            ! Transpose data after reading
+            do k=1, km
+              state(n)%field_3d(k,:,:,:) = tmp_field_3d(:,:,k,:)
+            end do
         end select
       else
         write(log_message, "(4A)") trim(state(n)%file_varname),               &
@@ -480,7 +490,7 @@ Contains
         case (3)
           select case (trim(marbl_state%state(n)%vertical_grid))
             case ('layer_avg')
-              allocate(state(n)%field_3d(nx_block, ny_block, km, max_blocks_clinic))
+              allocate(state(n)%field_3d(km, nx_block, ny_block, max_blocks_clinic))
             case DEFAULT
           call document(subname, 'n', n)
           call document(subname, 'marbl_state(n)%vertical_grid',              &
@@ -531,7 +541,7 @@ Contains
     !-----------------------------------------------------------------------
     character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:ecosys_saved_state_write_restart'
     character(len=char_len) :: log_message
-    integer (int_kind)         :: n
+    integer (int_kind)         :: k, n
     type (io_dim)              :: i_dim, j_dim ! dimension descriptors
     type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
 
@@ -554,7 +564,7 @@ Contains
                          units = trim(state(n)%units), grid_loc = '3111',       &
                          field_loc  = field_loc_center,                         &
                          field_type = field_type_scalar,                        &
-                         d3d_array  = state(n)%field_3d(:,:,:,1:nblocks_clinic))
+                         d3d_array  = saved_state_field_3d(:,:,:,1:nblocks_clinic))
         end select
         write(log_message, "(3A)") "Setting up IO field for ",                  &
                                    trim(state(n)%file_varname), " (in restart)"
@@ -563,6 +573,11 @@ Contains
       end do
     else if (trim(action) .eq. 'write') then
       do n=1,size(state)
+        if (state(n)%rank .eq. 3) then
+          do k=1,km
+            saved_state_field_3d(:,:,k,:) = state(n)%field_3d(k, :,:,:)
+          end do
+        end if
         call data_set (restart_file, 'write', io_desc(n))
       end do
     end if

@@ -789,7 +789,7 @@ contains
              ! --- copy data from slab to column for marbl_saved_state ---
              do n=1,size(saved_state_interior)
                marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
-                 saved_state_interior(n)%field_3d(i,c,:,bid)
+                 saved_state_interior(n)%field_3d(:,i,c,bid)
              end do
              call timer_stop(ecosys_interior_pop_to_marbl, block_id=bid)
 
@@ -813,7 +813,7 @@ contains
              call timer_start(ecosys_interior_marbl_to_pop, block_id=bid)
 
              do n=1,size(saved_state_interior)
-               saved_state_interior(n)%field_3d(i,c,:,bid) =               &
+               saved_state_interior(n)%field_3d(:,i,c,bid) =               &
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
 
@@ -1207,6 +1207,7 @@ contains
     !  write auxiliary fields & scalars to restart files
 
     use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_write_restart
+    use ecosys_tracers_and_saved_state_mod, only : saved_state_field_3d
     use io_types, only : io_field_desc
     use io      , only : datafile
 
@@ -1224,6 +1225,7 @@ contains
 
        allocate(surf_iodesc(size(saved_state_surf)))
        allocate(col_iodesc(size(saved_state_interior)))
+       allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))
     end if
 
     call ecosys_saved_state_write_restart(restart_file, action,               &
@@ -1232,6 +1234,7 @@ contains
                                           saved_state_interior, col_iodesc)
 
     if (trim(action) == 'write') then
+       deallocate(saved_state_field_3d)
        deallocate(surf_iodesc)
        deallocate(col_iodesc)
     endif
