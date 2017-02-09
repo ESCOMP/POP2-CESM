@@ -95,7 +95,7 @@ Contains
                                                  land_mask,                   &
                                                  TRACER_MODULE,               &
                                                  ecosys_restart_filename,     &
-                                                 errorCode)       
+                                                 errorCode)
 
     use POP_ErrorMod, only : POP_Success, POP_ErrorSet
 
