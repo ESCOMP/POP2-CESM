@@ -5387,7 +5387,8 @@ id="lvariable_PtoC"
 type="logical" 
 category="ecosys"
 group="marbl_config_nml" >
-Default: .true.
+Default: set based on lvariable_PtoC setting in XML var OCN_TRACER_MODULES_OPT
+   TRUE -> .true., FALSE -> .false.
 </entry>
 
 <entry

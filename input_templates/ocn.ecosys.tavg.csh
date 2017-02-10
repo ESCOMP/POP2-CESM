@@ -243,9 +243,13 @@ EOF
   end
 
 echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
-  foreach tracer ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr \
+  set tracer_list = ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr \
                    DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC \
                    diatFe diatSi diazChl diazC diazFe )
+  if ($lvariable_PtoC == ".true.") then
+    set tracer_list = ( $tracer_list spP diatP diazP )
+  endif
+  foreach tracer ( $tracer_list )
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  ${tracer} TRACER FIELDS
 1  ${tracer}
@@ -254,17 +258,6 @@ echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
 1  ${tracer}_RESTORE_TEND
 EOF
   end
-if ($lvariable_PtoC == ".true.") then
-  foreach tracer ( spP diatP diazP )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
-#  ${tracer} TRACER FIELDS
-1  ${tracer}
-1  STF_${tracer}
-1  J_${tracer}
-1  ${tracer}_RESTORE_TEND
-EOF
-  end
-endif
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 1  FvPER_DIC
 1  FvPER_ALK

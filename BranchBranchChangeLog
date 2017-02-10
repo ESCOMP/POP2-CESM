@@ -2,6 +2,25 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    10 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n36_marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: incorporate suggestions from code review of lvariable_PtoC code in marbl_dev_klindsay_n34
+
+Testing:
+MARBL commit 389e0e1d7103c8ce3649bd669962716833ebc503
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n35 tag)
+   all tests, except SMS_Ld2_D, pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_definition_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    9 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n35_marbl_dev_n30_cesm_pop_2_1_20170128
 Tag Summary: merge marbl_dev_n30 tag to this branch
@@ -10,7 +29,7 @@ Testing:
 MARBL commit 389e0e1d7103c8ce3649bd669962716833ebc503
 
 aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n34 tag)
-   all tests, except baseline compares, pass
+   all tests, except baseline compares and SMS_Ld2_D, pass
       baselines fail because of changes on POP trunk
       some MEMLEAK failures
 
@@ -65,7 +84,7 @@ MARBL commit fc80f73432baf542fb4f380677ee5ba1deaef0e1
 aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n33 tag)
    all tests, except baseline compares, pass
       nlcomp comparisons fail because of introduction of lvariable_PtoC
-      baseline comparisons fail because elemental Jint integrals have roundoff changes
+      baseline comparisons fail because Ptot Jint integrals have roundoff changes
       some TPUTCOMP, MEMLEAK failures
 
 Files Modified:
@@ -89,11 +108,12 @@ Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n33_mar
 Tag Summary: rename ${TRACER}_RESTORE diagnostic to ${TRACER}_RESTORE_TEND
 
 Testing: (with cesm2_0_beta05)
-MARBL commit a9d4fbff856fcad28199bd6e37433532b0635011
+MARBL commit a9d4fbff856fcad28199bd6e37433532b0635011 (includes fix for MARBL issue #118)
 
 aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n32 tag)
    all tests, except baseline compares, pass
-      baseline comparisons fail because elemental Jint integrals changed
+      baseline comparisons fail because elemental Jint integrals changed (from #118 fix)
+      baseline comparisons also fail because of history file varname change
       some TPUTCOMP, MEMLEAK failures
 
 Files Modified:
