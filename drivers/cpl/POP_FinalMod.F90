@@ -64,6 +64,8 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use passive_tracers, only : passive_tracers_timer_print_all
+
 ! !INPUT/OUTPUT PARAMETERS:
 
    integer (POP_i4), intent(inout) :: &
@@ -101,6 +103,7 @@
 !-----------------------------------------------------------------------
 
    call timer_print_all(stats=.true.)
+   call passive_tracers_timer_print_all(stats=.true.)
 
 !-----------------------------------------------------------------------
 !

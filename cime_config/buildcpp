@@ -162,7 +162,7 @@ def determine_tracer_count(case, decomp_cppdefs):
     if case.get_value("POP_TAVG_R8"):
         other_cppdefs = other_cppdefs + " -DTAVG_R8 "
 
-    pop_cppdefs = "-DCCSMCOUPLED " + decomp_cppdefs + other_cppdefs + tracer_cppdefs
+    pop_cppdefs = "-DCCSMCOUPLED -DMARBL_TIMING_OPT=CIME" + decomp_cppdefs + other_cppdefs + tracer_cppdefs
 
     #----------------------------------------------------
     # Create config_cache.xml file

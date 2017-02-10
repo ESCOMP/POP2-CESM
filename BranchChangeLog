@@ -1,6 +1,52 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    7 February 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: Bring in latest MARBL tag (internal timers)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       cime_config/buildcpp
+ M      drivers/cpl
+M       drivers/cpl/POP_FinalMod.F90
+ M      drivers/cpl_none
+M       source/diagnostics.F90
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+M       source/timers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 February 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n29_cesm_pop_2_1_20170128
+Tag Summary: Add timer for setting ecosys forcing prior to MARBL call
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 February 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n28_cesm_pop_2_1_20170128
+Tag Summary: merge in latest trunk tag; sandboxes now require cime tag from
+             cesm2_0_alpha06b or later
+
+Files Modified:
+ M      .
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/tavg.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    20 January 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n27_cesm_pop_2_1_20170120
 Tag Summary: merge in latest trunk tag (book-keeping, merge, no change to

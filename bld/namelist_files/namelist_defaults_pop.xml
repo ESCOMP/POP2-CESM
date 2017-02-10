@@ -30,15 +30,24 @@
 <!-- time_manager_nml -->
 <!---------------------------->
 
+<time_mix_opt ocn_ncpl="24" ocn_grid="gx1v6">robert</time_mix_opt>
+<time_mix_opt ocn_ncpl="12" ocn_grid="gx1v6">robert</time_mix_opt>
 <time_mix_opt>avgfit</time_mix_opt>
 <time_mix_freq>17</time_mix_freq>
 
 <dt_option>steps_per_day</dt_option>
+<!-- this gives you 1-hour coupling defaults -->
+<dt_count ocn_ncpl="24" time_mix="robert"  ocn_grid="gx1v6">24</dt_count>
+<!-- this gives you 2-hour coupling defaults -->
+<dt_count ocn_ncpl="12" time_mix="robert"  ocn_grid="gx1v6">24</dt_count>
+<dt_count ocn_ncpl="12" time_mix="avg_mix" ocn_grid="gx1v6">23</dt_count>
+
+<!-- this gives you original cesm1 default behavior out of the box -->
 <dt_count ocn_grid="gx3v7"  > 12</dt_count>
 <dt_count ocn_grid="gx3v7"  ocn_onedim="TRUE">24</dt_count>
-<dt_count ocn_grid="gx1v6"  > 23</dt_count>
+<dt_count ocn_grid="gx1v6"  > 24</dt_count>
 <dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">46</dt_count>
-<dt_count ocn_grid="tx1v1"  > 23</dt_count>
+<dt_count ocn_grid="tx1v1"  > 24</dt_count>
 <dt_count ocn_grid="tx0.1v2">300</dt_count>
 <dt_count ocn_grid="tx0.1v2" ocn_coupling="partial">500</dt_count>
 
@@ -59,7 +68,7 @@
 <fit_freq>1</fit_freq> 
 
 <robert_alpha> 1.0 </robert_alpha>
-<robert_nu>    0.20 </robert_nu>
+<robert_nu>    0.1 </robert_nu>
 
 <!---------------------------->
 <!-- grid_nml -->
@@ -406,7 +415,7 @@
 <simpsubcells                                  >.false.</simpsubcells>
 <vertdiffhere                                  >.false.</vertdiffhere>
 <kappa_thic_deep                               >0.1</kappa_thic_deep>
-<kappa_isop_deep                               >0.1</kappa_isop_deep>
+<kappa_isop_deep                               >0.2</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->
@@ -593,7 +602,7 @@
 <lactive_ice>.true.</lactive_ice>
 <lactive_ice ocn_ice_forcing="inactive">.false.</lactive_ice>
 
-<licecesm2>.false.</licecesm2>
+<licecesm2>.true.</licecesm2>
 
 <!---------------------------->
 <!-- pressure_grad_nml -->
@@ -794,11 +803,8 @@
 <!--coupled_nml -->
 <!---------------------------->
 
-<qsw_distrb_opt ocn_grid="gx1v6" ocn_coupling="partial">cosz</qsw_distrb_opt>
-<qsw_distrb_opt ocn_grid="gx1v6" ocn_coupling="full"   >cosz</qsw_distrb_opt>
 <qsw_distrb_opt ocn_grid="gx3v7"  >cosz</qsw_distrb_opt>   
-<qsw_distrb_opt ocn_grid="tx1v1"  >const</qsw_distrb_opt>
-<qsw_distrb_opt ocn_grid="tx0.1v2">const</qsw_distrb_opt> 
+<qsw_distrb_opt                   >const</qsw_distrb_opt> 
 
 
 <!---------------------------->
@@ -1421,7 +1427,8 @@
 
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
-<ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
+<ecosys_qsw_distrb_const                 >.true.</ecosys_qsw_distrb_const>     
+<ecosys_qsw_distrb_const ocn_grid="gx3v7">.false.</ecosys_qsw_distrb_const>     
 
 <!---------------------------->
 <!-- irf_nml                -->
@@ -1438,10 +1445,10 @@
 <!--estuary_nml-->
 <!----------------------------------->
 
-<estuary_option>off</estuary_option>
-<estuary_type>vsf</estuary_type>
-<ebm_param_option>internal</ebm_param_option>
-<ebm_param_filename>unknown-file</ebm_param_filename>
+<estuary_option>on</estuary_option>
+<estuary_type>vsf_ebm</estuary_type>
+<ebm_param_option>file</ebm_param_option>
+<ebm_param_filename>ocn/pop/res_indpt/forcing/EBMparameter_global_HU20HL20_allROFF_CESM2B.nc</ebm_param_filename>
 <ebm_param_file_fmt>nc</ebm_param_file_fmt>
 <tide_amp>1.0</tide_amp>
 <W_h>2000.0</W_h> >

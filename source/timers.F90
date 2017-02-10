@@ -111,6 +111,16 @@
    real (r8) ::               &
       clock_rate               ! clock rate in seconds for each cycle
 
+   ! public so ecosys_driver can use same formatting!
+   character (60), public, parameter :: &
+      timer_format = "('Timer number',i3,' Time =',f11.2,' seconds',3x,a)"
+
+   character (49), public, parameter :: &
+      stats_fmt1 = "('  Timer stats (node): min = ',f11.2,' seconds')",&
+      stats_fmt2 = "('                      max = ',f11.2,' seconds')",&
+      stats_fmt3 = "('                      mean= ',f11.2,' seconds')",&
+      stats_fmt4 = "('  Timer stats(block): min = ',f11.2,' seconds')"
+
 !EOC
 !***********************************************************************
 
@@ -732,15 +742,6 @@
    integer (int_kind) :: &
       cycles1, cycles2   ! temps to hold cycle info before correction
 #endif
-
-   character (60), parameter :: &
-      timer_format = "('Timer number',i3,' Time =',f11.2,' seconds',3x,a)"
-
-   character (49), parameter :: &
-      stats_fmt1 = "('  Timer stats (node): min = ',f11.2,' seconds')",&
-      stats_fmt2 = "('                      max = ',f11.2,' seconds')",&
-      stats_fmt3 = "('                      mean= ',f11.2,' seconds')",&
-      stats_fmt4 = "('  Timer stats(block): min = ',f11.2,' seconds')"
 
 !-----------------------------------------------------------------------
 !

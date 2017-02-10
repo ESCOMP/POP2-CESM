@@ -2,6 +2,45 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    9 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n35_marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: merge marbl_dev_n30 tag to this branch
+
+Testing:
+MARBL commit 389e0e1d7103c8ce3649bd669962716833ebc503
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n34 tag)
+   all tests, except baseline compares, pass
+      baselines fail because of changes on POP trunk
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+ M      drivers/cpl
+M       drivers/cpl/POP_FinalMod.F90
+ M      drivers/cpl_none
+M       source/diagnostics.F90
+M       source/ecosys_driver.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/passive_tracers.F90
+M       source/tavg.F90
+M       source/timers.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    1 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n34_marbl_dev_n27_cesm_pop_2_1_20170120
 Tag Summary: implement lvariable_PtoC flag

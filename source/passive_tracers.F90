@@ -104,6 +104,7 @@
       tavg_passive_tracers_baroclinic_correct,&
       passive_tracers_tavg_sflux,             &
       passive_tracers_tavg_fvice,             &
+      passive_tracers_timer_print_all,        &
       passive_tracers_send_time,              &
       tracer_ref_val,                         &
       tadvect_ctype_passive_tracers,          &
@@ -1551,6 +1552,61 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: passive_tracers_timer_print_all
+! !INTERFACE:
+
+ subroutine passive_tracers_timer_print_all(stats)
+
+! !DESCRIPTION:
+!  If passive tracer packages provide their own timing numbers (rather
+!  than using POP's timers), print them here
+
+! !REVISION HISTORY:
+!  same as module
+
+   use ecosys_driver, only : ecosys_driver_print_marbl_timers
+
+! !INPUT PARAMETERS:
+
+   logical, optional, intent(in) :: stats
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!  ECOSYS (and CISO) timers come from MARBL library
+!-----------------------------------------------------------------------
+
+  if (ecosys_on) then
+    call ecosys_driver_print_marbl_timers(stats)
+  end if
+
+!-----------------------------------------------------------------------
+!  CFC does not have separate timers
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  SF6 does not have separate timers
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IAGE does not have separate timers
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  ABIO DIC & DIC14 do not have separate timers
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IRF does not have separate timers
+!-----------------------------------------------------------------------
+
+!EOC
+
+ end subroutine passive_tracers_timer_print_all
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: passive_tracers_send_time
 ! !INTERFACE:
 
@@ -1578,6 +1634,7 @@
 !EOC
 
 end subroutine passive_tracers_send_time
+
 !***********************************************************************
 
  end module passive_tracers
