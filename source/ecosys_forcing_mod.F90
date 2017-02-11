@@ -82,6 +82,7 @@ module ecosys_forcing_mod
      integer   (kind=int_kind) :: date
      integer   (kind=int_kind) :: time
      integer   (kind=int_kind) :: strdata_inputlist_ind
+     integer   (kind=int_kind) :: strdata_var_ind
    contains
      procedure :: initialize  => forcing_file_init
   end type forcing_file_type
@@ -200,8 +201,7 @@ module ecosys_forcing_mod
   real(r8)                                         :: restore_inv_tau_const
   type(tracer_read), target                        :: restore_inv_tau_input
 
-  integer (int_kind)                     :: shr_stream_interior_var_cnt   ! number of shr_stream variables for interior forcing
-  type (strdata_input_type), allocatable :: strdata_interior_inputlist(:)
+  type (strdata_input_type), pointer :: interior_strdata_inputlist_ptr(:)
 
   !-----------------------------------------------------------------------
   !  input surface forcing
@@ -228,8 +228,7 @@ module ecosys_forcing_mod
   type(forcing_monthly_every_ts), target :: alk_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: doc_riv_flux_file_loc
 
-  integer (int_kind)                     :: shr_stream_surface_var_cnt   ! number of shr_stream variables for surface forcing
-  type (strdata_input_type), allocatable :: strdata_surface_inputlist(:)
+  type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
 
   ! Surface and interior forcing fields
   real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
@@ -517,7 +516,8 @@ contains
 
     allocate(surface_forcing_fields(size(marbl_req_surface_forcing_fields)))
 
-    shr_stream_surface_var_cnt = 0
+    ! allocating to zero size eases the implementation of growing the array
+    allocate(surface_strdata_inputlist_ptr(0))
 
     do n=1,size(surface_forcing_fields)
       marbl_varname = marbl_req_surface_forcing_fields(n)%metadata%varname
@@ -682,16 +682,15 @@ contains
         case ('NOx Flux')
           nox_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
-            shr_stream_surface_var_cnt = shr_stream_surface_var_cnt + 1
             call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                                 marbl_varname=marbl_varname, field_units=units,  &
-                                 unit_conv_factor=ndep_shr_stream_scale_factor,   &
-                                 file_varname='NOy_deposition',                   &
-                                 year_first = ndep_shr_stream_year_first,         &
-                                 year_last = ndep_shr_stream_year_last,           &
-                                 year_align = ndep_shr_stream_year_align,         &
-                                 filename = ndep_shr_stream_file,                 &
-                                 strdata_inputlist_ind=shr_stream_surface_var_cnt,&
+                                 strdata_inputlist_ptr=surface_strdata_inputlist_ptr,   &
+                                 marbl_varname=marbl_varname, field_units=units,        &
+                                 unit_conv_factor=ndep_shr_stream_scale_factor,         &
+                                 file_varname='NOy_deposition',                         &
+                                 year_first = ndep_shr_stream_year_first,               &
+                                 year_last = ndep_shr_stream_year_last,                 &
+                                 year_align = ndep_shr_stream_year_align,               &
+                                 filename = ndep_shr_stream_file,                       &
                                  id=n)
           else if (trim(ndep_data_type).eq.'monthly-calendar') then
             file_details => nox_flux_monthly_file_loc
@@ -710,16 +709,15 @@ contains
         case ('NHy Flux')
           nhy_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
-            shr_stream_surface_var_cnt = shr_stream_surface_var_cnt + 1
             call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                                 marbl_varname=marbl_varname, field_units=units,  &
-                                 unit_conv_factor=ndep_shr_stream_scale_factor,   &
-                                 file_varname='NHx_deposition',                   &
-                                 year_first = ndep_shr_stream_year_first,         &
-                                 year_last = ndep_shr_stream_year_last,           &
-                                 year_align = ndep_shr_stream_year_align,         &
-                                 filename = ndep_shr_stream_file,                 &
-                                 strdata_inputlist_ind=shr_stream_surface_var_cnt,&
+                                 strdata_inputlist_ptr=surface_strdata_inputlist_ptr,   &
+                                 marbl_varname=marbl_varname, field_units=units,        &
+                                 unit_conv_factor=ndep_shr_stream_scale_factor,         &
+                                 file_varname='NHx_deposition',                         &
+                                 year_first = ndep_shr_stream_year_first,               &
+                                 year_last = ndep_shr_stream_year_last,                 &
+                                 year_align = ndep_shr_stream_year_align,               &
+                                 filename = ndep_shr_stream_file,                       &
                                  id=n)
           else if (trim(ndep_data_type).eq.'monthly-calendar') then
             file_details => nhy_flux_monthly_file_loc
@@ -823,15 +821,14 @@ contains
       surface_forcing_fields(n)%field_0d = c0
     end do
 
-    allocate(strdata_surface_inputlist(shr_stream_surface_var_cnt))
-
     !--------------------------------------------------------------------------
     !  Interior forcing
     !--------------------------------------------------------------------------
 
     allocate(interior_forcing_fields(size(marbl_req_interior_forcing_fields)))
 
-    shr_stream_interior_var_cnt = 0
+    ! allocating to zero size eases the implementation of growing the array
+    allocate(interior_strdata_inputlist_ptr(0))
 
     do n=1,size(interior_forcing_fields)
       marbl_varname = marbl_req_interior_forcing_fields(n)%metadata%varname
@@ -862,9 +859,9 @@ contains
                             " with ", trim(restore_data_file_varnames(m)),    &
                             " from ", trim(restore_data_filenames(m))
             end if
-            shr_stream_interior_var_cnt = shr_stream_interior_var_cnt + 1
             call interior_forcing_fields(n)%add_forcing_field(                &
                        field_source='shr_stream',                             &
+                       strdata_inputlist_ptr=interior_strdata_inputlist_ptr,  &
                        marbl_varname=marbl_varname, field_units=units,        &
                        filename=restore_data_filenames(m),                    &
                        file_varname=restore_data_file_varnames(m),            &
@@ -872,7 +869,6 @@ contains
                        year_last=restore_year_last(m),                        &
                        year_align=restore_year_align(m),                      &
                        unit_conv_factor=restore_scale_factor(m),              &
-                       strdata_inputlist_ind=shr_stream_interior_var_cnt,     &
                        id=n)
             allocate(interior_forcing_fields(n)%field_1d(nx_block, ny_block, km, nblocks_clinic))
 
@@ -982,8 +978,6 @@ contains
       end if
 
     end do ! do n=1,size(interior_forcing_fields)
-
-    allocate(strdata_interior_inputlist(shr_stream_interior_var_cnt))
 
     if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
       call document(subname, "If deriving iron flux, must provide dust flux!")
@@ -1344,7 +1338,8 @@ contains
     logical(log_kind)        :: first_call = .true.
     integer(int_kind)        :: field_index, i, j, k, iblock, n   ! loop indices
     integer(int_kind)        :: n0(nblocks_clinic)
-    integer(int_kind)        :: stream_index                ! index into strdata_interior_inputlist array
+    integer(int_kind)        :: stream_index                ! index into interior_strdata_inputlist_ptr array
+    integer(int_kind)        :: var_ind                     ! var index in interior_strdata_inputlist_ptr entry
     type(block)              :: this_block                  ! block info for the current block
     integer(int_kind)        :: errorCode                   ! errorCode from HaloUpdate call
     integer(int_kind)        :: tracer_bndy_loc(1)          ! location   for ghost tracer_bndy_type cell updates
@@ -1354,42 +1349,31 @@ contains
     integer                  :: m
 
     !-----------------------------------------------------------------------
-    ! Initialize strdata_interior_inputlist data type (only once)
+    ! Initialize interior_strdata_inputlist_ptr entries (only once)
     !-----------------------------------------------------------------------
 
     if (first_call) then
-      if (shr_stream_interior_var_cnt > 0) then
-        call timer_start(ecosys_interior_strdata_create_timer)
-        do field_index = 1, size(interior_forcing_fields)
-          associate (metadata => interior_forcing_fields(field_index)%metadata)
-            if (metadata%field_source.eq.'shr_stream') then
-              stream_index = metadata%field_file_info%strdata_inputlist_ind
-
-              strdata_interior_inputlist(stream_index)%timer_label = 'marbl_file'
-              strdata_interior_inputlist(stream_index)%year_first  = metadata%field_file_info%year_first
-              strdata_interior_inputlist(stream_index)%year_last   = metadata%field_file_info%year_last
-              strdata_interior_inputlist(stream_index)%year_align  = metadata%field_file_info%year_align
-              strdata_interior_inputlist(stream_index)%file_name   = metadata%field_file_info%filename
-              strdata_interior_inputlist(stream_index)%field_list  = metadata%field_file_info%file_varname
-
-              call POP_strdata_create(strdata_interior_inputlist(stream_index), depthflag=.true.)
-            end if
-          end associate
-        end do
-        call timer_stop(ecosys_interior_strdata_create_timer)
-      end if ! shr_stream_interior_var_cnt > 0
+      call timer_start(ecosys_interior_strdata_create_timer)
+      do n = 1, size(interior_strdata_inputlist_ptr)
+        call POP_strdata_create(interior_strdata_inputlist_ptr(n), depthflag=.true.)
+      end do
+      call timer_stop(ecosys_interior_strdata_create_timer)
       first_call = .false.
     end if ! first_call
 
+    !-----------------------------------------------------------------------
+    ! advance interior_strdata_inputlist_ptr entries
+    !-----------------------------------------------------------------------
+
     call timer_start(ecosys_interior_strdata_advance_timer)
-    do n = 1, shr_stream_interior_var_cnt
-      strdata_interior_inputlist(n)%date = iyear*10000 + imonth*100 + iday
-      strdata_interior_inputlist(n)%time = isecond + 60 * (iminute + 60 * ihour)
-      call POP_strdata_advance(strdata_interior_inputlist(n))
+    do n = 1, size(interior_strdata_inputlist_ptr)
+      interior_strdata_inputlist_ptr(n)%date = iyear*10000 + imonth*100 + iday
+      interior_strdata_inputlist_ptr(n)%time = isecond + 60 * (iminute + 60 * ihour)
+      call POP_strdata_advance(interior_strdata_inputlist_ptr(n))
     end do
     call timer_stop(ecosys_interior_strdata_advance_timer)
 
-    if (shr_stream_interior_var_cnt > 0) then
+    if (size(interior_strdata_inputlist_ptr) > 0) then
       n0(1) = 0
       do iblock = 1, nblocks_clinic-1
         this_block = get_block(blocks_clinic(iblock), iblock)
@@ -1397,7 +1381,7 @@ contains
       enddo
     end if
 
-    !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,stream_index,n,j,i)
+    !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,stream_index,var_ind,n,j,i)
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
       do field_index = 1, size(interior_forcing_fields)
@@ -1430,16 +1414,15 @@ contains
               end if
             case('shr_stream')
               stream_index = metadata%field_file_info%strdata_inputlist_ind
+              var_ind      = metadata%field_file_info%strdata_var_ind
               n = n0(iblock)
               do k=1,km
                 do j = this_block%jb, this_block%je
                   do i = this_block%ib, this_block%ie
                     n = n + 1
-                    ! Note that each stream currently is assumed to have only 1 field in its
-                    ! attribute vector
                     if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
                       forcing_field%field_1d(i,j,k,iblock) = &
-                        strdata_interior_inputlist(stream_index)%sdat%avs(1)%rAttr(1, n)
+                        interior_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind, n)
                     else
                       forcing_field%field_1d(i,j,k,iblock) = c0
                     endif
@@ -1539,7 +1522,8 @@ contains
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     real      (r8)                 :: d14c_glo_avg                                          ! global average D14C over the ocean, computed from current D14C field
     type(forcing_monthly_every_ts), pointer :: file
-    integer   (int_kind)          :: stream_index                                           ! index into strdata_surface_inputlist array
+    integer   (int_kind)          :: stream_index                                           ! index into surface_strdata_inputlist_ptr array
+    integer   (int_kind)          :: var_ind                                                ! var index in surface_strdata_inputlist_ptr entry
     integer   (int_kind)          :: nf_ind
     !-----------------------------------------------------------------------
 
@@ -1554,37 +1538,27 @@ contains
     end if
 
     !-----------------------------------------------------------------------
-    ! Initialize strdata_surface_inputlist data type (only once)
+    ! Initialize surface_strdata_inputlist_ptr entries (only once)
     !-----------------------------------------------------------------------
 
     if (first_call) then
-       if (shr_stream_surface_var_cnt > 0) then
-          call timer_start(ecosys_surface_strdata_create_timer)
-          do index = 1, size(surface_forcing_fields)
-             associate (metadata => surface_forcing_fields(index)%metadata)
-               if (metadata%field_source.eq.'shr_stream') then
-                  stream_index = metadata%field_file_info%strdata_inputlist_ind
-                  strdata_surface_inputlist(stream_index)%timer_label = 'marbl_file'
-                  strdata_surface_inputlist(stream_index)%year_first  = metadata%field_file_info%year_first
-                  strdata_surface_inputlist(stream_index)%year_last   = metadata%field_file_info%year_last
-                  strdata_surface_inputlist(stream_index)%year_align  = metadata%field_file_info%year_align
-                  strdata_surface_inputlist(stream_index)%file_name   = metadata%field_file_info%filename
-                  strdata_surface_inputlist(stream_index)%field_list  = metadata%field_file_info%file_varname
-
-                  call POP_strdata_create(strdata_surface_inputlist(stream_index))
-               end if
-             end associate
-          end do
-          call timer_stop(ecosys_surface_strdata_create_timer)
-       end if ! shr_stream_surface_var_cnt > 0
-       first_call = .false.
+      call timer_start(ecosys_surface_strdata_create_timer)
+      do n = 1, size(surface_strdata_inputlist_ptr)
+        call POP_strdata_create(surface_strdata_inputlist_ptr(n))
+      end do
+      call timer_stop(ecosys_surface_strdata_create_timer)
+      first_call = .false.
     end if ! first_call
 
+    !-----------------------------------------------------------------------
+    ! advance surface_strdata_inputlist_ptr entries
+    !-----------------------------------------------------------------------
+
     call timer_start(ecosys_surface_strdata_advance_timer)
-    do n = 1, shr_stream_surface_var_cnt
-       strdata_surface_inputlist(n)%date = iyear*10000 + imonth*100 + iday
-       strdata_surface_inputlist(n)%time = isecond + 60 * (iminute + 60 * ihour)
-       call POP_strdata_advance(strdata_surface_inputlist(n))
+    do n = 1, size(surface_strdata_inputlist_ptr)
+      surface_strdata_inputlist_ptr(n)%date = iyear*10000 + imonth*100 + iday
+      surface_strdata_inputlist_ptr(n)%time = isecond + 60 * (iminute + 60 * ihour)
+      call POP_strdata_advance(surface_strdata_inputlist_ptr(n))
     end do
     call timer_stop(ecosys_surface_strdata_advance_timer)
 
@@ -1709,6 +1683,7 @@ contains
           !------------------------------------
 
              stream_index = metadata%field_file_info%strdata_inputlist_ind
+             var_ind      = metadata%field_file_info%strdata_var_ind
 
              n = 0
              do iblock = 1, nblocks_clinic
@@ -1716,9 +1691,7 @@ contains
                 do j = this_block%jb, this_block%je
                    do i = this_block%ib, this_block%ie
                       n = n + 1
-                      ! Note that each stream currently is assumed to have only 1 field in its
-                      ! attribute vector
-                      shr_stream(i,j,iblock) = strdata_surface_inputlist(stream_index)%sdat%avs(1)%rAttr(1,n)
+                      shr_stream(i,j,iblock) = surface_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind,n)
                    enddo
                 enddo
              enddo
@@ -2505,8 +2478,9 @@ contains
   !*****************************************************************************
 
   subroutine forcing_file_init(this, filename, file_varname, temporal, year_first, &
-                                     year_last, year_align, date, time, strdata_inputlist_ind)
+                                     year_last, year_align, date, time, strdata_inputlist_ptr)
 
+    use shr_string_mod, only : shr_string_countChar
 
     class(forcing_file_type),         intent(inout) :: this
     character(len=*),                 intent(in)    :: filename
@@ -2517,17 +2491,67 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_align
     integer(kind=int_kind), optional, intent(in)    :: date
     integer(kind=int_kind), optional, intent(in)    :: time
-    integer(kind=int_kind), optional, intent(in)    :: strdata_inputlist_ind
+    type(strdata_input_type), optional, intent(inout), pointer :: strdata_inputlist_ptr(:)
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    integer (int_kind) :: strdata_inputlist_size
+    integer (int_kind) :: m
+    type (strdata_input_type), pointer :: strdata_inputlist_tmp_ptr(:)
 
     this%filename     = filename
     this%file_varname = file_varname
-    if (present(temporal  )) this%temporal   = temporal
-    if (present(year_first)) this%year_first = year_first
-    if (present(year_last )) this%year_last  = year_last
-    if (present(year_align)) this%year_align = year_align
-    if (present(date      )) this%date       = date
-    if (present(time      )) this%time       = time
-    if (present(strdata_inputlist_ind)) this%strdata_inputlist_ind = strdata_inputlist_ind
+    if (present(temporal  )) this%temporal     = temporal
+    if (present(year_first)) this%year_first   = year_first
+    if (present(year_last )) this%year_last    = year_last
+    if (present(year_align)) this%year_align   = year_align
+    if (present(date      )) this%date         = date
+    if (present(time      )) this%time         = time
+
+    if (present(strdata_inputlist_ptr)) then
+      ! if specified file and year specs have already been specified in an strdata_inputlist_ptr entry
+      !   then append file_varname to that strdata_inputlist_ptr entry
+      ! otherwise generate a new strdata_inputlist_ptr entry
+
+      associate(n => this%strdata_inputlist_ind)
+        strdata_inputlist_size = size(strdata_inputlist_ptr)
+        do n = 1, strdata_inputlist_size
+          if (strdata_inputlist_ptr(n)%file_name  == this%filename .and. &
+              strdata_inputlist_ptr(n)%year_first == this%year_first .and. &
+              strdata_inputlist_ptr(n)%year_last  == this%year_last .and. &
+              strdata_inputlist_ptr(n)%year_align == this%year_align) then
+            strdata_inputlist_ptr(n)%field_list = trim(strdata_inputlist_ptr(n)%field_list) &
+              // ':' // trim(this%file_varname)
+            exit
+          endif
+        end do
+
+        if (n > strdata_inputlist_size) then
+          allocate(strdata_inputlist_tmp_ptr(1:strdata_inputlist_size+1))
+          do m = 1, strdata_inputlist_size
+            strdata_inputlist_tmp_ptr(m)%timer_label = strdata_inputlist_ptr(m)%timer_label
+            strdata_inputlist_tmp_ptr(m)%year_first  = strdata_inputlist_ptr(m)%year_first
+            strdata_inputlist_tmp_ptr(m)%year_last   = strdata_inputlist_ptr(m)%year_last
+            strdata_inputlist_tmp_ptr(m)%year_align  = strdata_inputlist_ptr(m)%year_align
+            strdata_inputlist_tmp_ptr(m)%file_name   = strdata_inputlist_ptr(m)%file_name
+            strdata_inputlist_tmp_ptr(m)%field_list  = strdata_inputlist_ptr(m)%field_list
+          end do
+
+          deallocate(strdata_inputlist_ptr)
+          strdata_inputlist_ptr => strdata_inputlist_tmp_ptr
+
+          strdata_inputlist_ptr(n)%timer_label = 'marbl_file'
+          strdata_inputlist_ptr(n)%year_first  = this%year_first
+          strdata_inputlist_ptr(n)%year_last   = this%year_last
+          strdata_inputlist_ptr(n)%year_align  = this%year_align
+          strdata_inputlist_ptr(n)%file_name   = this%filename
+          strdata_inputlist_ptr(n)%field_list  = trim(this%file_varname)
+        endif
+
+        this%strdata_var_ind = shr_string_countChar(strdata_inputlist_ptr(n)%field_list, ':') + 1
+      end associate
+    end if
 
   end subroutine forcing_file_init
 
@@ -2560,7 +2584,7 @@ contains
        year_first, year_last, year_align,     &
        date,                                  &
        time,                                  &
-       strdata_inputlist_ind,                 &
+       strdata_inputlist_ptr,                 &
        forcing_calendar_name)
 
     use io_tools        , only : document
@@ -2583,7 +2607,7 @@ contains
     integer (kind=int_kind), optional,   intent(in)    :: year_align
     integer (kind=int_kind), optional,   intent(in)    :: date
     integer (kind=int_kind), optional,   intent(in)    :: time
-    integer (kind=int_kind), optional,   intent(in)    :: strdata_inputlist_ind
+    type(strdata_input_type), optional, intent(inout), pointer   :: strdata_inputlist_ptr(:)
     type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
     !-----------------------------------------------------------------------
@@ -2695,9 +2719,12 @@ contains
 
     case('shr_stream') 
        this%ltime_varying = .true.
-       if (.not.present(filename))     has_valid_inputs = .false.
-       if (.not.present(file_varname)) has_valid_inputs = .false.
-       if (.not.present(strdata_inputlist_ind)) has_valid_inputs = .false.
+       if (.not.present(filename))              has_valid_inputs = .false.
+       if (.not.present(file_varname))          has_valid_inputs = .false.
+       if (.not.present(year_first))            has_valid_inputs = .false.
+       if (.not.present(year_last))             has_valid_inputs = .false.
+       if (.not.present(year_align))            has_valid_inputs = .false.
+       if (.not.present(strdata_inputlist_ptr)) has_valid_inputs = .false.
        if (has_valid_inputs) then
           write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
                                    trim(this%marbl_varname)
@@ -2707,7 +2734,7 @@ contains
                temporal=temporal, year_first=year_first,   &
                year_last=year_last, year_align=year_align, &
                date=date, time=time, &
-               strdata_inputlist_ind=strdata_inputlist_ind)
+               strdata_inputlist_ptr=strdata_inputlist_ptr)
        endif
 
     case('POP monthly calendar') 
@@ -2749,7 +2776,7 @@ contains
        temporal,                            &
        year_first, year_last, year_align,   &
        date, time,                          &
-       strdata_inputlist_ind,               &
+       strdata_inputlist_ptr,               &
        forcing_calendar_name)
 
     class(forcing_fields_type)      , intent(inout) :: this
@@ -2771,7 +2798,7 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_align
     integer(kind=int_kind), optional, intent(in)    :: date
     integer(kind=int_kind), optional, intent(in)    :: time
-    integer(kind=int_kind), optional, intent(in)    :: strdata_inputlist_ind
+    type(strdata_input_type), optional, intent(inout), pointer   :: strdata_inputlist_ptr(:)
     type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
     call this%metadata%set(                              &
@@ -2786,7 +2813,7 @@ contains
          temporal=temporal, year_first=year_first,       &
          year_last=year_last, year_align=year_align,     &
          date=date, time=time,                           &
-         strdata_inputlist_ind=strdata_inputlist_ind,    &
+         strdata_inputlist_ptr=strdata_inputlist_ptr,    &
          forcing_calendar_name=forcing_calendar_name)
 
   end subroutine forcing_fields_add
