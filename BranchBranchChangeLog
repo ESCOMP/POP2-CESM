@@ -1,6 +1,30 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    14 February 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n73_marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: Fixes following Feb 10 code review
+             * more descriptive variable name
+             * tighter error checking in tavg.F90
+             -- must accumulate 3D transpose tavg vars column by column
+             -- must accumulate standard 3D tavg vars level by level
+             -- Only 3D vars can have tranpose_field = .true.
+             * global sums for transpose variables done column by column
+             * Track km on per-field basis for 3D vars (some fields are only
+               accumulated to 150m)
+             * some allocatable variables didn't need to be allocatable
+
+Testing:     Bit-for-bit with marbl_dev__n28 in aux_pop_MARBL test suite
+             testing with yellowstone_intel, yellowstone_gnu, hobart_nag, and
+             hobart_intel
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    9 February 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n72_marbl_dev_n30_cesm_pop_2_1_20170128
 Tag Summary: Push transpose in tavg accumulate to happen when we read / write

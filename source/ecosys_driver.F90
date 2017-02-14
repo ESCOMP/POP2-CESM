@@ -1216,27 +1216,27 @@ contains
     character(*)                 , intent(in)    :: action
     type (datafile)              , intent(inout) :: restart_file
 
-    type (io_field_desc), dimension(:), allocatable, save :: surf_iodesc
-    type (io_field_desc), dimension(:), allocatable, save :: col_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: surface_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: interior_iodesc
     integer :: n
     !-----------------------------------------------------------------------
 
     if (trim(action) == 'define') then
 
-       allocate(surf_iodesc(size(saved_state_surf)))
-       allocate(col_iodesc(size(saved_state_interior)))
+       allocate(surface_iodesc(size(saved_state_surf)))
+       allocate(interior_iodesc(size(saved_state_interior)))
        allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))
     end if
 
     call ecosys_saved_state_write_restart(restart_file, action,               &
-                                          saved_state_surf, surf_iodesc)
+                                          saved_state_surf, surface_iodesc)
     call ecosys_saved_state_write_restart(restart_file, action,               &
-                                          saved_state_interior, col_iodesc)
+                                          saved_state_interior, interior_iodesc)
 
     if (trim(action) == 'write') then
        deallocate(saved_state_field_3d)
-       deallocate(surf_iodesc)
-       deallocate(col_iodesc)
+       deallocate(surface_iodesc)
+       deallocate(interior_iodesc)
     endif
 
   end subroutine ecosys_driver_write_restart

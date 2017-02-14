@@ -109,6 +109,7 @@
       real (rtavg)            :: scale_factor     ! r4 scale factor
       logical                 :: transpose_field  ! accumulate k dim first
       real (r4), dimension(2) :: valid_range      ! min/max
+      integer (i4)            :: km = -1          ! number of vertical levels (km or zt_150m_levs; -1 => 0D, 2D)
       integer (i4)            :: ndims            ! num dims (0, 2 or 3)
       integer (i4)            :: buf_loc          ! location in buffer
       integer (i4)            :: method           ! method for averaging
@@ -503,6 +504,7 @@
       nn,                  &! dummy index
       ns,                  &! dummy index for tavg streams
       i,ip1,j,k,           &! dummy indices
+      nfield,              &   ! field identifier
       iblock,              &! local block index
       loc,                 &! location of field in buffer
       nu,                  &! unit for contents input file
@@ -1258,11 +1260,12 @@
 !  ccsm-specific initializations
 !
 !-----------------------------------------------------------------------
- 
+
+   ! Targets pointed to out of tavg data type!
+   zt_150m_levs = count(zt < 150.0e2_r8)
    if (lccsm) then
 
      !*** how many levels have their midpoint shallower than 150m
-     zt_150m_levs = count(zt < 150.0e2_r8)
      if (.not. allocated(ZT_150m_R)) &
        allocate(ZT_150m_R(zt_150m_levs))
 
@@ -1415,9 +1418,18 @@
    call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', nblocks_clinic, distrb_clinic%nprocs)
    if (n_heat_trans_requested .or. n_salt_trans_requested)  &
    call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', nblocks_clinic, distrb_clinic%nprocs)
-   call get_timer(timer_sum_transpose,  'TAVG_TRANSPOSE_IN_SUM', nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(timer_read_transpose, 'TAVG_READ_TRANSPOSE'  ,  1, distrb_clinic%nprocs)
    call get_timer(timer_write_transpose,'TAVG_WRITE_TRANSPOSE' ,  1, distrb_clinic%nprocs)
+
+   do nfield = 1, num_avail_tavg_fields
+      if (avail_tavg_fields(nfield)%ndims .eq. 3) then
+         if (avail_tavg_fields(nfield)%grid_loc(4:4) .eq. '4') then
+            avail_tavg_fields(nfield)%km = zt_150m_levs
+         else
+            avail_tavg_fields(nfield)%km = km
+         end if
+      end if
+   end do
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2144,7 +2156,7 @@
            loc = avail_tavg_fields(nfield)%buf_loc
            ! Transpose field (and mask it as well)
            do iblock=1,nblocks_clinic
-             do k=1,km
+             do k=1,avail_tavg_fields(nfield)%km
                TAVG_BUF_3D_TEMP(:,:,k,iblock) = merge(TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,loc), &
                                                       avail_tavg_fields(nfield)%fill_value,    &
                                                       k .le. KMT(:,:,iblock))
@@ -2563,11 +2575,10 @@
         if (tavg_in_this_stream(nfield,ns)) then
          call data_set (tavg_file_desc_in, 'read', tavg_fields_in(nfield))
          call destroy_io_field(tavg_fields_in(nfield))
-         if (avail_tavg_fields(nfield)%transpose_field .and. &
-             (avail_tavg_fields(nfield)%ndims .eq. 3)) then
+         if (avail_tavg_fields(nfield)%transpose_field) then
            call timer_start(timer_read_transpose)
            ! Transpose field
-           do k=1,km
+           do k=1,avail_tavg_fields(nfield)%km
              TAVG_BUF_3D_TRANSPOSE(k,:,:,:,loc) = TAVG_BUF_3D_TEMP(:,:,k,:)
            end do
            call timer_stop(timer_read_transpose)
@@ -2631,6 +2642,7 @@
 !-----------------------------------------------------------------------
 
    integer (i4) ::     &
+      i,j,             &   ! horizontal indices
       k,               &   ! vertical level index
       ifield,          &   ! field identifier
       iblock,          &   ! block index
@@ -2642,13 +2654,11 @@
       tavg_field_sum,  &   ! sum of tavg field
       tavg_norm            ! normalization for average
 
-   real (r8), dimension (:,:,:), allocatable ::  &
+   real (r8), dimension (nx_block, ny_block, nblocks_clinic) :: &
       WORK               ! temp for holding area_weighted field
 
-   real (r8), dimension (:,:), allocatable ::  &
-      RMASK,            &! topography mask for global sum
-      TMP_3D             ! temporary array to transpose 3D data that is k,i,j
-                         ! or just copy data this is already i,j,k
+   real (r8), dimension (nx_block, ny_block) :: &
+      RMASK              ! topography mask for global sum
 
    character (char_len) ::  &
       time_string,          &
@@ -2659,10 +2669,6 @@
 !  calculate globally-integrated time average of each chosen 2d field
 !
 !-----------------------------------------------------------------------
-
-   allocate (RMASK (nx_block,ny_block), &
-             TMP_3D(nx_block,ny_block), &
-             WORK  (nx_block,ny_block,nblocks_clinic))
 
    call time_stamp ('now','mdy',date_string=date_string,time_string=time_string)
 
@@ -2746,45 +2752,40 @@
                select case(field_loc)
 
                case(field_loc_center)
-                  do k=1,km
-                     RMASK(:,:) = merge(c1, c0, k <= KMT(:,:,iblock))
-                     if (avail_tavg_fields(nfield)%transpose_field) then
-                       call timer_start(timer_sum_transpose)
-                       TMP_3D = TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,ifield)
-                       call timer_stop(timer_sum_transpose)
-                     else
-                       TMP_3D = TAVG_BUF_3D(:,:,k,iblock,ifield)
-                     end if
-                     WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
-                                        TMP_3D*TAREA(:,:,iblock)*RMASK
-                  end do
+                  if (avail_tavg_fields(nfield)%transpose_field) then
+                     do j=1,ny_block
+                        do i=1,nx_block
+                           WORK(i,j,iblock) = c0
+                           do k=1,min(KMT(i,j,iblock),avail_tavg_fields(nfield)%km)
+                              WORK(i,j,iblock) = WORK(i,j,iblock) + dz(k)*    &
+                                                 TAVG_BUF_3D_TRANSPOSE(k,i,j,iblock,ifield)
+                           end do
+                           WORK(i,j,iblock)=WORK(i,j,iblock)*TAREA(i,j,iblock)
+                        end do
+                     end do
+                  else
+                     do k=1,km
+                        RMASK(:,:) = merge(c1, c0, k <= KMT(:,:,iblock))
+                        WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
+                                           TAVG_BUF_3D(:,:,k,iblock,ifield)* &
+                                           TAREA(:,:,iblock)*RMASK
+                     end do
+                  end if
 
                case(field_loc_NEcorner)
                   do k=1,km
                      RMASK(:,:) = merge(c1, c0, k <= KMU(:,:,iblock)) 
-                     if (avail_tavg_fields(nfield)%transpose_field) then
-                       call timer_start(timer_sum_transpose)
-                       TMP_3D = TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,ifield)
-                       call timer_stop(timer_sum_transpose)
-                     else
-                       TMP_3D = TAVG_BUF_3D(:,:,k,iblock,ifield)
-                     end if
                      WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
-                                        TMP_3D*UAREA(:,:,iblock)*RMASK
+                                        TAVG_BUF_3D(:,:,k,iblock,ifield)* &
+                                        UAREA(:,:,iblock)*RMASK
                   end do
 
                case default ! make U cell the default for all other cases
                   do k=1,km
                      RMASK(:,:) = merge(c1, c0, k <= KMU(:,:,iblock)) 
-                     if (avail_tavg_fields(nfield)%transpose_field) then
-                       call timer_start(timer_sum_transpose)
-                       TMP_3D = TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,ifield)
-                       call timer_stop(timer_sum_transpose)
-                     else
-                       TMP_3D = TAVG_BUF_3D(:,:,k,iblock,ifield)
-                     end if
                      WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
-                                        TMP_3D*UAREA(:,:,iblock)*RMASK
+                                        TAVG_BUF_3D(:,:,k,iblock,ifield)* &
+                                        UAREA(:,:,iblock)*RMASK
                   end do
 
                end select
@@ -2811,8 +2812,6 @@
        endif ! tavg_in_this_stream
       endif ! ifield > 0
    end do fields_loop
-
-   deallocate (RMASK, TMP_3D, WORK)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3127,9 +3126,14 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
+   if (avail_tavg_fields(field_id)%transpose_field) then
+     exit_string = 'FATAL ERROR: can not accumulate transposed field level by level'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   end if
+
    if ((ndims == 3) .and. &
-       (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') .and. &
-       (k > zt_150m_levs)) return
+       (k > avail_tavg_fields(field_id)%km)) return
 
 !-----------------------------------------------------------------------
 !
@@ -3144,13 +3148,8 @@
          TAVG_BUF_2D(:,:,block,bufloc) = &
          TAVG_BUF_2D(:,:,block,bufloc) + dtavg*ARRAY
       else
-         if (avail_tavg_fields(field_id)%transpose_field) then
-            TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc) = &
-            TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc) + dtavg*ARRAY
-         else
-            TAVG_BUF_3D(:,:,k,block,bufloc) = &
-            TAVG_BUF_3D(:,:,k,block,bufloc) + dtavg*ARRAY
-         endif
+         TAVG_BUF_3D(:,:,k,block,bufloc) = &
+         TAVG_BUF_3D(:,:,k,block,bufloc) + dtavg*ARRAY
       endif
    case (tavg_method_qflux)
          TAVG_BUF_2D(:,:,block,bufloc) =  &
@@ -3161,15 +3160,9 @@
             TAVG_BUF_2D(:,:,block,bufloc) = ARRAY
          end where
       else
-         if (avail_tavg_fields(field_id)%transpose_field) then
-            where (ARRAY < TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc))
-               TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc) = ARRAY
-            end where
-         else
-            where (ARRAY < TAVG_BUF_3D(:,:,k,block,bufloc))
-               TAVG_BUF_3D(:,:,k,block,bufloc) = ARRAY
-            end where
-         endif
+         where (ARRAY < TAVG_BUF_3D(:,:,k,block,bufloc))
+            TAVG_BUF_3D(:,:,k,block,bufloc) = ARRAY
+         end where
       endif
    case (tavg_method_max)  ! replace with current minimum value
       if (ndims == 2) then
@@ -3177,25 +3170,15 @@
             TAVG_BUF_2D(:,:,block,bufloc) = ARRAY
          end where
       else
-         if (avail_tavg_fields(field_id)%transpose_field) then
-            where (ARRAY > TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc))
-               TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc) = ARRAY
-            end where
-         else
-            where (ARRAY > TAVG_BUF_3D(:,:,k,block,bufloc))
-               TAVG_BUF_3D(:,:,k,block,bufloc) = ARRAY
-            end where
-         endif
+         where (ARRAY > TAVG_BUF_3D(:,:,k,block,bufloc))
+            TAVG_BUF_3D(:,:,k,block,bufloc) = ARRAY
+         end where
       endif
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
       if (ndims == 2) then
          TAVG_BUF_2D(:,:,block,bufloc) = ARRAY
       else
-         if (avail_tavg_fields(field_id)%transpose_field) then
-            TAVG_BUF_3D_TRANSPOSE(k,:,:,block,bufloc) = ARRAY
-         else
-            TAVG_BUF_3D(:,:,k,block,bufloc) = ARRAY
-         endif
+         TAVG_BUF_3D(:,:,k,block,bufloc) = ARRAY
       endif
    case default
    end select
@@ -3379,11 +3362,13 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
-   if (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') then
-     kmax = zt_150m_levs
-   else
-     kmax = km
+   if (.not.avail_tavg_fields(field_id)%transpose_field) then
+     exit_string = 'FATAL ERROR: can not accumulate non-transposed field column by column'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    end if
+
+   kmax = avail_tavg_fields(field_id)%km
 
 !-----------------------------------------------------------------------
 !
@@ -3394,39 +3379,18 @@
    select case (avail_tavg_fields(field_id)%method)
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
-      if (avail_tavg_fields(field_id)%transpose_field) then
-        TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = &
-        TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) + dtavg*COL(1:kmax)
-      else
-        TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = &
-        TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL(1:kmax)
-      end if
+      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = &
+      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) + dtavg*COL(1:kmax)
    case (tavg_method_min)  ! replace with current minimum value
-      if (avail_tavg_fields(field_id)%transpose_field) then
-         where (COL(1:kmax).lt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
-            TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
-         end where
-      else
-         where (COL(1:kmax).lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-            TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
-         end where
-      end if
-   case (tavg_method_max)  ! replace with current minimum value
-      if (avail_tavg_fields(field_id)%transpose_field) then
-         where (COL(1:kmax).gt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
-            TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
-         end where
-      else
-         where (COL(1:kmax).gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-            TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
-         end where
-      end if
-   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      if (avail_tavg_fields(field_id)%transpose_field) then
+      where (COL(1:kmax).lt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
          TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
-      else
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
-      end if
+      end where
+   case (tavg_method_max)  ! replace with current minimum value
+      where (COL(1:kmax).gt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
+         TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
+      end where
+   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
+      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
    case default
    end select
 
@@ -4162,6 +4126,11 @@
    endif
 
    if (present(transpose_field)) then
+     if (transpose_field .and. (ndims .ne. 3)) then
+       exit_string = 'FATAL ERROR: tranpose_field can only be .true. for 3D vars'
+       call document ('define_tavg_field', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
+     end if
      tavg_field%transpose_field = transpose_field
    else
      tavg_field%transpose_field = .false.

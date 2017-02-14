@@ -513,7 +513,7 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  subroutine ecosys_saved_state_write_restart(restart_file, action, state, io_desc)
+  subroutine ecosys_saved_state_write_restart(restart_file, action, state, iodesc)
 
     use domain     , only : nblocks_clinic
     use domain_size, only : nx_global
@@ -535,7 +535,7 @@ Contains
     type (datafile),                             intent(inout) :: restart_file
     character(*),                                intent(in)    :: action
     type(ecosys_saved_state_type), dimension(:), intent(in)    :: state
-    type(io_field_desc),           dimension(:), intent(inout) :: io_desc
+    type(io_field_desc),           dimension(:), intent(inout) :: iodesc
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
@@ -553,23 +553,23 @@ Contains
       do n=1,size(state)
         select case (state(n)%rank)
           case (2)
-            io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
-                         j_dim, units = trim(state(n)%units), grid_loc = '2110',&
-                         field_loc  = field_loc_center,                         &
-                         field_type = field_type_scalar,                        &
-                         d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
+            iodesc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                        j_dim, units = trim(state(n)%units), grid_loc = '2110',&
+                        field_loc  = field_loc_center,                         &
+                        field_type = field_type_scalar,                        &
+                        d2d_array  = state(n)%field_2d(:,:,1:nblocks_clinic))
           case (3)
-            io_desc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
-                         j_dim, k_dim,                                          &
-                         units = trim(state(n)%units), grid_loc = '3111',       &
-                         field_loc  = field_loc_center,                         &
-                         field_type = field_type_scalar,                        &
-                         d3d_array  = saved_state_field_3d(:,:,:,1:nblocks_clinic))
+            iodesc(n) = construct_io_field(trim(state(n)%file_varname), i_dim, &
+                        j_dim, k_dim,                                          &
+                        units = trim(state(n)%units), grid_loc = '3111',       &
+                        field_loc  = field_loc_center,                         &
+                        field_type = field_type_scalar,                        &
+                        d3d_array  = saved_state_field_3d(:,:,:,1:nblocks_clinic))
         end select
         write(log_message, "(3A)") "Setting up IO field for ",                  &
                                    trim(state(n)%file_varname), " (in restart)"
         call document(subname, log_message)
-        call data_set (restart_file, 'define', io_desc(n))
+        call data_set (restart_file, 'define', iodesc(n))
       end do
     else if (trim(action) .eq. 'write') then
       do n=1,size(state)
@@ -578,7 +578,7 @@ Contains
             saved_state_field_3d(:,:,k,:) = state(n)%field_3d(k, :,:,:)
           end do
         end if
-        call data_set (restart_file, 'write', io_desc(n))
+        call data_set (restart_file, 'write', iodesc(n))
       end do
     end if
 
