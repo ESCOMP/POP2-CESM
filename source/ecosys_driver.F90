@@ -56,6 +56,8 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
+  use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
   ! Provide marbl_tracer_cnt to passive_tracers.F90 (as ecosys_tracer_cnt)
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracer_cnt => marbl_tracer_cnt
@@ -117,6 +119,8 @@ module ecosys_driver
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
   integer :: flux_co2_id
   integer :: totalChl_id
+
+  real (r8), allocatable :: riv_flux(:, :, :, :)
 
   ! Variables related to global averages
 
@@ -474,6 +478,19 @@ contains
     di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
     call document(subname, 'di14c_ind', di14c_ind)
 
+    no3_ind   = marbl_instances(1)%get_tracer_index('NO3')
+    po4_ind   = marbl_instances(1)%get_tracer_index('PO4')
+    don_ind   = marbl_instances(1)%get_tracer_index('DON')
+    donr_ind  = marbl_instances(1)%get_tracer_index('DONr')
+    dop_ind   = marbl_instances(1)%get_tracer_index('DOP')
+    dopr_ind  = marbl_instances(1)%get_tracer_index('DOPr')
+    sio3_ind  = marbl_instances(1)%get_tracer_index('SiO3')
+    fe_ind    = marbl_instances(1)%get_tracer_index('Fe')
+    doc_ind   = marbl_instances(1)%get_tracer_index('DOC')
+    docr_ind  = marbl_instances(1)%get_tracer_index('DOCr')
+    do13c_ind = marbl_instances(1)%get_tracer_index('DO13C')
+    do14c_ind = marbl_instances(1)%get_tracer_index('DO14C')
+
     ! forcing module requires two MARBL parameter values (set during init)
     call marbl_instances(1)%parameters%get('iron_frac_in_dust', fe_frac_dust, &
                                            ecosys_status_log)
@@ -488,6 +505,10 @@ contains
       call ecosys_status_log%log_error_trace('parameters%get(iron_frac_in_bc)', subname)
       call print_marbl_log(ecosys_status_log, 1)
     end if
+
+    allocate(riv_flux(nx_block, ny_block, ecosys_tracer_cnt, nblocks_clinic))
+
+    riv_flux(:,:,:,:) = c0
 
     ! pass ecosys_forcing_data_nml
     ! to ecosys_forcing_init()
@@ -873,6 +894,8 @@ contains
     integer (int_kind) :: glo_scalar_cnt
     !-----------------------------------------------------------------------
 
+    call timer_start(ecosys_set_sflux_timer)
+
     !-----------------------------------------------------------------------
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
@@ -886,13 +909,12 @@ contains
          dust_flux,                       &
          black_carbon_flux,               &
          sst,                             &
-         sss)
+         sss,                             &
+         riv_flux)
 
     !-----------------------------------------------------------------------
     ! Set output surface tracer fluxes
     !-----------------------------------------------------------------------
-
-    call timer_start(ecosys_set_sflux_timer)
 
     call ecosys_driver_set_global_scalars('surface')
 
@@ -973,6 +995,18 @@ contains
              glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface(index_marbl,:)
           enddo
        end do
+
+       !-----------------------------------------------------------------------
+       ! add riv_flux terms to stf
+       !-----------------------------------------------------------------------
+
+       do n = 1, ecosys_tracer_cnt
+         stf_module(:,:,n,iblock) = stf_module(:,:,n,iblock) + riv_flux(:,:,n,iblock)
+       end do
+
+       ! subtract NO3 riv_flux term from stf ALK
+
+       stf_module(:,:,alk_ind,iblock) = stf_module(:,:,alk_ind,iblock) - riv_flux(:,:,no3_ind,iblock)
 
     enddo ! end loop over iblock
 
@@ -1162,7 +1196,7 @@ contains
 
     implicit none
 
-    call ecosys_tavg_accumulate_flux(surface_forcing_diags, marbl_instances(:))
+    call ecosys_tavg_accumulate_flux(surface_forcing_diags, riv_flux, marbl_instances(:))
 
   end subroutine ecosys_driver_tavg_forcing
 
@@ -1372,4 +1406,3 @@ contains
 end module ecosys_driver
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-

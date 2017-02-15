@@ -51,6 +51,8 @@
   integer (int_kind) :: tavg_DpCO2_2        ! delta pco2 duplicate
   integer (int_kind) :: tavg_DIC_GAS_FLUX_2 ! dic flux duplicate
 
+  integer (int_kind), allocatable, public :: tavg_riv_flux(:)
+
   !***********************************************************************
 
 contains
@@ -62,6 +64,8 @@ contains
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
 
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
     implicit none
 
     type(marbl_interface_class)  , intent(in) :: marbl_instance
@@ -70,6 +74,8 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
+    character(char_len) :: sname, lname
+    integer (int_kind) :: n
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -127,6 +133,31 @@ contains
                            long_name='DIC Surface Gas Flux',            &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
+
+    allocate(tavg_riv_flux(marbl_tracer_cnt))
+
+    do n = 1, marbl_tracer_cnt
+      associate (tracer_metadata => marbl_instance%tracer_metadata(n))
+        select case (tracer_metadata%short_name)
+          case ('NO3')
+            sname = 'DIN_RIV_FLUX'
+          case ('PO4')
+            sname = 'DIP_RIV_FLUX'
+          case ('SiO3')
+            sname = 'DSI_RIV_FLUX'
+          case ('Fe')
+            sname = 'DFE_RIV_FLUX'
+          case ('DI13C', 'DO13C', 'DI14C', 'DO14C')
+            sname = 'CISO_' // trim(tracer_metadata%short_name) // '_RIV_FLUX'
+          case default
+            sname = trim(tracer_metadata%short_name) // '_RIV_FLUX'
+        end select
+        lname = trim(tracer_metadata%short_name) // ' Riverine Flux'
+        call define_tavg_field(tavg_riv_flux(n),sname,2,long_name=lname,          &
+                               units=tracer_metadata%flux_units, grid_loc='2110', &
+                               coordinates='TLONG TLAT time')
+      end associate
+    end do
 
   end subroutine ecosys_tavg_init
 
@@ -199,21 +230,24 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_flux(surface_forcing_diags, marbl_instances)
+  subroutine ecosys_tavg_accumulate_flux(surface_forcing_diags, riv_flux, marbl_instances)
 
     ! Compute diagnostics for surface fluxes
 
-    use marbl_diagnostics_mod, only : ind => marbl_surface_forcing_diag_ind
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+    use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
+    use ecosys_forcing_mod,                 only : riv_flux_forcing_fields
 
     implicit none
 
     real (r8)                  , intent(in) :: surface_forcing_diags (:, :, :, :)
+    real (r8)                  , intent(in) :: riv_flux (:, :, :, :)
     type(marbl_interface_class), intent(in) :: marbl_instances(:)
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer :: i, iblock
+    integer :: i, n, iblock
     integer :: nblocks_clinic
     !-----------------------------------------------------------------------
 
@@ -245,6 +279,10 @@ contains
             tavg_DIC_GAS_FLUX_2, iblock, 1)
 
        end associate
+
+       do n = 1, marbl_tracer_cnt
+          call accumulate_tavg_field(riv_flux(:,:,n,iblock), tavg_riv_flux(n), iblock, 1)
+       end do
 
     end do
     !$OMP END PARALLEL DO

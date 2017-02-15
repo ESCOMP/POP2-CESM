@@ -50,12 +50,24 @@ module ecosys_tracers_and_saved_state_mod
   ! # of tracers expected from MARBL
   integer(int_kind), parameter, public :: marbl_tracer_cnt = MARBL_NT
 
-  ! Indices of tracers needed for virtual flux
+  ! Indices of tracers needed for virtual flux or river fluxes
   integer(int_kind), public :: dic_ind
   integer(int_kind), public :: alk_ind
   integer(int_kind), public :: dic_alt_co2_ind
   integer(int_kind), public :: di13c_ind
   integer(int_kind), public :: di14c_ind
+  integer(int_kind), public :: no3_ind
+  integer(int_kind), public :: po4_ind
+  integer(int_kind), public :: don_ind
+  integer(int_kind), public :: donr_ind
+  integer(int_kind), public :: dop_ind
+  integer(int_kind), public :: dopr_ind
+  integer(int_kind), public :: sio3_ind
+  integer(int_kind), public :: fe_ind
+  integer(int_kind), public :: doc_ind
+  integer(int_kind), public :: docr_ind
+  integer(int_kind), public :: do13c_ind
+  integer(int_kind), public :: do14c_ind
 
   !---------------------------------------------------------------------
   !  Private variables read in via &ecosys_tracer_init_nml

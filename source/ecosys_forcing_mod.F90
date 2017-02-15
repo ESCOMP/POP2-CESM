@@ -126,6 +126,7 @@ module ecosys_forcing_mod
     procedure, public :: add_forcing_field => forcing_fields_add
   end type forcing_fields_type
 
+  type(forcing_fields_type), dimension(:), allocatable, public :: riv_flux_forcing_fields
   type(forcing_fields_type), dimension(:), allocatable, public :: surface_forcing_fields
   type(forcing_fields_type), dimension(:), allocatable, public :: interior_forcing_fields
 
@@ -218,6 +219,13 @@ module ecosys_forcing_mod
   type(forcing_monthly_every_ts), target :: ap_file_loc
   type(forcing_monthly_every_ts), target :: nox_flux_monthly_file_loc
   type(forcing_monthly_every_ts), target :: nhy_flux_monthly_file_loc
+
+  type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
+
+  ! Surface and interior forcing fields
+  real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
+  real(r8)         :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
+
   type(forcing_monthly_every_ts), target :: din_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: dip_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: don_riv_flux_file_loc
@@ -227,13 +235,6 @@ module ecosys_forcing_mod
   type(forcing_monthly_every_ts), target :: dic_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: alk_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: doc_riv_flux_file_loc
-
-  type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
-
-  ! Surface and interior forcing fields
-  real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
-  real(r8)         :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
-
 
   !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
   !  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
@@ -260,10 +261,12 @@ module ecosys_forcing_mod
                        ap_ind       = 0, &
                        sst_ind      = 0, &
                        sss_ind      = 0, &
+                       ext_C_flux_ind = 0, &
+                       ext_P_flux_ind = 0, &
+                       ext_Si_flux_ind = 0, &
                        u10sqr_ind   = 0, &
                        d13c_ind     = 0, &
-                       d14c_ind     = 0, &
-                       d14c_glo_ind = 0
+                       d14c_ind     = 0
 
   ! We also need to track the indices of all the interior forcing fields
   integer(int_kind), public :: dustflux_ind       = 0, &
@@ -284,6 +287,7 @@ module ecosys_forcing_mod
 
   real(r8) :: iron_frac_in_dust
   real(r8) :: iron_frac_in_bc
+  real(r8), public :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
 
   !*****************************************************************************
 
@@ -426,7 +430,7 @@ contains
     restore_year_last(:)          = 1
     restore_year_align(:)         = 1
     restore_scale_factor(:)       = c1
-  
+
     restore_inv_tau_opt   = 'const'
     restore_inv_tau_const = c0
 
@@ -474,7 +478,7 @@ contains
 
     surf_avg(alk_ind) = surf_avg_alk_const
     vflux_flag(alk_ind) = .true.
-    
+
     if (ciso_on) then
        if (any((/di13c_ind, di14c_ind/).eq.0)) then
          call document(subname, 'di13c_ind and di14c_ind must be non-zero')
@@ -493,6 +497,118 @@ contains
     call get_timer(ecosys_interior_strdata_advance_timer, 'ecosys_interior_strdata_advance', 1, distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------------
+    !  River flux forcing
+    !--------------------------------------------------------------------------
+
+    units         = 'nmol/cm^2/s'
+
+    allocate(riv_flux_forcing_fields(9))
+
+    n = 1
+
+    marbl_varname = 'DIN_RIV_FLUX'
+    din_riv_flux_file_loc%input = din_riv_flux_input
+    file_details => din_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DIP_RIV_FLUX'
+    dip_riv_flux_file_loc%input = dip_riv_flux_input
+    file_details => dip_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DON_RIV_FLUX'
+    don_riv_flux_file_loc%input = don_riv_flux_input
+    file_details => don_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DOP_RIV_FLUX'
+    dop_riv_flux_file_loc%input = dop_riv_flux_input
+    file_details => dop_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DSI_RIV_FLUX'
+    dsi_riv_flux_file_loc%input = dsi_riv_flux_input
+    file_details => dsi_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DFE_RIV_FLUX'
+    dfe_riv_flux_file_loc%input = dfe_riv_flux_input
+    file_details => dfe_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DIC_RIV_FLUX'
+    dic_riv_flux_file_loc%input = dic_riv_flux_input
+    file_details => dic_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'ALK_RIV_FLUX'
+    alk_riv_flux_file_loc%input = alk_riv_flux_input
+    file_details => alk_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    n = n + 1
+
+    marbl_varname = 'DOC_RIV_FLUX'
+    doc_riv_flux_file_loc%input = doc_riv_flux_input
+    file_details => doc_riv_flux_file_loc
+    call init_monthly_surface_forcing_metadata(file_details)
+    call riv_flux_forcing_fields(n)%add_forcing_field( &
+         field_source='POP monthly calendar', marbl_varname=marbl_varname, &
+         field_units=units, forcing_calendar_name=file_details, id=n)
+
+    if (n /= size(riv_flux_forcing_fields)) then
+      call document(subname, 'riv_flux_forcing_fields entry count', n)
+      call document(subname, 'size(riv_flux_forcing_fields)', size(riv_flux_forcing_fields))
+      call exit_POP(sigAbort, 'mismatch between riv_flux_forcing_fields entry count and size(riv_flux_forcing_fields)')
+    endif
+
+    do n = 1, size(riv_flux_forcing_fields)
+      ! All riv_flux forcing fields are 0d
+      allocate(riv_flux_forcing_fields(n)%field_0d(nx_block, ny_block, nblocks_clinic))
+
+      ! Zero out riv_forcing field.
+      riv_flux_forcing_fields(n)%field_0d = c0
+    end do
+
+    !--------------------------------------------------------------------------
     !  Surface forcing
     !--------------------------------------------------------------------------
 
@@ -504,15 +620,6 @@ contains
     iron_flux_file_loc%input        = iron_flux_input
     nox_flux_monthly_file_loc%input = nox_flux_monthly_input
     nhy_flux_monthly_file_loc%input = nhy_flux_monthly_input
-    din_riv_flux_file_loc%input     = din_riv_flux_input
-    dip_riv_flux_file_loc%input     = dip_riv_flux_input
-    don_riv_flux_file_loc%input     = don_riv_flux_input
-    dop_riv_flux_file_loc%input     = dop_riv_flux_input
-    dsi_riv_flux_file_loc%input     = dsi_riv_flux_input
-    dfe_riv_flux_file_loc%input     = dfe_riv_flux_input
-    dic_riv_flux_file_loc%input     = dic_riv_flux_input
-    alk_riv_flux_file_loc%input     = alk_riv_flux_input
-    doc_riv_flux_file_loc%input     = doc_riv_flux_input
 
     allocate(surface_forcing_fields(size(marbl_req_surface_forcing_fields)))
 
@@ -540,12 +647,6 @@ contains
           call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
                                marbl_varname=marbl_varname, field_units=units,      &
                                driver_varname='D14C', id=n)
-
-        case ('d14c_gloavg')
-          d14c_glo_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='D14C_GLOAVG', id=n)
 
         case ('u10_sqr')
           u10sqr_ind = n
@@ -733,77 +834,23 @@ contains
             call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
-        case ('DIN River Flux')
-          file_details => din_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
+        case ('external C Flux')
+          ext_C_flux_ind = n
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
+                               driver_varname='ext_C_flux', id=n)
 
-        case ('DIP River Flux')
-          file_details => dip_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
+        case ('external P Flux')
+          ext_P_flux_ind = n
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
+                               driver_varname='ext_P_flux', id=n)
 
-        case ('DON River Flux')
-          file_details => don_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
-
-        case ('DOP River Flux')
-          file_details => dop_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
-
-        case ('DSi River Flux')
-          file_details => dsi_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
-
-        case ('DFe River Flux')
-          file_details => dfe_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
-
-        case ('DIC River Flux')
-          file_details => dic_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
-
-        case ('ALK River Flux')
-          file_details => alk_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
-
-        case ('DOC River Flux')
-          file_details => doc_riv_flux_file_loc
-          call init_monthly_surface_forcing_metadata(file_details)
-          call surface_forcing_fields(n)%add_forcing_field(                    &
-                               field_source='POP monthly calendar',            &
-                               marbl_varname=marbl_varname, field_units=units, &
-                               forcing_calendar_name=file_details, id=n)
+        case ('external Si Flux')
+          ext_Si_flux_ind = n
+          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                               marbl_varname=marbl_varname, field_units=units,      &
+                               driver_varname='ext_Si_flux', id=n)
 
         case DEFAULT
           write(err_msg, "(A,1X,A)") trim(marbl_req_surface_forcing_fields(n)%metadata%varname), &
@@ -986,8 +1033,12 @@ contains
 
     call set_time_invariant_forcing_data(surface_forcing_fields)
     call set_time_invariant_forcing_data(interior_forcing_fields)
+
+    call read_monthly_calendar_forcing_data(riv_flux_forcing_fields, land_mask)
     call read_monthly_calendar_forcing_data(surface_forcing_fields, land_mask)
+
     call forcing_init_post_processing(land_mask)
+
     call mask_time_invariant_forcing_data(surface_forcing_fields, land_mask)
     call mask_time_invariant_forcing_data(interior_forcing_fields, land_mask)
 
@@ -1067,7 +1118,7 @@ contains
         if (trim(metadata%field_source).eq.'POP monthly calendar') then
            file => metadata%field_monthly_calendar_info%forcing_calendar_name
 
-           allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))  
+           allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))
            if (trim(file%input%filename) == 'unknown') then
               file%input%filename = gas_flux_forcing_file
            end if
@@ -1143,15 +1194,15 @@ contains
       ! apply unit_conv_factor to all non-time-varying interior and surface forcing fields
       !-----------------------------------------------------------------------
 
-      do n=1,size(interior_forcing_fields)
-        if (.not. interior_forcing_fields(n)%metadata%ltime_varying) then
-           call apply_unit_conv_factor(land_mask(:,:,iblock), interior_forcing_fields(n), iblock)
-        end if
-      end do
-
       do n=1,size(surface_forcing_fields)
         if (.not. surface_forcing_fields(n)%metadata%ltime_varying) then
            call apply_unit_conv_factor(land_mask(:,:,iblock), surface_forcing_fields(n), iblock)
+        end if
+      end do
+
+      do n=1,size(interior_forcing_fields)
+        if (.not. interior_forcing_fields(n)%metadata%ltime_varying) then
+           call apply_unit_conv_factor(land_mask(:,:,iblock), interior_forcing_fields(n), iblock)
         end if
       end do
 
@@ -1312,7 +1363,7 @@ contains
 
   subroutine ecosys_forcing_set_interior_time_varying_forcing_data( &
          FRACR_BIN, QSW_RAW_BIN, QSW_BIN, ecosys_qsw_distrb_const, land_mask)
-  
+
     use blocks                , only : get_block
     use constants             , only : p5, salt_to_ppt
     use domain                , only : blocks_clinic
@@ -1461,13 +1512,14 @@ contains
        dust_flux,                             &
        black_carbon_flux,                     &
        sst,                                   &
-       sss)
+       sss,                                   &
+       riv_flux)
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
 
-    use POP_HaloMod           , only : POP_HaloUpdate 
-    use POP_GridHorzMod       , only : POP_gridHorzLocCenter 
+    use POP_HaloMod           , only : POP_HaloUpdate
+    use POP_GridHorzMod       , only : POP_gridHorzLocCenter
     use POP_FieldMod          , only : POP_fieldKindScalar
     use POP_ErrorMod          , only : POP_Success
     use domain                , only : POP_haloClinic
@@ -1487,10 +1539,13 @@ contains
     use time_management       , only : iyear
     use time_management       , only : thour00
     use strdata_interface_mod , only : POP_strdata_create
-    use strdata_interface_mod , only : POP_strdata_advance 
+    use strdata_interface_mod , only : POP_strdata_advance
     use passive_tracer_tools  , only : read_field
     use marbl_constants_mod   , only : molw_Fe
 
+    use ecosys_tracers_and_saved_state_mod, only : dic_ind, doc_ind, docr_ind
+    use ecosys_tracers_and_saved_state_mod, only : po4_ind, dop_ind, dopr_ind
+    use ecosys_tracers_and_saved_state_mod, only : sio3_ind
 
     implicit none
 
@@ -1502,7 +1557,9 @@ contains
     real (r8), intent(in)  :: dust_flux            (nx_block,ny_block,max_blocks_clinic) ! dust flux (g/cm**2/s)
     real (r8), intent(in)  :: black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux (g/cm**2/s)
     real (r8), intent(in)  :: sst                  (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
-    real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)    
+    real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
+
+    real (r8), intent(inout) :: riv_flux(:, :, :, :)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1520,7 +1577,6 @@ contains
     real      (r8)                 :: shr_stream(nx_block, ny_block, max_blocks_clinic)
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
-    real      (r8)                 :: d14c_glo_avg                                          ! global average D14C over the ocean, computed from current D14C field
     type(forcing_monthly_every_ts), pointer :: file
     integer   (int_kind)          :: stream_index                                           ! index into surface_strdata_inputlist_ptr array
     integer   (int_kind)          :: var_ind                                                ! var index in surface_strdata_inputlist_ptr entry
@@ -1534,7 +1590,7 @@ contains
     !-----------------------------------------------------------------------
 
     if (ciso_on) then
-       call ciso_update_atm_D13C_D14C(land_mask, d13c, d14c, d14c_glo_avg)
+       call ciso_update_atm_D13C_D14C(land_mask, d13c, d14c)
     end if
 
     !-----------------------------------------------------------------------
@@ -1563,7 +1619,76 @@ contains
     call timer_stop(ecosys_surface_strdata_advance_timer)
 
     !-----------------------------------------------------------------------
-    !  loop through forcing fields
+    !  loop through riv_flux forcing fields
+    !-----------------------------------------------------------------------
+
+    do index = 1, size(riv_flux_forcing_fields)
+       associate (forcing_field => riv_flux_forcing_fields(index), &
+                  metadata      => riv_flux_forcing_fields(index)%metadata)
+          select case (metadata%field_source)
+
+          !------------------------------------
+          case ('POP monthly calendar')
+          !------------------------------------
+
+             file => metadata%field_monthly_calendar_info%forcing_calendar_name
+
+             if (file%has_data) then
+                if (thour00 >= file%data_update) then
+                   tracer_data_names(1) = file%input%file_varname
+                   tracer_bndy_loc(1)   = field_loc_center
+                   tracer_bndy_type(1)  = field_type_scalar
+                   call update_forcing_data(                            &
+                        forcing_time         = file%data_time,          &
+                        forcing_time_min_loc = file%data_time_min_loc,  &
+                        forcing_interp_type  = file%interp_type,        &
+                        forcing_data_next    = file%data_next,          &
+                        forcing_data_update  = file%data_update,        &
+                        forcing_data_type    = file%data_type,          &
+                        forcing_data_inc     = file%data_inc,           &
+                        field                = file%data(:,:,:,:,1:12), &
+                        forcing_data_rescale = file%data_renorm,        &
+                        forcing_data_label   = metadata%marbl_varname,  &
+                        forcing_data_names   = tracer_data_names,       &
+                        forcing_bndy_loc     = tracer_bndy_loc,         &
+                        forcing_bndy_type    = tracer_bndy_type,        &
+                        forcing_infile       = file%filename,           &
+                        forcing_infile_fmt   = file%input%file_fmt)
+                endif
+
+                call interpolate_forcing(                            &
+                     interp               = interp_work,             &
+                     field                = file%data(:,:,:,:,1:12), &
+                     forcing_time         = file%data_time,          &
+                     forcing_interp_type  = file%interp_type,        &
+                     forcing_time_min_loc = file%data_time_min_loc,  &
+                     forcing_interp_freq  = file%interp_freq,        &
+                     forcing_interp_inc   = file%interp_inc,         &
+                     forcing_interp_next  = file%interp_next,        &
+                     forcing_interp_last  = file%interp_last,        &
+                     nsteps_run_check     = 0)
+
+                forcing_field%field_0d = interp_work(:,:,:,1)
+             endif
+
+          end select ! file, constant, driver, shr_stream
+
+          if (metadata%ltime_varying) then
+             do iblock = 1, nblocks_clinic
+                call apply_unit_conv_factor(land_mask(:,:,iblock), forcing_field, iblock)
+             enddo
+          end if
+       end associate
+    end do  ! index
+
+    !-----------------------------------------------------------------------
+    ! compute river fluxes
+    !-----------------------------------------------------------------------
+
+    call comp_riv_flux(ciso_on, riv_flux)
+
+    !-----------------------------------------------------------------------
+    !  loop through surface forcing fields
     !-----------------------------------------------------------------------
 
     do index = 1, size(surface_forcing_fields)
@@ -1653,6 +1778,17 @@ contains
                 else if (index == sss_ind) then
                    forcing_field%field_0d(:,:,iblock) = sss(:,:,iblock)
 
+                else if (index == ext_C_flux_ind) then
+                   forcing_field%field_0d(:,:,iblock) = riv_flux(:,:,dic_ind,iblock) + &
+                        riv_flux(:,:,doc_ind,iblock) + riv_flux(:,:,docr_ind,iblock)
+
+                else if (index == ext_P_flux_ind) then
+                   forcing_field%field_0d(:,:,iblock) = riv_flux(:,:,po4_ind,iblock) + &
+                        riv_flux(:,:,dop_ind,iblock) + riv_flux(:,:,dopr_ind,iblock)
+
+                else if (index == ext_Si_flux_ind) then
+                   forcing_field%field_0d(:,:,iblock) = riv_flux(:,:,sio3_ind,iblock)
+
                 else if (index == bc_ind) then
                    ! compute iron_flux in gFe/cm^2/s, then convert to nmolFe/cm^2/s
                    forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) *   &
@@ -1670,9 +1806,6 @@ contains
 
                 else if (index == d14c_ind) then
                    forcing_field%field_0d(:,:,iblock) = d14c(:,:,iblock)
-                
-                else if (index == d14c_glo_ind) then
-                   forcing_field%field_0d(:,:,iblock) = d14c_glo_avg
 
                 end if  ! index
 
@@ -1702,13 +1835,13 @@ contains
                 call document(subname, 'error updating halo for shr_stream field')
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              endif
-                
+
              do iblock = 1, nblocks_clinic
                 where (land_mask(:,:,iblock))
                    forcing_field%field_0d(:,:,iblock) = shr_stream(:,:,iblock)
                 endwhere
              enddo
-                
+
           end select ! file, constant, driver, shr_stream
 
           if (metadata%ltime_varying) then
@@ -1724,6 +1857,119 @@ contains
     call timer_stop(ecosys_pre_sflux_timer)
 
   end subroutine ecosys_forcing_set_surface_time_varying_forcing_data
+
+  !***********************************************************************
+
+  subroutine comp_riv_flux(ciso_on, riv_flux)
+
+    ! DESCRIPTION:
+    ! compute river fluxes
+
+    use marbl_constants_mod,                only : R13C_std, R14C_std
+    use constants,                          only : p001
+    use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
+    use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
+    use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
+    use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
+
+    implicit none
+
+    logical,   intent(in)    :: ciso_on
+    real (r8), intent(inout) :: riv_flux(:, :, :, :)
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'ecosys_forcing_mod:comp_riv_flux'
+    integer (int_kind) :: iblock
+    integer (int_kind) :: n
+    integer (int_kind) :: tracer_ind
+    real (r8)          :: conv_factor
+
+    real (r8), parameter :: DOCriv_refract = 0.2_r8
+    real (r8), parameter :: DONriv_refract = 0.1_r8
+    real (r8), parameter :: DOPriv_refract = 0.025_r8
+
+    !-------------------------------------------------------------------------
+    ! River input of isotopic DIC and DOC.
+    ! River input of carbon is currently constant and from file.
+    ! So the isotopic carbon input is also done very simplified with one value
+    ! globally, even though data shows it should vary from river to river.
+    !
+    ! Using constant delta values of
+    ! D13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
+    ! D14C= atmos_D14C - 50 permil for DIC (based on very few data points and 
+    !       discussion with N. Gruber)
+    ! D13C=-27.6 permil for DOC (Raymond et al 2004)
+    ! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
+    !-------------------------------------------------------------------------
+
+    ! FIXME : add OMP directive to this loop
+    do iblock = 1, nblocks_clinic
+      do n = 1, size(riv_flux_forcing_fields)
+        associate (forcing_field => riv_flux_forcing_fields(n), &
+                   metadata      => riv_flux_forcing_fields(n)%metadata)
+          select case (metadata%marbl_varname)
+            case ('DIN_RIV_FLUX')
+              riv_flux(:,:,no3_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+            case ('DIP_RIV_FLUX')
+              riv_flux(:,:,po4_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+            case ('DON_RIV_FLUX')
+              riv_flux(:,:,don_ind,iblock) = (c1 - DONriv_refract) * forcing_field%field_0d(:,:,iblock)
+
+              riv_flux(:,:,donr_ind,iblock) = DONriv_refract * forcing_field%field_0d(:,:,iblock)
+
+            case ('DOP_RIV_FLUX')
+              riv_flux(:,:,dop_ind,iblock) = (c1 - DOPriv_refract) * forcing_field%field_0d(:,:,iblock)
+
+              riv_flux(:,:,dopr_ind,iblock) = DOPriv_refract * forcing_field%field_0d(:,:,iblock)
+
+            case ('DSI_RIV_FLUX')
+              riv_flux(:,:,sio3_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+            case ('DFE_RIV_FLUX')
+              riv_flux(:,:,fe_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+            case ('DIC_RIV_FLUX')
+              riv_flux(:,:,dic_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+              riv_flux(:,:,dic_alt_co2_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+              if (ciso_on) then
+                conv_factor = (-10.0_r8 * p001 + c1) * R13C_std
+                riv_flux(:,:,di13c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
+
+                conv_factor = ((d14c_glo_avg - 50.0_r8) * p001 + c1) * R14C_std
+                riv_flux(:,:,di14c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
+              endif
+
+            case ('ALK_RIV_FLUX')
+              riv_flux(:,:,alk_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+
+            case ('DOC_RIV_FLUX')
+              riv_flux(:,:,doc_ind,iblock) = (c1 - DOCriv_refract) * forcing_field%field_0d(:,:,iblock)
+
+              riv_flux(:,:,docr_ind,iblock) = DOCriv_refract * forcing_field%field_0d(:,:,iblock)
+
+              if (ciso_on) then
+                conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
+                riv_flux(:,:,do13c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
+
+                conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
+                riv_flux(:,:,do14c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
+              endif
+
+            case default
+              call document(subname, 'marbl_varname', metadata%marbl_varname)
+              call exit_POP(sigAbort, 'unknown marbl_varname')
+          end select
+        end associate
+      end do
+    end do
+
+  end subroutine comp_riv_flux
 
   !***********************************************************************
 
@@ -1798,7 +2044,7 @@ contains
 
   !***********************************************************************
 
-  subroutine ciso_update_atm_D13C_D14C (land_mask, D13C, D14C, D14C_glo_avg)
+  subroutine ciso_update_atm_D13C_D14C (land_mask, D13C, D14C)
 
     ! Updates module variables D13C and D14C (for atmospheric ratios)
 
@@ -1813,7 +2059,6 @@ contains
     logical,   intent(in)  :: land_mask(nx_block, ny_block, max_blocks_clinic)
     real (r8), intent(out) :: D13C(nx_block, ny_block, max_blocks_clinic)  ! atm 13co2 value
     real (r8), intent(out) :: D14C(nx_block, ny_block, max_blocks_clinic)  ! atm 14co2 value
-    real (r8), intent(out) :: D14C_glo_avg  ! global average D14C over the ocean, computed from current D14C field
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1842,7 +2087,7 @@ contains
     work1(:,:) = c0
     d14c_local_sums(:)  = c0
     tarea_local_sums(:) = c0
-    
+
     !-----------------------------------------------------------------------
     ! Loop over blocks
     !-----------------------------------------------------------------------
@@ -2033,7 +2278,7 @@ contains
     use time_management, only : iday_of_year
     use time_management, only : iyear
     use grid           , only : TLATD
-    
+
     implicit none
 
     !  note that data_ind is always strictly less than the length of D14C data
@@ -2152,9 +2397,9 @@ contains
     !---------------------------------------------------------------------
 
     use io_types        , only : stdout
-    use constants       , only : blank_fmt      
-    use constants       , only : delim_fmt      
-    use constants       , only : ndelim_fmt     
+    use constants       , only : blank_fmt
+    use constants       , only : delim_fmt
+    use constants       , only : ndelim_fmt
 
     implicit none
 
@@ -2471,7 +2716,7 @@ contains
     character(len=*),                intent(in)    :: field_name
 
     this%field_name = field_name
-    call named_field_get_index(field_name, this%field_ind) 
+    call named_field_get_index(field_name, this%field_ind)
 
   end subroutine forcing_named_field_init
 
@@ -2705,7 +2950,7 @@ contains
           call this%field_named_info%initialize(named_field)
        endif
 
-    case('file_time_invariant') 
+    case('file_time_invariant')
        this%ltime_varying = .false.
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
@@ -2717,7 +2962,7 @@ contains
                filename, file_varname)
        endif
 
-    case('shr_stream') 
+    case('shr_stream')
        this%ltime_varying = .true.
        if (.not.present(filename))              has_valid_inputs = .false.
        if (.not.present(file_varname))          has_valid_inputs = .false.
@@ -2737,7 +2982,7 @@ contains
                strdata_inputlist_ptr=strdata_inputlist_ptr)
        endif
 
-    case('POP monthly calendar') 
+    case('POP monthly calendar')
        this%ltime_varying = .true.
        if (.not.present(forcing_calendar_name)) has_valid_inputs = .false.
        if (has_valid_inputs) then
@@ -2853,7 +3098,7 @@ contains
     if (vflux_flag(ind)) then
        ecosys_forcing_tracer_ref_val = surf_avg(ind)
     endif
-       
+
   end function ecosys_forcing_tracer_ref_val
 
   !*****************************************************************************

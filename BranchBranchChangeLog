@@ -2,6 +2,35 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    15 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n38_marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: move river fluxes from MARBL->driver, handle requested surface_forcingss ext_{C,P,Si}_flux
+
+river fluxes are not computed or used by MARBL, so we're moving them out to the driver
+   this will also make it easier to couple them to POP's estuary box model
+this fixed a bug that atm dep of PO4 was incorrectly included in the DIP_RIV_FLUX diagnostic
+the added surface_forcings are needed when ladjust_bury_coeff=.true.
+
+Testing:
+MARBL commit 389e0e1d7103c8ce3649bd669962716833ebc503
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n37 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because of roundoff changes to surface fluxes and
+        fix to DIP_RIV_FLUX diagnostic
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    11 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n37_marbl_dev_n30_cesm_pop_2_1_20170128
 Tag Summary: coalesce strdata_input_type instances in ecosys_forcing_mod.F90 where possible
