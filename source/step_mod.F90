@@ -68,6 +68,7 @@
 
    integer (POP_i4), private :: &
       timer_step,              &! timer number for step
+      timer_step_RF,           &! timer number for step_RF
       timer_baroclinic,        &! timer for baroclinic parts of step
       timer_barotropic,        &! timer for barotropic part  of step
       timer_3dupdate		! timer for the 3D update after baroclinic component
@@ -130,11 +131,11 @@
 ! !DESCRIPTION:
 !  This routine advances the simulation on timestep.
 !  It controls logic for leapfrog and/or Matsuno timesteps and performs
-!  modified Robert filtering or time-averaging if selected.  
-!  Prognostic variables are updated for 
+!  modified Robert filtering or time-averaging if selected.
+!  Prognostic variables are updated for
 !  the next timestep near the end of the routine.
 !  On Matsuno steps, the time (n) velocity and tracer arrays
-!  UBTROP,VBTROP,UVEL,VVEL,TRACER contain the predicted new 
+!  UBTROP,VBTROP,UVEL,VVEL,TRACER contain the predicted new
 !  velocities from the 1st pass for use in the 2nd pass.
 !
 ! !REVISION HISTORY:
@@ -147,7 +148,7 @@
 !  local or common variables:
 !
 !-----------------------------------------------------------------------
- 
+
    integer (POP_i4) :: &
       errorCode
 
@@ -230,10 +231,10 @@
 
      !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
-     
+
        STF(:,:,1,iblock) = global_SHF_coef * RCALCT(:,:,iblock) * hflux_factor
        STF(:,:,2,iblock) = c0 ! * RCALCT(:,:,iblock) * salinity_factor
-     
+
        SHF_QSW(:,:,iblock) = c0 ! * RCALCT(:,:,iblock) * hflux_factor
 
        SMF(:,:,1,iblock) = global_taux * RCALCT(:,:,iblock)* momentum_factor
@@ -355,12 +356,12 @@
 
       call dhdt(DH,DHU)
 
-      call ovf_reg_avgs_prd 
+      call ovf_reg_avgs_prd
 
 !-----------------------------------------------------------------------
 !
 !     Integrate baroclinic equations explicitly to find tracers and
-!     baroclinic velocities at new time.  Update ghost cells for 
+!     baroclinic velocities at new time.  Update ghost cells for
 !     forcing terms leading into the barotropic solver.
 !
 !-----------------------------------------------------------------------
@@ -475,7 +476,7 @@
          return
       endif
 
-      call POP_HaloUpdate(UVEL(:,:,:,newtime,:), & 
+      call POP_HaloUpdate(UVEL(:,:,:,newtime,:), &
                                 POP_haloClinic,                 &
                                 POP_gridHorzLocNECorner,        &
                                 POP_fieldKindVector, errorCode, &
@@ -560,8 +561,8 @@
       do iblock = 1,nblocks_clinic
 
          if (l1Ddyn) then
-           UBTROP(:,:,newtime,iblock) = c0     
-           VBTROP(:,:,newtime,iblock) = c0     
+           UBTROP(:,:,newtime,iblock) = c0
+           VBTROP(:,:,newtime,iblock) = c0
          endif
 
 !CDIR NOVECTOR
@@ -628,7 +629,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  compute some global diagnostics 
+!  compute some global diagnostics
 !  before updating prognostic variables
 !
 !-----------------------------------------------------------------------
@@ -640,7 +641,7 @@
 !  update prognostic variables for next timestep:
 !     on normal timesteps
 !        (n) -> (n-1)
-!        (n+1) -> (n) 
+!        (n+1) -> (n)
 !     on averaging timesteps
 !        [(n) + (n-1)]/2 -> (n-1)
 !        [(n+1) + (n)]/2 -> (n)
@@ -654,11 +655,11 @@
       !$OMP                     WORK_MIN,WORK_MAX,WORK1,WORK2)
 
       do iblock = 1,nblocks_clinic
-         this_block = get_block(blocks_clinic(iblock),iblock)  
+         this_block = get_block(blocks_clinic(iblock),iblock)
 
          !*** avg 2-d fields
 
-         UBTROP(:,:,oldtime,iblock) = p5*(UBTROP(:,:,oldtime,iblock) + & 
+         UBTROP(:,:,oldtime,iblock) = p5*(UBTROP(:,:,oldtime,iblock) + &
                                           UBTROP(:,:,curtime,iblock))
          VBTROP(:,:,oldtime,iblock) = p5*(VBTROP(:,:,oldtime,iblock) + &
                                           VBTROP(:,:,curtime,iblock))
@@ -714,7 +715,7 @@
                    p5*((dz(1) + PSURF(:,:,oldtime,iblock)/grav)*  &
                        TRACER(:,:,1,n,oldtime,iblock) +           &
                        (dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
-                       TRACER(:,:,1,n,curtime,iblock) ) 
+                       TRACER(:,:,1,n,curtime,iblock) )
                TRACER(:,:,1,n,oldtime,iblock) =                   &
                    TRACER(:,:,1,n,oldtime,iblock)/(dz(1) + PSURF_FILT_OLD/grav)
 
@@ -731,7 +732,7 @@
                    p5*((dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
                        TRACER(:,:,1,n,curtime,iblock) +           &
                        (dz(1) + PSURF(:,:,newtime,iblock)/grav)*  &
-                       TRACER(:,:,1,n,newtime,iblock) ) 
+                       TRACER(:,:,1,n,newtime,iblock) )
                TRACER(:,:,1,n,curtime,iblock) =                   &
                    TRACER(:,:,1,n,curtime,iblock)/(dz(1) + PSURF_FILT_CUR/grav)
 
@@ -774,20 +775,22 @@
                            TRACER(:,:,k,2,curtime,iblock), &
                            this_block,                     &
                          RHOOUT=RHO(:,:,k,curtime,iblock))
-         enddo 
+         enddo
 
          !*** correct after avg
-         PGUESS(:,:,iblock) = p5*(PGUESS(:,:,iblock) + & 
-                                   PSURF(:,:,newtime,iblock)) 
+         PGUESS(:,:,iblock) = p5*(PGUESS(:,:,iblock) + &
+                                   PSURF(:,:,newtime,iblock))
       end do ! block loop
       !$OMP END PARALLEL DO
 
    else if (lrobert_filter) then   ! robert filter
 
+      call timer_start(timer_step_RF)
       call step_RF (DH)
+      call timer_stop(timer_step_RF)
 
    else  ! non-averaging step
-  
+
       !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1,nblocks_clinic
 
@@ -863,7 +866,7 @@
          !*** the next time around the step loop, which is
          !    timestep after the end of the budget interval
 
-         !  1) collect S1 
+         !  1) collect S1
          lrf_budget_collect_S1 = .true.
 
          !  2) compute tracer_mean_initial
@@ -871,7 +874,7 @@
        else
          lrf_budget_collect_tracer_mean_initial = .false.
        endif
-     
+
      endif ! lrobert_filter
 
      call tracer_budgets (MASK_BUDGT, bgtarea_t_k)
@@ -931,6 +934,8 @@
    real (POP_r8)    :: rf_conserve_factor_new
    real (POP_r8)    :: rf_conserve_factor_cur
 
+   real (POP_r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) :: WORKN
+
    type (block)     :: this_block  ! block information for current block
 
 
@@ -950,350 +955,353 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n,WORK1,WORK2)
+   !$OMP PARALLEL DO PRIVATE(iblock,k,n,WORK1,WORK2)
    do iblock = 1,nblocks_clinic
 
-      !*** filter UBTROP
-      WORK1 = & 
-      UBTROP(:,:,oldtime,iblock) + UBTROP(:,:,newtime,iblock) - c2*UBTROP(:,:,curtime,iblock)
+     !*** filter UBTROP
+     WORK1 = &
+     UBTROP(:,:,oldtime,iblock) + UBTROP(:,:,newtime,iblock) - c2*UBTROP(:,:,curtime,iblock)
 
-      if (lrf_nonzero_newtime) &
-      UBTROP(:,:,newtime,iblock) = UBTROP(:,:,newtime,iblock) + robert_newtime*WORK1
-      UBTROP(:,:,curtime,iblock) = UBTROP(:,:,curtime,iblock) + robert_curtime*WORK1
+     if (lrf_nonzero_newtime) &
+     UBTROP(:,:,newtime,iblock) = UBTROP(:,:,newtime,iblock) + robert_newtime*WORK1
+     UBTROP(:,:,curtime,iblock) = UBTROP(:,:,curtime,iblock) + robert_curtime*WORK1
 
      !*** filter VBTROP
-      WORK1 = & 
-      VBTROP(:,:,oldtime,iblock) + VBTROP(:,:,newtime,iblock) - c2*VBTROP(:,:,curtime,iblock)
+     WORK1 = &
+     VBTROP(:,:,oldtime,iblock) + VBTROP(:,:,newtime,iblock) - c2*VBTROP(:,:,curtime,iblock)
 
-      if (lrf_nonzero_newtime) &
-      VBTROP(:,:,newtime,iblock) = VBTROP(:,:,newtime,iblock) + robert_newtime*WORK1
-      VBTROP(:,:,curtime,iblock) = VBTROP(:,:,curtime,iblock) + robert_curtime*WORK1
+     if (lrf_nonzero_newtime) &
+     VBTROP(:,:,newtime,iblock) = VBTROP(:,:,newtime,iblock) + robert_newtime*WORK1
+     VBTROP(:,:,curtime,iblock) = VBTROP(:,:,curtime,iblock) + robert_curtime*WORK1
 
-      !*** filter GRADPX
-      WORK1 = &
-      GRADPX(:,:,oldtime,iblock) + GRADPX(:,:,newtime,iblock) - c2*GRADPX(:,:,curtime,iblock)
+     !*** filter GRADPX
+     WORK1 = &
+     GRADPX(:,:,oldtime,iblock) + GRADPX(:,:,newtime,iblock) - c2*GRADPX(:,:,curtime,iblock)
 
-      if (lrf_nonzero_newtime) &
-      GRADPX(:,:,newtime,iblock) = GRADPX(:,:,newtime,iblock) + robert_newtime*WORK1
-      GRADPX(:,:,curtime,iblock) = GRADPX(:,:,curtime,iblock) + robert_curtime*WORK1
+     if (lrf_nonzero_newtime) &
+     GRADPX(:,:,newtime,iblock) = GRADPX(:,:,newtime,iblock) + robert_newtime*WORK1
+     GRADPX(:,:,curtime,iblock) = GRADPX(:,:,curtime,iblock) + robert_curtime*WORK1
 
-      !*** filter GRADPY
-      WORK1 = &
-      GRADPY(:,:,oldtime,iblock) + GRADPY(:,:,newtime,iblock) - c2*GRADPY(:,:,curtime,iblock)
+     !*** filter GRADPY
+     WORK1 = &
+     GRADPY(:,:,oldtime,iblock) + GRADPY(:,:,newtime,iblock) - c2*GRADPY(:,:,curtime,iblock)
 
-      if (lrf_nonzero_newtime) &
-      GRADPY(:,:,newtime,iblock) = GRADPY(:,:,newtime,iblock) + robert_newtime*WORK1
-      GRADPY(:,:,curtime,iblock) = GRADPY(:,:,curtime,iblock) + robert_curtime*WORK1
+     if (lrf_nonzero_newtime) &
+     GRADPY(:,:,newtime,iblock) = GRADPY(:,:,newtime,iblock) + robert_newtime*WORK1
+     GRADPY(:,:,curtime,iblock) = GRADPY(:,:,curtime,iblock) + robert_curtime*WORK1
 
-      do k=1,km
-        !*** filter UVEL
-        WORK1 = &
-        UVEL(:,:,k,oldtime,iblock) + UVEL(:,:,k,newtime,iblock) - c2*UVEL(:,:,k,curtime,iblock)
+     do k=1,km
+       !*** filter UVEL
+       WORK1 = &
+       UVEL(:,:,k,oldtime,iblock) + UVEL(:,:,k,newtime,iblock) - c2*UVEL(:,:,k,curtime,iblock)
 
-        if (lrf_nonzero_newtime) &
-        UVEL(:,:,k,newtime,iblock) = UVEL(:,:,k,newtime,iblock) + robert_newtime*WORK1
-        UVEL(:,:,k,curtime,iblock) = UVEL(:,:,k,curtime,iblock) + robert_curtime*WORK1
+       if (lrf_nonzero_newtime) &
+       UVEL(:,:,k,newtime,iblock) = UVEL(:,:,k,newtime,iblock) + robert_newtime*WORK1
+       UVEL(:,:,k,curtime,iblock) = UVEL(:,:,k,curtime,iblock) + robert_curtime*WORK1
 
-        !*** filter VVEL
-        WORK1 = &
-        VVEL(:,:,k,oldtime,iblock) + VVEL(:,:,k,newtime,iblock) - c2*VVEL(:,:,k,curtime,iblock)
+       !*** filter VVEL
+       WORK1 = &
+       VVEL(:,:,k,oldtime,iblock) + VVEL(:,:,k,newtime,iblock) - c2*VVEL(:,:,k,curtime,iblock)
 
-        if (lrf_nonzero_newtime) &
-        VVEL(:,:,k,newtime,iblock) = VVEL(:,:,k,newtime,iblock) + robert_newtime*WORK1
-        VVEL(:,:,k,curtime,iblock) = VVEL(:,:,k,curtime,iblock) + robert_curtime*WORK1
+       if (lrf_nonzero_newtime) &
+       VVEL(:,:,k,newtime,iblock) = VVEL(:,:,k,newtime,iblock) + robert_newtime*WORK1
+       VVEL(:,:,k,curtime,iblock) = VVEL(:,:,k,curtime,iblock) + robert_curtime*WORK1
 
-      enddo ! k
+     enddo ! k
 
-      !*** filter TRACERS (vertical interior)
-      do n=1,nt
-        do k=2,km
-          !*** form and store Robert Filter term, S
-          STORE_RF(:,:,k,n,iblock) = &
-          TRACER(:,:,k,n,oldtime,iblock) + TRACER(:,:,k,n,newtime,iblock)  &
-                                      - c2*TRACER(:,:,k,n,curtime,iblock)
-
-          !*** filter TRACER
-          if (lrf_nonzero_newtime) &
-          TRACER(:,:,k,n,newtime,iblock) =  &
-          TRACER(:,:,k,n,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
-
-          TRACER(:,:,k,n,curtime,iblock) = TRACER(:,:,k,n,curtime,iblock) +  &
-                                           robert_curtime*STORE_RF(:,:,k,n,iblock)
-
-        enddo ! k
-      enddo ! n
-     end do ! block loop 
-     !$OMP END PARALLEL DO
-
-     !*** accumulate (horizontally masked) volume*S over vertical interior
+     !*** filter TRACERS (vertical interior)
      do n=1,nt
-       rf_Svol(n) = c0 
        do k=2,km
-         rf_Svol(n) = rf_Svol(n)  &
-                     + global_sum(STORE_RF(:,:,k,n,:)*TAREA(:,:,:)*dz(k),  &
-                       distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
+         !*** form and store Robert Filter term, S
+         STORE_RF(:,:,k,n,iblock) = &
+         TRACER(:,:,k,n,oldtime,iblock) + TRACER(:,:,k,n,newtime,iblock)  &
+                                     - c2*TRACER(:,:,k,n,curtime,iblock)
+
+         !*** filter TRACER
+         if (lrf_nonzero_newtime) &
+         TRACER(:,:,k,n,newtime,iblock) =  &
+         TRACER(:,:,k,n,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
+
+         TRACER(:,:,k,n,curtime,iblock) = TRACER(:,:,k,n,curtime,iblock) +  &
+                                          robert_curtime*STORE_RF(:,:,k,n,iblock)
+
        enddo ! k
      enddo ! n
-      
-      !*** surface TRACERs and PSURF
-      if (sfc_layer_type == sfc_layer_varthick) then 
-         !====================================
+   end do ! block loop
+   !$OMP END PARALLEL DO
 
-        !*** filter TRACER*surface thickness at the surface
-        !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
-        do iblock = 1,nblocks_clinic
-        do n=1,nt
-            k=1
-            !*** form RF term and store for later conservation adjustment
-            STORE_RF(:,:,k,n,iblock) = &
-            (dz(1) + PSURF(:,:,oldtime,iblock)/grav)*TRACER(:,:,k,n,oldtime,iblock) +  &
-            (dz(1) + PSURF(:,:,newtime,iblock)/grav)*TRACER(:,:,k,n,newtime,iblock) -  &
-         c2*(dz(1) + PSURF(:,:,curtime,iblock)/grav)*TRACER(:,:,k,n,curtime,iblock)
+   !*** accumulate (horizontally masked) volume*S over vertical interior
+   !$OMP PARALLEL DO PRIVATE(iblock,n,k)
+   do iblock = 1,nblocks_clinic
+     do n=1,nt
+       WORKN(:,:,n,iblock) = c0
+       do k=2,km
+         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) &
+           + dz(k)*MASK_BUDGT(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
+       enddo ! k
+       WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*WORKN(:,:,n,iblock)
+     enddo ! n
+   end do ! block loop
+   !$OMP END PARALLEL DO
 
-            !*** filter TRACER*surface thickness
-            if (lrf_nonzero_newtime) &
-            TRACER(:,:,k,n,newtime,iblock) = (dz(1) + PSURF(:,:,newtime,iblock)/grav)*  &
-            TRACER(:,:,k,n,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
+   rf_Svol(:) = global_sum(WORKN,distrb_clinic,field_loc_center)
 
-            TRACER(:,:,k,n,curtime,iblock) = (dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
-            TRACER(:,:,k,n,curtime,iblock) + robert_curtime*STORE_RF(:,:,k,n,iblock)
+   !*** surface TRACERs and PSURF
+   if (sfc_layer_type == sfc_layer_varthick) then
+     !====================================
 
-        enddo ! n
-        end do ! block loop 
-        !$OMP END PARALLEL DO
+     !*** filter TRACER*surface thickness at the surface
+     k=1
+     !$OMP PARALLEL DO PRIVATE(iblock,n)
+     do iblock = 1,nblocks_clinic
+       do n=1,nt
+           !*** form RF term and store for later conservation adjustment
+           STORE_RF(:,:,k,n,iblock) = &
+           (dz(1) + PSURF(:,:,oldtime,iblock)/grav)*TRACER(:,:,k,n,oldtime,iblock) +  &
+           (dz(1) + PSURF(:,:,newtime,iblock)/grav)*TRACER(:,:,k,n,newtime,iblock) -  &
+        c2*(dz(1) + PSURF(:,:,curtime,iblock)/grav)*TRACER(:,:,k,n,curtime,iblock)
 
-        !*** break iblock loop and form RF TRACER conservation adjustment term at surface;
-        !    compute surface rf_Svol (thickness is already included in STORE_RF(k=1))
-        do n=1,nt
-          k=1
-          rf_Svol(n) = rf_Svol(n) +  &
-            global_sum(STORE_RF(:,:,k,n,:)*TAREA(:,:,:), &
-                       distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
-        enddo ! n
-        
-        !*** filter PSURF
-        !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
-        do iblock = 1,nblocks_clinic
-          k=1
-          n=1
-          STORE_RF(:,:,k,n,iblock) =  &
-            PSURF(:,:,oldtime,iblock) + PSURF(:,:,newtime,iblock) - c2*PSURF(:,:,curtime,iblock)
+           !*** filter TRACER*surface thickness
+           if (lrf_nonzero_newtime) &
+           TRACER(:,:,k,n,newtime,iblock) = (dz(1) + PSURF(:,:,newtime,iblock)/grav)*  &
+           TRACER(:,:,k,n,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
 
-          if (lrf_nonzero_newtime) &
-          PSURF(:,:,newtime,iblock) =  &
-          PSURF(:,:,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
+           TRACER(:,:,k,n,curtime,iblock) = (dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
+           TRACER(:,:,k,n,curtime,iblock) + robert_curtime*STORE_RF(:,:,k,n,iblock)
 
-          PSURF(:,:,curtime,iblock) =  &
-          PSURF(:,:,curtime,iblock) + robert_curtime*STORE_RF(:,:,k,n,iblock)
+           !*** form RF TRACER conservation adjustment term at surface;
+           !    compute surface rf_Svol (thickness is already included in STORE_RF(k=1))
+           WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*MASK_BUDGT(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
 
-        end do ! block loop (iblock)
-        !$OMP END PARALLEL DO
+       enddo ! n
+     end do ! block loop
+     !$OMP END PARALLEL DO
 
-        !*** compute RF conservation adjustment term for PSURF
-        k=1
-        n=1
-        rf_sump = global_sum(STORE_RF(:,:,k,n,:)*TAREA(:,:,:),  &
-                             distrb_clinic,field_loc_center, MASK_BUDGT(:,:,k,:))
-        rf_sump = rf_sump/bgtarea_t_k(k)
+     rf_Svol(:) = rf_Svol(:) + global_sum(WORKN,distrb_clinic,field_loc_center)
 
-        !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n,WORK2)
-        do iblock = 1,nblocks_clinic
+     !*** filter PSURF
+     k=1
+     n=1
+     !$OMP PARALLEL DO PRIVATE(iblock)
+     do iblock = 1,nblocks_clinic
+       STORE_RF(:,:,k,n,iblock) =  &
+         PSURF(:,:,oldtime,iblock) + PSURF(:,:,newtime,iblock) - c2*PSURF(:,:,curtime,iblock)
 
-        !*** apply RF conservation adjustment term to PSURF
-        k=1
-        WORK2(:,:) = merge (rf_sump, c0, LMASK_BUDGT(:,:,k,iblock))
+       if (lrf_nonzero_newtime) &
+       PSURF(:,:,newtime,iblock) =  &
+       PSURF(:,:,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
 
-        if (lrf_nonzero_newtime) &
-        PSURF(:,:,newtime,iblock) = PSURF(:,:,newtime,iblock) - robert_newtime*WORK2(:,:)
-        PSURF(:,:,curtime,iblock) = PSURF(:,:,curtime,iblock) - robert_curtime*WORK2(:,:)
+       PSURF(:,:,curtime,iblock) =  &
+       PSURF(:,:,curtime,iblock) + robert_curtime*STORE_RF(:,:,k,n,iblock)
 
-        !*** solve for surface TRACER = (TRACER*thickness)/thickness
-        do n=1,nt
+     end do ! block loop (iblock)
+     !$OMP END PARALLEL DO
 
-          if (lrf_nonzero_newtime) &
-          TRACER(:,:,1,n,newtime,iblock) =  &
-          TRACER(:,:,1,n,newtime,iblock)/(dz(1) + PSURF(:,:,newtime,iblock)/grav)
+     !*** compute RF conservation adjustment term for PSURF
+     k=1
+     n=1
+     rf_sump = global_sum(STORE_RF(:,:,k,n,:)*TAREA(:,:,:),  &
+                          distrb_clinic,field_loc_center, MASK_BUDGT(:,:,k,:))
+     rf_sump = rf_sump/bgtarea_t_k(k)
 
-          TRACER(:,:,1,n,curtime,iblock) =  &
-          TRACER(:,:,1,n,curtime,iblock)/(dz(1) + PSURF(:,:,curtime,iblock)/grav)
+     k=1
+     !$OMP PARALLEL DO PRIVATE(iblock,n,WORK2)
+     do iblock = 1,nblocks_clinic
 
-        enddo ! n
-        end do ! block loop (iblock)
-        !$OMP END PARALLEL DO
+       !*** apply RF conservation adjustment term to PSURF
+       WORK2(:,:) = merge (rf_sump, c0, LMASK_BUDGT(:,:,k,iblock))
 
+       if (lrf_nonzero_newtime) &
+       PSURF(:,:,newtime,iblock) = PSURF(:,:,newtime,iblock) - robert_newtime*WORK2(:,:)
+       PSURF(:,:,curtime,iblock) = PSURF(:,:,curtime,iblock) - robert_curtime*WORK2(:,:)
 
-     !*** note: apply RF conservation term to TRACERS after end of if-block
+       !*** solve for surface TRACER = (TRACER*thickness)/thickness
+       do n=1,nt
 
-      else ! sfc_layer_type .ne. sfc_layer_varthick 
-           ! ======================================
+         if (lrf_nonzero_newtime) &
+         TRACER(:,:,1,n,newtime,iblock) =  &
+         TRACER(:,:,1,n,newtime,iblock)/(dz(1) + PSURF(:,:,newtime,iblock)/grav)
 
-        exit_string = 'FATAL ERROR: must use sfc_layer_type sfc_layer_varthick with Robert Filter option'
-        call document ('step_RF', exit_string)
-        call exit_POP (sigAbort, exit_string, out_unit=stdout)
+         TRACER(:,:,1,n,curtime,iblock) =  &
+         TRACER(:,:,1,n,curtime,iblock)/(dz(1) + PSURF(:,:,curtime,iblock)/grav)
 
-
-      endif ! sfc_layer_type == sfc_layer_varthick
-            ! ====================================
-
-      rf_volsfc_new = global_sum(TAREA(:,:,:)*(dz(1) + PSURF(:,:,newtime,:)/grav),   &
-                             distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
-      rf_volsfc_cur = global_sum(TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav),   &
-                             distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
-
-      rf_volume_total_cur = rf_volume_2_km + rf_volsfc_cur
-
-      do n=1,nt
-
-         rf_S(n) = rf_Svol(n)/rf_volume_total_cur
-
-         if (nsteps_total == 1 .or. lrf_nonzero_newtime .or. lrf_conserveVT) then
-           rf_conservation_factor = rf_S(n)
-          !*** placeholder for lrf_nonzero_newtime; this is not correct
-         else
-          !*** control numerical instability when robert_alpha = 1
-          rf_conservation_factor = p5*(rf_S(n)+rf_S_prev(n))
-         endif
-
-         rf_conserve_factor_new = rf_conservation_factor*robert_newtime
-         rf_conserve_factor_cur = rf_conservation_factor*robert_curtime
-
-         if (lrf_conserveVT) call step_RF_doc ('conserve', n, rf_conserve_factor_cur)
-
-         !***  apply RF conservation adjustment to TRACERs at all vertical levels
-         !$OMP PARALLEL DO PRIVATE(iblock,this_block,k)
-         do iblock = 1,nblocks_clinic
-
-          do k=1,km
-            if (lrf_nonzero_newtime) &
-            TRACER(:,:,k,n,newtime,iblock) =  &
-            TRACER(:,:,k,n,newtime,iblock) - rf_conserve_factor_new*MASK_BUDGT(:,:,k,iblock)
-
-            TRACER(:,:,k,n,curtime,iblock) =  &
-            TRACER(:,:,k,n,curtime,iblock) - rf_conserve_factor_cur*MASK_BUDGT(:,:,k,iblock)
-          enddo ! k
-
-         end do ! block loop (iblock)
-        !$OMP END PARALLEL DO
-
-      enddo ! n
-
-      if (lrf_prnt_conserve) call step_RF_diag ('final')
-
-     !*** computation of tracer_mean_initial must precede ice formation
-     if (lrf_budget_collect_tracer_mean_initial) &
-     call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
-                                   MASK_BUDGT, bgtarea_t_k, step_call = .true.)
-
-      !***  temporary (?) diagnostics
-      !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
-      do iblock = 1,nblocks_clinic
-        call step_diagnostics(iblock)
-      end do ! block loop (iblock)
+       enddo ! n
+     end do ! block loop (iblock)
      !$OMP END PARALLEL DO
 
 
-     if (check_time_flag(tavg_streams(budget_stream)%field_flag)) then
-        !*** time to collect <S_n> for use in this budget interval
-        !    note: this collects values computed in this timestep
-        call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_Sn = .true.)
+    !*** note: apply RF conservation term to TRACERS after end of if-block
+
+   else ! sfc_layer_type .ne. sfc_layer_varthick
+        ! ======================================
+
+     exit_string = 'FATAL ERROR: must use sfc_layer_type sfc_layer_varthick with Robert Filter option'
+     call document ('step_RF', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
+
+
+   endif ! sfc_layer_type == sfc_layer_varthick
+         ! ====================================
+
+   rf_volsfc_new = global_sum(TAREA(:,:,:)*(dz(1) + PSURF(:,:,newtime,:)/grav),   &
+                          distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
+   rf_volsfc_cur = global_sum(TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav),   &
+                          distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
+
+   rf_volume_total_cur = rf_volume_2_km + rf_volsfc_cur
+
+   do n=1,nt
+
+     rf_S(n) = rf_Svol(n)/rf_volume_total_cur
+
+     if (nsteps_total == 1 .or. lrf_nonzero_newtime .or. lrf_conserveVT) then
+       rf_conservation_factor = rf_S(n)
+       !*** placeholder for lrf_nonzero_newtime; this is not correct
+     else
+       !*** control numerical instability when robert_alpha = 1
+       rf_conservation_factor = p5*(rf_S(n)+rf_S_prev(n))
      endif
 
-      !-----------------------------------------------------------------------
-      ! after filtering, recompute and accumulate for time averaging
-      !-----------------------------------------------------------------------
+     rf_conserve_factor_new = rf_conservation_factor*robert_newtime
+     rf_conserve_factor_cur = rf_conservation_factor*robert_curtime
 
-      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
-      do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
+     if (lrf_conserveVT) call step_RF_doc ('conserve', n, rf_conserve_factor_cur)
 
-        !*** same as standard leapfrog
-        FW_OLD(:,:,iblock) = FW(:,:,iblock)
+     !***  apply RF conservation adjustment to TRACERs at all vertical levels
+     !$OMP PARALLEL DO PRIVATE(iblock,k)
+     do iblock = 1,nblocks_clinic
 
-        !*** form ice now, after RF adjustments have been made
-        if (liceform .and. mix_pass /= 1) then
-            
-          !*** form ice from Robert-filtered TRACER(curtime)
-          call ice_formation(TRACER(:,:,:,:,curtime,iblock),          &
-                             PSURF(:,:,curtime,iblock),               &
-                             STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
-                             iblock,this_block,lfw_as_salt_flx)
-        endif
-      end do ! block loop (iblock)
-      !$OMP END PARALLEL DO
+       do k=1,km
+         if (lrf_nonzero_newtime) &
+         TRACER(:,:,k,n,newtime,iblock) =  &
+         TRACER(:,:,k,n,newtime,iblock) - rf_conserve_factor_new*MASK_BUDGT(:,:,k,iblock)
 
-      !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
-      do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
+         TRACER(:,:,k,n,curtime,iblock) =  &
+         TRACER(:,:,k,n,curtime,iblock) - rf_conserve_factor_cur*MASK_BUDGT(:,:,k,iblock)
+       enddo ! k
 
-        !*** form ice now, after RF adjustments have been made
-        if (liceform .and. mix_pass /= 1) then
-            
-          !*** always form ice from TRACER(newtime)
-          call ice_formation(TRACER(:,:,:,:,newtime,iblock),          &
-                             PSURF(:,:,newtime,iblock),               &
-                             STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
-                             iblock,this_block,lfw_as_salt_flx)
-        endif
- 
-        !*** recalculate densities from averaged tracers
-        do k = 1,km  
-
-          !*** call state (newtime) every timestep -- is this ok?
-!         if (lrf_nonzero_newtime) &
-          call state(k,k,TRACER(:,:,k,1,newtime,iblock), TRACER(:,:,k,2,newtime,iblock), &
-                         this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
-
-          call state(k,k,TRACER(:,:,k,1,curtime,iblock), TRACER(:,:,k,2,curtime,iblock), &
-                     this_block, RHOOUT=RHO(:,:,k,curtime,iblock))
-        enddo !k
- 
-        !*** accumulate TRACERs after RF curtime adjustment
-        do k = 1,km  
-          call tracer_accumulate_tavg(TRACER (:,:,k,:,oldtime,iblock),  &
-                                      TRACER (:,:,k,:,curtime,iblock),  &
-                                      RHO    (:,:,k  ,curtime,iblock),  &
-                                      PSURF  (:,:    ,curtime,iblock),  &
-                                      DH     (:,:            ,iblock),  &
-                                      k,iblock)
-        enddo !k
-
-      end do ! block loop (iblock)
+     end do ! block loop (iblock)
      !$OMP END PARALLEL DO
 
-     !-----------------------------------------------------------------------
-     !  extrapolate next guess for pressure from three known time levels,
-     !   after filtering modifications to PSURF at curtime and newtime
-     !-----------------------------------------------------------------------
+   enddo ! n
 
-      !$OMP PARALLEL DO PRIVATE(iblock)
-      do iblock = 1,nblocks_clinic
-       PGUESS(:,:,iblock) = c3*(PSURF(:,:,newtime,iblock)  -  &
-                                PSURF(:,:,curtime,iblock)) +  &
-                                PSURF(:,:,oldtime,iblock)
-      end do
-     !$OMP END PARALLEL DO
+   if (lrf_prnt_conserve) call step_RF_diag ('final')
 
-    !*** update time indices just like standard leapfrog
-    tmptime = oldtime
-    oldtime = curtime
-    curtime = newtime
-    newtime = tmptime
+   !*** computation of tracer_mean_initial must precede ice formation
+   if (lrf_budget_collect_tracer_mean_initial) &
+   call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
+                                 MASK_BUDGT, bgtarea_t_k, step_call = .true.)
 
-    !*** update rf tracer*volume terms
-    if (lrf_nonzero_newtime) then
-      !*** figure out something later...
-        rf_Svol_avg = rf_Svol
-    else
-      !*** average rf_Svol and rf_Svol_prev for budget diagnostics
-        rf_Svol_avg = p5*(rf_Svol+rf_Svol_prev)
-        rf_S_avg    = p5*(rf_S+rf_S_prev)
+   !***  temporary (?) diagnostics
+   !$OMP PARALLEL DO PRIVATE(iblock)
+   do iblock = 1,nblocks_clinic
+     call step_diagnostics(iblock)
+   end do ! block loop (iblock)
+   !$OMP END PARALLEL DO
 
-      !*** then update rf_S_prev and rf_Svol_prev
-      do n=1,nt
-        rf_S_prev   (n) = rf_S(n)
-        rf_Svol_prev(n) = rf_Svol(n)
-      enddo
-    endif
+
+   if (check_time_flag(tavg_streams(budget_stream)%field_flag)) then
+     !*** time to collect <S_n> for use in this budget interval
+     !    note: this collects values computed in this timestep
+     call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_Sn = .true.)
+   endif
+
+   !-----------------------------------------------------------------------
+   ! after filtering, recompute and accumulate for time averaging
+   !-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+   do iblock = 1,nblocks_clinic
+     this_block = get_block(blocks_clinic(iblock),iblock)
+
+     !*** same as standard leapfrog
+     FW_OLD(:,:,iblock) = FW(:,:,iblock)
+
+     !*** form ice now, after RF adjustments have been made
+     if (liceform .and. mix_pass /= 1) then
+
+       !*** form ice from Robert-filtered TRACER(curtime)
+       call ice_formation(TRACER(:,:,:,:,curtime,iblock),          &
+                          PSURF(:,:,curtime,iblock),               &
+                          STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
+                          iblock,this_block,lfw_as_salt_flx)
+     endif
+   end do ! block loop (iblock)
+   !$OMP END PARALLEL DO
+
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k)
+   do iblock = 1,nblocks_clinic
+     this_block = get_block(blocks_clinic(iblock),iblock)
+
+     !*** form ice now, after RF adjustments have been made
+     if (liceform .and. mix_pass /= 1) then
+
+       !*** always form ice from TRACER(newtime)
+       call ice_formation(TRACER(:,:,:,:,newtime,iblock),          &
+                          PSURF(:,:,newtime,iblock),               &
+                          STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
+                          iblock,this_block,lfw_as_salt_flx)
+     endif
+
+     !*** recalculate densities from averaged tracers
+     do k = 1,km
+
+         !*** call state (newtime) every timestep -- is this ok?
+!      if (lrf_nonzero_newtime) &
+       call state(k,k,TRACER(:,:,k,1,newtime,iblock), TRACER(:,:,k,2,newtime,iblock), &
+                      this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+
+       call state(k,k,TRACER(:,:,k,1,curtime,iblock), TRACER(:,:,k,2,curtime,iblock), &
+                  this_block, RHOOUT=RHO(:,:,k,curtime,iblock))
+     enddo !k
+
+     !*** accumulate TRACERs after RF curtime adjustment
+     do k = 1,km
+       call tracer_accumulate_tavg(TRACER (:,:,k,:,oldtime,iblock),  &
+                                   TRACER (:,:,k,:,curtime,iblock),  &
+                                   RHO    (:,:,k  ,curtime,iblock),  &
+                                   PSURF  (:,:    ,curtime,iblock),  &
+                                   DH     (:,:            ,iblock),  &
+                                   k,iblock)
+     enddo !k
+
+   end do ! block loop (iblock)
+   !$OMP END PARALLEL DO
+
+   !-----------------------------------------------------------------------
+   !  extrapolate next guess for pressure from three known time levels,
+   !   after filtering modifications to PSURF at curtime and newtime
+   !-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock)
+   do iblock = 1,nblocks_clinic
+     PGUESS(:,:,iblock) = c3*(PSURF(:,:,newtime,iblock)  -  &
+                              PSURF(:,:,curtime,iblock)) +  &
+                              PSURF(:,:,oldtime,iblock)
+   end do
+   !$OMP END PARALLEL DO
+
+   !*** update time indices just like standard leapfrog
+   tmptime = oldtime
+   oldtime = curtime
+   curtime = newtime
+   newtime = tmptime
+
+   !*** update rf tracer*volume terms
+   if (lrf_nonzero_newtime) then
+     !*** figure out something later...
+     rf_Svol_avg = rf_Svol
+   else
+     !*** average rf_Svol and rf_Svol_prev for budget diagnostics
+     rf_Svol_avg = p5*(rf_Svol+rf_Svol_prev)
+     rf_S_avg    = p5*(rf_S+rf_S_prev)
+
+     !*** then update rf_S_prev and rf_Svol_prev
+     do n=1,nt
+       rf_S_prev   (n) = rf_S(n)
+       rf_Svol_prev(n) = rf_Svol(n)
+     enddo
+   endif
 
    !*** FW_OLD
 
@@ -1327,7 +1335,25 @@
 !-----------------------------------------------------------------------
 
    character (char_len) :: control_string
-   integer (POP_i4) :: k,n            ! loop indices
+   integer (POP_i4) :: iblock,k,n            ! loop indices
+
+   real (POP_r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) :: WORKN
+
+   !*** compute <T*volume>
+   !$OMP PARALLEL DO PRIVATE(iblock,n,k)
+   do iblock = 1,nblocks_clinic
+     do n=1,nt
+       k=1
+       WORKN(:,:,n,iblock) = (dz(1) + PSURF(:,:,curtime,iblock)/grav) &
+         * MASK_BUDGT(:,:,k,iblock) * TRACER(:,:,k,n,curtime,iblock)
+       do k=2,km
+         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) &
+           + dz(k) * MASK_BUDGT(:,:,k,iblock) * TRACER(:,:,k,n,curtime,iblock)
+       enddo ! k
+       WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*WORKN(:,:,n,iblock)
+     enddo ! n
+   enddo
+   !$OMP END PARALLEL DO
 
    control_string = trim(input_string)
 
@@ -1335,35 +1361,11 @@
 
      case ('initial')
 
-       !*** compute <T*volume> pre-Robert-Filtering
-       do n=1,nt
-         rf_trvol_initial(n) = c0 
-         do k=2,km
-           rf_trvol_initial(n) = rf_trvol_initial(n)  &
-                       + global_sum(TRACER(:,:,k,n,curtime,:)*TAREA(:,:,:)*dz(k),  &
-                         distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
-         enddo ! k
-         k=1
-         rf_trvol_initial(n) = rf_trvol_initial(n)  &
-                       + global_sum(TRACER(:,:,k,n,curtime,:)*(dz(1) + PSURF(:,:,curtime,:)/grav)*TAREA(:,:,:),  &
-                         distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
-       enddo ! n
+       rf_trvol_initial(:) = global_sum(WORKN,distrb_clinic,field_loc_center)
 
      case ('final')
 
-       !*** compute <T*volume> post-Robert-Filtering
-       do n=1,nt
-          rf_trvol_final(n) = c0 
-          do k=2,km
-            rf_trvol_final(n) = rf_trvol_final(n)  &
-                        + global_sum(TRACER(:,:,k,n,curtime,:)*TAREA(:,:,:)*dz(k),  &
-                          distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
-          enddo ! k
-          k=1
-          rf_trvol_final(n) = rf_trvol_final(n)  &
-                        + global_sum(TRACER(:,:,k,n,curtime,:)*(dz(1) + PSURF(:,:,curtime,:)/grav)*TAREA(:,:,:),  &
-                          distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
-       enddo ! n
+       rf_trvol_final(:) = global_sum(WORKN,distrb_clinic,field_loc_center)
 
        !*** report <T*volume>pre_RF - <T*volume>post_RF
        do n=1,nt
@@ -1486,6 +1488,7 @@
 !-----------------------------------------------------------------------
 
    call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
+   call get_timer(timer_step_RF,'STEP_RF',1,distrb_clinic%nprocs)
    call get_timer(timer_baroclinic,'BAROCLINIC',1,distrb_clinic%nprocs)
    call get_timer(timer_barotropic,'BAROTROPIC',1,distrb_clinic%nprocs)
    call get_timer(timer_3dupdate,'3D-UPDATE',1,distrb_clinic%nprocs)
@@ -1508,12 +1511,12 @@
 
    allocate (bgtarea_t_k(km))         ; bgtarea_t_k=c0
    allocate (rf_S(nt))                ; rf_S       =c0  ! Robert filter tracer conservations term
-   allocate (rf_Svol(nt))             ; rf_Svol    =c0  ! S*volume 
+   allocate (rf_Svol(nt))             ; rf_Svol    =c0  ! S*volume
    allocate (rf_Svol_avg(nt))         ; rf_Svol_avg=c0  ! S*volume average two time levels
-   allocate (rf_S_avg(nt))            ; rf_S_avg=c0    
+   allocate (rf_S_avg(nt))            ; rf_S_avg=c0
    allocate (rf_sum(km,nt))           ; rf_sum=c0
-   allocate (rf_trvol_initial(nt))    ; rf_trvol_initial=c0 
-   allocate (rf_trvol_final  (nt))    ; rf_trvol_final=c0 
+   allocate (rf_trvol_initial(nt))    ; rf_trvol_initial=c0
+   allocate (rf_trvol_final  (nt))    ; rf_trvol_final=c0
 
    lrf_budget_collect_S1                  = .false.
    lrf_budget_collect_tracer_mean_initial = .true.
@@ -1536,8 +1539,8 @@
    end do ! block loop (iblock)
    !$OMP END PARALLEL DO
 
-     where (LMASK_BUDGT)  
-       MASK_BUDGT = c1 
+     where (LMASK_BUDGT)
+       MASK_BUDGT = c1
      elsewhere
        MASK_BUDGT = c0
      endwhere
@@ -1573,7 +1576,7 @@
  subroutine step_diagnostics(iblock)
 
 ! !DESCRIPTION:
-!  This routine consolidates extra diagnostics 
+!  This routine consolidates extra diagnostics
 !
 ! !REVISION HISTORY:
 !  added 11 May 2016 njn01

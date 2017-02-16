@@ -1,5 +1,28 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  klindsay
+Tag Date:    16 Feb 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170216
+Tag Summary: refactor of RF related global sums
+
+	This implementation does the following:
+	1) reduces number of global_sum calls in subroutines step_RF and step_RF_diag in step_mod.F90,
+	   and subroutine diag_for_tracer_budgets in budget_diagnostics.F90
+	2) adds timers related to these, and for tavg_global (which also call global_sum)
+	3) general white-space cleanup (mostly indentation)
+
+	The code does introduce round-off level changes in answers
+
+	Aux pop run and had expected failures when comparing to baseline due to roundoff level mods.
+
+	M       source/step_mod.F90
+	M       source/budget_diagnostics.F90
+	M       source/tavg.F90
+	M       ChangeLog
+
+
+===============================================================================
+Tag Creator: jet
 Developers:  jet
 Tag Date:    28 Jan 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170128
