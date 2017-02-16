@@ -760,8 +760,6 @@
       endif
       first_call_strdata_create = .false.
 
-      pt_inputlist%date = iyear*10000 + imonth*100 + iday
-      pt_inputlist%time = isecond + 60 * (iminute + 60 * ihour)
       call timer_start(pt_interior_shr_strdata_advance_timer)
       call POP_strdata_advance(pt_inputlist) 
       call timer_stop(pt_interior_shr_strdata_advance_timer)

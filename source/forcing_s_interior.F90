@@ -759,8 +759,6 @@
       endif
       first_call_strdata_create = .false.
 
-      s_inputlist%date = iyear*10000 + imonth*100 + iday
-      s_inputlist%time = isecond + 60 * (iminute + 60 * ihour)
       call timer_start(s_interior_shr_strdata_advance_timer)
       call POP_strdata_advance(s_inputlist) 
       call timer_stop(s_interior_shr_strdata_advance_timer)

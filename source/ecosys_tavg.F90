@@ -138,20 +138,7 @@ contains
 
     do n = 1, marbl_tracer_cnt
       associate (tracer_metadata => marbl_instance%tracer_metadata(n))
-        select case (tracer_metadata%short_name)
-          case ('NO3')
-            sname = 'DIN_RIV_FLUX'
-          case ('PO4')
-            sname = 'DIP_RIV_FLUX'
-          case ('SiO3')
-            sname = 'DSI_RIV_FLUX'
-          case ('Fe')
-            sname = 'DFE_RIV_FLUX'
-          case ('DI13C', 'DO13C', 'DI14C', 'DO14C')
-            sname = 'CISO_' // trim(tracer_metadata%short_name) // '_RIV_FLUX'
-          case default
-            sname = trim(tracer_metadata%short_name) // '_RIV_FLUX'
-        end select
+        sname = trim(tracer_metadata%short_name) // '_RIV_FLUX'
         lname = trim(tracer_metadata%short_name) // ' Riverine Flux'
         call define_tavg_field(tavg_riv_flux(n),sname,2,long_name=lname,          &
                                units=tracer_metadata%flux_units, grid_loc='2110', &
@@ -286,7 +273,7 @@ contains
 
     end do
     !$OMP END PARALLEL DO
-    
+
   end subroutine ecosys_tavg_accumulate_flux
 
   !***********************************************************************
@@ -340,7 +327,7 @@ contains
               coordinates=coords)
       end do
     end associate
-    
+
   end subroutine ecosys_tavg_define_from_diag
 
 end module ecosys_tavg

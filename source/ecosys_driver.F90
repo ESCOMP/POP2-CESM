@@ -468,15 +468,10 @@ contains
     ! Determine MARBL tracer indices for tracers that use virtual fluxes
     ! (must be done prior to call to ecosys_forcing_init, when vflux is set)
     dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
-    call document(subname, 'dic_ind', dic_ind)
     alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
-    call document(subname, 'alk_ind', alk_ind)
     dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
-    call document(subname, 'dic_alt_co2_ind', dic_alt_co2_ind)
     di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
-    call document(subname, 'di13c_ind', di13c_ind)
     di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
-    call document(subname, 'di14c_ind', di14c_ind)
 
     no3_ind   = marbl_instances(1)%get_tracer_index('NO3')
     po4_ind   = marbl_instances(1)%get_tracer_index('PO4')
@@ -1003,10 +998,6 @@ contains
        do n = 1, ecosys_tracer_cnt
          stf_module(:,:,n,iblock) = stf_module(:,:,n,iblock) + riv_flux(:,:,n,iblock)
        end do
-
-       ! subtract NO3 riv_flux term from stf ALK
-
-       stf_module(:,:,alk_ind,iblock) = stf_module(:,:,alk_ind,iblock) - riv_flux(:,:,no3_ind,iblock)
 
     enddo ! end loop over iblock
 

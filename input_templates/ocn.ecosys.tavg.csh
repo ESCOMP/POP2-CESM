@@ -22,6 +22,9 @@ set lecosys_debug = $2
 set lvariable_PtoC = $3
 set tracer_restore_vars = $4
 
+# FIXME: setting of OCN_TAVG_DIC_ALT_CO2 should be dependent on OCN_TRANSIENT
+setenv OCN_TAVG_DIC_ALT_CO2 FALSE
+
 if ($lecosys_debug == ".false.") then
 
   cat >! $CASEBUILD/popconf/ecosys.tavg.nml << EOF
@@ -162,18 +165,6 @@ if ($lecosys_debug == ".true.") then
 1  NOx_FLUX
 1  NHy_FLUX
 1  NHx_SURFACE_EMIS
-1  DIN_RIV_FLUX
-1  DIP_RIV_FLUX
-1  DON_RIV_FLUX
-1  DONr_RIV_FLUX
-1  DOP_RIV_FLUX
-1  DOPr_RIV_FLUX
-1  DSI_RIV_FLUX
-1  DFE_RIV_FLUX
-1  DIC_RIV_FLUX
-1  ALK_RIV_FLUX
-1  DOC_RIV_FLUX
-1  DOCr_RIV_FLUX
 #  DUPLICATE TAVG VARS
 1  ECOSYS_IFRAC_2
 1  ECOSYS_XKW_2
@@ -181,6 +172,12 @@ if ($lecosys_debug == ".true.") then
 1  FG_CO2_2
 1  STF_O2_2
 EOF
+
+echo "#  River Fluxes" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+  set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr DIC_ALT_CO2 )
+  foreach tracer ( $tracer_list )
+    echo "1  ${tracer}_RIV_FLUX" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+  end
 
   # interior autotroph fields
 echo "#  AUTOTROPH TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
@@ -327,18 +324,6 @@ $s1  DOPr_remin
 $s1  DONr
 $s1  DOPr
 $s1  DOCr
-$s1  DIN_RIV_FLUX
-$s1  DIP_RIV_FLUX
-$s1  DON_RIV_FLUX
-$s1  DONr_RIV_FLUX
-$s1  DOP_RIV_FLUX
-$s1  DOPr_RIV_FLUX
-$s1  DOC_RIV_FLUX
-$s1  DOCr_RIV_FLUX
-$s1  DSI_RIV_FLUX
-$s1  DFE_RIV_FLUX
-$s1  DIC_RIV_FLUX
-$s1  ALK_RIV_FLUX
 $s1  calcToSed
 $s1  pocToSed
 $s1  ponToSed
@@ -444,6 +429,15 @@ $s3  HDIFN_Fe
 $s3  HDIFB_Fe
 EOF
 
+  # River Fluxes
+  set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr )
+  if ($OCN_TAVG_DIC_ALT_CO2 == TRUE) then
+    set tracer_list = ( $tracer_list DIC_ALT_CO2 )
+  endif
+  foreach tracer ( $tracer_list )
+    echo "$s1  ${tracer}_RIV_FLUX" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+  end
+
   # generic autotroph fields
   # skip N_lim for diaz
   foreach autotroph ( sp diat diaz )
@@ -509,9 +503,6 @@ EOF
   foreach tracer_restore_var ( `echo $tracer_restore_vars | tr ',' ' '` )
     echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   end
-
-  # FIXME: setting of OCN_TAVG_DIC_ALT_CO2 should be dependent on OCN_TRANSIENT
-  setenv OCN_TAVG_DIC_ALT_CO2 FALSE
 
   if ($OCN_TAVG_DIC_ALT_CO2 == TRUE) then
 cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF

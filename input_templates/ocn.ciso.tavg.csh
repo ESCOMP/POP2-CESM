@@ -18,10 +18,10 @@ endif
 
 cat >! $CASEROOT/Buildconf/popconf/ciso_tavg_contents << EOF
 #most important fields 
-$s1  CISO_DO13C_RIV_FLUX
-$s1  CISO_DI13C_RIV_FLUX
-$s1  CISO_DO14C_RIV_FLUX
-$s1  CISO_DI14C_RIV_FLUX
+$s1  DO13C_RIV_FLUX
+$s1  DI13C_RIV_FLUX
+$s1  DO14C_RIV_FLUX
+$s1  DI14C_RIV_FLUX
 $s1  CISO_zooC_d14C      
 $s1  CISO_DOC_d14C         
 $s1  CISO_DIC_d14C        

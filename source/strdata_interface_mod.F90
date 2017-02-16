@@ -39,6 +39,11 @@ module strdata_interface_mod
   public :: POP_strdata_create
   public :: POP_strdata_advance
 
+  interface POP_strdata_advance
+    module procedure POP_strdata_advance_scalar
+    module procedure POP_strdata_advance_array
+  end interface
+
   type strdata_input_type
     ! Contains arguments for shr_strdata_* that are unique to variable being
     ! read
@@ -49,8 +54,6 @@ module strdata_interface_mod
     integer(int_kind)       :: year_align
     character(len=char_len) :: file_name
     character(len=char_len) :: field_list
-    integer(int_kind)       :: date
-    integer(int_kind)       :: time
   end type strdata_input_type
 
 contains
@@ -125,16 +128,47 @@ contains
 
   end subroutine POP_strdata_create
 
-  subroutine POP_strdata_advance(inputlist)
+  subroutine POP_strdata_advance_scalar(inputlist)
+
+    use time_management, only : iyear, imonth, iday
+    use time_management, only : ihour, iminute, isecond
 
     type(strdata_input_type), intent(inout) :: inputlist
 
-    call shr_strdata_advance(inputlist%sdat,                                  &
-                             inputlist%date,                                  &
-                             inputlist%time,                                  &
-                             POP_communicator,                                &
+    integer(int_kind) :: date
+    integer(int_kind) :: time
+
+    date = iyear*10000 + imonth*100 + iday
+    time = isecond + 60 * (iminute + 60 * ihour)
+
+    call shr_strdata_advance(inputlist%sdat,   &
+                             date, time,       &
+                             POP_communicator, &
                              trim(inputlist%timer_label))
 
-  end subroutine POP_strdata_advance
+  end subroutine POP_strdata_advance_scalar
+
+  subroutine POP_strdata_advance_array(inputlist)
+
+    use time_management, only : iyear, imonth, iday
+    use time_management, only : ihour, iminute, isecond
+
+    type(strdata_input_type), intent(inout) :: inputlist(:)
+
+    integer(int_kind) :: date
+    integer(int_kind) :: time
+    integer(int_kind) :: n
+
+    date = iyear*10000 + imonth*100 + iday
+    time = isecond + 60 * (iminute + 60 * ihour)
+
+    do n = 1, size(inputlist)
+      call shr_strdata_advance(inputlist(n)%sdat, &
+                               date, time,        &
+                               POP_communicator,  &
+                               trim(inputlist(n)%timer_label))
+    end do
+
+  end subroutine POP_strdata_advance_array
 
 end module strdata_interface_mod

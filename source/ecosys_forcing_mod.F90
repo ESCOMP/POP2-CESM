@@ -79,8 +79,6 @@ module ecosys_forcing_mod
      integer   (kind=int_kind) :: year_first
      integer   (kind=int_kind) :: year_last
      integer   (kind=int_kind) :: year_align
-     integer   (kind=int_kind) :: date
-     integer   (kind=int_kind) :: time
      integer   (kind=int_kind) :: strdata_inputlist_ind
      integer   (kind=int_kind) :: strdata_var_ind
    contains
@@ -219,13 +217,6 @@ module ecosys_forcing_mod
   type(forcing_monthly_every_ts), target :: ap_file_loc
   type(forcing_monthly_every_ts), target :: nox_flux_monthly_file_loc
   type(forcing_monthly_every_ts), target :: nhy_flux_monthly_file_loc
-
-  type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
-
-  ! Surface and interior forcing fields
-  real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
-  real(r8)         :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
-
   type(forcing_monthly_every_ts), target :: din_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: dip_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: don_riv_flux_file_loc
@@ -235,6 +226,12 @@ module ecosys_forcing_mod
   type(forcing_monthly_every_ts), target :: dic_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: alk_riv_flux_file_loc
   type(forcing_monthly_every_ts), target :: doc_riv_flux_file_loc
+
+  type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
+
+  ! Surface and interior forcing fields
+  real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
+  real(r8)         :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
   !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
   !  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
@@ -268,6 +265,16 @@ module ecosys_forcing_mod
                        d13c_ind     = 0, &
                        d14c_ind     = 0
 
+  integer(int_kind) :: din_riv_flux_ind = 0, &
+                       dip_riv_flux_ind = 0, &
+                       don_riv_flux_ind = 0, &
+                       dop_riv_flux_ind = 0, &
+                       dsi_riv_flux_ind = 0, &
+                       dfe_riv_flux_ind = 0, &
+                       dic_riv_flux_ind = 0, &
+                       alk_riv_flux_ind = 0, &
+                       doc_riv_flux_ind = 0
+
   ! We also need to track the indices of all the interior forcing fields
   integer(int_kind), public :: dustflux_ind       = 0, &
                        PAR_col_frac_ind   = 0, &
@@ -287,7 +294,7 @@ module ecosys_forcing_mod
 
   real(r8) :: iron_frac_in_dust
   real(r8) :: iron_frac_in_bc
-  real(r8), public :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
+  real(r8) :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
 
   !*****************************************************************************
 
@@ -500,13 +507,14 @@ contains
     !  River flux forcing
     !--------------------------------------------------------------------------
 
+    marbl_varname = 'none'
     units         = 'nmol/cm^2/s'
 
     allocate(riv_flux_forcing_fields(9))
 
     n = 1
 
-    marbl_varname = 'DIN_RIV_FLUX'
+    din_riv_flux_ind = n
     din_riv_flux_file_loc%input = din_riv_flux_input
     file_details => din_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -516,7 +524,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DIP_RIV_FLUX'
+    dip_riv_flux_ind = n
     dip_riv_flux_file_loc%input = dip_riv_flux_input
     file_details => dip_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -526,7 +534,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DON_RIV_FLUX'
+    don_riv_flux_ind = n
     don_riv_flux_file_loc%input = don_riv_flux_input
     file_details => don_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -536,7 +544,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DOP_RIV_FLUX'
+    dop_riv_flux_ind = n
     dop_riv_flux_file_loc%input = dop_riv_flux_input
     file_details => dop_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -546,7 +554,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DSI_RIV_FLUX'
+    dsi_riv_flux_ind = n
     dsi_riv_flux_file_loc%input = dsi_riv_flux_input
     file_details => dsi_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -556,7 +564,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DFE_RIV_FLUX'
+    dfe_riv_flux_ind = n
     dfe_riv_flux_file_loc%input = dfe_riv_flux_input
     file_details => dfe_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -566,7 +574,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DIC_RIV_FLUX'
+    dic_riv_flux_ind = n
     dic_riv_flux_file_loc%input = dic_riv_flux_input
     file_details => dic_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -576,7 +584,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'ALK_RIV_FLUX'
+    alk_riv_flux_ind = n
     alk_riv_flux_file_loc%input = alk_riv_flux_input
     file_details => alk_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -586,7 +594,7 @@ contains
 
     n = n + 1
 
-    marbl_varname = 'DOC_RIV_FLUX'
+    doc_riv_flux_ind = n
     doc_riv_flux_file_loc%input = doc_riv_flux_input
     file_details => doc_riv_flux_file_loc
     call init_monthly_surface_forcing_metadata(file_details)
@@ -1372,9 +1380,6 @@ contains
     use prognostic            , only : TRACER, oldtime, curtime
     use state_mod             , only : ref_pressure
     use strdata_interface_mod , only : POP_strdata_create, POP_strdata_advance
-    use time_management       , only : iyear, imonth, iday
-    use time_management       , only : ihour, iminute, isecond
-    use time_management       , only : thour00
 
     real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: FRACR_BIN
     real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: QSW_RAW_BIN
@@ -1417,11 +1422,7 @@ contains
     !-----------------------------------------------------------------------
 
     call timer_start(ecosys_interior_strdata_advance_timer)
-    do n = 1, size(interior_strdata_inputlist_ptr)
-      interior_strdata_inputlist_ptr(n)%date = iyear*10000 + imonth*100 + iday
-      interior_strdata_inputlist_ptr(n)%time = isecond + 60 * (iminute + 60 * ihour)
-      call POP_strdata_advance(interior_strdata_inputlist_ptr(n))
-    end do
+    call POP_strdata_advance(interior_strdata_inputlist_ptr(:))
     call timer_stop(ecosys_interior_strdata_advance_timer)
 
     if (size(interior_strdata_inputlist_ptr) > 0) then
@@ -1438,7 +1439,7 @@ contains
       do field_index = 1, size(interior_forcing_fields)
         associate (forcing_field => interior_forcing_fields(field_index), &
                    metadata      => interior_forcing_fields(field_index)%metadata)
-          select case (metadata%field_source)
+          select case (trim(metadata%field_source))
             case('internal')
               if (field_index .eq. dustflux_ind) then
                 forcing_field%field_0d(:,:,iblock) = dust_flux_in(:,:,iblock)
@@ -1531,21 +1532,15 @@ contains
     use forcing_tools         , only : interpolate_forcing
     use forcing_tools         , only : update_forcing_data
     use named_field_mod       , only : named_field_get
-    use time_management       , only : isecond
-    use time_management       , only : iminute
-    use time_management       , only : ihour
-    use time_management       , only : iday
-    use time_management       , only : imonth
-    use time_management       , only : iyear
     use time_management       , only : thour00
     use strdata_interface_mod , only : POP_strdata_create
     use strdata_interface_mod , only : POP_strdata_advance
     use passive_tracer_tools  , only : read_field
     use marbl_constants_mod   , only : molw_Fe
 
-    use ecosys_tracers_and_saved_state_mod, only : dic_ind, doc_ind, docr_ind
-    use ecosys_tracers_and_saved_state_mod, only : po4_ind, dop_ind, dopr_ind
-    use ecosys_tracers_and_saved_state_mod, only : sio3_ind
+    use ecosys_tracers_and_saved_state_mod, only : dic_ind, doc_ind, docr_ind ! for computing ext_C_flux
+    use ecosys_tracers_and_saved_state_mod, only : po4_ind, dop_ind, dopr_ind ! for computing ext_P_flux
+    use ecosys_tracers_and_saved_state_mod, only : sio3_ind                   ! for computing ext_Si_flux
 
     implicit none
 
@@ -1611,11 +1606,7 @@ contains
     !-----------------------------------------------------------------------
 
     call timer_start(ecosys_surface_strdata_advance_timer)
-    do n = 1, size(surface_strdata_inputlist_ptr)
-      surface_strdata_inputlist_ptr(n)%date = iyear*10000 + imonth*100 + iday
-      surface_strdata_inputlist_ptr(n)%time = isecond + 60 * (iminute + 60 * ihour)
-      call POP_strdata_advance(surface_strdata_inputlist_ptr(n))
-    end do
+    call POP_strdata_advance(surface_strdata_inputlist_ptr(:))
     call timer_stop(ecosys_surface_strdata_advance_timer)
 
     !-----------------------------------------------------------------------
@@ -1625,7 +1616,7 @@ contains
     do index = 1, size(riv_flux_forcing_fields)
        associate (forcing_field => riv_flux_forcing_fields(index), &
                   metadata      => riv_flux_forcing_fields(index)%metadata)
-          select case (metadata%field_source)
+          select case (trim(metadata%field_source))
 
           !------------------------------------
           case ('POP monthly calendar')
@@ -1671,7 +1662,7 @@ contains
                 forcing_field%field_0d = interp_work(:,:,:,1)
              endif
 
-          end select ! file, constant, driver, shr_stream
+          end select
 
           if (metadata%ltime_varying) then
              do iblock = 1, nblocks_clinic
@@ -1694,7 +1685,7 @@ contains
     do index = 1, size(surface_forcing_fields)
        associate (forcing_field => surface_forcing_fields(index), &
                   metadata      => surface_forcing_fields(index)%metadata)
-          select case (metadata%field_source)
+          select case (trim(metadata%field_source))
 
           !------------------------------------
           case ('POP monthly calendar')
@@ -1882,7 +1873,7 @@ contains
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_forcing_mod:comp_riv_flux'
     integer (int_kind) :: iblock
-    integer (int_kind) :: n
+    integer (int_kind) :: riv_flux_ind
     integer (int_kind) :: tracer_ind
     real (r8)          :: conv_factor
 
@@ -1898,7 +1889,7 @@ contains
     !
     ! Using constant delta values of
     ! D13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
-    ! D14C= atmos_D14C - 50 permil for DIC (based on very few data points and 
+    ! D14C= atmos_D14C - 50 permil for DIC (based on very few data points and
     !       discussion with N. Gruber)
     ! D13C=-27.6 permil for DOC (Raymond et al 2004)
     ! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
@@ -1906,65 +1897,68 @@ contains
 
     ! FIXME : add OMP directive to this loop
     do iblock = 1, nblocks_clinic
-      do n = 1, size(riv_flux_forcing_fields)
-        associate (forcing_field => riv_flux_forcing_fields(n), &
-                   metadata      => riv_flux_forcing_fields(n)%metadata)
-          select case (metadata%marbl_varname)
-            case ('DIN_RIV_FLUX')
-              riv_flux(:,:,no3_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+      ! because alk riv_flux has two terms (alk_riv_flux_ind and din_riv_flux_ind),
+      ! initialize it to zero and have both terms be cumulative
+      riv_flux(:,:,alk_ind,iblock) = c0
 
-            case ('DIP_RIV_FLUX')
-              riv_flux(:,:,po4_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+      do riv_flux_ind = 1, size(riv_flux_forcing_fields)
+        associate (field_0d => riv_flux_forcing_fields(riv_flux_ind)%field_0d)
 
-            case ('DON_RIV_FLUX')
-              riv_flux(:,:,don_ind,iblock) = (c1 - DONriv_refract) * forcing_field%field_0d(:,:,iblock)
+          if (riv_flux_ind == din_riv_flux_ind) then
+            riv_flux(:,:,no3_ind,iblock) = field_0d(:,:,iblock)
 
-              riv_flux(:,:,donr_ind,iblock) = DONriv_refract * forcing_field%field_0d(:,:,iblock)
+            ! subtract NO3 term from ALK riv_flux
+            riv_flux(:,:,alk_ind,iblock) = riv_flux(:,:,alk_ind,iblock) - field_0d(:,:,iblock)
 
-            case ('DOP_RIV_FLUX')
-              riv_flux(:,:,dop_ind,iblock) = (c1 - DOPriv_refract) * forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == dip_riv_flux_ind) then
+            riv_flux(:,:,po4_ind,iblock) = field_0d(:,:,iblock)
 
-              riv_flux(:,:,dopr_ind,iblock) = DOPriv_refract * forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == don_riv_flux_ind) then
+            riv_flux(:,:,don_ind,iblock) = (c1 - DONriv_refract) * field_0d(:,:,iblock)
+            riv_flux(:,:,donr_ind,iblock) = DONriv_refract * field_0d(:,:,iblock)
 
-            case ('DSI_RIV_FLUX')
-              riv_flux(:,:,sio3_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == dop_riv_flux_ind) then
+            riv_flux(:,:,dop_ind,iblock) = (c1 - DOPriv_refract) * field_0d(:,:,iblock)
+            riv_flux(:,:,dopr_ind,iblock) = DOPriv_refract * field_0d(:,:,iblock)
 
-            case ('DFE_RIV_FLUX')
-              riv_flux(:,:,fe_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == dsi_riv_flux_ind) then
+            riv_flux(:,:,sio3_ind,iblock) = field_0d(:,:,iblock)
 
-            case ('DIC_RIV_FLUX')
-              riv_flux(:,:,dic_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == dfe_riv_flux_ind) then
+            riv_flux(:,:,fe_ind,iblock) = field_0d(:,:,iblock)
 
-              riv_flux(:,:,dic_alt_co2_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == dic_riv_flux_ind) then
+            riv_flux(:,:,dic_ind,iblock) = field_0d(:,:,iblock)
+            riv_flux(:,:,dic_alt_co2_ind,iblock) = field_0d(:,:,iblock)
 
-              if (ciso_on) then
-                conv_factor = (-10.0_r8 * p001 + c1) * R13C_std
-                riv_flux(:,:,di13c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
+            if (ciso_on) then
+              conv_factor = (-10.0_r8 * p001 + c1) * R13C_std
+              riv_flux(:,:,di13c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
 
-                conv_factor = ((d14c_glo_avg - 50.0_r8) * p001 + c1) * R14C_std
-                riv_flux(:,:,di14c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
-              endif
+              conv_factor = ((d14c_glo_avg - 50.0_r8) * p001 + c1) * R14C_std
+              riv_flux(:,:,di14c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
+            endif
 
-            case ('ALK_RIV_FLUX')
-              riv_flux(:,:,alk_ind,iblock) = forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == alk_riv_flux_ind) then
+            riv_flux(:,:,alk_ind,iblock) = riv_flux(:,:,alk_ind,iblock) + field_0d(:,:,iblock)
 
-            case ('DOC_RIV_FLUX')
-              riv_flux(:,:,doc_ind,iblock) = (c1 - DOCriv_refract) * forcing_field%field_0d(:,:,iblock)
+          else if (riv_flux_ind == doc_riv_flux_ind) then
+            riv_flux(:,:,doc_ind,iblock) = (c1 - DOCriv_refract) * field_0d(:,:,iblock)
 
-              riv_flux(:,:,docr_ind,iblock) = DOCriv_refract * forcing_field%field_0d(:,:,iblock)
+            riv_flux(:,:,docr_ind,iblock) = DOCriv_refract * field_0d(:,:,iblock)
 
-              if (ciso_on) then
-                conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
-                riv_flux(:,:,do13c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
+            if (ciso_on) then
+              conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
+              riv_flux(:,:,do13c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
 
-                conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
-                riv_flux(:,:,do14c_ind,iblock) = conv_factor * forcing_field%field_0d(:,:,iblock)
-              endif
+              conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
+              riv_flux(:,:,do14c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
+            endif
 
-            case default
-              call document(subname, 'marbl_varname', metadata%marbl_varname)
-              call exit_POP(sigAbort, 'unknown marbl_varname')
-          end select
+          else
+            call document(subname, 'riv_flux_ind', riv_flux_ind)
+            call exit_POP(sigAbort, 'unknown riv_flux_ind')
+          end if
         end associate
       end do
     end do
@@ -2098,7 +2092,7 @@ contains
        !  Set D13C (constant or from files read in _init) and put on global grid
        !-----------------------------------------------------------------------
 
-       select case (ciso_atm_d13c_opt)
+       select case (trim(ciso_atm_d13c_opt))
        case ('const')
           D13C(:,:,:) = ciso_atm_d13c_const
        case ('file')
@@ -2112,7 +2106,7 @@ contains
        !  Set D14C (constant or from files read in _init) and put on global grid
        !-----------------------------------------------------------------------
 
-       select case (ciso_atm_d14c_opt)
+       select case (trim(ciso_atm_d14c_opt))
        case ('const')
           D14C(:,:,:) = ciso_atm_d14c_const
        case ('file')
@@ -2409,7 +2403,7 @@ contains
     !     Set D13C data source
     !-------------------------------------------------------------------------
 
-    select case (ciso_atm_d13c_opt)
+    select case (trim(ciso_atm_d13c_opt))
     case ('const')
        if (my_task == master_task) then
           write(stdout,blank_fmt)
@@ -2431,7 +2425,7 @@ contains
     !     Set D14C data source
     !-------------------------------------------------------------------------
 
-    select case (ciso_atm_d14c_opt)
+    select case (trim(ciso_atm_d14c_opt))
     case ('const')
        if (my_task == master_task) then
           write(stdout,blank_fmt)
@@ -2723,7 +2717,7 @@ contains
   !*****************************************************************************
 
   subroutine forcing_file_init(this, filename, file_varname, temporal, year_first, &
-                                     year_last, year_align, date, time, strdata_inputlist_ptr)
+                                     year_last, year_align, strdata_inputlist_ptr)
 
     use shr_string_mod, only : shr_string_countChar
 
@@ -2734,8 +2728,6 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_first
     integer(kind=int_kind), optional, intent(in)    :: year_last
     integer(kind=int_kind), optional, intent(in)    :: year_align
-    integer(kind=int_kind), optional, intent(in)    :: date
-    integer(kind=int_kind), optional, intent(in)    :: time
     type(strdata_input_type), optional, intent(inout), pointer :: strdata_inputlist_ptr(:)
 
     !-----------------------------------------------------------------------
@@ -2751,8 +2743,6 @@ contains
     if (present(year_first)) this%year_first   = year_first
     if (present(year_last )) this%year_last    = year_last
     if (present(year_align)) this%year_align   = year_align
-    if (present(date      )) this%date         = date
-    if (present(time      )) this%time         = time
 
     if (present(strdata_inputlist_ptr)) then
       ! if specified file and year specs have already been specified in an strdata_inputlist_ptr entry
@@ -2773,7 +2763,7 @@ contains
         end do
 
         if (n > strdata_inputlist_size) then
-          allocate(strdata_inputlist_tmp_ptr(1:strdata_inputlist_size+1))
+          allocate(strdata_inputlist_tmp_ptr(n))
           do m = 1, strdata_inputlist_size
             strdata_inputlist_tmp_ptr(m)%timer_label = strdata_inputlist_ptr(m)%timer_label
             strdata_inputlist_tmp_ptr(m)%year_first  = strdata_inputlist_ptr(m)%year_first
@@ -2827,8 +2817,6 @@ contains
        file_varname,                          &
        temporal,                              &
        year_first, year_last, year_align,     &
-       date,                                  &
-       time,                                  &
        strdata_inputlist_ptr,                 &
        forcing_calendar_name)
 
@@ -2850,8 +2838,6 @@ contains
     integer (kind=int_kind), optional,   intent(in)    :: year_first
     integer (kind=int_kind), optional,   intent(in)    :: year_last
     integer (kind=int_kind), optional,   intent(in)    :: year_align
-    integer (kind=int_kind), optional,   intent(in)    :: date
-    integer (kind=int_kind), optional,   intent(in)    :: time
     type(strdata_input_type), optional, intent(inout), pointer   :: strdata_inputlist_ptr(:)
     type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
@@ -2978,7 +2964,6 @@ contains
                filename, file_varname, &
                temporal=temporal, year_first=year_first,   &
                year_last=year_last, year_align=year_align, &
-               date=date, time=time, &
                strdata_inputlist_ptr=strdata_inputlist_ptr)
        endif
 
@@ -3020,7 +3005,6 @@ contains
        filename, file_varname,              &
        temporal,                            &
        year_first, year_last, year_align,   &
-       date, time,                          &
        strdata_inputlist_ptr,               &
        forcing_calendar_name)
 
@@ -3041,8 +3025,6 @@ contains
     integer(kind=int_kind), optional, intent(in)    :: year_first
     integer(kind=int_kind), optional, intent(in)    :: year_last
     integer(kind=int_kind), optional, intent(in)    :: year_align
-    integer(kind=int_kind), optional, intent(in)    :: date
-    integer(kind=int_kind), optional, intent(in)    :: time
     type(strdata_input_type), optional, intent(inout), pointer   :: strdata_inputlist_ptr(:)
     type(forcing_monthly_every_ts), optional, target, intent(in) :: forcing_calendar_name
 
@@ -3057,7 +3039,6 @@ contains
          filename=filename, file_varname=file_varname,   &
          temporal=temporal, year_first=year_first,       &
          year_last=year_last, year_align=year_align,     &
-         date=date, time=time,                           &
          strdata_inputlist_ptr=strdata_inputlist_ptr,    &
          forcing_calendar_name=forcing_calendar_name)
 

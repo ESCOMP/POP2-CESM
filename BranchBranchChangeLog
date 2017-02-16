@@ -2,6 +2,42 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    16 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n39_marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: incorporate suggestions from code review of marbl_dev_klindsay_37 and marbl_dev_klindsay_n38
+
+uniform naming convention for tavg river fluxes (${TRACER}_RIV_FLUX)
+include NO3_RIV_FLUX contribution in ALK_RIV_FLUX
+eliminate string compares in runtime riv_flux_forcing_fields loop
+move date and time values from strdata_input_type type to local vars in POP_strdata_advance
+maka array version of POP_strdata_advance
+add trim to argument of select case statements
+remove trailing whitespace
+
+Testing:
+MARBL commit 582a6203ad797900b0880b1b78fe3b440d2b6566
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n38 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because of roundoff change to STF_ALK and change to ALK_RIV_FLUX
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/strdata_interface_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    15 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n38_marbl_dev_n30_cesm_pop_2_1_20170128
 Tag Summary: move river fluxes from MARBL->driver, handle requested surface_forcingss ext_{C,P,Si}_flux
@@ -12,7 +48,7 @@ this fixed a bug that atm dep of PO4 was incorrectly included in the DIP_RIV_FLU
 the added surface_forcings are needed when ladjust_bury_coeff=.true.
 
 Testing:
-MARBL commit 389e0e1d7103c8ce3649bd669962716833ebc503
+MARBL commit 582a6203ad797900b0880b1b78fe3b440d2b6566
 
 aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n37 tag)
    all tests, except baseline compares, pass

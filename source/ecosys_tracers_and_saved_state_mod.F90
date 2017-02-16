@@ -104,7 +104,7 @@ Contains
                                                  land_mask,                   &
                                                  TRACER_MODULE,               &
                                                  ecosys_restart_filename,     &
-                                                 errorCode)       
+                                                 errorCode)
 
     use POP_ErrorMod, only : POP_Success, POP_ErrorSet
 
@@ -145,7 +145,7 @@ Contains
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
     character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file
     integer (int_kind)      , intent(out)   :: errorCode
-    
+
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
@@ -275,8 +275,8 @@ Contains
     !  initialize saved state
     !-----------------------------------------------------------------------
 
-    select case (init_ecosys_option)
-       
+    select case (trim(init_ecosys_option))
+
     case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
 
        ecosys_restart_filename = char_blank
@@ -332,7 +332,7 @@ Contains
 
       end select
 
-      select case (init_option)
+      select case (trim(init_option))
 
         ! For restart run, either read from specified file or TS restart file
         case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
@@ -638,7 +638,7 @@ Contains
         tracer_inputs(ind)%default_val  = tracer_ext(n)%default_val
       end if
     end do
-          
+
   end subroutine set_tracer_read
 
   !-----------------------------------------------------------------------
