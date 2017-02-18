@@ -178,7 +178,7 @@ contains
 
     do n=1,marbl_diags%diag_cnt
        do ne = 1,num_elements
-          if (trim(diags(n)%vertical_grid).eq.'none') then
+          if (allocated(diags(n)%field_2d)) then
              call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n), bid, i(ne), c(ne))
           else
              call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n), bid, i(ne), c(ne))
@@ -293,7 +293,8 @@ contains
               long_name=trim(diags(n)%long_name), &
               units=trim(diags(n)%units),         &
               grid_loc=gloc,                      &
-              coordinates=coords)
+              coordinates=coords,                 &
+              transpose_field=(ndims .eq. 3))
       end do
     end associate
 

@@ -50,7 +50,6 @@ module ecosys_driver
 
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
-  use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_construct_io_fields
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
   use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
@@ -782,7 +781,7 @@ contains
              ! --- copy data from slab to column for marbl_saved_state ---
              do n=1,size(saved_state_interior)
                marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
-                 saved_state_interior(n)%field_3d(i,c,:,bid)
+                 saved_state_interior(n)%field_3d(:,i,c,bid)
              end do
              call timer_stop(ecosys_interior_pop_to_marbl, block_id=bid)
 
@@ -806,7 +805,7 @@ contains
              call timer_start(ecosys_interior_marbl_to_pop, block_id=bid)
 
              do n=1,size(saved_state_interior)
-               saved_state_interior(n)%field_3d(i,c,:,bid) =               &
+               saved_state_interior(n)%field_3d(:,i,c,bid) =               &
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
 
@@ -1214,8 +1213,9 @@ contains
     ! !DESCRIPTION:
     !  write auxiliary fields & scalars to restart files
 
+    use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_write_restart
+    use ecosys_tracers_and_saved_state_mod, only : saved_state_field_3d
     use io_types, only : io_field_desc
-    use io      , only : data_set
     use io      , only : datafile
 
     implicit none
@@ -1223,32 +1223,27 @@ contains
     character(*)                 , intent(in)    :: action
     type (datafile)              , intent(inout) :: restart_file
 
-    type (io_field_desc), dimension(:), allocatable, save :: surf_iodesc
-    type (io_field_desc), dimension(:), allocatable, save :: col_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: surface_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: interior_iodesc
     integer :: n
     !-----------------------------------------------------------------------
 
     if (trim(action) == 'define') then
 
-       allocate(surf_iodesc(size(saved_state_surf)))
-       surf_iodesc = ecosys_saved_state_construct_io_fields(restart_file,     &
-            saved_state_surf, size(saved_state_surf))
+       allocate(surface_iodesc(size(saved_state_surf)))
+       allocate(interior_iodesc(size(saved_state_interior)))
+       allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))
+    end if
 
-       allocate(col_iodesc(size(saved_state_interior)))
-       col_iodesc = ecosys_saved_state_construct_io_fields(restart_file,      &
-           saved_state_interior, size(saved_state_interior))
+    call ecosys_saved_state_write_restart(restart_file, action,               &
+                                          saved_state_surf, surface_iodesc)
+    call ecosys_saved_state_write_restart(restart_file, action,               &
+                                          saved_state_interior, interior_iodesc)
 
-    else if (trim(action) == 'write') then
-
-       do n=1,size(saved_state_surf)
-          call data_set (restart_file, 'write', surf_iodesc(n))
-       end do
-       do n=1,size(saved_state_interior)
-          call data_set (restart_file, 'write', col_iodesc(n))
-       end do
-       deallocate(surf_iodesc)
-       deallocate(col_iodesc)
-
+    if (trim(action) == 'write') then
+       deallocate(saved_state_field_3d)
+       deallocate(surface_iodesc)
+       deallocate(interior_iodesc)
     endif
 
   end subroutine ecosys_driver_write_restart
