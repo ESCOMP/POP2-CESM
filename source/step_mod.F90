@@ -269,7 +269,7 @@
 
    call tavg_set_flag(update_time=.true.)
    call tavg_forcing
-   if (nt > 2) call passive_tracers_tavg_sflux(STF)
+   if (nt > 2) call passive_tracers_tavg_sflux(STF, STF_RIV)
    call movie_forcing
 
 

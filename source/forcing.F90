@@ -140,7 +140,10 @@
    SMF       = c0
    SMFT      = c0
    STF       = c0
+   STF_RIV   = c0
    TFW       = c0
+
+   lhas_riv_flux = .false.
 
 !-----------------------------------------------------------------------
 !
@@ -297,7 +300,7 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       TFRZ               
-   integer (int_kind) :: index_qsw, iblock, ncol, nbin
+   integer (int_kind) :: index_qsw, iblock, ncol, nbin, n
    real (r8) ::  &
       cosz_day,  &
       qsw_eps
@@ -354,7 +357,7 @@
          cosz_day = tday00_interval_beg + interval_cum_dayfrac(index_qsw-1) &
             - interval_cum_dayfrac(nsteps_per_interval)
 
-         !$OMP PARALLEL DO PRIVATE(iblock)
+         !$OMP PARALLEL DO PRIVATE(iblock,nbin)
          do iblock = 1, nblocks_clinic
 
             call compute_cosz(cosz_day, iblock, QSW_COSZ_WGHT(:,:,iblock))
@@ -411,8 +414,19 @@
 
    call set_ap(ATM_PRESS)
 
-   if (nt > 2)  &
-      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF)
+   if (nt > 2) then
+      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF,STF_RIV)
+
+      !$OMP PARALLEL DO PRIVATE(iblock,n)
+      do iblock = 1, nblocks_clinic
+         do n = 3, nt
+            if (lhas_riv_flux(n)) then
+               STF(:,:,n,iblock) = STF(:,:,n,iblock) + STF_RIV(:,:,n,iblock)
+            endif
+         end do
+      end do
+      !$OMP END PARALLEL DO
+   endif
 
    ! running_mean_test_update_sflux_var is only necessary for test mode
    call running_mean_test_update_sflux_var

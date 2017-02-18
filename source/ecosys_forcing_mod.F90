@@ -35,12 +35,17 @@ module ecosys_forcing_mod
   use strdata_interface_mod     , only : strdata_input_type
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+  use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
+  use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
+  use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
   implicit none
   private
 
   public :: ecosys_forcing_init
   public :: ecosys_forcing_set_surface_time_varying_forcing_data
+  public :: ecosys_forcing_comp_stf_riv
   public :: ecosys_forcing_set_interior_time_varying_forcing_data
   public :: ecosys_forcing_tracer_ref_val
 
@@ -247,11 +252,9 @@ module ecosys_forcing_mod
   integer (int_kind) :: ecosys_interior_strdata_advance_timer
 
   ! Some surface forcing fields need special treatment, so we store indices
-  integer(int_kind) :: dust_ind     = 0, &
-                       Fe_ind       = 0, &
-                       bc_ind       = 0, &
-                       nox_ind      = 0, &
-                       nhy_ind      = 0, &
+  integer(int_kind) :: dust_dep_ind = 0, &
+                       Fe_dep_ind   = 0, &
+                       bc_dep_ind   = 0, &
                        xco2_ind     = 0, &
                        mask_ind     = 0, &
                        ifrac_ind    = 0, &
@@ -306,14 +309,10 @@ contains
                                  fe_frac_dust, fe_frac_bc,          &
                                  marbl_req_surface_forcing_fields,  &
                                  marbl_req_interior_forcing_fields, &
-                                 forcing_nml)
+                                 forcing_nml,                       &
+                                 lhas_riv_flux)
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
-    use ecosys_tracers_and_saved_state_mod, only : dic_ind
-    use ecosys_tracers_and_saved_state_mod, only : dic_alt_co2_ind
-    use ecosys_tracers_and_saved_state_mod, only : alk_ind
-    use ecosys_tracers_and_saved_state_mod, only : di13c_ind
-    use ecosys_tracers_and_saved_state_mod, only : di14c_ind
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
     use marbl_interface_types, only : marbl_forcing_fields_type
@@ -331,6 +330,7 @@ contains
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_forcing_fields(:)
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_interior_forcing_fields(:)
     character(marbl_nl_buffer_size), intent(in)    :: forcing_nml
+    logical                        , intent(out)   :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -507,6 +507,8 @@ contains
     !  River flux forcing
     !--------------------------------------------------------------------------
 
+    lhas_riv_flux(:) = .false.
+
     marbl_varname = 'none'
     units         = 'nmol/cm^2/s'
 
@@ -521,6 +523,7 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(no3_ind) = .true.
 
     n = n + 1
 
@@ -531,6 +534,7 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(po4_ind) = .true.
 
     n = n + 1
 
@@ -541,6 +545,8 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(don_ind) = .true.
+    lhas_riv_flux(donr_ind) = .true.
 
     n = n + 1
 
@@ -551,6 +557,8 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(dop_ind) = .true.
+    lhas_riv_flux(dopr_ind) = .true.
 
     n = n + 1
 
@@ -561,6 +569,7 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(sio3_ind) = .true.
 
     n = n + 1
 
@@ -571,6 +580,7 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(fe_ind) = .true.
 
     n = n + 1
 
@@ -581,6 +591,12 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(dic_ind) = .true.
+    lhas_riv_flux(dic_alt_co2_ind) = .true.
+    if (ciso_on) then
+      lhas_riv_flux(di13c_ind) = .true.
+      lhas_riv_flux(di14c_ind) = .true.
+    endif
 
     n = n + 1
 
@@ -591,6 +607,7 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(alk_ind) = .true.
 
     n = n + 1
 
@@ -601,6 +618,12 @@ contains
     call riv_flux_forcing_fields(n)%add_forcing_field( &
          field_source='POP monthly calendar', marbl_varname=marbl_varname, &
          field_units=units, forcing_calendar_name=file_details, id=n)
+    lhas_riv_flux(doc_ind) = .true.
+    lhas_riv_flux(docr_ind) = .true.
+    if (ciso_on) then
+      lhas_riv_flux(do13c_ind) = .true.
+      lhas_riv_flux(do14c_ind) = .true.
+    endif
 
     if (n /= size(riv_flux_forcing_fields)) then
       call document(subname, 'riv_flux_forcing_fields entry count', n)
@@ -748,7 +771,7 @@ contains
           end if
 
         case ('Dust Flux')
-          dust_ind = n
+          dust_dep_ind = n
           if (trim(dust_flux_source).eq.'driver') then
             call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
                                  marbl_varname=marbl_varname, field_units=units,      &
@@ -769,12 +792,12 @@ contains
 
         case ('Iron Flux')
           if (trim(iron_flux_source).eq.'driver-derived') then
-            bc_ind = n
+            bc_dep_ind = n
             call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
                                  marbl_varname=marbl_varname, field_units=units,      &
                                  driver_varname='BLACK_CARBON_FLUX', id=n)
           else if (trim(iron_flux_source).eq.'monthly-calendar') then
-            Fe_ind = n
+            Fe_dep_ind = n
             file_details => iron_flux_file_loc
             call init_monthly_surface_forcing_metadata(file_details)
             call surface_forcing_fields(n)%add_forcing_field(                    &
@@ -789,7 +812,6 @@ contains
           end if
 
         case ('NOx Flux')
-          nox_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
             call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
                                  strdata_inputlist_ptr=surface_strdata_inputlist_ptr,   &
@@ -816,7 +838,6 @@ contains
           end if
 
         case ('NHy Flux')
-          nhy_ind = n
           if (trim(ndep_data_type).eq.'shr_stream') then
             call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
                                  strdata_inputlist_ptr=surface_strdata_inputlist_ptr,   &
@@ -1034,7 +1055,7 @@ contains
 
     end do ! do n=1,size(interior_forcing_fields)
 
-    if ((bc_ind.ne.0).and.(dust_ind.eq.0)) then
+    if ((bc_dep_ind.ne.0).and.(dust_dep_ind.eq.0)) then
       call document(subname, "If deriving iron flux, must provide dust flux!")
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
@@ -1150,7 +1171,7 @@ contains
 
            !  load iron PATCH flux fields (if required)
            !  assume patch file has same normalization and format as deposition file
-           if (n == Fe_ind .and. liron_patch) then
+           if (n == Fe_dep_ind .and. liron_patch) then
               call read_field(file%input%file_fmt, file%input%filename, iron_patch_flux_filename, iron_patch_flux)
               do iblock=1, nblocks_clinic
                  do m=1, 12
@@ -1513,8 +1534,7 @@ contains
        dust_flux,                             &
        black_carbon_flux,                     &
        sst,                                   &
-       sss,                                   &
-       riv_flux)
+       sss)
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
@@ -1538,10 +1558,6 @@ contains
     use passive_tracer_tools  , only : read_field
     use marbl_constants_mod   , only : molw_Fe
 
-    use ecosys_tracers_and_saved_state_mod, only : dic_ind, doc_ind, docr_ind ! for computing ext_C_flux
-    use ecosys_tracers_and_saved_state_mod, only : po4_ind, dop_ind, dopr_ind ! for computing ext_P_flux
-    use ecosys_tracers_and_saved_state_mod, only : sio3_ind                   ! for computing ext_Si_flux
-
     implicit none
 
     logical,   intent(in)  :: ciso_on
@@ -1554,8 +1570,6 @@ contains
     real (r8), intent(in)  :: sst                  (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
     real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
 
-    real (r8), intent(inout) :: riv_flux(:, :, :, :)
-
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
@@ -1563,6 +1577,7 @@ contains
     logical   (log_kind)           :: first_call = .true.
     type      (block)              :: this_block                                            ! block info for the current block
     integer   (int_kind)           :: index                                                 ! field index
+    integer   (int_kind)           :: riv_flux_ind                                          ! index into riv_flux_forcing_fields
     integer   (int_kind)           :: i, j, iblock, n                                       ! loop indices
     integer   (int_kind)           :: errorCode                                             ! errorCode from HaloUpdate call
     integer   (int_kind)           :: tracer_bndy_loc(1)                                    ! location   for ghost tracer_bndy_type cell updates
@@ -1673,12 +1688,6 @@ contains
     end do  ! index
 
     !-----------------------------------------------------------------------
-    ! compute river fluxes
-    !-----------------------------------------------------------------------
-
-    call comp_riv_flux(ciso_on, riv_flux)
-
-    !-----------------------------------------------------------------------
     !  loop through surface forcing fields
     !-----------------------------------------------------------------------
 
@@ -1770,17 +1779,44 @@ contains
                    forcing_field%field_0d(:,:,iblock) = sss(:,:,iblock)
 
                 else if (index == ext_C_flux_ind) then
-                   forcing_field%field_0d(:,:,iblock) = riv_flux(:,:,dic_ind,iblock) + &
-                        riv_flux(:,:,doc_ind,iblock) + riv_flux(:,:,docr_ind,iblock)
+                   forcing_field%field_0d(:,:,iblock) = c0
+
+                   riv_flux_ind = dic_riv_flux_ind
+                   if (riv_flux_ind > 0) then
+                     forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + &
+                          riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+                   end if
+
+                   riv_flux_ind = doc_riv_flux_ind
+                   if (riv_flux_ind > 0) then
+                     forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + &
+                          riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+                   end if
 
                 else if (index == ext_P_flux_ind) then
-                   forcing_field%field_0d(:,:,iblock) = riv_flux(:,:,po4_ind,iblock) + &
-                        riv_flux(:,:,dop_ind,iblock) + riv_flux(:,:,dopr_ind,iblock)
+                   forcing_field%field_0d(:,:,iblock) = c0
+
+                   riv_flux_ind = dip_riv_flux_ind
+                   if (riv_flux_ind > 0) then
+                     forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + &
+                          riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+                   end if
+
+                   riv_flux_ind = dop_riv_flux_ind
+                   if (riv_flux_ind > 0) then
+                     forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + &
+                          riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+                   end if
 
                 else if (index == ext_Si_flux_ind) then
-                   forcing_field%field_0d(:,:,iblock) = riv_flux(:,:,sio3_ind,iblock)
+                   riv_flux_ind = dsi_riv_flux_ind
+                   if (riv_flux_ind > 0) then
+                     forcing_field%field_0d(:,:,iblock) = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+                   else
+                     forcing_field%field_0d(:,:,iblock) = c0
+                   end if
 
-                else if (index == bc_ind) then
+                else if (index == bc_dep_ind) then
                    ! compute iron_flux in gFe/cm^2/s, then convert to nmolFe/cm^2/s
                    forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) *   &
                         ((dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_dust + &
@@ -1789,7 +1825,7 @@ contains
                 else if (index == u10sqr_ind) then
                    forcing_field%field_0d(:,:,iblock) = u10_sqr(:,:,iblock)
 
-                else if (index == dust_ind) then
+                else if (index == dust_dep_ind) then
                    forcing_field%field_0d(:,:,iblock) = dust_flux(:,:,iblock)
 
                 else if (index == d13c_ind) then
@@ -1851,30 +1887,27 @@ contains
 
   !***********************************************************************
 
-  subroutine comp_riv_flux(ciso_on, riv_flux)
+  subroutine ecosys_forcing_comp_stf_riv(ciso_on, stf_riv, iblock)
 
     ! DESCRIPTION:
     ! compute river fluxes
 
     use marbl_constants_mod,                only : R13C_std, R14C_std
     use constants,                          only : p001
-    use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
-    use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
-    use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
-    use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
     implicit none
 
-    logical,   intent(in)    :: ciso_on
-    real (r8), intent(inout) :: riv_flux(:, :, :, :)
+    logical,                intent(in)    :: ciso_on
+    real (r8),              intent(inout) :: stf_riv(:,:,:)
+    integer(kind=int_kind), intent(in)    :: iblock
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_forcing_mod:comp_riv_flux'
-    integer (int_kind) :: iblock
+    character(*), parameter :: subname = 'ecosys_forcing_mod:ecosys_forcing_comp_stf_riv'
     integer (int_kind) :: riv_flux_ind
     integer (int_kind) :: tracer_ind
+    integer (int_kind) :: processed_field_cnt
     real (r8)          :: conv_factor
 
     real (r8), parameter :: DOCriv_refract = 0.2_r8
@@ -1895,75 +1928,96 @@ contains
     ! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
     !-------------------------------------------------------------------------
 
-    ! FIXME : add OMP directive to this loop
-    do iblock = 1, nblocks_clinic
-      ! because alk riv_flux has two terms (alk_riv_flux_ind and din_riv_flux_ind),
-      ! initialize it to zero and have both terms be cumulative
-      riv_flux(:,:,alk_ind,iblock) = c0
+    processed_field_cnt = 0
 
-      do riv_flux_ind = 1, size(riv_flux_forcing_fields)
-        associate (field_0d => riv_flux_forcing_fields(riv_flux_ind)%field_0d)
+    ! because alk stf_riv has two terms (alk_riv_flux_ind and din_riv_flux_ind),
+    ! initialize it to zero and have both terms be cumulative
+    stf_riv(:,:,alk_ind) = c0
 
-          if (riv_flux_ind == din_riv_flux_ind) then
-            riv_flux(:,:,no3_ind,iblock) = field_0d(:,:,iblock)
+    riv_flux_ind = din_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,no3_ind)  = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
-            ! subtract NO3 term from ALK riv_flux
-            riv_flux(:,:,alk_ind,iblock) = riv_flux(:,:,alk_ind,iblock) - field_0d(:,:,iblock)
+      ! subtract din term from ALK stf_riv
+      stf_riv(:,:,alk_ind)  = stf_riv(:,:,alk_ind) - riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == dip_riv_flux_ind) then
-            riv_flux(:,:,po4_ind,iblock) = field_0d(:,:,iblock)
+    riv_flux_ind = dip_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,po4_ind)  = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == don_riv_flux_ind) then
-            riv_flux(:,:,don_ind,iblock) = (c1 - DONriv_refract) * field_0d(:,:,iblock)
-            riv_flux(:,:,donr_ind,iblock) = DONriv_refract * field_0d(:,:,iblock)
+    riv_flux_ind = don_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,don_ind)  = (c1 - DONriv_refract) * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      stf_riv(:,:,donr_ind) =       DONriv_refract  * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == dop_riv_flux_ind) then
-            riv_flux(:,:,dop_ind,iblock) = (c1 - DOPriv_refract) * field_0d(:,:,iblock)
-            riv_flux(:,:,dopr_ind,iblock) = DOPriv_refract * field_0d(:,:,iblock)
+    riv_flux_ind = dop_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,dop_ind)  = (c1 - DOPriv_refract) * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      stf_riv(:,:,dopr_ind) =       DOPriv_refract  * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == dsi_riv_flux_ind) then
-            riv_flux(:,:,sio3_ind,iblock) = field_0d(:,:,iblock)
+    riv_flux_ind = dsi_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,sio3_ind) = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == dfe_riv_flux_ind) then
-            riv_flux(:,:,fe_ind,iblock) = field_0d(:,:,iblock)
+    riv_flux_ind = dfe_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,fe_ind)   = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == dic_riv_flux_ind) then
-            riv_flux(:,:,dic_ind,iblock) = field_0d(:,:,iblock)
-            riv_flux(:,:,dic_alt_co2_ind,iblock) = field_0d(:,:,iblock)
+    riv_flux_ind = dic_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,dic_ind)  = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      stf_riv(:,:,dic_alt_co2_ind) = riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
-            if (ciso_on) then
-              conv_factor = (-10.0_r8 * p001 + c1) * R13C_std
-              riv_flux(:,:,di13c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
+      if (ciso_on) then
+        conv_factor = (-10.0_r8 * p001 + c1) * R13C_std
+        stf_riv(:,:,di13c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
-              conv_factor = ((d14c_glo_avg - 50.0_r8) * p001 + c1) * R14C_std
-              riv_flux(:,:,di14c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
-            endif
+        conv_factor = ((d14c_glo_avg - 50.0_r8) * p001 + c1) * R14C_std
+        stf_riv(:,:,di14c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      endif
+    endif
 
-          else if (riv_flux_ind == alk_riv_flux_ind) then
-            riv_flux(:,:,alk_ind,iblock) = riv_flux(:,:,alk_ind,iblock) + field_0d(:,:,iblock)
+    riv_flux_ind = alk_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,alk_ind)  = stf_riv(:,:,alk_ind) + riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+    endif
 
-          else if (riv_flux_ind == doc_riv_flux_ind) then
-            riv_flux(:,:,doc_ind,iblock) = (c1 - DOCriv_refract) * field_0d(:,:,iblock)
+    riv_flux_ind = doc_riv_flux_ind
+    if (riv_flux_ind > 0) then
+      processed_field_cnt   = processed_field_cnt + 1
+      stf_riv(:,:,doc_ind)  = (c1 - DOCriv_refract) * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      stf_riv(:,:,docr_ind) =       DOCriv_refract  * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
-            riv_flux(:,:,docr_ind,iblock) = DOCriv_refract * field_0d(:,:,iblock)
+      if (ciso_on) then
+        conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
+        stf_riv(:,:,do13c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
-            if (ciso_on) then
-              conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
-              riv_flux(:,:,do13c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
+        conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
+        stf_riv(:,:,do14c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      endif
+    endif
 
-              conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
-              riv_flux(:,:,do14c_ind,iblock) = conv_factor * field_0d(:,:,iblock)
-            endif
+    if (processed_field_cnt /= size(riv_flux_forcing_fields(:))) then
+      call document(subname, 'processed_field_cnt', processed_field_cnt)
+      call document(subname, 'size(riv_flux_forcing_fields(:))', size(riv_flux_forcing_fields(:)))
+      call exit_POP(sigAbort, 'mismatch between processed_field_cnt and size(riv_flux_forcing_fields(:))')
+    end if
 
-          else
-            call document(subname, 'riv_flux_ind', riv_flux_ind)
-            call exit_POP(sigAbort, 'unknown riv_flux_ind')
-          end if
-        end associate
-      end do
-    end do
-
-  end subroutine comp_riv_flux
+  end subroutine ecosys_forcing_comp_stf_riv
 
   !***********************************************************************
 
@@ -1982,7 +2036,7 @@ contains
     do iblock = 1,nblocks_clinic
 
        ! Reduce surface dust flux due to assumed instant surface dissolution
-       index = dust_ind
+       index = dust_dep_ind
        if (index.gt.0) then
          surface_forcing_fields(index)%field_0d(:,:,iblock) = &
               surface_forcing_fields(index)%field_0d(:,:,iblock) * 0.98_r8
@@ -1990,7 +2044,7 @@ contains
 
        ! Add iron patch (if available)
        ! Apply bioavail scaling
-       index = Fe_ind
+       index = Fe_dep_ind
        if (index.gt.0) then
          if (liron_patch .and. imonth == iron_patch_month) then
            surface_forcing_fields(index)%field_0d(:,:,iblock) =      &
@@ -2002,7 +2056,7 @@ contains
        endif
 
        ! Add iron patch (if available)
-       index = bc_ind
+       index = bc_dep_ind
        if (index.gt.0) then
          if (liron_patch .and. imonth == iron_patch_month) then
            surface_forcing_fields(index)%field_0d(:,:,iblock) =      &
@@ -2029,7 +2083,7 @@ contains
 
     end do
 
-    index = dust_ind
+    index = dust_dep_ind
     if (index.gt.0) then
       dust_flux_in = surface_forcing_fields(index)%field_0d
     end if

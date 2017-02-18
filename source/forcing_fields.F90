@@ -53,8 +53,12 @@ module forcing_fields
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       public, target :: &
-      STF,  &!  surface tracer fluxes
-      TFW    ! tracer content in freshwater flux
+      STF,      &! surface tracer fluxes
+      STF_RIV,  &! riverine tracer fluxes
+      TFW        ! tracer content in freshwater flux
+
+   logical (log_kind), dimension(nt) :: &
+      lhas_riv_flux ! true if a tracer has a riverine flux
 
 
    logical (log_kind), public :: &

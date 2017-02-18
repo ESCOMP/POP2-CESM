@@ -27,6 +27,7 @@
    use broadcast, only: broadcast_scalar
    use prognostic, only: TRACER, PSURF, tracer_d, oldtime, curtime, newtime
    use forcing_shf, only: SHF_QSW_RAW, SHF_QSW
+   use forcing_fields, only : lhas_riv_flux
    use mcog, only: FRACR_BIN, QSW_RAW_BIN, QSW_BIN
    use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
        datafile
@@ -46,6 +47,7 @@
    use ecosys_driver, only:               &
        ecosys_tracer_cnt,                 &
        ecosys_driver_init,                &
+       ecosys_driver_set_sflux_forcing,   &
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
        ecosys_driver_set_interior_forcing,&
@@ -129,7 +131,8 @@
       tavg_var_Jint,            & ! vertically integrated tracer source sink term
       tavg_var_Jint_100m,       & ! vertically integrated tracer source sink term, 0-100m
       tavg_var_tend_zint_100m,  & ! vertically integrated tracer tendency, 0-100m
-      tavg_var_stf,             & ! tracer surface flux
+      tavg_var_stf,             & ! surface tracer flux
+      tavg_var_stf_riv,         & ! riverine tracer flux
       tavg_var_resid,           & ! tracer residual surface flux
       tavg_var_fvper,           & ! virtual tracer flux from precip,evap,runoff
       tavg_var_fvice              ! virtual tracer flux from ice formation
@@ -395,6 +398,7 @@
            tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end),                      &
            TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:,:),              &
            tadvect_ctype_passive_tracers(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
+           lhas_riv_flux(ecosys_driver_ind_begin:ecosys_driver_ind_end),                 &
            errorCode)
 
       if (errorCode /= POP_Success) then
@@ -618,6 +622,19 @@
                              units=units, grid_loc='2110',          &
                              scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
+
+      if (lhas_riv_flux(n)) then
+         sname = trim(tracer_d(n)%short_name) /&
+                                               &/ '_RIV_FLUX'
+         lname = trim(tracer_d(n)%long_name) /&
+                                              &/ ' Riverine Flux'
+         units = tracer_d(n)%flux_units
+         call define_tavg_field(tavg_var_stf_riv(n),                   &
+                                sname, 2, long_name=lname,             &
+                                units=units, grid_loc='2110',          &
+                                scale_factor=tracer_d(n)%scale_factor, &
+                                coordinates='TLONG TLAT time')
+      endif
 
       sname = 'RESID_' /&
                         &/ trim(tracer_d(n)%short_name)
@@ -916,7 +933,7 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF)
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF,STF_RIV)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module that compute surface fluxes
@@ -936,7 +953,8 @@
 ! !INPUT/OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(inout) :: &
-      STF   ! surface fluxes for tracers
+      STF,      &! surface tracer fluxes
+      STF_RIV    ! riverine tracer fluxes
 
 !EOP
 !BOC
@@ -975,12 +993,23 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_sflux(                                             &
-         U10_SQR, ICE_FRAC, PRESS, DUST_FLUX, BLACK_CARBON_FLUX,                &
-         SST_FILT, SSS_FILT,                                                    &
-         TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,:), &
-         TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,:), &
-         STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:))
+      call ecosys_driver_set_sflux_forcing(                      &
+         U10_SQR, ICE_FRAC, PRESS, DUST_FLUX, BLACK_CARBON_FLUX, &
+         SST_FILT, SSS_FILT)
+
+      call ecosys_driver_set_global_scalars('surface')
+
+      !$OMP PARALLEL DO PRIVATE(iblock)
+      do iblock = 1,nblocks_clinic
+         call ecosys_driver_set_sflux(                                                  &
+            TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,iblock), &
+            TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,iblock), &
+            STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,iblock),              &
+            STF_RIV(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,iblock), iblock)
+         end do
+      !$OMP END PARALLEL DO
+
+      call ecosys_driver_comp_global_averages('surface')
    end if
 
 !-----------------------------------------------------------------------
@@ -1337,10 +1366,10 @@
 ! !IROUTINE: passive_tracers_tavg_sflux
 ! !INTERFACE:
 
- subroutine passive_tracers_tavg_sflux(STF)
+ subroutine passive_tracers_tavg_sflux(STF, STF_RIV)
 
 ! !DESCRIPTION:
-!  accumulate common tavg fields for tracer surface fluxes
+!  accumulate common tavg fields for surface tracer fluxes
 !  call accumation subroutines for tracer modules that have additional
 !     tavg fields related to surface fluxes
 !
@@ -1350,7 +1379,7 @@
 ! !INPUT PARAMETERS:
 
   real(r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
-      intent(in) :: STF
+      intent(in) :: STF, STF_RIV
 
 !EOP
 !BOC
@@ -1369,6 +1398,9 @@
    do iblock = 1,nblocks_clinic
       do n = 3, nt
          call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
+         if (lhas_riv_flux(n)) then
+            call accumulate_tavg_field(STF_RIV(:,:,n,iblock),tavg_var_stf_riv(n),iblock,1)
+         endif
          call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
       enddo
    enddo

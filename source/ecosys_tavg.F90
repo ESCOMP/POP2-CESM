@@ -33,8 +33,8 @@
   ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_tavg_init
-  public :: ecosys_tavg_accumulate
-  public :: ecosys_tavg_accumulate_flux
+  public :: ecosys_tavg_accumulate_interior
+  public :: ecosys_tavg_accumulate_surface
 
   !-----------------------------------------------------------------------
   !  define tavg id for interior diagnostics, diagnostics related to
@@ -50,8 +50,6 @@
   integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
   integer (int_kind) :: tavg_DpCO2_2        ! delta pco2 duplicate
   integer (int_kind) :: tavg_DIC_GAS_FLUX_2 ! dic flux duplicate
-
-  integer (int_kind), allocatable, public :: tavg_riv_flux(:)
 
   !***********************************************************************
 
@@ -134,50 +132,27 @@ contains
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    allocate(tavg_riv_flux(marbl_tracer_cnt))
-
-    do n = 1, marbl_tracer_cnt
-      associate (tracer_metadata => marbl_instance%tracer_metadata(n))
-        sname = trim(tracer_metadata%short_name) // '_RIV_FLUX'
-        lname = trim(tracer_metadata%short_name) // ' Riverine Flux'
-        call define_tavg_field(tavg_riv_flux(n),sname,2,long_name=lname,          &
-                               units=tracer_metadata%flux_units, grid_loc='2110', &
-                               coordinates='TLONG TLAT time')
-      end associate
-    end do
-
   end subroutine ecosys_tavg_init
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate(i, c, bid, &
-       marbl_interior_forcing_diags,           &
-       marbl_surface_forcing_diags)
+  subroutine ecosys_tavg_accumulate_interior(i, c, bid, &
+       marbl_interior_forcing_diags)
 
     implicit none
 
     integer , dimension(:), intent(in) :: i, c ! column indices
     integer ,               intent(in) :: bid ! block index
 
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_forcing_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_surface_forcing_diags
+    type(marbl_diagnostics_type), intent(in) :: marbl_interior_forcing_diags
     !-----------------------------------------------------------------------
 
-    if (present(marbl_interior_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_interior_forcing_diags,  &
-           tavg_ids = tavg_ids_interior_forcing, &
-           num_elements =marbl_interior_forcing_diags%num_elements)
-    end if
+    call ecosys_tavg_accumulate_from_diag(i, c, bid, &
+         marbl_diags = marbl_interior_forcing_diags,  &
+         tavg_ids = tavg_ids_interior_forcing, &
+         num_elements =marbl_interior_forcing_diags%num_elements)
 
-    if (present(marbl_surface_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_surface_forcing_diags,   &
-           tavg_ids = tavg_ids_surface_forcing, &
-           num_elements = marbl_surface_forcing_diags%num_elements)
-    end if
-
-  end subroutine ecosys_tavg_accumulate
+  end subroutine ecosys_tavg_accumulate_interior
 
   !***********************************************************************
 
@@ -217,18 +192,16 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_flux(surface_forcing_diags, riv_flux, marbl_instances)
+  subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances)
 
     ! Compute diagnostics for surface fluxes
 
     use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
     use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
-    use ecosys_forcing_mod,                 only : riv_flux_forcing_fields
 
     implicit none
 
     real (r8)                  , intent(in) :: surface_forcing_diags (:, :, :, :)
-    real (r8)                  , intent(in) :: riv_flux (:, :, :, :)
     type(marbl_interface_class), intent(in) :: marbl_instances(:)
 
     !-----------------------------------------------------------------------
@@ -267,14 +240,10 @@ contains
 
        end associate
 
-       do n = 1, marbl_tracer_cnt
-          call accumulate_tavg_field(riv_flux(:,:,n,iblock), tavg_riv_flux(n), iblock, 1)
-       end do
-
     end do
     !$OMP END PARALLEL DO
 
-  end subroutine ecosys_tavg_accumulate_flux
+  end subroutine ecosys_tavg_accumulate_surface
 
   !***********************************************************************
 

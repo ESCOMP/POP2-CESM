@@ -2,6 +2,43 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    18 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n40_marbl_dev_n30_cesm_pop_2_1_20170128
+Tag Summary: move riv_flux out of ecosys, making it applicable for all passive tracers
+
+compute MARBL surface_forcings ext_{C,P,Si}_flux from riv_flux_forcing_fields terms
+   instead of riv_flux terms
+split ecosys_driver_set_sflux into ecosys_driver_set_sflux_driver and ecosys_driver_set_sflux
+call ecosys_driver_set_sflux per block, inside an OMP loop
+add _dep to Fe_ind, bc_ind, dust_ind names, remove nox_ind, nhy_ind
+change how riv_flux_forcing_fields are iterated on at runtime
+rename ecosys_tavg_accumulate subroutine, removing surface terms from interior subroutine
+increase per tracer field count in tavg.F90 to max_avail_tavg_fields
+add global_sum timers
+
+Testing:
+MARBL commit 5440f4090f91ba25071d4e6e6aadacf93ca17b3a
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n39 tag and same MARBL commit)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because of roundoff changes to ecosys STF terms
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+M       source/forcing.F90
+M       source/forcing_fields.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    16 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n39_marbl_dev_n30_cesm_pop_2_1_20170128
 Tag Summary: incorporate suggestions from code review of marbl_dev_klindsay_37 and marbl_dev_klindsay_n38
@@ -40,7 +77,7 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    15 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n38_marbl_dev_n30_cesm_pop_2_1_20170128
-Tag Summary: move river fluxes from MARBL->driver, handle requested surface_forcingss ext_{C,P,Si}_flux
+Tag Summary: move river fluxes from MARBL->driver, handle requested surface_forcings ext_{C,P,Si}_flux
 
 river fluxes are not computed or used by MARBL, so we're moving them out to the driver
    this will also make it easier to couple them to POP's estuary box model
