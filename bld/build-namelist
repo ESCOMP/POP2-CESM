@@ -2640,7 +2640,10 @@ sub module_tavg_script_args() {
   my $module = shift;
   my $cfg    = shift;
   if ($module eq "ecosys") {
-    return ($nl->get_value('lecosys_debug'), $nl->get_value('lvariable_PtoC'), $nl->get_value('tracer_restore_vars'));
+    return ($nl->get_value('lecosys_debug'),
+            $nl->get_value('lvariable_PtoC'),
+            $OCN_TRANSIENT,
+            $nl->get_value('tracer_restore_vars'));
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
@@ -2656,7 +2659,9 @@ sub module_tavg_script_args() {
     my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
     my $mcog_ncols = @mcog_col_to_bin;
     my $mcog_nbins = max @mcog_col_to_bin;
-    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"), $mcog_ncols, $mcog_nbins);
+    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"),
+            $mcog_ncols,
+            $mcog_nbins);
   }
   return "";
 }

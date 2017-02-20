@@ -2,6 +2,26 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    20 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n42_marbl_dev_n31_cesm_pop_2_1_20170128
+Tag Summary: set OCN_TAVG_DIC_ALT_CO2 in input_templates/ocn.ecosys.tavg.csh based on OCN_TRANSIENT
+
+Testing:
+MARBL commit 5440f4090f91ba25071d4e6e6aadacf93ca17b3a
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n41 tag)
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    18 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n41_marbl_dev_n31_cesm_pop_2_1_20170128
 Tag Summary: merge marbl_dev_n31 tag to this branch

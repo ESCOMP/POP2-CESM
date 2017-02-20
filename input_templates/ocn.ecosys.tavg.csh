@@ -18,12 +18,18 @@ endif
 @ s2 = $my_stream    # use an ecosystem-defined stream
 @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
-set lecosys_debug = $2
-set lvariable_PtoC = $3
-set tracer_restore_vars = $4
+set lecosys_debug       = $2
+set lvariable_PtoC      = $3
+set OCN_TRANSIENT       = $4
+set tracer_restore_vars = $5
 
-# FIXME: setting of OCN_TAVG_DIC_ALT_CO2 should be dependent on OCN_TRANSIENT
-setenv OCN_TAVG_DIC_ALT_CO2 FALSE
+# set OCN_TAVG_DIC_ALT_CO2
+if ($OCN_TRANSIENT == unset) then
+   setenv OCN_TAVG_DIC_ALT_CO2 FALSE
+else
+   setenv OCN_TAVG_DIC_ALT_CO2 TRUE
+endif
+
 
 if ($lecosys_debug == ".false.") then
 
