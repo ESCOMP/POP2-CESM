@@ -100,20 +100,22 @@
    !*** ccsm
    type,public :: tavg_field_desc_ccsm
       character(char_len)     :: short_name     ! short name for field
-      character(char_len)     :: long_name      ! long descriptive name
-      character(char_len)     :: units          ! units
-      character(char_len)     :: coordinates    ! coordinates
-      character(char_len)     :: nftype         ! indicates data type 
-      character(4)            :: grid_loc       ! location in grid
-      real (rtavg)            :: fill_value     ! _FillValue
-      real (rtavg)            :: scale_factor   ! r4 scale factor
-      real (r4), dimension(2) :: valid_range    ! min/max
-      integer (i4)            :: ndims          ! num dims (0, 2 or 3)
-      integer (i4)            :: buf_loc        ! location in buffer
-      integer (i4)            :: method         ! method for averaging
-      integer (i4)            :: field_loc      ! grid location and field
-      integer (i4)            :: field_type     ! type for io, ghost cells
-      integer (i4)            :: stream_number  ! identifies tavg_contents "stream"
+      character(char_len)     :: long_name        ! long descriptive name
+      character(char_len)     :: units            ! units
+      character(char_len)     :: coordinates      ! coordinates
+      character(char_len)     :: nftype           ! indicates data type 
+      character(4)            :: grid_loc         ! location in grid
+      real (rtavg)            :: fill_value       ! _FillValue
+      real (rtavg)            :: scale_factor     ! r4 scale factor
+      logical                 :: transpose_field  ! accumulate k dim first
+      real (r4), dimension(2) :: valid_range      ! min/max
+      integer (i4)            :: km = -1          ! number of vertical levels (km or zt_150m_levs; -1 => 0D, 2D)
+      integer (i4)            :: ndims            ! num dims (0, 2 or 3)
+      integer (i4)            :: buf_loc          ! location in buffer
+      integer (i4)            :: method           ! method for averaging
+      integer (i4)            :: field_loc        ! grid location and field
+      integer (i4)            :: field_type       ! type for io, ghost cells
+      integer (i4)            :: stream_number    ! identifies tavg_contents "stream"
    end type
 
 !EOP
@@ -199,7 +201,8 @@
    integer (int_kind) :: &
       tavg_bufsize_0d,   &    ! size of buffer for 0d fields
       tavg_bufsize_2d,   &    ! size of buffer for 2d fields
-      tavg_bufsize_3d         ! size of buffer for 3d fields
+      tavg_bufsize_3d,   &    ! size of buffer for 3d fields
+      tavg_bufsize_3dt        ! size of buffer for transposed 3d fields
 
    real (rtavg), dimension(:), allocatable, target :: &
       TAVG_BUF_0D         ! buffer for holding accumulated sums
@@ -208,12 +211,17 @@
       TAVG_BUF_2D         ! buffer for holding accumulated sums
 
    real (rtavg), dimension(:,:,:,:,:), allocatable, target :: &
-      TAVG_BUF_3D         ! buffer for holding accumulated sums
+      TAVG_BUF_3D,           &! buffer for holding accumulated sums
+      TAVG_BUF_3D_TRANSPOSE   ! buffer for holding accumulated sums
+
+   ! Temporary buffer to transpose TAVG_BUF_3D_TRANSPOSE back to (i,j,k)
+   real (rtavg), dimension(:,:,:,:), allocatable, target :: TAVG_BUF_3D_TEMP
 
    integer (i4), dimension(:), allocatable :: &
-      TAVG_BUF_0D_METHOD,  &! method for each requested 0d field
-      TAVG_BUF_2D_METHOD,  &! method for each requested 2d field
-      TAVG_BUF_3D_METHOD    ! method for each requested 3d field
+      TAVG_BUF_0D_METHOD,            &! method for each requested 0d field
+      TAVG_BUF_2D_METHOD,            &! method for each requested 2d field
+      TAVG_BUF_3D_METHOD,            &! method for each requested 3d field
+      TAVG_BUF_3D_TRANSPOSE_METHOD    ! method for each requested transposed 3d field
 
    real (rtavg), dimension (:,:,:), allocatable ::  &
          TAVG_TEMP          ! work array in write_restart
@@ -447,7 +455,10 @@
       timer_write_nstd,  &
       timer_tavg_ccsm_diags_bsf, &
       timer_tavg_ccsm_diags_moc, &
-      timer_tavg_ccsm_diags_trans
+      timer_tavg_ccsm_diags_trans, &
+      timer_sum_transpose, &
+      timer_read_transpose, &
+      timer_write_transpose
 
    character (char_len) :: exit_string
 
@@ -494,6 +505,7 @@
       nn,                  &! dummy index
       ns,                  &! dummy index for tavg streams
       i,ip1,j,k,           &! dummy indices
+      nfield,              &   ! field identifier
       iblock,              &! local block index
       loc,                 &! location of field in buffer
       nu,                  &! unit for contents input file
@@ -956,9 +968,10 @@
                           coordinates='ULONG ULAT time')
 
 
-   tavg_bufsize_0d = 0
-   tavg_bufsize_2d = 0
-   tavg_bufsize_3d = 0
+   tavg_bufsize_0d  = 0
+   tavg_bufsize_2d  = 0
+   tavg_bufsize_3d  = 0
+   tavg_bufsize_3dt = 0
 
    call get_unit(nu)
 
@@ -1142,6 +1155,13 @@
       TAVG_BUF_3D = c0
      endif
 
+     if (tavg_bufsize_3dt > 0) then
+      allocate(TAVG_BUF_3D_TRANSPOSE(km,nx_block,ny_block,nblocks_clinic,tavg_bufsize_3dt))
+      allocate(TAVG_BUF_3D_TEMP(nx_block,ny_block,km,nblocks_clinic))
+      allocate(TAVG_BUF_3D_TRANSPOSE_METHOD(tavg_bufsize_3dt))
+      TAVG_BUF_3D = c0
+     endif
+
      allocate(TAVG_TEMP(nx_block,ny_block,nblocks_clinic))
 
      tavg_sum = c0
@@ -1161,7 +1181,11 @@
           else if (avail_tavg_fields(n)%ndims == 2) then
              TAVG_BUF_2D_METHOD(loc) = avail_tavg_fields(n)%method
           else if (avail_tavg_fields(n)%ndims == 3) then
-             TAVG_BUF_3D_METHOD(loc) = avail_tavg_fields(n)%method
+             if (avail_tavg_fields(n)%transpose_field) then
+                TAVG_BUF_3D_TRANSPOSE_METHOD(loc) = avail_tavg_fields(n)%method
+             else
+                TAVG_BUF_3D_METHOD(loc) = avail_tavg_fields(n)%method
+             end if
           endif
 
           !*** determine which streams use tavg_method_qflux
@@ -1237,11 +1261,12 @@
 !  ccsm-specific initializations
 !
 !-----------------------------------------------------------------------
- 
+
+   ! Targets pointed to out of tavg data type!
+   zt_150m_levs = count(zt < 150.0e2_r8)
    if (lccsm) then
 
      !*** how many levels have their midpoint shallower than 150m
-     zt_150m_levs = count(zt < 150.0e2_r8)
      if (.not. allocated(ZT_150m_R)) &
        allocate(ZT_150m_R(zt_150m_levs))
 
@@ -1395,6 +1420,18 @@
    call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', 1, distrb_clinic%nprocs)
    if (n_heat_trans_requested .or. n_salt_trans_requested)  &
    call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', 1, distrb_clinic%nprocs)
+   call get_timer(timer_read_transpose, 'TAVG_READ_TRANSPOSE'  ,  1, distrb_clinic%nprocs)
+   call get_timer(timer_write_transpose,'TAVG_WRITE_TRANSPOSE' ,  1, distrb_clinic%nprocs)
+
+   do nfield = 1, num_avail_tavg_fields
+      if (avail_tavg_fields(nfield)%ndims .eq. 3) then
+         if (avail_tavg_fields(nfield)%grid_loc(4:4) .eq. '4') then
+            avail_tavg_fields(nfield)%km = zt_150m_levs
+         else
+            avail_tavg_fields(nfield)%km = km
+         end if
+      end if
+   end do
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1703,14 +1740,14 @@
      do nfield = 1,num_avail_tavg_fields  ! check all available fields
 
         loc = avail_tavg_fields(nfield)%buf_loc
-        
+
         !*** continue only if field is requested, in buffer, and in this stream
         if (tavg_requested(nfield)) then
-          if (tavg_in_this_stream(nfield,ns)) then 
+          if (tavg_in_this_stream(nfield,ns)) then
 
           field_counter = field_counter + 1
 
-          if (field_counter > tavg_streams(ns)%num_requested_fields ) then 
+          if (field_counter > tavg_streams(ns)%num_requested_fields ) then
             exit_string = 'FATAL ERROR: too many fields requested'
             call document ('write_tavg', exit_string)
             call exit_POP (sigAbort,exit_string,out_unit=stdout)
@@ -1735,7 +1772,7 @@
                 coordinates=avail_tavg_fields(nfield)%coordinates,          &
                 valid_range=avail_tavg_fields(nfield)%valid_range,          &
 #ifdef TAVG_R8
-                 d0d_array=TAVG_BUF_0D(loc) ) 
+                 d0d_array=TAVG_BUF_0D(loc) )
 #else
                 r0d_array=TAVG_BUF_0D(loc) )
 #endif
@@ -1758,7 +1795,7 @@
                 coordinates=avail_tavg_fields(nfield)%coordinates,          &
                 valid_range=avail_tavg_fields(nfield)%valid_range,          &
 #ifdef TAVG_R8
-                 d2d_array=TAVG_BUF_2D(:,:,:,loc) ) 
+                 d2d_array=TAVG_BUF_2D(:,:,:,loc) )
 #else
                 r2d_array=TAVG_BUF_2D(:,:,:,loc) )
 #endif
@@ -1780,43 +1817,61 @@
               z_dim = k_dim
             endif ! lccsm
 
-            if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-              do k=1,km
-                 TAVG_TEMP(:,:,:)=TAVG_BUF_3D(:,:,k,:,loc)
-                 call tavg_mask(TAVG_TEMP(:,:,:),avail_tavg_fields(nfield),k)
-                 TAVG_BUF_3D(:,:,k,:,loc)=TAVG_TEMP(:,:,:)
-               enddo 
-            endif
-
-            tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
-                           avail_tavg_fields(nfield)%short_name,                        &
-               dim1=i_dim, dim2=j_dim, dim3=z_dim, time_dim=time_dim,field_id=field_id, &
-                 long_name=avail_tavg_fields(nfield)%long_name,                         &
-                     units=avail_tavg_fields(nfield)%units    ,                         &
-                  grid_loc=avail_tavg_fields(nfield)%grid_loc ,                         &
-                 field_loc=avail_tavg_fields(nfield)%field_loc,                         &
-                field_type=avail_tavg_fields(nfield)%field_type,                        &
-               coordinates=avail_tavg_fields(nfield)%coordinates,                       &
-               valid_range=avail_tavg_fields(nfield)%valid_range,                       &
+            if (avail_tavg_fields(nfield)%transpose_field) then
+              tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
+                             avail_tavg_fields(nfield)%short_name,                        &
+                 dim1=i_dim, dim2=j_dim, dim3=z_dim, time_dim=time_dim,field_id=field_id, &
+                   long_name=avail_tavg_fields(nfield)%long_name,                         &
+                       units=avail_tavg_fields(nfield)%units    ,                         &
+                    grid_loc=avail_tavg_fields(nfield)%grid_loc ,                         &
+                   field_loc=avail_tavg_fields(nfield)%field_loc,                         &
+                  field_type=avail_tavg_fields(nfield)%field_type,                        &
+                 coordinates=avail_tavg_fields(nfield)%coordinates,                       &
+                 valid_range=avail_tavg_fields(nfield)%valid_range,                       &
 #ifdef TAVG_R8
-                 d3d_array=TAVG_BUF_3D(:,:,:,:,loc) )
+                   d3d_array=TAVG_BUF_3D_TEMP(:,:,:,:) )
 #else
-                 r3d_array=TAVG_BUF_3D(:,:,:,:,loc) ) 
+                   r3d_array=TAVG_BUF_3D_TEMP(:,:,:,:) )
 #endif
+            else
+              if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
+                do k=1,km
+                  TAVG_TEMP(:,:,:)=TAVG_BUF_3D(:,:,k,:,loc)
+                  call tavg_mask(TAVG_TEMP(:,:,:),avail_tavg_fields(nfield),k)
+                  TAVG_BUF_3D(:,:,k,:,loc)=TAVG_TEMP(:,:,:)
+                enddo
+              endif
+
+              tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
+                             avail_tavg_fields(nfield)%short_name,                        &
+                 dim1=i_dim, dim2=j_dim, dim3=z_dim, time_dim=time_dim,field_id=field_id, &
+                   long_name=avail_tavg_fields(nfield)%long_name,                         &
+                       units=avail_tavg_fields(nfield)%units    ,                         &
+                    grid_loc=avail_tavg_fields(nfield)%grid_loc ,                         &
+                   field_loc=avail_tavg_fields(nfield)%field_loc,                         &
+                  field_type=avail_tavg_fields(nfield)%field_type,                        &
+                 coordinates=avail_tavg_fields(nfield)%coordinates,                       &
+                 valid_range=avail_tavg_fields(nfield)%valid_range,                       &
+#ifdef TAVG_R8
+                   d3d_array=TAVG_BUF_3D(:,:,:,:,loc) )
+#else
+                   r3d_array=TAVG_BUF_3D(:,:,:,:,loc) )
+#endif
+            endif ! Transposed 3D field?
           endif ! 0D/2D/3D test
 
           if (lccsm .and. ltavg_write_reg) &
              call tavg_add_attrib_io_field_ccsm (tavg_streams(ns)%tavg_fields(field_counter),nfield)
-       endif ! tavg_in_this_stream 
+       endif ! tavg_in_this_stream
        endif ! nfield and stream
-    end do !nfield 
+    end do !nfield
 
 !-----------------------------------------------------------------------
 !
 !  construct time
 !
 !-----------------------------------------------------------------------
- 
+
       if (tavg_streams(ns)%ltavg_file_is_open) then
         field_id = time_coordinate(1,ns)%id
       else
@@ -1827,7 +1882,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  create regular or restart tavg output filenames 
+!  create regular or restart tavg output filenames
 !
 !-----------------------------------------------------------------------
 
@@ -1866,7 +1921,7 @@
                                              &/'.restart'
           endif
       end select
-         
+
     endif ! ltavg_write_rest
 
 !-----------------------------------------------------------------------
@@ -1881,7 +1936,7 @@
     call broadcast_scalar(date_created, master_task)
     call broadcast_scalar(time_created, master_task)
     hist_string = char_blank
-    write(hist_string,'(a23,a8,1x,a10)') & 
+    write(hist_string,'(a23,a8,1x,a10)') &
     'POP TAVG file created: ',date_created,time_created
 
     if (ltavg_fmt_out_nc) then
@@ -1935,7 +1990,7 @@
     call data_set (tavg_file_desc(ns), 'open')
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-   
+
       call tavg_define_time_bounds     (tavg_file_desc(ns))
       call tavg_define_labels_ccsm     (tavg_file_desc(ns),ns)
 
@@ -1944,7 +1999,7 @@
       call tavg_construct_ccsm_time_invar   (tavg_file_desc(ns),ns)  !ccsm_time_invar
       call tavg_construct_ccsm_scalars      (tavg_file_desc(ns),ns)  !ccsm_scalars
 
-      !*** define fields 
+      !*** define fields
       call data_set (tavg_file_desc(ns), 'define', time_coordinate(1,ns))
 
       do n=1,num_ccsm_coordinates
@@ -1978,14 +2033,14 @@
 !   define nonstandard fields
 !
 !-----------------------------------------------------------------------
-  
+
     if (ltavg_fmt_out_nc) then
 
       do nn = 1, num_avail_tavg_nstd_fields
         if ( (nn == tavg_MOC    .and. ltavg_moc_diags(ns)   ) .or.  &
              (nn == tavg_N_HEAT .and. ltavg_n_heat_trans(ns)) .or.  &
              (nn == tavg_N_SALT .and. ltavg_n_salt_trans(ns)))      then
-          
+
           !*** get info on cell_methods
           if (nn == tavg_MOC) then
              method_integer = TAVG_BUF_3D_METHOD(tavg_loc_WVEL)
@@ -2017,7 +2072,7 @@
               n_salt_id = nstd_field_id
           endif
          endif ! streams check
-        enddo !nn 
+        enddo !nn
     endif !ltavg_fmt_out_nc
 
 !-----------------------------------------------------------------------
@@ -2082,7 +2137,7 @@
 
 !==================> can this be moved up???
      call timer_start(timer_write_nstd)
-     call tavg_write_vars_nstd_ccsm (tavg_file_desc(ns),ns) 
+     call tavg_write_vars_nstd_ccsm (tavg_file_desc(ns),ns)
      call timer_stop(timer_write_nstd)
 
     endif !ltavg_fmt_out_nc .and. ltavg_write_reg
@@ -2098,6 +2153,19 @@
       if (tavg_requested(nfield)) then
         if (tavg_in_this_stream(nfield,ns)) then
          field_counter = field_counter + 1
+         if (avail_tavg_fields(nfield)%transpose_field) then
+           call timer_start(timer_write_transpose)
+           loc = avail_tavg_fields(nfield)%buf_loc
+           ! Transpose field (and mask it as well)
+           do iblock=1,nblocks_clinic
+             do k=1,avail_tavg_fields(nfield)%km
+               TAVG_BUF_3D_TEMP(:,:,k,iblock) = merge(TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,loc), &
+                                                      avail_tavg_fields(nfield)%fill_value,    &
+                                                      k .le. KMT(:,:,iblock))
+             end do
+           end do
+           call timer_stop(timer_write_transpose)
+         end if
          call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter))
          if (time_to_close) call destroy_io_field(tavg_streams(ns)%tavg_fields(field_counter))
         endif ! tavg_in_this_stream
@@ -2234,6 +2302,7 @@
    integer (i4) ::      &
      nu,                &! i/o unit
      iblock,            &! dummy block index
+     k,                 &! dummy for indexing depth (for transpose)
      n,                 &! dummy for indexing character string
      in_fields,         &! num of fields in restart file
      nfield,            &! dummy field counter
@@ -2457,20 +2526,37 @@
               z_dim = k_dim
             endif ! lccsm
 
-            tavg_fields_in(nfield) = construct_io_field(                &
-                            avail_tavg_fields(nfield)%short_name,    &
-                            dim1=i_dim, dim2=j_dim, dim3=z_dim,      &
-                  long_name=avail_tavg_fields(nfield)%long_name,     &
-                  units    =avail_tavg_fields(nfield)%units    ,     &
-                  grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
-                 field_loc =avail_tavg_fields(nfield)%field_loc,     &
-                field_type =avail_tavg_fields(nfield)%field_type,    &
-                valid_range=avail_tavg_fields(nfield)%valid_range,   &
+            if (avail_tavg_fields(nfield)%transpose_field) then
+               tavg_fields_in(nfield) = construct_io_field(                &
+                               avail_tavg_fields(nfield)%short_name,    &
+                               dim1=i_dim, dim2=j_dim, dim3=z_dim,      &
+                     long_name=avail_tavg_fields(nfield)%long_name,     &
+                     units    =avail_tavg_fields(nfield)%units    ,     &
+                     grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
+                    field_loc =avail_tavg_fields(nfield)%field_loc,     &
+                   field_type =avail_tavg_fields(nfield)%field_type,    &
+                   valid_range=avail_tavg_fields(nfield)%valid_range,   &
 #ifdef TAVG_R8
-                 d3d_array =TAVG_BUF_3D(:,:,:,:,loc) ) !nonstandard, debugging only
+                    d3d_array =TAVG_BUF_3D_TEMP) !nonstandard, debugging only
 #else
-                 r3d_array =TAVG_BUF_3D(:,:,:,:,loc) )
+                    r3d_array =TAVG_BUF_3D_TEMP)
 #endif
+            else
+               tavg_fields_in(nfield) = construct_io_field(                &
+                               avail_tavg_fields(nfield)%short_name,    &
+                               dim1=i_dim, dim2=j_dim, dim3=z_dim,      &
+                     long_name=avail_tavg_fields(nfield)%long_name,     &
+                     units    =avail_tavg_fields(nfield)%units    ,     &
+                     grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
+                    field_loc =avail_tavg_fields(nfield)%field_loc,     &
+                   field_type =avail_tavg_fields(nfield)%field_type,    &
+                   valid_range=avail_tavg_fields(nfield)%valid_range,   &
+#ifdef TAVG_R8
+                    d3d_array =TAVG_BUF_3D(:,:,:,:,loc) ) !nonstandard, debugging only
+#else
+                    r3d_array =TAVG_BUF_3D(:,:,:,:,loc) )
+#endif
+            endif ! transpose
          endif
 
          call data_set (tavg_file_desc_in, 'define', tavg_fields_in(nfield))
@@ -2491,6 +2577,14 @@
         if (tavg_in_this_stream(nfield,ns)) then
          call data_set (tavg_file_desc_in, 'read', tavg_fields_in(nfield))
          call destroy_io_field(tavg_fields_in(nfield))
+         if (avail_tavg_fields(nfield)%transpose_field) then
+           call timer_start(timer_read_transpose)
+           ! Transpose field
+           do k=1,avail_tavg_fields(nfield)%km
+             TAVG_BUF_3D_TRANSPOSE(k,:,:,:,loc) = TAVG_BUF_3D_TEMP(:,:,k,:)
+           end do
+           call timer_stop(timer_read_transpose)
+         end if
         endif !tavg_in_this_stream(nfield,ns)
       endif
    end do
@@ -2550,6 +2644,7 @@
 !-----------------------------------------------------------------------
 
    integer (i4) ::     &
+      i,j,             &   ! horizontal indices
       k,               &   ! vertical level index
       ifield,          &   ! field identifier
       iblock,          &   ! block index
@@ -2561,10 +2656,10 @@
       tavg_field_sum,  &   ! sum of tavg field
       tavg_norm            ! normalization for average
 
-   real (r8), dimension (:,:,:), allocatable ::  &
+   real (r8), dimension (nx_block, ny_block, nblocks_clinic) :: &
       WORK               ! temp for holding area_weighted field
 
-   real (r8), dimension (:,:), allocatable ::  &
+   real (r8), dimension (nx_block, ny_block) :: &
       RMASK              ! topography mask for global sum
 
    character (char_len) ::  &
@@ -2580,9 +2675,6 @@
 !  calculate globally-integrated time average of each chosen field
 !
 !-----------------------------------------------------------------------
-
-   allocate (RMASK(nx_block,ny_block), &
-             WORK (nx_block,ny_block,nblocks_clinic))
 
    call time_stamp ('now','mdy',date_string=date_string,time_string=time_string)
 
@@ -2666,12 +2758,25 @@
                select case(field_loc)
 
                case(field_loc_center)
-                  do k=1,km
-                     RMASK(:,:) = merge(c1, c0, k <= KMT(:,:,iblock)) 
-                     WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
-                                        TAVG_BUF_3D(:,:,k,iblock,ifield)* &
-                                        TAREA(:,:,iblock)*RMASK
-                  end do
+                  if (avail_tavg_fields(nfield)%transpose_field) then
+                     do j=1,ny_block
+                        do i=1,nx_block
+                           WORK(i,j,iblock) = c0
+                           do k=1,min(KMT(i,j,iblock),avail_tavg_fields(nfield)%km)
+                              WORK(i,j,iblock) = WORK(i,j,iblock) + dz(k)*    &
+                                                 TAVG_BUF_3D_TRANSPOSE(k,i,j,iblock,ifield)
+                           end do
+                           WORK(i,j,iblock)=WORK(i,j,iblock)*TAREA(i,j,iblock)
+                        end do
+                     end do
+                  else
+                     do k=1,km
+                        RMASK(:,:) = merge(c1, c0, k <= KMT(:,:,iblock))
+                        WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
+                                           TAVG_BUF_3D(:,:,k,iblock,ifield)* &
+                                           TAREA(:,:,iblock)*RMASK
+                     end do
+                  end if
 
                case(field_loc_NEcorner)
                   do k=1,km
@@ -2713,8 +2818,6 @@
        endif ! tavg_in_this_stream
       endif ! ifield > 0
    end do fields_loop
-
-   deallocate (RMASK, WORK)
 
    call timer_stop(timer_tavg_global)
 
@@ -2966,8 +3069,8 @@
 
 ! !DESCRIPTION:
 !  This routine updates a tavg field.  If the time average of the
-!  field is requested, it accumulates a time sum of a field by 
-!  multiplying by the time step and accumulating the sum into the 
+!  field is requested, it accumulates a time sum of a field by
+!  multiplying by the time step and accumulating the sum into the
 !  tavg buffer array.  If the min or max of a field is requested, it
 !  checks the current value and replaces the min, max if the current
 !  value is less than or greater than the stored value.
@@ -2983,7 +3086,7 @@
       field_id          ! index into available fields for tavg field info
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      ARRAY             ! array of data for this block to add to 
+      ARRAY             ! array of data for this block to add to
                         !  accumulated sum in tavg buffer
    real (r8), optional, intent(in) ::  &
       const
@@ -3000,13 +3103,12 @@
       ndims               ! rank of field (2=2d,3=3d)
 
 !-----------------------------------------------------------------------
-! 
-!  test: mix_pass, ltavg_on, and tavg_requested.                
-!                                                              
+!
+!  test: mix_pass, ltavg_on, and tavg_requested.
+!
 !-----------------------------------------------------------------------
-                                                                
-   if (.not. accumulate_tavg_now(field_id)) return             
-                                                              
+
+   if (.not. accumulate_tavg_now(field_id)) return
 
 !-----------------------------------------------------------------------
 !
@@ -3032,9 +3134,14 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
+   if (avail_tavg_fields(field_id)%transpose_field) then
+     exit_string = 'FATAL ERROR: can not accumulate transposed field level by level'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   end if
+
    if ((ndims == 3) .and. &
-       (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') .and. &
-       (k > zt_150m_levs)) return
+       (k > avail_tavg_fields(field_id)%km)) return
 
 !-----------------------------------------------------------------------
 !
@@ -3052,7 +3159,7 @@
          TAVG_BUF_3D(:,:,k,block,bufloc) = &
          TAVG_BUF_3D(:,:,k,block,bufloc) + dtavg*ARRAY
       endif
-   case (tavg_method_qflux)  
+   case (tavg_method_qflux)
          TAVG_BUF_2D(:,:,block,bufloc) =  &
          TAVG_BUF_2D(:,:,block,bufloc) + const*max (c0,ARRAY)
    case (tavg_method_min)  ! replace with current minimum value
@@ -3202,8 +3309,8 @@
 
 ! !DESCRIPTION:
 !  This routine updates a tavg field.  If the time average of the
-!  field is requested, it accumulates a time sum of a field by 
-!  multiplying by the time step and accumulating the sum into the 
+!  field is requested, it accumulates a time sum of a field by
+!  multiplying by the time step and accumulating the sum into the
 !  tavg buffer array.  If the min or max of a field is requested, it
 !  checks the current value and replaces the min, max if the current
 !  value is less than or greater than the stored value.
@@ -3219,7 +3326,7 @@
       field_id          ! index into available fields for tavg field info
 
    real (r8), dimension(km), intent(in) :: &
-      COL               ! array of data for this block to add to 
+      COL               ! array of data for this block to add to
                         !  accumulated sum in tavg buffer
 !EOP
 !BOC
@@ -3234,13 +3341,12 @@
       kmax                ! max number of levels to accumulate
 
 !-----------------------------------------------------------------------
-! 
-!  test: mix_pass, ltavg_on, and tavg_requested.                
-!                                                              
+!
+!  test: mix_pass, ltavg_on, and tavg_requested.
+!
 !-----------------------------------------------------------------------
-                                                                
-   if (.not. accumulate_tavg_now(field_id)) return             
-                                                              
+
+   if (.not. accumulate_tavg_now(field_id)) return
 
 !-----------------------------------------------------------------------
 !
@@ -3264,11 +3370,13 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
-   if (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') then
-     kmax = zt_150m_levs
-   else
-     kmax = km
+   if (.not.avail_tavg_fields(field_id)%transpose_field) then
+     exit_string = 'FATAL ERROR: can not accumulate non-transposed field column by column'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    end if
+
+   kmax = avail_tavg_fields(field_id)%km
 
 !-----------------------------------------------------------------------
 !
@@ -3279,18 +3387,18 @@
    select case (avail_tavg_fields(field_id)%method)
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = &
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL(1:kmax)
+      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = &
+      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) + dtavg*COL(1:kmax)
    case (tavg_method_min)  ! replace with current minimum value
-      where (COL(1:kmax).lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
+      where (COL(1:kmax).lt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
+         TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
       end where
    case (tavg_method_max)  ! replace with current minimum value
-      where (COL(1:kmax).gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
+      where (COL(1:kmax).gt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
+         TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
       end where
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
+      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
    case default
    end select
 
@@ -3530,6 +3638,19 @@
            TAVG_BUF_3D(:,:,:,iblock,nfield) = c0
         end select
      end do
+
+     do nfield=1,tavg_bufsize_3dt
+        select case (TAVG_BUF_3D_TRANSPOSE_METHOD(nfield))
+        case (tavg_method_avg)
+           TAVG_BUF_3D_TRANSPOSE(:,:,:,iblock,nfield) = c0
+        case (tavg_method_min)
+           TAVG_BUF_3D_TRANSPOSE(:,:,:,iblock,nfield) = bignum
+        case (tavg_method_max)
+           TAVG_BUF_3D_TRANSPOSE(:,:,:,iblock,nfield) = -bignum
+        case default
+           TAVG_BUF_3D_TRANSPOSE(:,:,:,iblock,nfield) = c0
+        end select
+     end do
   end do
  !$OMP END PARALLEL DO
 
@@ -3612,16 +3733,29 @@
 
        elseif (avail_tavg_fields(nfield)%ndims == 3) then
 
-         select case (TAVG_BUF_3D_METHOD(loc))
-         case (tavg_method_avg)
-            TAVG_BUF_3D(:,:,:,:,loc) = c0
-         case (tavg_method_min)
-            TAVG_BUF_3D(:,:,:,:,loc) = bignum
-         case (tavg_method_max)
-            TAVG_BUF_3D(:,:,:,:,loc) = -bignum
-         case default
-            TAVG_BUF_3D(:,:,:,:,loc) = c0
-         end select
+         if (avail_tavg_fields(nfield)%transpose_field) then
+           select case (TAVG_BUF_3D_TRANSPOSE_METHOD(loc))
+           case (tavg_method_avg)
+              TAVG_BUF_3D_TRANSPOSE(:,:,:,:,loc) = c0
+           case (tavg_method_min)
+              TAVG_BUF_3D_TRANSPOSE(:,:,:,:,loc) = bignum
+           case (tavg_method_max)
+              TAVG_BUF_3D_TRANSPOSE(:,:,:,:,loc) = -bignum
+           case default
+              TAVG_BUF_3D_TRANSPOSE(:,:,:,:,loc) = c0
+           end select
+         else
+           select case (TAVG_BUF_3D_METHOD(loc))
+           case (tavg_method_avg)
+              TAVG_BUF_3D(:,:,:,:,loc) = c0
+           case (tavg_method_min)
+              TAVG_BUF_3D(:,:,:,:,loc) = bignum
+           case (tavg_method_max)
+              TAVG_BUF_3D(:,:,:,:,loc) = -bignum
+           case default
+              TAVG_BUF_3D(:,:,:,:,loc) = c0
+           end select
+         end if ! transpose field
 
        endif ! 0D/2D/3D
      endif ! in stream
@@ -3741,8 +3875,14 @@
 
         else if (avail_tavg_fields(nfield)%ndims == 3) then
 
-           if (TAVG_BUF_3D_METHOD(loc) == tavg_method_avg) then
-              TAVG_BUF_3D(:,:,:,:,loc) = TAVG_BUF_3D(:,:,:,:,loc)*factor
+           if (avail_tavg_fields(nfield)%transpose_field) then
+              if (TAVG_BUF_3D_TRANSPOSE_METHOD(loc) == tavg_method_avg) then
+                 TAVG_BUF_3D_TRANSPOSE(:,:,:,:,loc) = TAVG_BUF_3D_TRANSPOSE(:,:,:,:,loc)*factor
+              endif
+           else
+              if (TAVG_BUF_3D_METHOD(loc) == tavg_method_avg) then
+                 TAVG_BUF_3D(:,:,:,:,loc) = TAVG_BUF_3D(:,:,:,:,loc)*factor
+              endif
            endif
 
         endif ! avail_tavg_fields
@@ -3769,6 +3909,7 @@
                                   grid_loc, valid_range,                &
                                   field_loc, field_type,coordinates,    &
                                   scale_factor,                         &
+                                  transpose_field,                      &
                                   nftype,                               &
                                   nstd_fields,                          &
                                   num_nstd_fields, max_nstd_fields      )
@@ -3810,6 +3951,9 @@
 
    real (r8), intent(in), optional :: &
       scale_factor             ! scale factor
+
+   logical, intent(in), optional :: &
+      transpose_field          ! Accumulate this field with k as first index
 
    real (r4), dimension(2), intent(in), optional :: &
       valid_range              ! min/max
@@ -3989,6 +4133,17 @@
       tavg_field%nftype = 'float'
    endif
 
+   if (present(transpose_field)) then
+     if (transpose_field .and. (ndims .ne. 3)) then
+       exit_string = 'FATAL ERROR: tranpose_field can only be .true. for 3D vars'
+       call document ('define_tavg_field', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
+     end if
+     tavg_field%transpose_field = transpose_field
+   else
+     tavg_field%transpose_field = .false.
+   end if
+
 
    if (nonstandard_fields) then
      nstd_fields(id) = tavg_field
@@ -4004,6 +4159,7 @@
      call document ('define_tavg_field',  trim(tavg_field%grid_loc))
      call document ('define_tavg_field', '_FillValue',   tavg_field%fill_value)
      call document ('define_tavg_field', 'scale_factor', tavg_field%scale_factor)
+     call document ('define_tavg_field',  'transpose field', tavg_field%transpose_field)
      call document ('define_tavg_field',  trim(tavg_field%coordinates))
      call document ('define_tavg_field', 'field_type',   tavg_field%field_type)
      call document ('define_tavg_field',  trim(tavg_field%nftype))
@@ -4083,8 +4239,13 @@
       tavg_bufsize_2d = tavg_bufsize_2d + 1
       avail_tavg_fields(id)%buf_loc = tavg_bufsize_2d
    else if (avail_tavg_fields(id)%ndims == 3) then
-      tavg_bufsize_3d = tavg_bufsize_3d + 1
-      avail_tavg_fields(id)%buf_loc = tavg_bufsize_3d
+      if (avail_tavg_fields(id)%transpose_field) then
+        tavg_bufsize_3dt = tavg_bufsize_3dt + 1
+        avail_tavg_fields(id)%buf_loc = tavg_bufsize_3dt
+      else
+        tavg_bufsize_3d = tavg_bufsize_3d + 1
+        avail_tavg_fields(id)%buf_loc = tavg_bufsize_3d
+      end if
    endif
 
 !-----------------------------------------------------------------------

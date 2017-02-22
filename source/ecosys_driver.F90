@@ -50,7 +50,6 @@ module ecosys_driver
 
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
-  use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_construct_io_fields
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
   use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
@@ -76,6 +75,7 @@ module ecosys_driver
   public :: ecosys_driver_tavg_forcing
   public :: ecosys_driver_write_restart
   public :: ecosys_driver_unpack_source_sink_terms
+  public :: ecosys_driver_print_marbl_timers
 
   ! These are public so passive_tracers.F90 only uses ecosys_driver
   public :: ecosys_driver_tracer_ref_val
@@ -90,23 +90,26 @@ module ecosys_driver
   ! timers
   !-----------------------------------------------------------------------
 
+  integer (int_kind) :: ecosys_interior_forcing_timer
+  integer (int_kind) :: ecosys_interior_pop_to_marbl
+  integer (int_kind) :: ecosys_interior_marbl_to_pop
+  integer (int_kind) :: ecosys_interior_marbl_tavg
   integer (int_kind) :: ecosys_interior_timer
   integer (int_kind) :: ecosys_set_sflux_timer
-  integer (int_kind) :: ecosys_comp_CO3terms_timer
-  
+
   !-----------------------------------------------------------------------
-  ! module variables 
+  ! module variables
   !-----------------------------------------------------------------------
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
 
-  integer (int_kind)  :: totChl_surf_nf_ind = 0                ! total chlorophyll in surface layer 
-  integer (int_kind)  :: sflux_co2_nf_ind   = 0                ! air-sea co2 gas flux 
+  integer (int_kind)  :: totChl_surf_nf_ind = 0                ! total chlorophyll in surface layer
+  integer (int_kind)  :: sflux_co2_nf_ind   = 0                ! air-sea co2 gas flux
   integer (int_kind)  :: num_elements  = nx_block*ny_block     ! number of surface elements passed to marbl
 
   character (char_len)                       :: ecosys_tadvect_ctype                  ! advection method for ecosys tracers
   logical   (log_kind) , public              :: ecosys_qsw_distrb_const
-  logical   (log_kind)                       :: ciso_on 
+  logical   (log_kind)                       :: ciso_on
   logical   (log_kind) , allocatable         :: land_mask(:, :, :)
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
   real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
@@ -308,9 +311,12 @@ contains
     !  timer init
     !-----------------------------------------------------------------------
 
-    call get_timer(ecosys_interior_timer     , 'ECOSYS_INTERIOR'   , nblocks_clinic , distrb_clinic%nprocs)
-    call get_timer(ecosys_set_sflux_timer    , 'ECOSYS_SET_SFLUX'  , 1              , distrb_clinic%nprocs)
-    call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms'     , nblocks_clinic , distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_forcing_timer, 'ECOSYS_INTERIOR_FORCING',           nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_pop_to_marbl , 'ECOSYS_INTERIOR_POP_TO_MARBL_XFER', nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_marbl_to_pop , 'ECOSYS_INTERIOR_MARBL_TO_POP_XFER', nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_marbl_tavg   , 'ECOSYS_INTERIOR_MARBL_TAVG'       , nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_interior_timer        , 'ECOSYS_INTERIOR'                  , nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_set_sflux_timer       , 'ECOSYS_SET_SFLUX'                 , 1             , distrb_clinic%nprocs)
 
     !--------------------------------------------------------------------
     !  Initialize module variable land mask
@@ -730,6 +736,8 @@ contains
     ! Set input surface forcing data and surface saved state data
     !-----------------------------------------------------------------------
 
+    call timer_start(ecosys_interior_forcing_timer, block_id=bid)
+
     temperature = p5*(temp_old + temp_cur)
     salinity = p5*(salt_old + salt_cur)*salt_to_ppt
     do k=1,km
@@ -740,6 +748,8 @@ contains
                             QSW_RAW_BIN, QSW_BIN, temperature, salinity,      &
                             pressure, ecosys_qsw_distrb_const, bid)
 
+    call timer_stop(ecosys_interior_forcing_timer, block_id=bid)
+
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
 
@@ -748,6 +758,8 @@ contains
              !-----------------------------------------------------------
              ! Copy data from slab to column
              !-----------------------------------------------------------
+
+             call timer_start(ecosys_interior_pop_to_marbl, block_id=bid)
 
              ! --- set marbl_domain kmt and if partial bottom cells then also delta_z ---
 
@@ -772,13 +784,14 @@ contains
 
              do n = 1, ecosys_tracer_cnt
                 marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
-             end do 
+             end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
              do n=1,size(saved_state_interior)
                marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
-                 saved_state_interior(n)%field_3d(i,c,:,bid)
+                 saved_state_interior(n)%field_3d(:,i,c,bid)
              end do
+             call timer_stop(ecosys_interior_pop_to_marbl, block_id=bid)
 
              !-----------------------------------------------------------
              !  compute time derivatives for ecosystem state variables
@@ -797,11 +810,13 @@ contains
              ! copy marbl column data back to slab
              !-----------------------------------------------------------
 
+             call timer_start(ecosys_interior_marbl_to_pop, block_id=bid)
+
              do n=1,size(saved_state_interior)
-               saved_state_interior(n)%field_3d(i,c,:,bid) =               &
+               saved_state_interior(n)%field_3d(:,i,c,bid) =               &
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
-                
+
              do n = 1, ecosys_tracer_cnt
                 dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
              end do
@@ -809,20 +824,24 @@ contains
              ! copy values to be used in computing requested global averages
              ! arrays have zero extent if none are requested
              glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
+             call timer_stop(ecosys_interior_marbl_to_pop, block_id=bid)
 
           !-----------------------------------------------------------
           ! Update pop tavg diags
           !-----------------------------------------------------------
 
+             call timer_start(ecosys_interior_marbl_tavg, block_id=bid)
+
              call ecosys_tavg_accumulate((/i/), (/c/), bid,                                   &
                   marbl_interior_forcing_diags = marbl_instances(bid)%interior_forcing_diags, &
                   marbl_interior_restore_diags = marbl_instances(bid)%interior_restore_diags)
- 
+             call timer_stop(ecosys_interior_marbl_tavg, block_id=bid)
+
           end if ! end if land_mask > 0
 
        end do ! do i
     end do ! do c
-    
+
     end associate
 
     call timer_stop(ecosys_interior_timer, block_id=bid)
@@ -1187,8 +1206,9 @@ contains
     ! !DESCRIPTION:
     !  write auxiliary fields & scalars to restart files
 
+    use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_write_restart
+    use ecosys_tracers_and_saved_state_mod, only : saved_state_field_3d
     use io_types, only : io_field_desc
-    use io      , only : data_set
     use io      , only : datafile
 
     implicit none
@@ -1196,35 +1216,139 @@ contains
     character(*)                 , intent(in)    :: action
     type (datafile)              , intent(inout) :: restart_file
 
-    type (io_field_desc), dimension(:), allocatable, save :: surf_iodesc
-    type (io_field_desc), dimension(:), allocatable, save :: col_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: surface_iodesc
+    type (io_field_desc), dimension(:), allocatable, save :: interior_iodesc
     integer :: n
     !-----------------------------------------------------------------------
 
     if (trim(action) == 'define') then
 
-       allocate(surf_iodesc(size(saved_state_surf)))
-       surf_iodesc = ecosys_saved_state_construct_io_fields(restart_file,     &
-            saved_state_surf, size(saved_state_surf))
+       allocate(surface_iodesc(size(saved_state_surf)))
+       allocate(interior_iodesc(size(saved_state_interior)))
+       allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))
+    end if
 
-       allocate(col_iodesc(size(saved_state_interior)))
-       col_iodesc = ecosys_saved_state_construct_io_fields(restart_file,      &
-           saved_state_interior, size(saved_state_interior))
+    call ecosys_saved_state_write_restart(restart_file, action,               &
+                                          saved_state_surf, surface_iodesc)
+    call ecosys_saved_state_write_restart(restart_file, action,               &
+                                          saved_state_interior, interior_iodesc)
 
-    else if (trim(action) == 'write') then
-
-       do n=1,size(saved_state_surf)
-          call data_set (restart_file, 'write', surf_iodesc(n))
-       end do
-       do n=1,size(saved_state_interior)
-          call data_set (restart_file, 'write', col_iodesc(n))
-       end do
-       deallocate(surf_iodesc)
-       deallocate(col_iodesc)
-
+    if (trim(action) == 'write') then
+       deallocate(saved_state_field_3d)
+       deallocate(surface_iodesc)
+       deallocate(interior_iodesc)
     endif
 
   end subroutine ecosys_driver_write_restart
+
+  !*****************************************************************************
+
+  subroutine ecosys_driver_print_marbl_timers(stats)
+
+    use timers, only : timer_format, stats_fmt1, stats_fmt2, stats_fmt3, stats_fmt4
+    use constants, only : bignum, blank_fmt, delim_fmt
+    use global_reductions, only : global_maxval, global_minval, global_sum
+    use domain, only : distrb_clinic
+
+    ! Accumulate timing data from MARBL structure
+    ! * marbl_instances(:)%timer_summary%cumulative_runtimes(:)
+    ! Process:
+    ! (1) On each "node" (MPI task), compute total runtime across blocks
+    !     -- max over blocks in threaded regions, otherwise sum over blocks
+    ! (2) Master task will write the max across all nodes to ocn.log
+    ! (3) If additional stats are requested:
+    !     -- Pass node and block times to master task
+    !     -- Master task writes min, max, avg over both nodes and blocks to log
+
+    logical, optional, intent(in) :: stats
+
+    real(r8), allocatable, dimension(:,:) :: run_time
+    real(r8), allocatable, dimension(:) :: block_max, block_min, block_tot
+    real(r8) :: node_time, node_min, node_max, node_avg
+    integer :: iblock, nblocks, num_timers, timer_id
+    logical :: stats_local
+
+    if (present(stats)) then
+      stats_local = stats
+    else
+      stats_local = .false.
+    end if
+
+    do iblock=1, nblocks_clinic
+      call marbl_instances(iblock)%extract_timing()
+    end do
+
+    num_timers = marbl_instances(1)%timer_summary%num_timers
+    allocate(run_time(num_timers, nblocks_clinic))
+    allocate(block_min(num_timers))
+    allocate(block_max(num_timers))
+    allocate(block_tot(num_timers))
+    run_time(:,:) = c0
+    block_min(:) = c0
+    block_max(:) = c0
+    block_tot(:) = c0
+    do iblock=1,nblocks_clinic
+      associate(timers => marbl_instances(iblock)%timer_summary)
+        run_time(:,iblock) =timers%cumulative_runtimes(:)
+      end associate
+    end do
+    block_min = minval(run_time, dim=2)
+    block_max = maxval(run_time, dim=2)
+    block_tot = sum(run_time, dim=2)
+
+    nblocks   = global_sum(nblocks_clinic, distrb_clinic)
+
+    do timer_id=1,num_timers
+
+      if (marbl_instances(1)%timer_summary%is_threaded(timer_id)) then
+        ! FIXME: to account for situation where nblocks > num_threads > 1
+        !        we need to compute block stats better
+        ! call threaded_stats(run_time, block_min, block_max, block_tot)
+        node_time = block_max(timer_id)
+      else
+        node_time = block_tot(timer_id)
+      end if
+
+      node_max = global_maxval(node_time)
+
+      if (my_task.eq.master_task) then
+        write(stdout, timer_format) timer_id, node_max,                       &
+                  trim(marbl_instances(1)%timer_summary%names(timer_id))
+      end if
+
+      if (stats_local) then
+        node_min = global_minval(node_time)
+        node_avg = global_sum(node_time, distrb_clinic)/real(distrb_clinic%nprocs, r8)
+
+        block_min(timer_id) = global_minval(block_min(timer_id))
+        block_max(timer_id) = global_maxval(block_max(timer_id))
+        block_tot(timer_id) = global_sum(block_tot(timer_id), distrb_clinic)
+
+        if (my_task.eq.master_task) then
+          if (marbl_instances(1)%timer_summary%is_threaded(timer_id)) then
+            write(stdout, "(A)") "Per node stats come from max per block"
+          else
+            write(stdout, "(A)") "Per node stats come from sum per block"
+          end if ! is_threaded
+
+          write(stdout, stats_fmt1) node_min
+          write(stdout, stats_fmt2) node_max
+          write(stdout, stats_fmt3) node_avg
+          write(stdout, stats_fmt4) block_min(timer_id)
+          write(stdout, stats_fmt2) block_max(timer_id)
+          write(stdout, stats_fmt3) block_tot(timer_id)/real(nblocks, r8)
+
+        end if ! master task
+      end if ! stats_local
+    end do ! timer loop
+
+    if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+    endif
+    deallocate(run_time, block_min, block_max, block_tot)
+
+  end subroutine ecosys_driver_print_marbl_timers
 
   !*****************************************************************************
 
