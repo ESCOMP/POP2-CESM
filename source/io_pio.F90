@@ -193,8 +193,8 @@ module io_pio
       use POP_DomainSizeMod, only : POP_nxGlobal, POP_nyGlobal  
 
       integer (i4)          , intent(in) :: basetype
-      integer(kind=int_kind), intent(in) :: ndim3
-      integer(kind=int_kind), intent(in) :: kdim3
+      integer(kind=int_kind), intent(in) :: ndim3     ! extent of var's 3rd dimension in file
+      integer(kind=int_kind), intent(in) :: kdim3     ! extent of var's 3rd dimension in memory
       type(io_desc_t)       , pointer    :: iodesc
 
       integer (kind=int_kind) :: &

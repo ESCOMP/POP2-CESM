@@ -1,4 +1,52 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    22 Feb 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170222
+Tag Summary: bug-fix for writing restart history files
+
+	The restart history file was incorrect for 3D fields that are not full-depth
+  (e.g. there are many fields in the ecosystem that only write the first 150m
+  to history file). This fix does not affect any tests - any test that would
+  have uncovered this bug would have failed due to the nature of restart
+  history files to result in history files that are round-off level different.
+  After the CESM 2.0 science freeze, a fix for the round-off level history
+  files when restarting mid-accumulation will be produced and then a test will
+  be introduced to make sure this bug stays fixed. (A simple test would be to
+  set tavg_freq = tavg_file_freq = 5 and then run ERS_Ld5 for the gx1 and / or
+  ERS_Ld6 for the gx3 with the ecosystem on.)
+
+Testing: bit-for-bit with baselines made from cesm2_0_alpha06b (but using
+         cesm_pop_2_1_20170216 instead of the alpha06b pop tag) -- tested
+         aux_pop and aux_pop_MARBL on yellowstone as well as aux_pop_MARBL on
+         hobart.
+
+M       source/io_netcdf.F90
+M       source/io_pio.F90
+===============================================================================
+Tag Creator: jet
+Developers:  klindsay
+Tag Date:    16 Feb 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170216
+Tag Summary: refactor of RF related global sums
+
+	This implementation does the following:
+	1) reduces number of global_sum calls in subroutines step_RF and step_RF_diag in step_mod.F90,
+	   and subroutine diag_for_tracer_budgets in budget_diagnostics.F90
+	2) adds timers related to these, and for tavg_global (which also call global_sum)
+	3) general white-space cleanup (mostly indentation)
+
+	The code does introduce round-off level changes in answers
+
+	Aux pop run and had expected failures when comparing to baseline due to roundoff level mods.
+
+	M       source/step_mod.F90
+	M       source/budget_diagnostics.F90
+	M       source/tavg.F90
+	M       ChangeLog
+
+
+===============================================================================
 Tag Creator: jet
 Developers:  jet
 Tag Date:    28 Jan 2017

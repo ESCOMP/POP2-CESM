@@ -22,9 +22,10 @@
    use domain
    use constants
    use prognostic
+   use timers
    use io
    use global_reductions
-   use grid 
+   use grid
    use exit_mod
    use ice
    use qflux_mod
@@ -60,6 +61,9 @@
 
    character (char_len)    :: exit_string
 
+   integer (int_kind) :: &
+      timer_diag_for_tracer_budgets
+
    integer (int_kind) ::              &
       tavg_id_SHF,                    &
       tavg_id_SFWF,                   &
@@ -81,9 +85,10 @@
    real (r8), dimension(:,:,:),     allocatable :: WORK2    !work array
    real (r8), dimension(:,:,:),     allocatable :: WORK3    !work array
    real (r8), dimension(:,:,:),     allocatable :: WORK4    !work array
+   real (r8), dimension(:,:,:,:),   allocatable :: WORKN    !work array
 
    real (r8), dimension(:), allocatable :: budget_rf_S1const       !  S_1 constant for use in this budget
-   real (r8), dimension(:), allocatable :: budget_rf_Snconst       !  S_n constant 
+   real (r8), dimension(:), allocatable :: budget_rf_Snconst       !  S_n constant
 
    real (r8), dimension(:), allocatable :: rf_adj ! rf budget adjustment terms
 
@@ -117,11 +122,11 @@
 
 
    integer (kind=int_kind) ::   &
-      budget_error_flag,        &! error flag for the missing TAVG_2D fields, etc. 
+      budget_error_flag,        &! error flag for the missing TAVG_2D fields, etc.
       nml_error,                &! namelist i/o error flag
       tavg_flag                  ! flag to access tavg frequencies
 
- 
+
    namelist /budget_diagnostics_nml/ldiag_global_tracer_budgets,  &
              lrf_print_budget_term_by_term
 
@@ -131,19 +136,19 @@
 !     set budget warning flag if this is the first step of a new run
 !
 !-----------------------------------------------------------------------
-      
+
    if (first_step) then
        budget_warning_1st_step = .true.
    else
        budget_warning_1st_step = .false.
    endif
- 
+
 !-----------------------------------------------------------------------
 !
 !     enable/disable sequencing diagnostic print statements
 !
 !-----------------------------------------------------------------------
-      
+
    lrf_print_sequencing          = .false.
    lrf_print_budget_term_by_term = .false.
 
@@ -154,7 +159,7 @@
 !-----------------------------------------------------------------------
 
    ldiag_global_tracer_budgets = .false.
- 
+
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
       if (nml_error /= 0) then
@@ -177,7 +182,7 @@
       call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
- 
+
    if (my_task == master_task) then
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
@@ -198,7 +203,7 @@
       write(stdout,'(a)') 'Budget Diagnostic Options'
       write(stdout,blank_fmt)
       write(stdout,delim_fmt)
- 
+
       if ( ldiag_global_tracer_budgets ) then
            write (stdout,*) 'Global tracer budgets diagnostics will be computed'
       else
@@ -208,12 +213,20 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize timers
+!
+!-----------------------------------------------------------------------
+
+   call get_timer(timer_diag_for_tracer_budgets,'diag_for_tracer_budgets',1,distrb_clinic%nprocs)
+
+!-----------------------------------------------------------------------
+!
 !     if not computing budgets, there is nothing more to do here
 !
 !-----------------------------------------------------------------------
 
    if (.not. ldiag_global_tracer_budgets) return
-   
+
    allocate (WORK1(nx_block,ny_block,nblocks_clinic))
              WORK1 = c0
    allocate (WORK2(nx_block,ny_block,nblocks_clinic))
@@ -222,6 +235,8 @@
              WORK3 = c0
    allocate (WORK4(nx_block,ny_block,nblocks_clinic))
              WORK4 = c0
+   allocate (WORKN(nx_block,ny_block,nt,nblocks_clinic))
+             WORKN = c0
 
 !-----------------------------------------------------------------------
 !
@@ -241,7 +256,7 @@
    if (lrobert_filter) then
 
      if (.not. (sfc_layer_type == sfc_layer_varthick)) then
-       !*** temporary budget diagnostics limitation; 
+       !*** temporary budget diagnostics limitation;
        !    add support for this feature later
        exit_string = 'FATAL ERROR: budget diagnostics do not work with this option'
        call exit_POP (sigAbort,trim(exit_string), out_unit=stdout)
@@ -270,12 +285,12 @@
    !    (see also the test below)
 
    budget_stream =  tavg_in_which_stream(tavg_id_SHF)
- 
+
    tavg_flag = tavg_streams(budget_stream)%field_flag
    if (check_time_flag_int(tavg_flag,freq_opt=.true.) == freq_opt_never) then
       budget_error_flag = -1000
    else
-     
+
     !*** determine if required fields are activated in the tavg_contents file
 
     if (.not. set_in_tavg_contents(tavg_id_SHF))     budget_error_flag = -2000
@@ -314,7 +329,7 @@
    else
        budget_error_flag = -3000
    endif
-   
+
    if ( budget_error_flag == -3000 ) then
      exit_string = 'FATAL ERROR: you must select all budget diagnostics' /&
           &/    ' fields in the same stream: SFWF,RESID_T,RESID_S,FW,TFW_T,TFW_S,QFLUX'
@@ -327,28 +342,28 @@
    if ( my_task == master_task ) then
      select case (check_time_flag_int(tavg_flag,freq_opt=.true.))
 
-      case ( freq_opt_never ) 
+      case ( freq_opt_never )
         write(stdout,1100) 'no budget interval specified'
         budget_error_flag = -1000
- 
-      case ( freq_opt_nyear ) 
+
+      case ( freq_opt_nyear )
         write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' years'
- 
-      case ( freq_opt_nmonth ) 
+
+      case ( freq_opt_nmonth )
         write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' months'
- 
-      case ( freq_opt_nday ) 
+
+      case ( freq_opt_nday )
         write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' days'
 
-      case ( freq_opt_nhour ) 
+      case ( freq_opt_nhour )
         write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' hours'
 
       case ( freq_opt_nsecond )
         write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' seconds'
- 
+
       case ( freq_opt_nstep )
         write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' steps'
- 
+
      end select
    endif
 
@@ -365,9 +380,9 @@
 
 1100  format ('(init_budget_diagnostics): ',a)
 1101  format ('(init_budget_diagnostics): tracer budgets are for every ',i4,a)
- 
+
 !EOC
-   end subroutine init_budget_diagnostics 
+   end subroutine init_budget_diagnostics
 
 !***********************************************************************
 
@@ -376,10 +391,10 @@
 ! !INTERFACE:
 
    subroutine diag_for_tracer_budgets_rf_Sterms (rf_S_in, rf_volume_total_in, collect_S1, collect_Sn)
-                                       
+
 ! !DESCRIPTION:
 !
-!  This subroutine stores information used to compute <S_1> and <S_n> 
+!  This subroutine stores information used to compute <S_1> and <S_n>
 !  when the Robert Filter is active.
 !  When it is time to compute the budgets, the two terms are differenced
 !  and scaled appropriately in subroutine tracer_budgets in order to form
@@ -408,15 +423,15 @@
    real    (r8)       :: sum_tmp
 
    if (present(collect_S1)) then
-    lcollect_S1 = .true.
+     lcollect_S1 = .true.
    else
-    lcollect_S1 = .false.
+     lcollect_S1 = .false.
    endif
 
    if (present(collect_Sn)) then
-    lcollect_Sn = .true.
+     lcollect_Sn = .true.
    else
-    lcollect_Sn = .false.
+     lcollect_Sn = .false.
    endif
 
    if (lcollect_S1) then
@@ -502,6 +517,8 @@
    logical (log_kind), save ::    &
       first_global_budget = .true.  ! flag for initializing budget diagnostics
 
+   call timer_start(timer_diag_for_tracer_budgets)
+
    tavg_id_SHF        = tavg_id('SHF')
 
    if (present(step_call)) then
@@ -511,6 +528,7 @@
        if (                           ldiag_global_tracer_budgets .and. accumulate_tavg_now(tavg_TEMP) ) then
          ! continue with diagnostics computation
        else
+         call timer_stop(timer_diag_for_tracer_budgets)
          return
        endif
 
@@ -521,6 +539,7 @@
        if ( first_global_budget .and. ldiag_global_tracer_budgets .and. accumulate_tavg_now(tavg_TEMP) ) then
          ! continue with diagnostics computation
        else
+         call timer_stop(timer_diag_for_tracer_budgets)
          return
        endif
      endif
@@ -531,7 +550,7 @@
 !
 !     compute the ocean volume based on oldtime and curtime
 !
-!----------------------------------------------------------------------- 
+!-----------------------------------------------------------------------
 
    k = 1
 
@@ -549,7 +568,7 @@
       if (lrobert_filter) then
         WORK2(:,:,iblock) =WORK2(:,:,iblock)*MASK_BUDGT(:,:,k,iblock)
         WORK4(:,:,iblock) =WORK4(:,:,iblock)*MASK_BUDGT(:,:,k,iblock)
-      else 
+      else
         WORK2(:,:,iblock) = merge(WORK2(:,:,iblock), c0, CALCT(:,:,iblock))
         WORK4(:,:,iblock) = merge(WORK4(:,:,iblock), c0, CALCT(:,:,iblock))
       endif
@@ -569,54 +588,67 @@
    if (sfc_layer_type == sfc_layer_varthick ) then
     !*** test this with fully coupled version (DEBUG)
      if (lrobert_filter) then
-      modified_volume_t = modified_volume_t - bgtarea_t_k(k)*dz(k) + srf_volume
-    else
-      modified_volume_t = modified_volume_t -    area_t_k(k)*dz(k) + srf_volume
-    endif
+       modified_volume_t = modified_volume_t - bgtarea_t_k(k)*dz(k) + srf_volume
+     else
+       modified_volume_t = modified_volume_t -    area_t_k(k)*dz(k) + srf_volume
+     endif
    endif
 
 !-----------------------------------------------------------------------
 !
-!     compute the sum of volume * tracers 
+!     compute the sum of volume * tracers
 !
 !-----------------------------------------------------------------------
 
-   do n=1,nt
+   !$OMP PARALLEL DO PRIVATE(iblock,n,k)
+   do iblock = 1,nblocks_clinic
 
-     do k=1,km
+     do n=1,nt
 
-       !$OMP PARALLEL DO PRIVATE(iblock)
-       do iblock = 1,nblocks_clinic
+       WORKN(:,:,n,iblock) = c0
 
-          if ( tmix_iopt == tmix_matsuno ) then
-            if ( k == 1 ) then
-              WORK1(:,:,iblock) = TRACER(:,:,k,n,curtime,iblock) * WORK2(:,:,iblock)
-            else
-              WORK1(:,:,iblock) = TRACER(:,:,k,n,curtime,iblock)
-            endif
-          else
-            if ( k == 1 ) then
-              WORK1(:,:,iblock) = p5 * (TRACER(:,:,k,n,oldtime,iblock) * WORK4(:,:,iblock)  &
-                                      + TRACER(:,:,k,n,curtime,iblock) * WORK2(:,:,iblock))
-            else
-              WORK1(:,:,iblock) = p5 * (TRACER(:,:,k,n,oldtime,iblock)  &
-                                      + TRACER(:,:,k,n,curtime,iblock))
-            endif
-          endif
-     enddo ! iblock
-     !$OMP END PARALLEL DO
+       if ( tmix_iopt == tmix_matsuno ) then
 
-     if ( k == 1 ) then
-       sum_tmp    = global_sum(WORK1(:,:,:), distrb_clinic, field_loc_center,MASK_BUDGT(:,:,k,:))
-       tracer_mean(n) = sum_tmp
-     else
-       sum_tmp = global_sum(WORK1(:,:,:)*TAREA(:,:,:), distrb_clinic, field_loc_center,MASK_BUDGT(:,:,k,:))
-       tracer_mean(n) = tracer_mean(n) + sum_tmp * dz(k)
-     endif
+         ! factor out multiplication by TAREA for k=2:km
+         ! for k=1, WORK2 includes TAREA
 
-   enddo ! k
+         do k=2,km
+           WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + dz(k) * MASK_BUDGT(:,:,k,iblock) &
+             * ( TRACER(:,:,k,n,curtime,iblock) )
+         enddo ! k
 
-   enddo ! n
+         WORKN(:,:,n,iblock) = TAREA(:,:,iblock) * WORKN(:,:,n,iblock)
+
+         k = 1
+         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + MASK_BUDGT(:,:,k,iblock) &
+           * ( TRACER(:,:,k,n,curtime,iblock) * WORK2(:,:,iblock) )
+
+       else
+
+         ! factor out multiplication by TAREA for k=2:km
+         ! for k=1, WORK2 and WORK4 include TAREA
+
+         do k=2,km
+           WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + dz(k) * MASK_BUDGT(:,:,k,iblock) &
+             * ( p5 * (TRACER(:,:,k,n,oldtime,iblock)  &
+                     + TRACER(:,:,k,n,curtime,iblock)) )
+         enddo ! k
+
+         WORKN(:,:,n,iblock) = TAREA(:,:,iblock) * WORKN(:,:,n,iblock)
+
+         k = 1
+         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + MASK_BUDGT(:,:,k,iblock) &
+           * ( p5 * (TRACER(:,:,k,n,oldtime,iblock) * WORK4(:,:,iblock)  &
+                   + TRACER(:,:,k,n,curtime,iblock) * WORK2(:,:,iblock)) )
+
+       endif
+
+     enddo ! n
+
+   enddo ! iblock
+   !$OMP END PARALLEL DO
+
+   tracer_mean(1:nt) = global_sum(WORKN, distrb_clinic, field_loc_center)
 
    if (present(step_call)) then
    if (step_call) then
@@ -626,9 +658,11 @@
                               salt_to_ppt*tracer_mean_initial(2)
         endif
        first_global_budget = .false.
-     endif ! first_global_budget 
+     endif ! first_global_budget
    endif ! step_call
    endif ! present(step_call)
+
+   call timer_stop(timer_diag_for_tracer_budgets)
 
  1001 format (/, 10x, 'VOLUME AND TRACER BUDGET INITIALIZATION:',  &
               /, 10x, '========================================',  &
@@ -656,7 +690,7 @@
 ! time-averaging interval. because most of the analysis is based
 ! on some time-averaged variables, the budgets are correct
 ! if time-averaging starts from the first time step of an intended
-! budget interval. The following variables must be requested in 
+! budget interval. The following variables must be requested in
 ! the tavg_contents file:
 !
 !      SHF, SFWF, RESID_T, RESID_S, FW, TFW_T, TFW_S
@@ -674,7 +708,7 @@
    real (kind=r8), dimension(km), intent(in) :: bgtarea_t_k
 
 ! !REVISION HISTORY:
-!  
+!
 
 !EOP
 !BOC
@@ -714,7 +748,7 @@
    else
      tavg_norm = c1 / (tavg_sum(budget_stream) * area_t)
    endif
- 
+
 !-----------------------------------------------------------------------
 !
 !   compute means for SFWF, SHF, RESID_T, RESID_S, FW
@@ -805,7 +839,7 @@
        do n=1,2
          rf_adj(n) =  c0
        enddo ! n
-     else 
+     else
        do n=1,2
          rf_adj(n) =  p25*(budget_rf_Snconst(n)-budget_rf_S1const(n))
          !*** now divide by area*T
@@ -822,7 +856,7 @@
        else
          rf_adj(2) = rf_adj(2)/salinity_factor
        endif
-     endif 
+     endif
 
    endif ! lrobert_filter
 
@@ -834,15 +868,15 @@
 
    if ( my_task == master_task ) then
 
-     write (stdout,1000)  
+     write (stdout,1000)
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
- 
+
      if (budget_warning_1st_step) then
          write (stdout,10001)
          call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
          budget_warning_1st_step = .false.
      endif
- 
+
      if (tmix_iopt == tmix_matsuno) write (stdout,1001 )
 
      write (stdout,1002)
@@ -859,7 +893,7 @@
            + resid_t_mean
      explanation = ' Imbalance           = -tendency + SHF flux'  /&
        &/' + ice formation + FW heat content + free-srf non-consv. '
- 
+
      if (lrobert_filter .and. lrf_diag_apply_adj_now) then
        sumr    = sum  + rf_adj(1)
        explanation = trim(explanation) /&
@@ -897,7 +931,7 @@
        sumr = sum + rf_adj(2)
 
        explanation = trim(explanation) /&
-                                        &/' + Robert adj' 
+                                        &/' + Robert adj'
        write (stdout, 10081) S_change, sfwf_mean, qflux_s_mean, &
                              tfw_s_mean,  resid_s_mean, rf_adj(2),&
                              sumr, explanation
@@ -1038,11 +1072,11 @@
            //,  5x, 'Please note the following about the budgets:     ', &
                              //, 5x, '*', 3x,                            &
                     'These budgets are meaningful when time-averaging ', &
-            /,  9x, 'starts at the first time step of an intended     ', & 
+            /,  9x, 'starts at the first time step of an intended     ', &
             /,  9x, 'budget interval.                                 ', &
                              //, 5x, '*', 3x,                            &
-                    'Positive-signed quantities ==> ocean gain        ', &     
-            /,  9x, 'Negative-signed quantities ==> ocean loss        ', &     
+                    'Positive-signed quantities ==> ocean gain        ', &
+            /,  9x, 'Negative-signed quantities ==> ocean loss        ', &
                              //, 5x, '*', 3x,                            &
                     'The imbalance should be small in comparison      ', &
             /,  9x, 'to the tendency term, except for the volume      ', &
@@ -1052,7 +1086,7 @@
           'These budgets are computed from single-precision TAVG terms,',&
             /,  9x, 'which contributes to inaccuracy in the imbalance ', &
             /,  9x, 'term.')
- 
+
 10001 format(/, 5x, 'WARNING: Because the very first time step of a   ', &
             /,  4x, '  new integration is an Euler-forward time step, ', &
             /,  4x, '  any budget including this first step will be',    &
@@ -1063,7 +1097,7 @@
             /,  4x, '  options. You have selected the Matsuno mixing  ', &
             /,  4x, '  option, for which these diagnostics are only   ', &
             /,  4x, '  approximations.                                ')
- 
+
  1002 format ( /, 5x, 'VOLUME BUDGET FOR THE GIVEN TAVG INTERVAL',       &
                       ' (cm/s):',                                        &
                /, 5x, '-----------------------------------------',       &
