@@ -77,8 +77,8 @@
     <valid_values></valid_values>
     <default_value>iage</default_value>
     <values modifier='merge'>
-      <value compset="HIST">cfc</value>
-      <value compset="5505">cfc</value>
+      <value compset="^HIST_">cfc</value>
+      <value compset="^5505_">cfc</value>
       <value compset="_POP2%ECO">ecosys</value>
     </values>
     <group>build_component_pop</group>
