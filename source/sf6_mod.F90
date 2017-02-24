@@ -1333,10 +1333,12 @@ contains
 ! !IROUTINE: comp_sf6_schmidt
 ! !INTERFACE:
 
- subroutine comp_sf6_schmidt(LAND_MASK, SST_in, SF6_SCHMIDT)
+ subroutine comp_sf6_schmidt(LAND_MASK, SST_IN, SF6_SCHMIDT)
 
 ! !DESCRIPTION:
 !  Compute Schmidt numbers of SF6s.
+!
+!  range of validity of fit is -2:40
 !
 !  Ref : Wanninkhof 2014, Relationship between wind speed 
 !        and gas exchange over the ocean revisited,
@@ -1348,43 +1350,39 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
-      LAND_MASK          ! land mask for this block
-
-   real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      SST_in             ! sea surface temperature (C)
+   logical (log_kind), intent(in)  :: LAND_MASK(nx_block,ny_block)    ! land mask for this block
+   real (r8)         , intent(in)  :: SST_IN(nx_block,ny_block)       ! sea surface temperature (C)
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
-      SF6_SCHMIDT  ! Schmidt number of SF6 (non-dimensional)
+   real (r8)         , intent(out) :: SF6_SCHMIDT(nx_block,ny_block)  ! Schmidt number of SF6 (non-dimensional)
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
+   integer(int_kind)    :: i, j
+   real (r8)            :: SST(nx_block,ny_block)
 
-   real (r8), parameter :: &
-      a1 = 3177.5_r8, &
-      a2 = -200.57_r8, &
-      a3 =    6.8865_r8, &
-      a4 =   -0.13335_r8, &
-      a5 =    0.0010877_r8
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      SST                ! sea surface temperature (C)
+   real (r8), parameter :: a = 3177.5_r8
+   real (r8), parameter :: b = -200.57_r8
+   real (r8), parameter :: c =    6.8865_r8
+   real (r8), parameter :: d =   -0.13335_r8
+   real (r8), parameter :: e =    0.0010877_r8
 
 !-----------------------------------------------------------------------
-! empirical fit only uses data up to 40
-!-----------------------------------------------------------------------
-   SST = merge(SST_in, 40.0_r8, SST_in < 40.0_r8)
 
-   where (LAND_MASK)
-      SF6_SCHMIDT = a1 + SST * (a2 + SST * (a3 + SST * (a4 + a5 * SST)))
-   elsewhere
-      SF6_SCHMIDT = c0
-   endwhere
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+            SST(i,j) = max(-2.0_r8, min(40.0_r8, SST_IN(i,j)))
+            SF6_SCHMIDT(i,j) = a + SST(i,j) * (b + SST(i,j) * (c + SST(i,j) * (d + SST(i,j) * e)))
+         else
+            SF6_SCHMIDT(i,j) = c0
+         endif
+      end do
+   end do
 
 !-----------------------------------------------------------------------
 !EOC

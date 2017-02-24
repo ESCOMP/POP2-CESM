@@ -2,6 +2,28 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    23 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n43_marbl_dev_n31_cesm_pop_2_1_20170128
+Tag Summary: convert Schmidt numbers to Wanninkhof 2014
+
+Testing:
+MARBL commit 3dab77460e49a7f2909cbb8fc61a64740f9a49c3
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n41 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because of change to gas fluxes
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/cfc_mod.F90
+M       source/schmidt_number.F90
+M       source/sf6_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    20 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n42_marbl_dev_n31_cesm_pop_2_1_20170128
 Tag Summary: set OCN_TAVG_DIC_ALT_CO2 in input_templates/ocn.ecosys.tavg.csh based on OCN_TRANSIENT
