@@ -451,6 +451,7 @@
 
    integer (int_kind) :: &
       timer_write_std,   &
+      timer_tavg_global, &
       timer_write_nstd,  &
       timer_tavg_ccsm_diags_bsf, &
       timer_tavg_ccsm_diags_moc, &
@@ -1410,14 +1411,15 @@
 !
 !-----------------------------------------------------------------------
 
-   call get_timer(timer_write_std,'TAVG_WRITE_STD', nblocks_clinic, distrb_clinic%nprocs)
-   call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_write_std,'TAVG_WRITE_STD', 1, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_global,'TAVG_GLOBAL', 1, distrb_clinic%nprocs)
+   call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', 1, distrb_clinic%nprocs)
    if (ldiag_bsf)  &
-   call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', 1, distrb_clinic%nprocs)
    if (moc_requested)  &
-   call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', 1, distrb_clinic%nprocs)
    if (n_heat_trans_requested .or. n_salt_trans_requested)  &
-   call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', 1, distrb_clinic%nprocs)
    call get_timer(timer_read_transpose, 'TAVG_READ_TRANSPOSE'  ,  1, distrb_clinic%nprocs)
    call get_timer(timer_write_transpose,'TAVG_WRITE_TRANSPOSE' ,  1, distrb_clinic%nprocs)
 
@@ -2665,8 +2667,12 @@
       date_string
 
 !-----------------------------------------------------------------------
+
+   call timer_start(timer_tavg_global)
+
+!-----------------------------------------------------------------------
 !
-!  calculate globally-integrated time average of each chosen 2d field
+!  calculate globally-integrated time average of each chosen field
 !
 !-----------------------------------------------------------------------
 
@@ -2812,6 +2818,8 @@
        endif ! tavg_in_this_stream
       endif ! ifield > 0
    end do fields_loop
+
+   call timer_stop(timer_tavg_global)
 
 !-----------------------------------------------------------------------
 !EOC
