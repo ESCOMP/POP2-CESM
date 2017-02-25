@@ -235,8 +235,8 @@ module ecosys_forcing_mod
   type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
 
   ! Surface and interior forcing fields
-  real(r8), target :: iron_patch_flux(nx_block, ny_block, max_blocks_clinic)
-  real(r8)         :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
+  real(r8), allocatable, target :: iron_patch_flux(:,:,:)
+  real(r8)                      :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
   !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
   !  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
@@ -1147,12 +1147,12 @@ contains
         if (trim(metadata%field_source).eq.'POP monthly calendar') then
            file => metadata%field_monthly_calendar_info%forcing_calendar_name
 
-           allocate(work_read(nx_block, ny_block, 12, max_blocks_clinic))
+           allocate(work_read(nx_block, ny_block, 12, nblocks_clinic))
            if (trim(file%input%filename) == 'unknown') then
               file%input%filename = gas_flux_forcing_file
            end if
            if (trim(file%input%filename) /= 'none') then
-              allocate(file%data(nx_block, ny_block, max_blocks_clinic, 1, 12))
+              allocate(file%data(nx_block, ny_block, nblocks_clinic, 1, 12))
               call read_field(file%input%file_fmt, file%input%filename, file%input%file_varname, work_read)
               do iblock=1, nblocks_clinic
                  do m=1, 12
@@ -1172,6 +1172,7 @@ contains
            !  load iron PATCH flux fields (if required)
            !  assume patch file has same normalization and format as deposition file
            if (n == Fe_dep_ind .and. liron_patch) then
+              allocate(iron_patch_flux(nx_block, ny_block, nblocks_clinic))
               call read_field(file%input%file_fmt, file%input%filename, iron_patch_flux_filename, iron_patch_flux)
               do iblock=1, nblocks_clinic
                  do m=1, 12
@@ -1458,56 +1459,57 @@ contains
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
       do field_index = 1, size(interior_forcing_fields)
-        associate (forcing_field => interior_forcing_fields(field_index), &
-                   metadata      => interior_forcing_fields(field_index)%metadata)
-          select case (trim(metadata%field_source))
+!!!     the following associate construct seems to be incompatible with the OMP directive
+!!!     associate (forcing_field => interior_forcing_fields(field_index), &
+!!!                metadata      => interior_forcing_fields(field_index)%metadata)
+          select case (trim(interior_forcing_fields(field_index)%metadata%field_source))
             case('internal')
               if (field_index .eq. dustflux_ind) then
-                forcing_field%field_0d(:,:,iblock) = dust_flux_in(:,:,iblock)
+                interior_forcing_fields(field_index)%field_0d(:,:,iblock) = dust_flux_in(:,:,iblock)
               else if (field_index .eq. PAR_col_frac_ind) then
-                forcing_field%field_1d(:,:,:,iblock) = FRACR_BIN(:,:,:,iblock)
+                interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = FRACR_BIN(:,:,:,iblock)
               else if (field_index .eq. surf_shortwave_ind) then
                 if (ecosys_qsw_distrb_const) then
-                  forcing_field%field_1d(:,:,:,iblock) = QSW_RAW_BIN(:,:,:,iblock)
+                  interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_RAW_BIN(:,:,:,iblock)
                 else
-                  forcing_field%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
+                  interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
                 end if
               else if (field_index .eq. temperature_ind) then
                 ! --- average 2 time levels into 1 ---
-                forcing_field%field_1d(:,:,:,iblock) = &
+                interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,1,oldtime,iblock) + TRACER(:,:,:,1,curtime,iblock))
               else if (field_index .eq. salinity_ind) then
                 ! --- average 2 time levels into 1, and convert from msu to psu ---
-                forcing_field%field_1d(:,:,:,iblock) = &
+                interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,2,oldtime,iblock) + TRACER(:,:,:,2,curtime,iblock)) * salt_to_ppt
               else if (field_index .eq. pressure_ind) then
                 do k = 1, km
-                  forcing_field%field_1d(:,:,k,iblock) = ref_pressure(k)
+                  interior_forcing_fields(field_index)%field_1d(:,:,k,iblock) = ref_pressure(k)
                 end do
               end if
             case('shr_stream')
-              stream_index = metadata%field_file_info%strdata_inputlist_ind
-              var_ind      = metadata%field_file_info%strdata_var_ind
+              stream_index = interior_forcing_fields(field_index)%metadata%field_file_info%strdata_inputlist_ind
+              var_ind      = interior_forcing_fields(field_index)%metadata%field_file_info%strdata_var_ind
               n = n0(iblock)
               do k=1,km
                 do j = this_block%jb, this_block%je
                   do i = this_block%ib, this_block%ie
                     n = n + 1
                     if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
-                      forcing_field%field_1d(i,j,k,iblock) = &
+                      interior_forcing_fields(field_index)%field_1d(i,j,k,iblock) = &
                         interior_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind, n)
                     else
-                      forcing_field%field_1d(i,j,k,iblock) = c0
+                      interior_forcing_fields(field_index)%field_1d(i,j,k,iblock) = c0
                     endif
                   enddo
                 enddo
               enddo
           end select
 
-          if (metadata%ltime_varying) then
-            call apply_unit_conv_factor(land_mask(:,:,iblock), forcing_field, iblock)
+          if (interior_forcing_fields(field_index)%metadata%ltime_varying) then
+            call apply_unit_conv_factor(land_mask(:,:,iblock), interior_forcing_fields(field_index), iblock)
           end if
-        end associate
+!!!     end associate
       end do
     end do
     !$OMP END PARALLEL DO
@@ -1583,8 +1585,8 @@ contains
     integer   (int_kind)           :: tracer_bndy_loc(1)                                    ! location   for ghost tracer_bndy_type cell updates
     integer   (int_kind)           :: tracer_bndy_type(1)                                   ! field type for ghost tracer_bndy_type cell updates
     character (char_len)           :: tracer_data_names(1)                                  ! short names for input data fields
-    real      (r8)                 :: interp_work(nx_block, ny_block, max_blocks_clinic, 1) ! temp array for interpolate_forcing output
-    real      (r8)                 :: shr_stream(nx_block, ny_block, max_blocks_clinic)
+    real      (r8)                 :: interp_work(nx_block, ny_block, nblocks_clinic, 1)    ! temp array for interpolate_forcing output
+    real      (r8)                 :: shr_stream(nx_block, ny_block, nblocks_clinic)
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     type(forcing_monthly_every_ts), pointer :: file
@@ -2085,7 +2087,7 @@ contains
 
     index = dust_dep_ind
     if (index.gt.0) then
-      dust_flux_in = surface_forcing_fields(index)%field_0d
+      dust_flux_in(:,:,1:nblocks_clinic) = surface_forcing_fields(index)%field_0d(:,:,1:nblocks_clinic)
     end if
 
   end subroutine adjust_surface_time_varying_data
