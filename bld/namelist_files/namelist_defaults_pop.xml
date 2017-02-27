@@ -1093,60 +1093,6 @@
 <feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
 
-<din_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</din_riv_flux_input%filename> 
-<din_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</din_riv_flux_input%filename> 
-<din_riv_flux_input%file_varname>din_riv_flux</din_riv_flux_input%file_varname>
-<din_riv_flux_input%file_fmt>nc</din_riv_flux_input%file_fmt>
-<din_riv_flux_input%scale_factor>1.0</din_riv_flux_input%scale_factor>
-
-<dip_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dip_riv_flux_input%filename> 
-<dip_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dip_riv_flux_input%filename> 
-<dip_riv_flux_input%file_varname>dip_riv_flux</dip_riv_flux_input%file_varname>
-<dip_riv_flux_input%file_fmt>nc</dip_riv_flux_input%file_fmt>
-<dip_riv_flux_input%scale_factor>1.0</dip_riv_flux_input%scale_factor>
-
-<don_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</don_riv_flux_input%filename> 
-<don_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</don_riv_flux_input%filename> 
-<don_riv_flux_input%file_varname>don_riv_flux</don_riv_flux_input%file_varname>
-<don_riv_flux_input%file_fmt>nc</don_riv_flux_input%file_fmt>
-<don_riv_flux_input%scale_factor>1.0</don_riv_flux_input%scale_factor>
-
-<dop_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dop_riv_flux_input%filename> 
-<dop_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dop_riv_flux_input%filename> 
-<dop_riv_flux_input%file_varname>dop_riv_flux</dop_riv_flux_input%file_varname>
-<dop_riv_flux_input%file_fmt>nc</dop_riv_flux_input%file_fmt>
-<dop_riv_flux_input%scale_factor>1.0</dop_riv_flux_input%scale_factor>
-
-<dsi_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dsi_riv_flux_input%filename> 
-<dsi_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dsi_riv_flux_input%filename> 
-<dsi_riv_flux_input%file_varname>dsi_riv_flux</dsi_riv_flux_input%file_varname>
-<dsi_riv_flux_input%file_fmt>nc</dsi_riv_flux_input%file_fmt>
-<dsi_riv_flux_input%scale_factor>1.0</dsi_riv_flux_input%scale_factor>
-
-<dfe_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dfe_riv_flux_input%filename> 
-<dfe_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dfe_riv_flux_input%filename> 
-<dfe_riv_flux_input%file_varname>dfe_riv_flux</dfe_riv_flux_input%file_varname>
-<dfe_riv_flux_input%file_fmt>nc</dfe_riv_flux_input%file_fmt>
-<dfe_riv_flux_input%scale_factor>1.0</dfe_riv_flux_input%scale_factor>
-
-<dic_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dic_riv_flux_input%filename> 
-<dic_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dic_riv_flux_input%filename> 
-<dic_riv_flux_input%file_varname>dic_riv_flux</dic_riv_flux_input%file_varname>
-<dic_riv_flux_input%file_fmt>nc</dic_riv_flux_input%file_fmt>
-<dic_riv_flux_input%scale_factor>1.0</dic_riv_flux_input%scale_factor>
-
-<alk_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</alk_riv_flux_input%filename> 
-<alk_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</alk_riv_flux_input%filename> 
-<alk_riv_flux_input%file_varname>alk_riv_flux</alk_riv_flux_input%file_varname>
-<alk_riv_flux_input%file_fmt>nc</alk_riv_flux_input%file_fmt>
-<alk_riv_flux_input%scale_factor>1.0</alk_riv_flux_input%scale_factor>
-
-<doc_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</doc_riv_flux_input%filename> 
-<doc_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</doc_riv_flux_input%filename> 
-<doc_riv_flux_input%file_varname>doc_riv_flux</doc_riv_flux_input%file_varname>
-<doc_riv_flux_input%file_fmt>nc</doc_riv_flux_input%file_fmt>
-<doc_riv_flux_input%scale_factor>1.0</doc_riv_flux_input%scale_factor>
-
 <ndep_data_type>monthly-calendar</ndep_data_type>
 <ndep_data_type ocn_transient="unset"    >monthly-calendar</ndep_data_type>
 <ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>              
@@ -1191,6 +1137,32 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
+
+<riv_flux_shr_stream_file ocn_grid="gx3v7">/glade/scratch/klindsay/river_nutrients_GNEWS2000_gx3v7_20170226.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v6">/glade/scratch/klindsay/river_nutrients_GNEWS2000_gx1v6_20170226.nc</riv_flux_shr_stream_file>
+
+<riv_flux_shr_stream_year_first>1850</riv_flux_shr_stream_year_first>
+<riv_flux_shr_stream_year_last >1850</riv_flux_shr_stream_year_last >
+<riv_flux_shr_stream_year_align>1850</riv_flux_shr_stream_year_align>
+
+<riv_flux_din_file_varname>din_riv_flux</riv_flux_din_file_varname>
+<riv_flux_din_scale_factor>         1.0</riv_flux_din_scale_factor>
+<riv_flux_dip_file_varname>dip_riv_flux</riv_flux_dip_file_varname>
+<riv_flux_dip_scale_factor>         1.0</riv_flux_dip_scale_factor>
+<riv_flux_don_file_varname>don_riv_flux</riv_flux_don_file_varname>
+<riv_flux_don_scale_factor>         1.0</riv_flux_don_scale_factor>
+<riv_flux_dop_file_varname>dop_riv_flux</riv_flux_dop_file_varname>
+<riv_flux_dop_scale_factor>         1.0</riv_flux_dop_scale_factor>
+<riv_flux_dsi_file_varname>dsi_riv_flux</riv_flux_dsi_file_varname>
+<riv_flux_dsi_scale_factor>         1.0</riv_flux_dsi_scale_factor>
+<riv_flux_dfe_file_varname>dfe_riv_flux</riv_flux_dfe_file_varname>
+<riv_flux_dfe_scale_factor>         1.0</riv_flux_dfe_scale_factor>
+<riv_flux_dic_file_varname>dic_riv_flux</riv_flux_dic_file_varname>
+<riv_flux_dic_scale_factor>         1.0</riv_flux_dic_scale_factor>
+<riv_flux_alk_file_varname>alk_riv_flux</riv_flux_alk_file_varname>
+<riv_flux_alk_scale_factor>         1.0</riv_flux_alk_scale_factor>
+<riv_flux_doc_file_varname>doc_riv_flux</riv_flux_doc_file_varname>
+<riv_flux_doc_scale_factor>         1.0</riv_flux_doc_scale_factor>
 
 <gas_flux_forcing_opt>drv</gas_flux_forcing_opt>
 

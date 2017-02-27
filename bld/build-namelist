@@ -1495,16 +1495,6 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  add_default($nl, 'din_riv_flux_input%filename');
-  add_default($nl, 'dip_riv_flux_input%filename');
-  add_default($nl, 'don_riv_flux_input%filename');
-  add_default($nl, 'dop_riv_flux_input%filename');
-  add_default($nl, 'dsi_riv_flux_input%filename');
-  add_default($nl, 'dfe_riv_flux_input%filename');
-  add_default($nl, 'dic_riv_flux_input%filename');
-  add_default($nl, 'alk_riv_flux_input%filename');
-  add_default($nl, 'doc_riv_flux_input%filename');
-
   my $lapply_nhx_surface_emis = $nl->get_value('lapply_nhx_surface_emis');
 
   add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
@@ -1533,6 +1523,29 @@ if ($ecosys_on eq "TRUE") {
     print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosys module\n";
     die;
   }
+
+  add_default($nl, 'riv_flux_shr_stream_file');
+  add_default($nl, 'riv_flux_shr_stream_year_first');
+  add_default($nl, 'riv_flux_shr_stream_year_last');
+  add_default($nl, 'riv_flux_shr_stream_year_align');
+  add_default($nl, 'riv_flux_din_file_varname');
+  add_default($nl, 'riv_flux_din_scale_factor');
+  add_default($nl, 'riv_flux_dip_file_varname');
+  add_default($nl, 'riv_flux_dip_scale_factor');
+  add_default($nl, 'riv_flux_don_file_varname');
+  add_default($nl, 'riv_flux_don_scale_factor');
+  add_default($nl, 'riv_flux_dop_file_varname');
+  add_default($nl, 'riv_flux_dop_scale_factor');
+  add_default($nl, 'riv_flux_dsi_file_varname');
+  add_default($nl, 'riv_flux_dsi_scale_factor');
+  add_default($nl, 'riv_flux_dfe_file_varname');
+  add_default($nl, 'riv_flux_dfe_scale_factor');
+  add_default($nl, 'riv_flux_dic_file_varname');
+  add_default($nl, 'riv_flux_dic_scale_factor');
+  add_default($nl, 'riv_flux_alk_file_varname');
+  add_default($nl, 'riv_flux_alk_scale_factor');
+  add_default($nl, 'riv_flux_doc_file_varname');
+  add_default($nl, 'riv_flux_doc_scale_factor');
 
   add_default($nl, 'gas_flux_forcing_opt');
 

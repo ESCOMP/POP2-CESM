@@ -5652,375 +5652,6 @@ Default: none provided
 </entry>
 
 <entry 
-id="din_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="din_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'din_riv_flux'
-</entry>
-
-<entry 
-id="din_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="din_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: '1.0'
-</entry>
-
-<entry 
-id="din_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dip_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dip_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'dip_riv_flux'
-</entry>
-
-<entry 
-id="dip_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dip_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dip_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="don_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="don_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'don_riv_flux'
-</entry>
-
-<entry 
-id="don_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="don_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="don_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dop_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dop_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'dop_riv_flux'
-</entry>
-
-<entry 
-id="dop_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dop_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dop_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'dsi_riv_flux'
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dsi_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'dfe_riv_flux'
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dfe_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="dic_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="dic_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'dic_riv_flux'
-</entry>
-
-<entry 
-id="dic_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="dic_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="dic_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="alk_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="alk_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'alk_riv_flux'
-</entry>
-
-<entry 
-id="alk_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="alk_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="alk_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="doc_riv_flux_input%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml"
-input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7.nc or river_nutrients_GNEWS2000_gx1v6.nc
-</entry>
-
-<entry 
-id="doc_riv_flux_input%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'doc_riv_flux'
-</entry>
-
-<entry 
-id="doc_riv_flux_input%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 'nc'
-</entry>
-
-<entry 
-id="doc_riv_flux_input%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: 1.0
-</entry>
-
-<entry 
-id="doc_riv_flux_input%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_forcing_data_nml" >
-Default: none provided
-</entry>
-
-<entry 
 id="ndep_data_type"
 type="char*256" 
 category="ecosys"
@@ -6149,6 +5780,183 @@ type="real"
 category="ecosys"
 group="ecosys_forcing_data_nml" >
 Default: 7.1429e6
+</entry>
+
+<entry 
+id="riv_flux_shr_stream_file"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml"
+input_pathname="abs" >
+Default: river_nutrients_GNEWS2000_gx3v7_20170226.nc (gx3v7), river_nutrients_GNEWS2000_gx1v6_20170226.nc (gx1v6,gx1v7)
+</entry>
+
+<entry 
+id="riv_flux_shr_stream_year_first"
+type="integer" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1850
+</entry>
+
+<entry 
+id="riv_flux_shr_stream_year_last"
+type="integer" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1850
+</entry>
+
+<entry 
+id="riv_flux_shr_stream_year_align"
+type="integer" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1850
+</entry>
+
+<entry 
+id="riv_flux_din_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'din_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_din_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_dip_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'dip_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_dip_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_don_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'don_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_don_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_dop_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'dop_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_dop_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_dsi_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'dsi_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_dsi_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_dfe_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'dfe_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_dfe_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_dic_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'dic_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_dic_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_alk_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'alk_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_alk_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry 
+id="riv_flux_doc_file_varname"
+type="char*256" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 'doc_riv_flux'
+</entry>
+
+<entry 
+id="riv_flux_doc_scale_factor"
+type="real" 
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
 </entry>
 
 <entry 

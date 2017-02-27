@@ -2,6 +2,32 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    27 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n46_marbl_dev_n33_cesm_pop_2_1_20170222a
+Tag Summary: change field_source to shr_stream for riv_flux forcing
+
+change associated namelist inputs
+
+Testing:
+MARBL commit 3dab77460e49a7f2909cbb8fc61a64740f9a49c3
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n45 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because of roundoff changes in strdata interpolation compared to POP monthly calendar
+      namelist baseline comparisons fail because of namelist changes
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n45_marbl_dev_n33_cesm_pop_2_1_20170222a
 Tag Summary: fix for problem with nblocks_clinic/=max_blocks_clinic
