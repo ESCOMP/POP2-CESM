@@ -78,14 +78,14 @@ contains
     !-----------------------------------------------------------------------
 
     associate(&
-         cnt_interior_forcing => marbl_instance%interior_forcing_diags%diag_cnt, &
-         cnt_interior_restore => marbl_instance%interior_restore_diags%diag_cnt, &
-         cnt_surface_forcing  => marbl_instance%surface_forcing_diags%diag_cnt   &
+         interior_diags => marbl_instance%interior_forcing_diags%diags, &
+         restore_diags  => marbl_instance%interior_restore_diags%diags, &
+         surface_diags  => marbl_instance%surface_forcing_diags%diags   &
          )
 
-    allocate(tavg_ids_interior_forcing(cnt_interior_forcing))
-    allocate(tavg_ids_interior_restore(cnt_interior_restore))
-    allocate(tavg_ids_surface_forcing(cnt_surface_forcing))
+    allocate(tavg_ids_interior_forcing(size(interior_diags)))
+    allocate(tavg_ids_interior_restore(size(restore_diags)))
+    allocate(tavg_ids_surface_forcing(size(surface_diags)))
 
     end associate
 
@@ -199,7 +199,7 @@ contains
 
     associate(diags => marbl_diags%diags(:))
 
-    do n=1,marbl_diags%diag_cnt
+    do n=1,size(diags)
        do ne = 1,num_elements
           if (allocated(diags(n)%field_2d)) then
              call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n), bid, i(ne), c(ne))
@@ -238,9 +238,9 @@ contains
     !$OMP PARALLEL DO PRIVATE(iblock,i)
     do iblock=1,nblocks_clinic
 
-       associate (diag_cnt => marbl_instances(iblock)%surface_forcing_diags%diag_cnt)
+       associate (diags => marbl_instances(iblock)%surface_forcing_diags%diags)
 
-       do i = 1,diag_cnt
+       do i = 1,size(diags)
           call accumulate_tavg_field(surface_forcing_diags(:,:,i,iblock),     &
                tavg_ids_surface_forcing(i), iblock, 1)
        end do
@@ -285,7 +285,7 @@ contains
 
     associate(diags => marbl_diags%diags(:))
 
-      do n=1,marbl_diags%diag_cnt
+      do n=1,size(diags)
          if (trim(diags(n)%vertical_grid).eq.'none') then
             ndims = 2
             gloc = '2110'
