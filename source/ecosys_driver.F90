@@ -368,7 +368,7 @@ contains
             gcm_num_PAR_subcols = mcog_nbins,                                 &
             gcm_num_elements_interior_forcing = 1,                            & 
             gcm_num_elements_surface_forcing = num_elements,                  &
-            gcm_dz = dz,                                                      &
+            gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
             gcm_nl_buffer = nl_buffer,                                        &
