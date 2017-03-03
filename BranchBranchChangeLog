@@ -2,6 +2,22 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    3 Mar 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n48_marbl_dev_n33_cesm_pop_2_1_20170222a
+Tag Summary: fix namelist defaults for riv_flux_shr_stream_file, again
+
+gx1v6 riv_flux_shr_stream_file had gx3v7 in path instead of gx1v6
+
+Testing: none
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    27 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n47_marbl_dev_n33_cesm_pop_2_1_20170222a
 Tag Summary: fix namelist defaults for riv_flux_shr_stream_file
@@ -19,6 +35,7 @@ aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n45 tag)
       some MEMLEAK failures
 
 Files Modified:
+M       BranchBranchChangeLog
 M       bld/namelist_files/namelist_defaults_pop.xml
 
 ===============================================================================

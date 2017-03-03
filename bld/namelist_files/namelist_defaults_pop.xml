@@ -1139,7 +1139,7 @@
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
 <riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7_20170226.nc</riv_flux_shr_stream_file>
-<riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx1v6_20170226.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6_20170226.nc</riv_flux_shr_stream_file>
 
 <riv_flux_shr_stream_year_first>1850</riv_flux_shr_stream_year_first>
 <riv_flux_shr_stream_year_last >1850</riv_flux_shr_stream_year_last >
