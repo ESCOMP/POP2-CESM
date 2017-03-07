@@ -83,9 +83,9 @@ contains
          surface_diags  => marbl_instance%surface_forcing_diags%diags   &
          )
 
-    allocate(tavg_ids_interior_forcing(size(interior_diags)))
-    allocate(tavg_ids_interior_restore(size(restore_diags)))
-    allocate(tavg_ids_surface_forcing(size(surface_diags)))
+      allocate(tavg_ids_interior_forcing(size(interior_diags)))
+      allocate(tavg_ids_interior_restore(size(restore_diags)))
+      allocate(tavg_ids_surface_forcing(size(surface_diags)))
 
     end associate
 
@@ -99,14 +99,14 @@ contains
          surface_forcing_diags => marbl_instance%surface_forcing_diags    &
          )
 
-    call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing_diags, &
-         tavg_ids=tavg_ids_interior_forcing)
+      call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing_diags, &
+           tavg_ids=tavg_ids_interior_forcing)
 
-    call ecosys_tavg_define_from_diag(marbl_diags=interior_restore_diags,  &
-         tavg_ids=tavg_ids_interior_restore)
+      call ecosys_tavg_define_from_diag(marbl_diags=interior_restore_diags,  &
+           tavg_ids=tavg_ids_interior_restore)
 
-    call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing_diags,  &
-         tavg_ids=tavg_ids_surface_forcing)
+      call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing_diags,  &
+           tavg_ids=tavg_ids_surface_forcing)
 
     end associate
 
@@ -199,15 +199,15 @@ contains
 
     associate(diags => marbl_diags%diags(:))
 
-    do n=1,size(diags)
-       do ne = 1,num_elements
-          if (allocated(diags(n)%field_2d)) then
-             call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n), bid, i(ne), c(ne))
-          else
-             call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n), bid, i(ne), c(ne))
-          end if
-       end do
-    end do
+      do n=1,size(diags)
+         do ne = 1,num_elements
+            if (allocated(diags(n)%field_2d)) then
+               call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n), bid, i(ne), c(ne))
+            else
+               call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n), bid, i(ne), c(ne))
+            end if
+         end do
+      end do
 
     end associate
 

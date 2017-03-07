@@ -511,7 +511,7 @@ contains
     !--------------------------------------------------------------------
 
     associate(diags => marbl_instances(1)%surface_forcing_diags%diags)
-    allocate(surface_forcing_diags(nx_block, ny_block, size(diags), nblocks_clinic))
+      allocate(surface_forcing_diags(nx_block, ny_block, size(diags), nblocks_clinic))
     end associate
 
     tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype

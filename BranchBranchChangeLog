@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    7 March 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n79_marbl_dev_n33_cesm_pop_2_1_20170222a
+Tag Summary: Code clean-up following review of MARBL bugfixes; POP comment was
+             that we should indent associate statements, plus tests were run
+             with MARBL clean-up.
+
+Testing:     aux_pop_MARBL on hobart and yellowstone (ran full aux_pop on
+             marbl_dev_levy_n78, don't think we need that suite for these
+             clean-ups)
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    1 March 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n78_marbl_dev_n33_cesm_pop_2_1_20170222a
 Tag Summary: Support for some MARBL bugfixes
