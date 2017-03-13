@@ -168,6 +168,9 @@
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">hobart</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
       </test>
+      <test name="ERS_Ld5">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_tavg">yellowstone</machine>
+      </test>
       <test name="ICP">
         <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">yellowstone</machine>
       </test>
@@ -243,6 +246,9 @@
     <grid name="T62_g16">
       <test name="ERS">
         <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>
+      </test>
+      <test name="ERS_Ld5">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_5day_tavg">yellowstone</machine>
       </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
