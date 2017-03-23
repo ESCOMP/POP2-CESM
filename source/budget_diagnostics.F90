@@ -792,7 +792,7 @@
    qflux_t_mean = c0
    if ( tavg_sum_qflux(tavg_in_which_stream(tavg_id_QFLUX)) /= c0 ) then
      if (lrobert_filter) then
-       qflux_t_mean = p5*tavg_global_sum_2D(tavg_id('QFLUX'),MASK_BUDGT)
+       qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'),MASK_BUDGT)
      else
        qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'))
      endif

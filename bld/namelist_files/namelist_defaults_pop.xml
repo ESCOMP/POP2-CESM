@@ -449,8 +449,16 @@
 <shrdispfac                                    >0.05066</shrdispfac>
 <simpsubcells                                  >.false.</simpsubcells>
 <vertdiffhere                                  >.false.</vertdiffhere>
+
+
+<!-------------------------------------------------------------->
+<!-- enhanced diffusivity at depth, only default for 1 degree -->
+<!-- until validated at other resolutions                     -->
+<!-------------------------------------------------------------->
 <kappa_thic_deep                               >0.1</kappa_thic_deep>
-<kappa_isop_deep                               >0.2</kappa_isop_deep>
+<kappa_isop_deep                               >0.1</kappa_isop_deep>
+<kappa_isop_deep  ocn_grid="gx1v6"             >0.2</kappa_isop_deep>
+<kappa_isop_deep  ocn_grid="gx1v7"             >0.2</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->

@@ -1964,12 +1964,15 @@
 !
 !-----------------------------------------------------------------------
 
-    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'        , tavg_sum(ns))
-    call add_attrib_file(tavg_file_desc(ns), 'nsteps_total'    , nsteps_total)
-    call add_attrib_file(tavg_file_desc(ns), 'time_period_freq', time_period_freq(ns))
+    if (.not. ltavg_write_reg) then
+      call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'        , tavg_sum(ns))
+      call add_attrib_file(tavg_file_desc(ns), 'nsteps_total'    , nsteps_total)
+      call add_attrib_file(tavg_file_desc(ns), 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
+      if (tavg_streams(ns)%ltavg_qflux_method_on) &
+      call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
+    endif
 
-    if (tavg_streams(ns)%ltavg_qflux_method_on) &
-    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
+    call add_attrib_file(tavg_file_desc(ns), 'time_period_freq', time_period_freq(ns))
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
       call tavg_add_attrib_file_ccsm (tavg_file_desc(ns))
@@ -2413,8 +2416,9 @@
       call add_attrib_file(tavg_file_desc_in, 'iday'        , iday)
       call add_attrib_file(tavg_file_desc_in, 'beg_date'    , beg_date)
    endif
-   call add_attrib_file(tavg_file_desc_in, 'nsteps_total', nsteps_total)
-   call add_attrib_file(tavg_file_desc_in, 'tavg_sum'    , tavg_sum(ns))
+   call add_attrib_file(tavg_file_desc_in, 'nsteps_total'    , nsteps_total)
+   call add_attrib_file(tavg_file_desc_in, 'tavg_sum'        , tavg_sum(ns))
+   call add_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
    if (tavg_streams(ns)%ltavg_qflux_method_on) &
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
@@ -2440,6 +2444,7 @@
    call extract_attrib_file(tavg_file_desc_in, 'nsteps_total', &
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum', tavg_sum(ns))
+   call extract_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
    if (tavg_streams(ns)%ltavg_qflux_method_on) &
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux(ns))
 

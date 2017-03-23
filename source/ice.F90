@@ -683,11 +683,14 @@
 
 !-----------------------------------------------------------------------
 !
-!  adjust ice formation amount when the time-stepping method is avgfit or avg
+!  adjust ice formation amount when the time-stepping method is
+!    avgfit, avg, or robert
 !
 !-----------------------------------------------------------------------
 
-   if ( tmix_iopt == tmix_avgfit .or. tmix_iopt == tmix_avg ) then
+   if ( tmix_iopt == tmix_avgfit .or. &
+        tmix_iopt == tmix_avg    .or. &
+        tmix_iopt == tmix_robert) then
      AQICE(:,:,bid) = p5 * AQICE(:,:,bid)
    endif
 

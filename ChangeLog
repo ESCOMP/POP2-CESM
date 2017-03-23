@@ -1,5 +1,30 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  jet,klindsay,njn01
+Tag Date:    23 Mar 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170323
+Tag Summary: Critical Salinity Bug Fix.
+             *correction for salinity drift. POP was passing to CICE a frazil ice formation term that is twice what
+	         is consistent with POP's internal budget.
+	     *fix for time_bound variable across restarts.  This variable was in error when restarting mid_month and could
+	         possibly cause averaging errors if used in postprocessing.
+	     *enhanced deep diffusivity is on only for gx1 resolutions by default.  Will test at other resolutions and
+	         adjust as necessary
+             *definitions for time-averaged RF TEMP and SALT adjustment terms
+
+Testing:     ran aux_pop on this tag.  This is an answer changing (salinity bug fix) that will cause baseline failures.
+             everything but comparisons ran fine, exact restarts etc.
+	
+        M       source/ice.F90
+	M       source/step_mod.F90
+	M       source/budget_diagnostics.F90
+	M       source/tavg.F90
+	M       source/baroclinic.F90
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       ChangeLog
+
+===============================================================================
+Tag Creator: jet
 Developers:  jet,klindsay,jedwards,mlevy
 Tag Date:    12 Mar 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170312

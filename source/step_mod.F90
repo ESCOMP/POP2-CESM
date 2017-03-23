@@ -858,7 +858,7 @@
 
        !***  collect <S_1> for this budget interval
        if (nsteps_total == 1 .or. nsteps_run == 1 .or. lrf_budget_collect_S1) then
-         call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_S1 = .true.)
+         call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_s1 = .true.)
          lrf_budget_collect_S1 = .false.
        endif
 
@@ -938,6 +938,8 @@
 
    type (block)     :: this_block  ! block information for current block
 
+   logical (log_kind) :: lrf_accumulate_RF_terms
+   logical (log_kind) :: lrf_step_diagnostics
 
 !-----------------------------------------------------------------------
 !
@@ -954,6 +956,28 @@
 !     begin Robert Filtering
 !
 !-----------------------------------------------------------------------
+
+   lrf_accumulate_RF_terms = .false.
+   if (lrf_accumulate_RF_terms) then
+    !*** accumulate TEMP_RF and SALT_RF for off-line budget diagnostics
+    !    surface is only approximate
+
+     !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
+     do iblock = 1,nblocks_clinic
+       do n=1,2
+       do k=1,km
+         STORE_RF(:,:,k,n,iblock) = &
+         TRACER(:,:,k,n,oldtime,iblock) + TRACER(:,:,k,n,newtime,iblock)  &
+                                     - c2*TRACER(:,:,k,n,curtime,iblock)
+         if (n == 1 )  &
+         call accumulate_tavg_field(STORE_RF(:,:,k,n,iblock), tavg_TEMP_RF,iblock,k)
+         if (n == 2) &
+         call accumulate_tavg_field(STORE_RF(:,:,k,n,iblock), tavg_SALT_RF,iblock,k)
+       enddo ! k
+       enddo ! n
+     end do ! block loop (iblock)
+    !$OMP END PARALLEL DO
+   endif
 
    !$OMP PARALLEL DO PRIVATE(iblock,k,n,WORK1,WORK2)
    do iblock = 1,nblocks_clinic
@@ -1192,18 +1216,20 @@
    call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
                                  MASK_BUDGT, bgtarea_t_k, step_call = .true.)
 
-   !***  temporary (?) diagnostics
-   !$OMP PARALLEL DO PRIVATE(iblock)
-   do iblock = 1,nblocks_clinic
-     call step_diagnostics(iblock)
-   end do ! block loop (iblock)
-   !$OMP END PARALLEL DO
-
+   lrf_step_diagnostics = .false. 
+   if (lrf_step_diagnostics) then
+      !***  placeholder for step diagnostics
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+      do iblock = 1,nblocks_clinic
+         call step_diagnostics(iblock)
+      end do ! block loop (iblock)
+      !$OMP END PARALLEL DO
+   endif
 
    if (check_time_flag(tavg_streams(budget_stream)%field_flag)) then
      !*** time to collect <S_n> for use in this budget interval
      !    note: this collects values computed in this timestep
-     call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_Sn = .true.)
+     call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_sn = .true.)
    endif
 
    !-----------------------------------------------------------------------
@@ -1531,7 +1557,11 @@
    do iblock = 1,nblocks_clinic
      do k=1,km
        if (lrobert_filter) then
-         LMASK_BUDGT(:,:,k,iblock) = (KMT(:,:,iblock) >= k .and.  MASK_SR(:,:,iblock) > 0)
+         if (registry_match ('partially-coupled')) then
+           LMASK_BUDGT(:,:,k,iblock) = (KMT(:,:,iblock) >= k .and.  MASK_SR(:,:,iblock) > 0)
+         else
+           LMASK_BUDGT(:,:,k,iblock) = (KMT(:,:,iblock) >= k )
+         endif
        else
          LMASK_BUDGT(:,:,k,iblock) = .true.   ! b4b with nonRF version (partially coupled and avgfit)
        endif
@@ -1608,7 +1638,6 @@
      write(stdout,*) 'lrf_nonzero_newtime = ', lrf_nonzero_newtime
    endif
 
-   !*** collect TEMP at specified levels
    !*** collect TEMP at specified levels
    if (km >= 27) &
       call accumulate_tavg_field(TRACER(:,:,27,1,curtime,iblock),tavg_TEMP_27,iblock,27)
