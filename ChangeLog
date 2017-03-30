@@ -1,4 +1,76 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  jet,klindsay,njn01
+Tag Date:    23 Mar 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170323
+Tag Summary: Critical Salinity Bug Fix.
+             *correction for salinity drift. POP was passing to CICE a frazil ice formation term that is twice what
+	         is consistent with POP's internal budget.
+	     *fix for time_bound variable across restarts.  This variable was in error when restarting mid_month and could
+	         possibly cause averaging errors if used in postprocessing.
+	     *enhanced deep diffusivity is on only for gx1 resolutions by default.  Will test at other resolutions and
+	         adjust as necessary
+             *definitions for time-averaged RF TEMP and SALT adjustment terms
+
+Testing:     ran aux_pop on this tag.  This is an answer changing (salinity bug fix) that will cause baseline failures.
+             everything but comparisons ran fine, exact restarts etc.
+	
+        M       source/ice.F90
+	M       source/step_mod.F90
+	M       source/budget_diagnostics.F90
+	M       source/tavg.F90
+	M       source/baroclinic.F90
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       ChangeLog
+
+===============================================================================
+Tag Creator: jet
+Developers:  jet,klindsay,jedwards,mlevy
+Tag Date:    12 Mar 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170312
+Tag Summary: Add support for running gx1v7 out of the box
+	     Fixed bug in refactor of RF related global sums.
+	     Added new 5 day tavg tests to catch errors in tavg history files.
+             Turn off Estuary Box Model for all resolutions except 1 degree ocean.
+             Move Estuary Box Model Parameter file from resolution independent directory to gx1v6 forcing directory.
+	     Added decompositions for pe multiples of 36.
+
+Testing:     ran aux_pop on this tag.
+	         1) all gx3v7 tests run but fail namelist comparisons and comparison to baseline (expected due to disabling
+	              EBM for all resolutions but 1 degree ocean)
+	         2) gx1v6 tests nlfail due to moving and renaming EBM parameter file. Runs are bfb though.
+	         3) new 5 day tavg tests failing due to an error in time_bounds history variable on a model restart.
+                      The model is currently writing the beginning time_bounds for monthly average files from the
+	              restart date instead of the month start.  Will be fixed in upcoming tag.
+
+	M       source/timers.F90
+	M       source/tavg.F90
+	M       bld/build-namelist
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       bld/generate_pop_decomp.xml
+	A       cime_config/testdefs/testmods_dirs/pop/5day_tavg
+	A       cime_config/testdefs/testmods_dirs/pop/5day_tavg/include_user_mods
+	A       cime_config/testdefs/testmods_dirs/pop/5day_tavg/user_nl_pop
+	A       cime_config/testdefs/testmods_dirs/pop/ecosys_5day_tavg
+	A       cime_config/testdefs/testmods_dirs/pop/ecosys_5day_tavg/include_user_mods
+	M       cime_config/testdefs/testlist_pop.xml
+	M       ChangeLog
+	A       input_templates/gx1v7_1D_tavg_contents
+	A       input_templates/gx1v7_overflow
+	A       input_templates/gx1v7_vert_grid
+	A       input_templates/gx1v7_tavg_contents_high_freq
+	A       input_templates/gx1v7_niw_tavg_contents
+	A       input_templates/gx1v7_depth_accel
+	A       input_templates/gx1v7_region_ids
+	A       input_templates/gx1v7_transport_contents
+	A       input_templates/gx1v7_movie_contents
+	A       input_templates/gx1v7_domain_size.F90
+	A       input_templates/gx1v7_POP_DomainSizeMod.F90
+	A       input_templates/gx1v7_tavg_contents
+	A       input_templates/gx1v7_history_contents
+
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 Feb 2017

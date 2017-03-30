@@ -452,6 +452,11 @@
 !
 !-----------------------------------------------------------------------
 
+   ! Check if timer_id was set correctly.
+   if (timer_id < 1 .or. timer_id > max_timers) &
+      call exit_POP(sigAbort, &
+                    'timer_start: bad timer_id on input')
+
    if (all_timers(timer_id)%in_use) then
 
 #ifdef CCSMCOUPLED
@@ -601,6 +606,11 @@
 !  if timer is defined, stop it
 !
 !-----------------------------------------------------------------------
+
+   ! Check if timer_id was set correctly.
+   if (timer_id < 1 .or. timer_id > max_timers) &
+      call exit_POP(sigAbort, &
+                    'timer_stop: bad timer_id on input')
 
    if (all_timers(timer_id)%in_use) then
 

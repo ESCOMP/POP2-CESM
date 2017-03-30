@@ -1327,6 +1327,34 @@
  
    endif ! lccsm
  
+!-----------------------------------------------------------------------
+!
+!  initialize timers
+!
+!-----------------------------------------------------------------------
+
+   call get_timer(timer_write_std,'TAVG_WRITE_STD', 1, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_global,'TAVG_GLOBAL', 1, distrb_clinic%nprocs)
+   call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', 1, distrb_clinic%nprocs)
+   if (ldiag_bsf)  &
+   call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', 1, distrb_clinic%nprocs)
+   if (moc_requested)  &
+   call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', 1, distrb_clinic%nprocs)
+   if (n_heat_trans_requested .or. n_salt_trans_requested)  &
+   call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', 1, distrb_clinic%nprocs)
+   call get_timer(timer_read_transpose, 'TAVG_READ_TRANSPOSE'  ,  1, distrb_clinic%nprocs)
+   call get_timer(timer_write_transpose,'TAVG_WRITE_TRANSPOSE' ,  1, distrb_clinic%nprocs)
+
+   do nfield = 1, num_avail_tavg_fields
+      if (avail_tavg_fields(nfield)%ndims .eq. 3) then
+         if (avail_tavg_fields(nfield)%grid_loc(4:4) .eq. '4') then
+            avail_tavg_fields(nfield)%km = zt_150m_levs
+         else
+            avail_tavg_fields(nfield)%km = km
+         end if
+      end if
+   end do
+
 
 !-----------------------------------------------------------------------
 !
@@ -1404,34 +1432,6 @@
    endif
 
    deallocate (tavg_contents_request)
-
-!-----------------------------------------------------------------------
-!
-!  initialize timers
-!
-!-----------------------------------------------------------------------
-
-   call get_timer(timer_write_std,'TAVG_WRITE_STD', 1, distrb_clinic%nprocs)
-   call get_timer(timer_tavg_global,'TAVG_GLOBAL', 1, distrb_clinic%nprocs)
-   call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', 1, distrb_clinic%nprocs)
-   if (ldiag_bsf)  &
-   call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', 1, distrb_clinic%nprocs)
-   if (moc_requested)  &
-   call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', 1, distrb_clinic%nprocs)
-   if (n_heat_trans_requested .or. n_salt_trans_requested)  &
-   call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', 1, distrb_clinic%nprocs)
-   call get_timer(timer_read_transpose, 'TAVG_READ_TRANSPOSE'  ,  1, distrb_clinic%nprocs)
-   call get_timer(timer_write_transpose,'TAVG_WRITE_TRANSPOSE' ,  1, distrb_clinic%nprocs)
-
-   do nfield = 1, num_avail_tavg_fields
-      if (avail_tavg_fields(nfield)%ndims .eq. 3) then
-         if (avail_tavg_fields(nfield)%grid_loc(4:4) .eq. '4') then
-            avail_tavg_fields(nfield)%km = zt_150m_levs
-         else
-            avail_tavg_fields(nfield)%km = km
-         end if
-      end if
-   end do
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1964,12 +1964,15 @@
 !
 !-----------------------------------------------------------------------
 
-    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'        , tavg_sum(ns))
-    call add_attrib_file(tavg_file_desc(ns), 'nsteps_total'    , nsteps_total)
-    call add_attrib_file(tavg_file_desc(ns), 'time_period_freq', time_period_freq(ns))
+    if (.not. ltavg_write_reg) then
+      call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'        , tavg_sum(ns))
+      call add_attrib_file(tavg_file_desc(ns), 'nsteps_total'    , nsteps_total)
+      call add_attrib_file(tavg_file_desc(ns), 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
+      if (tavg_streams(ns)%ltavg_qflux_method_on) &
+      call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
+    endif
 
-    if (tavg_streams(ns)%ltavg_qflux_method_on) &
-    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
+    call add_attrib_file(tavg_file_desc(ns), 'time_period_freq', time_period_freq(ns))
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
       call tavg_add_attrib_file_ccsm (tavg_file_desc(ns))
@@ -2413,8 +2416,9 @@
       call add_attrib_file(tavg_file_desc_in, 'iday'        , iday)
       call add_attrib_file(tavg_file_desc_in, 'beg_date'    , beg_date)
    endif
-   call add_attrib_file(tavg_file_desc_in, 'nsteps_total', nsteps_total)
-   call add_attrib_file(tavg_file_desc_in, 'tavg_sum'    , tavg_sum(ns))
+   call add_attrib_file(tavg_file_desc_in, 'nsteps_total'    , nsteps_total)
+   call add_attrib_file(tavg_file_desc_in, 'tavg_sum'        , tavg_sum(ns))
+   call add_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
    if (tavg_streams(ns)%ltavg_qflux_method_on) &
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
@@ -2440,6 +2444,7 @@
    call extract_attrib_file(tavg_file_desc_in, 'nsteps_total', &
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum', tavg_sum(ns))
+   call extract_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
    if (tavg_streams(ns)%ltavg_qflux_method_on) &
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux(ns))
 
