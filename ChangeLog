@@ -1,5 +1,17 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  jet
+Tag Date:    4 Apr 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170404
+Tag Summary: Bug fix for 36 processor decomposition
+
+
+Testing:     ran ERS_D.f09_g16.B1850.cheyenne_intel to verify that this works correctly
+
+        M       bld/generate_pop_decomp.xml
+	M       ChangeLog
+===============================================================================
+Tag Creator: jet
 Developers:  jet,klindsay,njn01
 Tag Date:    23 Mar 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170323

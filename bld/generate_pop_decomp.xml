@@ -318,8 +318,8 @@
 
   <decomp nproc="36" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
-    <bsize_x   >64</bsize_x>
-    <bsize_y   >54</bsize_y>
+    <bsize_x   >54</bsize_x>
+    <bsize_y   >64</bsize_y>
     <nx_blocks >6</nx_blocks>
     <ny_blocks >6</ny_blocks>
     <decomptype>cartesian</decomptype>
