@@ -1367,11 +1367,16 @@ contains
     iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
     tmp => log_to_print%FullLog
     do while (associated(tmp))
-      if (tmp%lall_tasks.or.iam_master) then
-        if (tmp%lall_tasks.and.(.not.iam_master)) then
+      ! 1) Do I need to write this message? Yes, if all tasks should write this
+      !    or if I am master_task
+      if ((.not. tmp%lonly_master_writes) .or. iam_master) then
+        ! 2) Do I need to prepend task information about this message?
+        !    Yes, if I am not master_task
+        if (.not. iam_master) then
           write(stdout, "(A,I0,A,I0,2A)") "(Task ", my_task, ', block ', iblock, &
                 '): ', trim(tmp%LogMessage)
         else
+        !     Otherwise, just write the message
           write(stdout, "(A)") trim(tmp%LogMessage)
         end if
       end if

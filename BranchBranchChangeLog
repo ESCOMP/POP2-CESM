@@ -2,6 +2,17 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    6 Apr 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n01_marbl_dev_n34_cesm_pop_2_1_20170323
+Tag Summary: Use bugfix/better_logging branch of MARBL
+
+Testing:     Made sure model builds, single CISO comparison on gx3v7
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    6 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n00_marbl_dev_n34_cesm_pop_2_1_20170323
 Tag Summary: Initial branch tag, identical to marbl_dev_n34_cesm_pop_2_1_20170323
 ===============================================================================
