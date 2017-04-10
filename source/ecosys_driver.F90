@@ -806,10 +806,10 @@ contains
              call marbl_instances(bid)%set_interior_forcing()
              if (marbl_instances(bid)%StatusLog%labort_marbl) then
                 write(log_message,"(A,I0,A)") "marbl_instances(", bid, &
-                                              ")%set_surface_forcing()"
+                                              ")%set_interior_forcing()"
                 call marbl_instances(bid)%StatusLog%log_error_trace(log_message, subname)
              end if
-             call print_marbl_log(marbl_instances(bid)%StatusLog, bid)
+             call print_marbl_log(marbl_instances(bid)%StatusLog, bid, i, c)
              call marbl_instances(bid)%StatusLog%erase()
 
              !-----------------------------------------------------------
@@ -1375,11 +1375,6 @@ contains
           index_marbl = index_marbl + 1
           marbl_col_to_pop_i(index_marbl, iblock) = i
           marbl_col_to_pop_j(index_marbl, iblock) = j
-!          if (my_task.eq.master_task) then
-!            print*, "MNL iblock: ", iblock
-!            print*, "MNL i, j: ", i, j
-!            print*, "MNL index_marbl: ", index_marbl, i + (j-1)*nx_block
-!          end if
         end do
       end do
     end do
@@ -1388,16 +1383,26 @@ contains
 
   !*****************************************************************************
 
-  subroutine print_marbl_log(log_to_print, iblock)
+  subroutine print_marbl_log(log_to_print, iblock, i, j)
 
-    use marbl_logging             , only : marbl_status_log_entry_type
+    use marbl_logging, only : marbl_status_log_entry_type
+    use grid,          only : TLATD, TLOND
+    use blocks,        only : get_block
+    use domain,        only : blocks_clinic
 
     class(marbl_log_type), intent(in) :: log_to_print
     integer,               intent(in) :: iblock
+    integer,     optional, intent(in) :: i, j
 
     character(len=*), parameter :: subname = 'ecosys_driver:print_marbl_log'
+    character(len=char_len)     :: message_prefix
     type(marbl_status_log_entry_type), pointer :: tmp
+    integer :: i_loc, j_loc
     logical :: iam_master
+    type(block) :: this_block
+
+    ! Set up block id
+    this_block = get_block(blocks_clinic(iblock), iblock)
 
     ! FIXME (02-2016,mnl): need better logic on which items to print
     iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
@@ -1409,12 +1414,31 @@ contains
         ! 2) Do I need to prepend task information about this message?
         !    Yes, if I am not master_task
         if (.not. iam_master) then
-          write(stdout, "(A,I0,A,I0,2A)") "(Task ", my_task, ', block ', iblock, &
-                '): ', trim(tmp%LogMessage)
+          write(message_prefix, "(A,I0,A,I0,A)") "(Task ", my_task, ', block ', &
+                                                 iblock, '):'
         else
-        !     Otherwise, just write the message
-          write(stdout, "(A)") trim(tmp%LogMessage)
+        !    Otherwise, just write the message
+          message_prefix = ''
         end if
+        ! 3) Print message location?
+        if (tmp%ElementInd .gt. 0) then
+          if (present(i) .and. present(j)) then
+            write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A,I0)") &
+                 trim(message_prefix), "Message from (lon, lat) (", &
+                 TLOND(i, j, iblock), ", ", TLATD(i, j, iblock), &
+                 "), which is global (i,j) (", this_block%i_glob(i), &
+                 ", ", this_block%j_glob(j), "). Level: ", tmp%ElementInd
+          else
+            i_loc = marbl_col_to_pop_i(tmp%ElementInd, iblock)
+            j_loc = marbl_col_to_pop_j(tmp%ElementInd, iblock)
+            write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A)") &
+                 trim(message_prefix), "Message from (lon, lat) (", &
+                 TLOND(i_loc, j_loc, iblock), ", ", TLATD(i_loc, j_loc, iblock), &
+                 "), which is global (i,j) (", this_block%i_glob(i_loc), &
+                 ", ", this_block%j_glob(j_loc), ")"
+          end if
+        end if
+        write(stdout, "(2A)") trim(message_prefix), trim(tmp%LogMessage)
       end if
       tmp => tmp%next
     end do
