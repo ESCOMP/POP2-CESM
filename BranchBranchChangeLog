@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    10 Apr 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n02_marbl_dev_n34_cesm_pop_2_1_20170323
+Tag Summary: Module-level arrays to track number of columns being passed to
+             MARBL for surface forcing as well as map from MARBL index back to
+             POP (i,j) coordinates. Removed num_elements variable, use
+             marbl_col_cnt(iblock) instead.
+
+             Note that ecosys_forcing_init doesn't need num_elements, so it is
+             no longer passed as an argument.
+
+Testing:     Made sure model builds, single CISO comparison on gx3v7
+
+Files Modified:
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    6 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n01_marbl_dev_n34_cesm_pop_2_1_20170323
 Tag Summary: Use bugfix/better_logging branch of MARBL
