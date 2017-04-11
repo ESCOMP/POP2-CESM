@@ -1397,12 +1397,13 @@ contains
     character(len=*), parameter :: subname = 'ecosys_driver:print_marbl_log'
     character(len=char_len)     :: message_prefix
     type(marbl_status_log_entry_type), pointer :: tmp
-    integer :: i_loc, j_loc
+    integer :: i_loc, j_loc, elem_old
     logical :: iam_master
     type(block) :: this_block
 
     ! Set up block id
     this_block = get_block(blocks_clinic(iblock), iblock)
+    elem_old = -1
 
     ! FIXME (02-2016,mnl): need better logic on which items to print
     iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
@@ -1421,23 +1422,26 @@ contains
           message_prefix = ''
         end if
         ! 3) Print message location?
-        if (tmp%ElementInd .gt. 0) then
-          if (present(i) .and. present(j)) then
-            write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A,I0)") &
-                 trim(message_prefix), "Message from (lon, lat) (", &
-                 TLOND(i, j, iblock), ", ", TLATD(i, j, iblock), &
-                 "), which is global (i,j) (", this_block%i_glob(i), &
-                 ", ", this_block%j_glob(j), "). Level: ", tmp%ElementInd
-          else
-            i_loc = marbl_col_to_pop_i(tmp%ElementInd, iblock)
-            j_loc = marbl_col_to_pop_j(tmp%ElementInd, iblock)
-            write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A)") &
-                 trim(message_prefix), "Message from (lon, lat) (", &
-                 TLOND(i_loc, j_loc, iblock), ", ", TLATD(i_loc, j_loc, iblock), &
-                 "), which is global (i,j) (", this_block%i_glob(i_loc), &
-                 ", ", this_block%j_glob(j_loc), ")"
-          end if
-        end if
+        if (tmp%ElementInd .ne. elem_old) then
+          if (tmp%ElementInd .gt. 0) then
+            if (present(i) .and. present(j)) then
+              write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A,I0)") &
+                   trim(message_prefix), "Message from (lon, lat) (", &
+                   TLOND(i, j, iblock), ", ", TLATD(i, j, iblock), &
+                   "), which is global (i,j) (", this_block%i_glob(i), &
+                   ", ", this_block%j_glob(j), "). Level: ", tmp%ElementInd
+            else
+              i_loc = marbl_col_to_pop_i(tmp%ElementInd, iblock)
+              j_loc = marbl_col_to_pop_j(tmp%ElementInd, iblock)
+              write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A)") &
+                   trim(message_prefix), "Message from (lon, lat) (", &
+                   TLOND(i_loc, j_loc, iblock), ", ", TLATD(i_loc, j_loc, iblock), &
+                   "), which is global (i,j) (", this_block%i_glob(i_loc), &
+                   ", ", this_block%j_glob(j_loc), ")"
+            end if ! i,j present
+          end if   ! ElementInd > 0
+          elem_old = tmp%ElementInd
+        end if     ! ElementInd /= elem_old
         write(stdout, "(2A)") trim(message_prefix), trim(tmp%LogMessage)
       end if
       tmp => tmp%next
