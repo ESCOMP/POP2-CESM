@@ -1395,7 +1395,7 @@ contains
     integer,     optional, intent(in) :: i, j
 
     character(len=*), parameter :: subname = 'ecosys_driver:print_marbl_log'
-    character(len=char_len)     :: message_prefix
+    character(len=char_len)     :: message_prefix, message_location
     type(marbl_status_log_entry_type), pointer :: tmp
     integer :: i_loc, j_loc, elem_old
     logical :: iam_master
@@ -1404,6 +1404,7 @@ contains
     ! Set up block id
     this_block = get_block(blocks_clinic(iblock), iblock)
     elem_old = -1
+    write(message_prefix, "(A,I0,A,I0,A)") '(Task ', my_task, ', block ', iblock, ')'
 
     ! FIXME (02-2016,mnl): need better logic on which items to print
     iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
@@ -1412,38 +1413,42 @@ contains
       ! 1) Do I need to write this message? Yes, if all tasks should write this
       !    or if I am master_task
       if ((.not. tmp%lonly_master_writes) .or. iam_master) then
-        ! 2) Do I need to prepend task information about this message?
-        !    Yes, if I am not master_task
-        if (.not. iam_master) then
-          write(message_prefix, "(A,I0,A,I0,A)") "(Task ", my_task, ', block ', &
-                                                 iblock, '):'
-        else
-        !    Otherwise, just write the message
-          message_prefix = ''
-        end if
-        ! 3) Print message location?
+        ! 2) Print message location? (only if ElementInd changed and is positive)
         if (tmp%ElementInd .ne. elem_old) then
           if (tmp%ElementInd .gt. 0) then
             if (present(i) .and. present(j)) then
-              write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A,I0)") &
-                   trim(message_prefix), "Message from (lon, lat) (", &
-                   TLOND(i, j, iblock), ", ", TLATD(i, j, iblock), &
-                   "), which is global (i,j) (", this_block%i_glob(i), &
-                   ", ", this_block%j_glob(j), "). Level: ", tmp%ElementInd
+              write(message_location, "(A,F8.3,A,F7.3,A,I0,A,I0,A,I0)") &
+                   'Message from (lon, lat) (', TLOND(i, j, iblock), ', ', &
+                   TLATD(i, j, iblock), '), which is global (i,j) (', &
+                   this_block%i_glob(i), ', ', this_block%j_glob(j), &
+                   '). Level: ', tmp%ElementInd
             else
               i_loc = marbl_col_to_pop_i(tmp%ElementInd, iblock)
               j_loc = marbl_col_to_pop_j(tmp%ElementInd, iblock)
-              write(stdout, "(2A,F8.3,A,F7.3,A,I0,A,I0,A)") &
-                   trim(message_prefix), "Message from (lon, lat) (", &
-                   TLOND(i_loc, j_loc, iblock), ", ", TLATD(i_loc, j_loc, iblock), &
-                   "), which is global (i,j) (", this_block%i_glob(i_loc), &
-                   ", ", this_block%j_glob(j_loc), ")"
+              write(message_location, "(A,F8.3,A,F7.3,A,I0,A,I0,A)") &
+                   'Message from (lon, lat) (', TLOND(i_loc, j_loc, iblock), &
+                   ", ", TLATD(i_loc, j_loc, iblock), '), which is global (i,j) (', &
+                   this_block%i_glob(i_loc), ', ', this_block%j_glob(j_loc), ')'
             end if ! i,j present
+
+            ! master task does not need prefix
+            if (.not. iam_master) then
+              write(stdout, "(A,1X,A)") trim(message_prefix), trim(message_location)
+            else
+              write(stdout, "(A)") trim(message_location)
+            end if ! print message prefix?
+
           end if   ! ElementInd > 0
           elem_old = tmp%ElementInd
         end if     ! ElementInd /= elem_old
-        write(stdout, "(2A)") trim(message_prefix), trim(tmp%LogMessage)
-      end if
+
+        ! master task does not need prefix
+        if (.not. iam_master) then
+          write(stdout, "(A,1X,A)") trim(message_prefix), trim(tmp%LogMessage)
+        else
+          write(stdout, "(A)") trim(tmp%LogMessage)
+        end if     ! print message prefix?
+      end if       ! write the message?
       tmp => tmp%next
     end do
 
