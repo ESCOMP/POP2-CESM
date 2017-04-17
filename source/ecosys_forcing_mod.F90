@@ -278,7 +278,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_init(ciso_on, num_elements, land_mask,            &
+  subroutine ecosys_forcing_init(ciso_on, land_mask,                          &
                                  fe_frac_dust,fe_frac_bc, surface_forcings,   &
                                  interior_forcings, forcing_nml)
 
@@ -299,7 +299,6 @@ contains
     use mcog, only : mcog_nbins
 
     logical,                         intent(in)    :: ciso_on
-    integer,                         intent(in)    :: num_elements
     logical,                         intent(in)    :: land_mask(:,:,:)
     real(r8),                        intent(in)    :: fe_frac_dust
     real(r8),                        intent(in)    :: fe_frac_bc
