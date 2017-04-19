@@ -1394,10 +1394,11 @@ contains
     allocate(marbl_col_cnt(nblocks_clinic))
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
-      ! For now, we pass every phys point... but eventually column count will
-      ! depend on land_mask
-      marbl_col_cnt(iblock) = (this_block%ie + 1 - this_block%ib) * &
-                              (this_block%je + 1 - this_block%jb)
+      ! marbl_col_cnt is the number of ocean grid cells in the phys grid
+      ! (no halo region)
+      marbl_col_cnt(iblock) = count(land_mask(this_block%ib:this_block%ie, &
+                                              this_block%jb:this_block%je, &
+                                              iblock))
     end do
 
     allocate(marbl_col_to_pop_i(maxval(marbl_col_cnt), nblocks_clinic))
@@ -1408,14 +1409,16 @@ contains
       this_block = get_block(blocks_clinic(iblock), iblock)
       do j = this_block%jb, this_block%je
         do i = this_block%ib, this_block%ie
-          index_marbl = index_marbl + 1
-          if (index_marbl .gt. marbl_col_cnt(iblock)) then
-            ! Exceeding expected number of columns
-            call document(subname, 'ERROR, not enough memory to pass all columns to MARBL')
-            call exit_POP(sigAbort, 'Stopping in ' // subname)
+          if (land_mask(i,j,iblock)) then
+            index_marbl = index_marbl + 1
+            if (index_marbl .gt. marbl_col_cnt(iblock)) then
+              ! Exceeding expected number of columns
+              call document(subname, 'ERROR, not enough memory to pass all columns to MARBL')
+              call exit_POP(sigAbort, 'Stopping in ' // subname)
+            end if
+            marbl_col_to_pop_i(index_marbl, iblock) = i
+            marbl_col_to_pop_j(index_marbl, iblock) = j
           end if
-          marbl_col_to_pop_i(index_marbl, iblock) = i
-          marbl_col_to_pop_j(index_marbl, iblock) = j
         end do
       end do
       if (index_marbl .lt. marbl_col_cnt(iblock)) then
