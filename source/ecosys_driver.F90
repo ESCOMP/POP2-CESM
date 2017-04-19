@@ -111,7 +111,6 @@ module ecosys_driver
   logical   (log_kind)                       :: ciso_on
   logical   (log_kind) , allocatable         :: land_mask(:, :, :)
   real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
-  real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
   integer :: flux_co2_id
   integer :: totalChl_id
 
@@ -518,6 +517,7 @@ contains
 
     associate(diag_cnt => marbl_instances(1)%surface_forcing_diags%diag_cnt)
     allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, nblocks_clinic))
+    surface_forcing_diags = c0
     end associate
 
     tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
@@ -872,6 +872,12 @@ contains
     ! Sets surface input forcing data and calls marbl to
     ! compute surface tracer fluxes
 
+    use POP_HaloMod          , only : POP_HaloUpdate
+    use POP_GridHorzMod      , only : POP_gridHorzLocCenter
+    use POP_CommMod          , only : POP_communicator
+    use POP_FieldMod         , only : POP_fieldKindScalar
+    use POP_ErrorMod         , only : POP_Success
+    use domain               , only : POP_haloClinic
     use named_field_mod      , only : named_field_set
     use time_management      , only : check_time_flag
     use domain               , only : nblocks_clinic
@@ -895,11 +901,15 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_sflux'
+    ! third dimension is number of named fields we copy surface forcing outputs to
+    real (r8)           :: surface_forcing_outputs(nx_block, ny_block, 2, nblocks_clinic)
     character(char_len) :: log_message
     integer (int_kind) :: index_marbl                                 ! marbl index
     integer (int_kind) :: i, j, iblock, n                             ! pop loop indices
     integer (int_kind) :: glo_scalar_cnt
+    integer (int_kind) :: errorCode
     !-----------------------------------------------------------------------
+    surface_forcing_outputs = c0
 
     !-----------------------------------------------------------------------
     ! Set input surface forcing data and surface saved state data
@@ -980,7 +990,7 @@ contains
           end do
 
           do n=1,2
-            surface_forcing_outputs(i,j,iblock,n) = &
+            surface_forcing_outputs(i,j,n,iblock) = &
                marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
           end do
 
@@ -1010,16 +1020,32 @@ contains
     ! Update named fields
     !-----------------------------------------------------------------------
 
+    ! Added halo update for all surface forcing outputs because sw_absorption
+    ! had issue with prognostic Chl and we didn't track down why the halo cells
+    ! mattered in that case
+    ! klindsay thought -- KPP smooths boundary layer depth; CVMix computes KPP
+    ! at all points (not just phys points) and then smooths boundary layer depth
+    ! so computing vertical mixing coefficients only on phys points will require
+    ! halo update for HBLT (and we may be able to remove this halo update as a
+    ! result)
+    call POP_HaloUpdate(surface_forcing_outputs, POP_haloclinic, &
+         POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
+    if (errorCode /= POP_Success) then
+       call document(subname, 'error updating halo for SFO from MARBL')
+       call document(subname, 'n', n)
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
+    endif
+
     do iblock = 1, nblocks_clinic
-       call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, iblock, totalChl_id))
-       
+       call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, totalChl_id, iblock))
+
        !  set air-sea co2 gas flux named field, converting units from
        !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
        if (lflux_gas_co2) then
-          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, iblock, flux_co2_id))
+          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, flux_co2_id, iblock))
        end if
     end do
-    
+
     ! Note: out of this subroutine rest of pop needs stf_module, ph_prev_surf, named_state, diagnostics
 
   end subroutine ecosys_driver_set_sflux
@@ -1028,7 +1054,7 @@ contains
 
   subroutine ecosys_driver_comp_global_averages(field_source)
 
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     ! perform global operations
 
     use global_reductions, only : global_sum_prod
@@ -1115,7 +1141,7 @@ contains
 
   subroutine ecosys_driver_update_scalar_rmeans(field_source)
 
-    ! DESCRIPTION: 
+    ! DESCRIPTION:
     ! update running means of scalar variables
 
     use running_mean_mod , only : running_mean_update_var
@@ -1186,7 +1212,7 @@ contains
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
 
-    implicit none 
+    implicit none
 
     call ecosys_tavg_accumulate_flux(surface_forcing_diags, marbl_instances(:))
 
@@ -1358,25 +1384,47 @@ contains
 
   subroutine gen_marbl_to_pop_index_mapping
 
+    use blocks,        only : get_block
+    use domain,        only : blocks_clinic
+
+    character(*), parameter :: subname = 'ecosys_driver:gen_marbl_to_pop_index_mapping'
+    type(block) :: this_block
     integer :: index_marbl, i, j, iblock
 
     allocate(marbl_col_cnt(nblocks_clinic))
-    ! For now, we pass surface mask (and halo region) to MARBL so column count
-    ! is nx_block*ny_block
-    marbl_col_cnt(:) = nx_block*ny_block
+    do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock), iblock)
+      ! For now, we pass every phys point... but eventually column count will
+      ! depend on land_mask
+      marbl_col_cnt(iblock) = (this_block%ie + 1 - this_block%ib) * &
+                              (this_block%je + 1 - this_block%jb)
+    end do
 
     allocate(marbl_col_to_pop_i(maxval(marbl_col_cnt), nblocks_clinic))
     allocate(marbl_col_to_pop_j(maxval(marbl_col_cnt), nblocks_clinic))
 
     do iblock = 1, nblocks_clinic
       index_marbl = 0
-      do j = 1, ny_block
-        do i = 1, nx_block
+      this_block = get_block(blocks_clinic(iblock), iblock)
+      do j = this_block%jb, this_block%je
+        do i = this_block%ib, this_block%ie
           index_marbl = index_marbl + 1
+          if (index_marbl .gt. marbl_col_cnt(iblock)) then
+            ! Exceeding expected number of columns
+            call document(subname, 'ERROR, not enough memory to pass all columns to MARBL')
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
+          end if
           marbl_col_to_pop_i(index_marbl, iblock) = i
           marbl_col_to_pop_j(index_marbl, iblock) = j
         end do
       end do
+      if (index_marbl .lt. marbl_col_cnt(iblock)) then
+        ! Exceeding expected number of columns
+        call document(subname, 'ERROR, not passing all columns to MARBL')
+        call document(subname, 'marbl_col_cnt', marbl_col_cnt(iblock))
+        call document(subname, 'index_marbl', index_marbl)
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+      end if
     end do
 
   end subroutine gen_marbl_to_pop_index_mapping
