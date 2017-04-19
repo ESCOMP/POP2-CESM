@@ -874,7 +874,6 @@ contains
 
     use POP_HaloMod          , only : POP_HaloUpdate
     use POP_GridHorzMod      , only : POP_gridHorzLocCenter
-    use POP_CommMod          , only : POP_communicator
     use POP_FieldMod         , only : POP_fieldKindScalar
     use POP_ErrorMod         , only : POP_Success
     use domain               , only : POP_haloClinic
@@ -1032,7 +1031,6 @@ contains
          POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
     if (errorCode /= POP_Success) then
        call document(subname, 'error updating halo for SFO from MARBL')
-       call document(subname, 'n', n)
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
@@ -1413,7 +1411,10 @@ contains
             index_marbl = index_marbl + 1
             if (index_marbl .gt. marbl_col_cnt(iblock)) then
               ! Exceeding expected number of columns
-              call document(subname, 'ERROR, not enough memory to pass all columns to MARBL')
+              write(stdout,"(3A)") 'INTERNAL ERROR (', subname, &
+                                   '): index_marbl exceeds marbl_col_cnt'
+              write(stdout,"(A,I0)") 'marbl_col_cnt = ', marbl_col_cnt(iblock)
+              write(stdout,"(A,I0)") 'index_marbl = ', index_marbl
               call exit_POP(sigAbort, 'Stopping in ' // subname)
             end if
             marbl_col_to_pop_i(index_marbl, iblock) = i
@@ -1423,9 +1424,10 @@ contains
       end do
       if (index_marbl .lt. marbl_col_cnt(iblock)) then
         ! Exceeding expected number of columns
-        call document(subname, 'ERROR, not passing all columns to MARBL')
-        call document(subname, 'marbl_col_cnt', marbl_col_cnt(iblock))
-        call document(subname, 'index_marbl', index_marbl)
+        write(stdout,"(3A)") 'INTERNAL ERROR (', subname, &
+                             '): index_marbl is less than marbl_col_cnt'
+        write(stdout,"(A,I0)") 'marbl_col_cnt = ', marbl_col_cnt(iblock)
+        write(stdout,"(A,I0)") 'index_marbl = ', index_marbl
         call exit_POP(sigAbort, 'Stopping in ' // subname)
       end if
     end do
@@ -1504,7 +1506,7 @@ contains
     end do
 
     if (log_to_print%labort_marbl) then
-      call document(subname, 'ERROR reported from MARBL library')
+      write(stdout, "(A)") 'ERROR reported from MARBL library'
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
