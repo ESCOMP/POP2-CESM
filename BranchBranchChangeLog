@@ -2,6 +2,66 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    20 Apr 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n49_marbl_dev_n33_cesm_pop_2_1_20170222a
+Tag Summary: couple passive tracers to estuary model, estuary model code cleanup
+
+introduce lhas_vflux, indicates which tracers use virtual flux
+
+estuary_vsf_mod changes to enable EBM for passive tracers:
+replace nt_est with nt
+subroutine set_estuary_vsf_forcing changes
+   compute FLUX_ROFF_VSF_SRF, and correction term, for lhas_vflux tracers
+
+add STF_RIV to STF where MASK_ESTUARY_VSF == 0
+
+tavg changes:
+include STF_RIV and FLUX_ROFF_VSF_SRF in per-tracer STF tavg vars
+include FLUX_ROFF_VSF_SRF in per-tracer FvPER tavg vars
+
+remove vflux_flag from ecosys_forcing_mod.F90 (no longer necessary with surf_avg not being computed)
+
+estuary_vsf_mod cleanup
+rename module estuary_mod to estuary_vsf_mod, to be consistent with filename
+abort if lestuary_on == .true. and lfw_as_salt_flx == .false.
+   this combo not implemented
+replace use of MASK_SR in estuary_vsf_mod MASK_ESTUARY
+eliminate module variables FLUX_ROFF_VSF and FLUX_EXCH
+   made them local vars in add_estuary_vsf_tracer_tend, and stripped tracer and block indices
+add only clause to most module use statements
+
+add_estuary_vsf_tracer_tend changes
+   separate code into lvsf_river and lebm_on blocks
+   add STF_RIV to VSF_SRF_p_RIV_FLUX (local copy of FLUX_ROFF_VSF_SRF)
+   fuse n loops
+
+Testing:
+MARBL commit 3dab77460e49a7f2909cbb8fc61a64740f9a49c3
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n48 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because enabling EBM for passive tracers changes results
+         physics results do not change for chl_option = 'file'
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/baroclinic.F90
+M       source/ecosys_forcing_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/grid.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    3 Mar 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n48_marbl_dev_n33_cesm_pop_2_1_20170222a
 Tag Summary: fix namelist defaults for riv_flux_shr_stream_file, again

@@ -282,7 +282,6 @@ module ecosys_forcing_mod
   !-----------------------------------------------------------------------
 
   ! Virtual fluxes
-  logical(log_kind), dimension(marbl_tracer_cnt) :: vflux_flag           ! which tracers get virtual fluxes applied
   real(r8), dimension(marbl_tracer_cnt) :: surf_avg                      ! average surface tracer values
 
   real(r8) :: iron_frac_in_dust
@@ -505,21 +504,15 @@ contains
     end if
 
     ! Set surf_avg for all tracers
-    surf_avg = c0
-    vflux_flag(:) = .false.
+    surf_avg(:) = c0
     if (any((/dic_ind, dic_alt_co2_ind, alk_ind/).eq.0)) then
       call document(subname, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
     surf_avg(dic_ind) = surf_avg_dic_const
-    vflux_flag(dic_ind) = .true.
-
     surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
-    vflux_flag(dic_alt_co2_ind) = .true.
-
     surf_avg(alk_ind) = surf_avg_alk_const
-    vflux_flag(alk_ind) = .true.
 
     if (ciso_on) then
        if (any((/di13c_ind, di14c_ind/).eq.0)) then
@@ -527,9 +520,7 @@ contains
          call exit_POP(sigAbort, 'Stopping in ' // subname)
        end if
        surf_avg(di13c_ind) = surf_avg_di13c_const
-       vflux_flag(di13c_ind) = .true.
        surf_avg(di14c_ind) = surf_avg_di14c_const
-       vflux_flag(di14c_ind) = .true.
     end if
 
     call get_timer(ecosys_pre_sflux_timer               , 'ECOSYS_PRE_SFLUX'               , 1, distrb_clinic%nprocs)
@@ -3198,12 +3189,7 @@ contains
     integer(int_kind) , intent(in) :: ind
     real(r8) :: ecosys_forcing_tracer_ref_val
 
-    !  default value for reference value is 0
-
-    ecosys_forcing_tracer_ref_val = c0
-    if (vflux_flag(ind)) then
-       ecosys_forcing_tracer_ref_val = surf_avg(ind)
-    endif
+    ecosys_forcing_tracer_ref_val = surf_avg(ind)
 
   end function ecosys_forcing_tracer_ref_val
 

@@ -49,7 +49,8 @@
    use registry
    use forcing_fields
    use mcog, only: mcog_nbins, QSW_BIN, QSW_RAW_BIN
-   use estuary_mod, only:lestuary_on,lvsf_river,FLUX_ROFF_VSF_SRF
+   use estuary_vsf_mod, only:lvsf_river,MASK_ESTUARY,FLUX_ROFF_VSF_SRF
+   use estuary_vsf_mod, only:vsf_river_correction
 
    implicit none
    private
@@ -416,12 +417,20 @@
 
    if (nt > 2) then
       call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF,STF_RIV)
+   endif
 
+   if ( lvsf_river ) then
       !$OMP PARALLEL DO PRIVATE(iblock,n)
       do iblock = 1, nblocks_clinic
          do n = 3, nt
+            ! add STF_RIV to STF where the ebm is not handling it
             if (lhas_riv_flux(n)) then
-               STF(:,:,n,iblock) = STF(:,:,n,iblock) + STF_RIV(:,:,n,iblock)
+               STF(:,:,n,iblock) = STF(:,:,n,iblock) + (c1-MASK_ESTUARY(:,:,iblock))*STF_RIV(:,:,n,iblock)
+            endif
+            ! Add global correction for tracer conservation, correcting for
+            ! using local tracer concenctration in application of ROFF_F
+            if (lhas_vflux(n)) then
+               STF(:,:,n,iblock) = STF(:,:,n,iblock) + MASK_ESTUARY(:,:,iblock)*vsf_river_correction(n)
             endif
          end do
       end do
@@ -518,12 +527,12 @@
                WORK = c0
             end where
          else
-            if ( lestuary_on .and. lvsf_river ) then
+            if ( lvsf_river ) then
             ! ROFF_F should be included in the SFWF term in the open ocean
             ! ROFF_F in the Marginal Seas is already included in STF(:,:,2,iblock)
                where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
                  WORK =STF(:,:,2,iblock)/salinity_factor&
-                      -MASK_SR(:,:,iblock)*FLUX_ROFF_VSF_SRF(:,:,2,iblock)/salinity_factor
+                      -MASK_ESTUARY(:,:,iblock)*FLUX_ROFF_VSF_SRF(:,:,2,iblock)/salinity_factor
                elsewhere
                   WORK = c0
                end where

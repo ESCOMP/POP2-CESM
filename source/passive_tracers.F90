@@ -27,7 +27,7 @@
    use broadcast, only: broadcast_scalar
    use prognostic, only: TRACER, PSURF, tracer_d, oldtime, curtime, newtime
    use forcing_shf, only: SHF_QSW_RAW, SHF_QSW
-   use forcing_fields, only : lhas_riv_flux
+   use forcing_fields, only : lhas_vflux, lhas_riv_flux
    use mcog, only: FRACR_BIN, QSW_RAW_BIN, QSW_BIN
    use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
        datafile
@@ -157,7 +157,7 @@
 !  logical variables that denote if a passive tracer module is on
 !-----------------------------------------------------------------------
 
-   logical (kind=log_kind) ::  &
+   logical (log_kind) ::  &
       ecosys_on, cfc_on, sf6_on, iage_on,&
       abio_dic_dic14_on, ciso_on, IRF_on
 
@@ -170,7 +170,7 @@
 !     index bounds of passive tracer module variables in TRACER
 !-----------------------------------------------------------------------
 
-   integer (kind=int_kind) ::                            &
+   integer (int_kind) ::                                 &
       ecosys_driver_ind_begin,   ecosys_driver_ind_end,  &
       iage_ind_begin,            iage_ind_end,           &
       cfc_ind_begin,             cfc_ind_end,            &
@@ -182,13 +182,13 @@
 !  filtered SST and SSS, if needed
 !-----------------------------------------------------------------------
 
-   logical (kind=log_kind) :: filtered_SST_SSS_needed
+   logical (log_kind) :: filtered_SST_SSS_needed
 
    real (r8), dimension(:,:,:), allocatable :: &
       SST_FILT,      & ! SST with time filter applied, [degC]
       SSS_FILT         ! SSS with time filter applied, [psu]
 
-   real(r8), dimension(:, :, :, :, :), pointer :: &
+   real (r8), dimension(:, :, :, :, :), pointer :: &
         ecosys_source_sink_3d ! (nx_block, ny_block, km, nt, nblocks_clinic)
    
 !EOC
@@ -240,6 +240,14 @@
 
    character (char_len) :: sname, lname, units, coordinates
    character (4) :: grid_loc
+
+!-----------------------------------------------------------------------
+
+   if (.not. registry_match('init_ts')) then
+      call exit_POP(sigAbort, 'init_ts not called ' /&
+         &/ 'before init_passive_tracers. This is necessary for ' /&
+         &/ 'init_passive_tracers to have correct read_restart_filename')
+   end if
 
 !-----------------------------------------------------------------------
 !  register init_passive_tracers
@@ -512,6 +520,14 @@
    end if
 
 !-----------------------------------------------------------------------
+!  set lhas_vflux for passive tracers
+!-----------------------------------------------------------------------
+
+   do n = 3, nt
+      lhas_vflux(n) = tracer_ref_val(n) /= c0
+   enddo
+
+!-----------------------------------------------------------------------
 !  generate common tavg fields for all tracers
 !-----------------------------------------------------------------------
 
@@ -615,7 +631,7 @@
       sname = 'STF_' /&
                       &/ trim(tracer_d(n)%short_name)
       lname = trim(tracer_d(n)%long_name) /&
-                                           &/ ' Surface Flux'
+                                           &/ ' Surface Flux, excludes FvICE term'
       units = tracer_d(n)%flux_units
       call define_tavg_field(tavg_var_stf(n),                       &
                              sname, 2, long_name=lname,             &
@@ -647,28 +663,30 @@
                              scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
 
-      sname = 'FvPER_' /&
-                        &/ trim(tracer_d(n)%short_name)
-      lname = trim(tracer_d(n)%long_name) /&
-                                           &/ ' Virtual Surface Flux, PER'
-      units = tracer_d(n)%flux_units
-      call define_tavg_field(tavg_var_fvper(n),                     &
-                             sname, 2, long_name=lname,             &
-                             units=units, grid_loc='2110',          &
-                             scale_factor=tracer_d(n)%scale_factor, &
-                             coordinates='TLONG TLAT time')
+      if (lhas_vflux(n)) then
+         sname = 'FvPER_' /&
+                           &/ trim(tracer_d(n)%short_name)
+         lname = trim(tracer_d(n)%long_name) /&
+                                              &/ ' Virtual Surface Flux, PER'
+         units = tracer_d(n)%flux_units
+         call define_tavg_field(tavg_var_fvper(n),                     &
+                                sname, 2, long_name=lname,             &
+                                units=units, grid_loc='2110',          &
+                                scale_factor=tracer_d(n)%scale_factor, &
+                                coordinates='TLONG TLAT time')
 
-      sname = 'FvICE_' /&
-                        &/ trim(tracer_d(n)%short_name)
-      lname = trim(tracer_d(n)%long_name) /&
-                                           &/ ' Virtual Surface Flux, ICE'
-      units = tracer_d(n)%flux_units
-      call define_tavg_field(tavg_var_fvice(n),                     &
-                             sname, 2, long_name=lname,             &
-                             units=units, grid_loc='2110',          &
-                             scale_factor=tracer_d(n)%scale_factor, &
-                             tavg_method=tavg_method_qflux,         &
-                             coordinates='TLONG TLAT time')
+         sname = 'FvICE_' /&
+                           &/ trim(tracer_d(n)%short_name)
+         lname = trim(tracer_d(n)%long_name) /&
+                                              &/ ' Virtual Surface Flux, ICE'
+         units = tracer_d(n)%flux_units
+         call define_tavg_field(tavg_var_fvice(n),                     &
+                                sname, 2, long_name=lname,             &
+                                units=units, grid_loc='2110',          &
+                                scale_factor=tracer_d(n)%scale_factor, &
+                                tavg_method=tavg_method_qflux,         &
+                                coordinates='TLONG TLAT time')
+      endif
    enddo
 
    do n=1,nt
@@ -962,7 +980,7 @@
 !  local variables
 !-----------------------------------------------------------------------
 
-   logical (kind=log_kind) :: first_call = .true.
+   logical (log_kind) :: first_call = .true.
    real (r8)          :: ref_val
    integer (int_kind) :: iblock, n
 
@@ -1064,8 +1082,8 @@
    !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val)
    do iblock = 1,nblocks_clinic
       do n=3,nt
-         ref_val = tracer_ref_val(n)
-         if (ref_val /= c0) then
+         if (lhas_vflux(n)) then
+            ref_val = tracer_ref_val(n)
             FvPER(:,:,n,iblock) = &
                (ref_val/(ocn_ref_salinity*ppt_to_salt)) * STF(:,:,2,iblock)
             STF(:,:,n,iblock) = STF(:,:,n,iblock) + FvPER(:,:,n,iblock)
@@ -1163,7 +1181,7 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real(r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
       TRACER_OLD,   & ! all tracers at old time for a given block
       TRACER_NEW      ! all tracers at new time for a given block
 
@@ -1366,7 +1384,7 @@
 ! !IROUTINE: passive_tracers_tavg_sflux
 ! !INTERFACE:
 
- subroutine passive_tracers_tavg_sflux(STF, STF_RIV)
+ subroutine passive_tracers_tavg_sflux(STF, STF_RIV, lvsf_river, MASK_ESTUARY, FLUX_ROFF_VSF_SRF)
 
 ! !DESCRIPTION:
 !  accumulate common tavg fields for surface tracer fluxes
@@ -1378,8 +1396,16 @@
 
 ! !INPUT PARAMETERS:
 
-  real(r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
+  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       intent(in) :: STF, STF_RIV
+
+  logical(log_kind), intent(in) :: lvsf_river
+
+  real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+      intent(in) :: MASK_ESTUARY
+
+  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
+      intent(in) :: FLUX_ROFF_VSF_SRF
 
 !EOP
 !BOC
@@ -1389,19 +1415,36 @@
 
    integer (int_kind) :: iblock, n
 
+   real (r8), dimension(nx_block,ny_block) :: WORK
 
 !-----------------------------------------------------------------------
 !  accumulate surface flux and FvPER flux for all tracers
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,n)
+   !$OMP PARALLEL DO PRIVATE(iblock,n,WORK)
    do iblock = 1,nblocks_clinic
       do n = 3, nt
          call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
          if (lhas_riv_flux(n)) then
             call accumulate_tavg_field(STF_RIV(:,:,n,iblock),tavg_var_stf_riv(n),iblock,1)
+
+            ! explicitly include STF_RIV in STF_var where ebm is handling it
+            if (lvsf_river) then
+              WORK = MASK_ESTUARY(:,:,iblock)*STF_RIV(:,:,n,iblock)
+              call accumulate_tavg_field(WORK,tavg_var_stf(n),iblock,1)
+            endif
          endif
-         call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
+         if (lhas_vflux(n)) then
+            call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
+
+            ! explicitly include FLUX_ROFF_VSF_SRF in STF_var and FvPER_var
+            ! note that FLUX_ROFF_VSF_SRF is positive up and that MASK_ESTUARY is already applied to it
+            if (lvsf_river) then
+              WORK = -FLUX_ROFF_VSF_SRF(:,:,n,iblock)
+              call accumulate_tavg_field(WORK,tavg_var_stf(n),iblock,1)
+              call accumulate_tavg_field(WORK,tavg_var_fvper(n),iblock,1)
+            endif
+         endif
       enddo
    enddo
    !$OMP END PARALLEL DO
@@ -1496,13 +1539,11 @@
    !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val,WORK)
    do iblock = 1,nblocks_clinic
       do n = 3, nt
-         if (accumulate_tavg_now(tavg_var_fvice(n))) then
-              ref_val = tracer_ref_val(n)
-              if (ref_val /= c0)  then
-                 WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
-                    cp_over_lhfusion * max(c0, QICE(:,:,iblock))
-                 call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,c1)
-              endif
+         if (lhas_vflux(n)) then
+           ref_val = tracer_ref_val(n)
+           WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
+              cp_over_lhfusion * max(c0, QICE(:,:,iblock))
+           call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,c1)
          endif
       enddo
    enddo
@@ -1533,7 +1574,7 @@
 
 ! !OUTPUT PARAMETERS:
 
-   real(r8) :: tracer_ref_val
+   real (r8) :: tracer_ref_val
 
 !EOP
 !BOC
@@ -1600,7 +1641,7 @@
 
 ! !INPUT PARAMETERS:
 
-   logical, optional, intent(in) :: stats
+   logical (log_kind), optional, intent(in) :: stats
 
 !EOP
 !BOC

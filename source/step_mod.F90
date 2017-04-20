@@ -141,6 +141,8 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use estuary_vsf_mod, only : lvsf_river, MASK_ESTUARY, FLUX_ROFF_VSF_SRF
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -270,7 +272,8 @@
 
    call tavg_set_flag(update_time=.true.)
    call tavg_forcing
-   if (nt > 2) call passive_tracers_tavg_sflux(STF, STF_RIV)
+   if (nt > 2) call passive_tracers_tavg_sflux(STF, STF_RIV, &
+      lvsf_river, MASK_ESTUARY, FLUX_ROFF_VSF_SRF)
    call movie_forcing
 
 
