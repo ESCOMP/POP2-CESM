@@ -34,6 +34,10 @@
      <nlons>320</nlons>
      <nlats>384</nlats>
   </size>
+  <size res="gx1v7">
+     <nlons>320</nlons>
+     <nlats>384</nlats>
+  </size>
   <size res="tx0.1v2">
      <nlons>3600</nlons>
      <nlats>2400</nlats>
@@ -220,9 +224,9 @@
     <decomptype>spacecurve</decomptype>
   </decomp>
 
-  <!-- gx1v[3456] resolution -->
+  <!-- gx1v[34567] resolution -->
 
-  <decomp nproc="1" res="gx1v[3456]" >
+  <decomp nproc="1" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >320</bsize_x>
     <bsize_y   >384</bsize_y>
@@ -231,7 +235,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="2" res="gx1v[3456]" >
+  <decomp nproc="2" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >320</bsize_x>
     <bsize_y   >192</bsize_y>
@@ -240,7 +244,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="4" res="gx1v[3456]" >
+  <decomp nproc="4" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >160</bsize_x>
     <bsize_y   >192</bsize_y>
@@ -249,7 +253,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="8" res="gx1v[3456]" >
+  <decomp nproc="8" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >192</bsize_y>
@@ -258,7 +262,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="10" res="gx1v[3456]" >
+  <decomp nproc="10" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>
     <bsize_y   >192</bsize_y>
@@ -267,7 +271,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="12" res="gx1v[3456]" >
+  <decomp nproc="12" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >128</bsize_y>
@@ -276,7 +280,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="16" res="gx1v[3456]" >
+  <decomp nproc="16" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >96</bsize_y>
@@ -285,7 +289,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="20" res="gx1v[3456]" >
+  <decomp nproc="20" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>
     <bsize_y   >96</bsize_y>
@@ -294,7 +298,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="24" res="gx1v[3456]" >
+  <decomp nproc="24" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >64</bsize_y>
@@ -303,7 +307,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="32" res="gx1v[3456]" >
+  <decomp nproc="32" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >48</bsize_y>
@@ -312,7 +316,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="40" res="gx1v[3456]" >
+  <decomp nproc="36" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >64</bsize_x>
+    <bsize_y   >54</bsize_y>
+    <nx_blocks >6</nx_blocks>
+    <ny_blocks >6</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="40" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>
     <bsize_y   >48</bsize_y>
@@ -321,7 +334,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="48" res="gx1v[3456]" >
+  <decomp nproc="48" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >64</bsize_y>
@@ -330,7 +343,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="64" res="gx1v[3456]" >
+  <decomp nproc="64" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >48</bsize_y>
@@ -339,7 +352,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="80" res="gx1v[3456]" >
+  <decomp nproc="72" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >40</bsize_x>
+    <bsize_y   >43</bsize_y>
+    <nx_blocks >8</nx_blocks>
+    <ny_blocks >9</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="80" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >48</bsize_y>
@@ -348,7 +370,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="96" res="gx1v[3456]" >
+  <decomp nproc="96" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >32</bsize_y>
@@ -357,7 +379,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="120" res="gx1v[3456]" >
+  <decomp nproc="108" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >36</bsize_x>
+    <bsize_y   >32</bsize_y>
+    <nx_blocks >9</nx_blocks>
+    <ny_blocks >12</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="120" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >32</bsize_y>
@@ -366,7 +397,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="128" res="gx1v[3456]" >
+  <decomp nproc="128" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >24</bsize_y>
@@ -375,7 +406,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="160" res="gx1v[3456]" >
+  <decomp nproc="144" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >27</bsize_x>
+    <bsize_y   >32</bsize_y>
+    <nx_blocks >12</nx_blocks>
+    <ny_blocks >12</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="160" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >24</bsize_y>
@@ -384,7 +424,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="180" res="gx1v[3456]" >
+  <decomp nproc="180" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >22</bsize_y>
@@ -393,7 +433,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="192" res="gx1v[3456]" >
+  <decomp nproc="192" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >32</bsize_y>
@@ -402,7 +442,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="240" res="gx1v[3456]" >
+  <decomp nproc="216" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >18</bsize_x>
+    <bsize_y   >32</bsize_y>
+    <nx_blocks >18</nx_blocks>
+    <ny_blocks >12</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="240" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >16</bsize_y>
@@ -411,7 +460,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="256" res="gx1v[3456]" >
+  <decomp nproc="252" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >23</bsize_x>
+    <bsize_y   >22</bsize_y>
+    <nx_blocks >14</nx_blocks>
+    <ny_blocks >18</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="256" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >24</bsize_y>
@@ -420,7 +478,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="300" res="gx1v[3456]" >
+  <decomp nproc="288" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >20</bsize_x>
+    <bsize_y   >22</bsize_y>
+    <nx_blocks >16</nx_blocks>
+    <ny_blocks >18</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="300" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >16</bsize_x>
     <bsize_y   >26</bsize_y>
@@ -429,7 +496,16 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="360" res="gx1v[3456]" >
+  <decomp nproc="324" res="gx1v[34567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >12</bsize_x>
+    <bsize_y   >32</bsize_y>
+    <nx_blocks >27</nx_blocks>
+    <ny_blocks >12</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="360" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >16</bsize_x>
     <bsize_y   >22</bsize_y>
@@ -438,7 +514,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="384" res="gx1v[3456]" >
+  <decomp nproc="384" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >16</bsize_y>
@@ -447,7 +523,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="480" res="gx1v[3456]" >
+  <decomp nproc="480" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >16</bsize_x>
     <bsize_y   >16</bsize_y>
@@ -456,7 +532,7 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="768" res="gx1v[3456]" >
+  <decomp nproc="768" res="gx1v[34567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >10</bsize_x>
     <bsize_y   >16</bsize_y>

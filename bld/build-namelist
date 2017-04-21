@@ -1234,7 +1234,10 @@ add_default($nl, "irf_on");
 add_default($nl, 'estuary_option');
 add_default($nl, 'estuary_type');
 add_default($nl, 'ebm_param_option');
-add_default($nl, 'ebm_param_filename');
+add_default($nl, 'ebm_param_filename', 'nofail'=>1);
+if (not $nl->get_value('ebm_param_filename')) {
+	add_default($nl, 'ebm_param_filename', 'val'=>'unknown_ebm_param_filename','noprepend'=>1);
+}
 add_default($nl, 'ebm_param_file_fmt');
 add_default($nl, 'tide_amp');
 add_default($nl, 'W_h');

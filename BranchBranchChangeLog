@@ -2,6 +2,55 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    21 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n50_marbl_dev_n34_cesm_pop_2_1_20170323
+Tag Summary: merge marbl_dev_n34 tag to this branch
+
+bring in changes from pop trunk, no marbl_dev specific changes
+
+Testing:
+MARBL commit 3dab77460e49a7f2909cbb8fc61a64740f9a49c3
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n49 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because ice formation fix changes results
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/5day_tavg
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_5day_tavg
+A  +    input_templates/gx1v7_1D_tavg_contents
+A  +    input_templates/gx1v7_POP_DomainSizeMod.F90
+A  +    input_templates/gx1v7_depth_accel
+A  +    input_templates/gx1v7_domain_size.F90
+A  +    input_templates/gx1v7_history_contents
+A  +    input_templates/gx1v7_movie_contents
+A  +    input_templates/gx1v7_niw_tavg_contents
+A  +    input_templates/gx1v7_overflow
+A  +    input_templates/gx1v7_region_ids
+A  +    input_templates/gx1v7_tavg_contents
+A  +    input_templates/gx1v7_tavg_contents_high_freq
+A  +    input_templates/gx1v7_transport_contents
+A  +    input_templates/gx1v7_vert_grid
+M       source/baroclinic.F90
+M       source/budget_diagnostics.F90
+M       source/ice.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/timers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    20 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n49_marbl_dev_n33_cesm_pop_2_1_20170222a
 Tag Summary: couple passive tracers to estuary model, estuary model code cleanup
