@@ -2,6 +2,32 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    22 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n51_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: merge marbl_dev_n36 tag to this branch
+
+marbl_dev_n35 Summary: better logging messages
+marbl_dev_n36 Summary: surface forcing only at ocean points
+
+Testing:
+MARBL commit a14b74407dcb1b1f8f1b289731e1bcad0d28ea47
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n50 tag)
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    21 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n50_marbl_dev_n34_cesm_pop_2_1_20170323
 Tag Summary: merge marbl_dev_n34 tag to this branch

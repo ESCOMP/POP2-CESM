@@ -76,6 +76,7 @@ module ecosys_driver
   public :: ecosys_driver_comp_global_averages
   public :: ecosys_driver_set_sflux_forcing
   public :: ecosys_driver_set_sflux
+  public :: ecosys_driver_post_set_sflux
   public :: ecosys_driver_tavg_forcing
   public :: ecosys_driver_write_restart
   public :: ecosys_driver_unpack_source_sink_terms
@@ -109,18 +110,20 @@ module ecosys_driver
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
 
-  integer (int_kind)  :: totChl_surf_nf_ind   = 0                 ! total chlorophyll in surface layer
-  integer (int_kind)  :: sflux_co2_nf_ind     = 0                 ! air-sea co2 gas flux
-  integer (int_kind)  :: num_elements_surface = nx_block*ny_block ! number of surface elements passed to marbl
+  integer (int_kind)  :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer
+  integer (int_kind)  :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux
 
-  character (char_len)                       :: ecosys_tadvect_ctype                  ! advection method for ecosys tracers
-  logical   (log_kind) , public              :: ecosys_qsw_distrb_const
-  logical   (log_kind)                       :: ciso_on
-  logical   (log_kind) , allocatable         :: land_mask(:, :, :)
-  real      (r8)       , allocatable         :: surface_forcing_diags(:, :, :, :)
-  real      (r8) :: surface_forcing_outputs(nx_block, ny_block, max_blocks_clinic, 2)
-  integer :: flux_co2_id
-  integer :: totalChl_id
+  character (char_len)               :: ecosys_tadvect_ctype    ! advection method for ecosys tracers
+  logical   (log_kind) , public      :: ecosys_qsw_distrb_const
+  logical   (log_kind)               :: ciso_on
+  logical   (log_kind) , allocatable :: land_mask(:, :, :)
+  real      (r8)       , allocatable :: surface_forcing_diags(:, :, :, :)
+
+  integer   (int_kind) , parameter   :: sfo_cnt = 2
+  integer   (int_kind)               :: flux_co2_id
+  integer   (int_kind)               :: totalChl_id
+  real      (r8)                     :: surface_forcing_outputs(nx_block, ny_block, sfo_cnt, max_blocks_clinic)
+
 
   ! Variables related to global averages
 
@@ -128,6 +131,11 @@ module ecosys_driver
   real (r8), allocatable, target, dimension(:,:,:,:) :: glo_avg_fields_surface
   real (r8), allocatable, dimension(:,:,:)           :: glo_avg_area_masked
   real (r8)                                          :: glo_avg_norm_fact
+
+  ! Variables used to track POP index of columns passed to MARBL
+  ! (surface fluxes are computed for multiple columns simultaneously)
+  integer, allocatable, dimension(:)   :: marbl_col_cnt                          ! nblocks_clinic
+  integer, allocatable, dimension(:,:) :: marbl_col_to_pop_i, marbl_col_to_pop_j ! max(marbl_col_cnt) x nblocks_clinic
 
   ! FIXME : move the following variables into MARBL
 
@@ -176,8 +184,6 @@ contains
     use running_mean_mod      , only : running_mean_get_var
     use ecosys_forcing_mod    , only : ecosys_forcing_init
     use marbl_logging         , only : marbl_log_type
-
-    implicit none
 
     logical                  , intent(in)    :: ciso_active_flag      ! set ciso_on
     character (*)            , intent(in)    :: init_ts_file_fmt      ! format (bin or nc) for input file
@@ -366,13 +372,16 @@ contains
     !  Initialize marbl
     !--------------------------------------------------------------------
 
+    ! Set up mapping between columns we pass to MARBL and the POP indices
+    call gen_marbl_to_pop_index_mapping()
+
     do iblock=1, nblocks_clinic
 
        call marbl_instances(iblock)%init(                                     &
             gcm_num_levels = km,                                              &
             gcm_num_PAR_subcols = mcog_nbins,                                 &
-            gcm_num_elements_interior_forcing = 1,                            &
-            gcm_num_elements_surface_forcing = num_elements_surface,          &
+            gcm_num_elements_interior_forcing = 1,                            & 
+            gcm_num_elements_surface_forcing = marbl_col_cnt(iblock),         &
             gcm_dz = dz,                                                      &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
@@ -524,8 +533,11 @@ contains
     !--------------------------------------------------------------------
 
     associate(diag_cnt => marbl_instances(1)%surface_forcing_diags%diag_cnt)
-    allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, nblocks_clinic))
+      allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, nblocks_clinic))
     end associate
+
+    surface_forcing_diags = c0
+    surface_forcing_outputs = c0
 
     tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
 
@@ -543,7 +555,7 @@ contains
     do iblock=1, nblocks_clinic
        ! Register flux_co2 with MARBL surface forcing outputs
        call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
-              num_elements = num_elements_surface,                            &
+              num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "flux_co2",                                      &
               sfo_id       = flux_co2_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
@@ -557,7 +569,7 @@ contains
 
        ! Register totalChl with MARBL surface forcing outputs
        call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
-              num_elements = num_elements_surface,                            &
+              num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "totalChl",                                      &
               sfo_id       = totalChl_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
@@ -690,8 +702,6 @@ contains
     use mcog               , only : mcog_nbins
     use ecosys_forcing_mod , only : ecosys_forcing_set_interior_time_varying_forcing_data
 
-    implicit none
-
     real (r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic) , intent(in)    :: FRACR_BIN         ! fraction of cell occupied by mcog bin
     real (r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic) , intent(in)    :: QSW_RAW_BIN       ! raw (directly from cpl) shortwave into each mcog column (W/m^2)
     real (r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic) , intent(in)    :: QSW_BIN           ! shortwave into each mcog bin, potentially modified by coszen factor (W/m^2)
@@ -719,8 +729,6 @@ contains
     use grid               , only : DZT
     use grid               , only : partial_bottom_cells
     use ecosys_forcing_mod , only : interior_forcing_fields
-
-    implicit none
 
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_OLD ! old tracer values
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_CUR ! current tracer values
@@ -792,10 +800,10 @@ contains
              call marbl_instances(bid)%set_interior_forcing()
              if (marbl_instances(bid)%StatusLog%labort_marbl) then
                 write(log_message,"(A,I0,A)") "marbl_instances(", bid, &
-                                              ")%set_surface_forcing()"
+                                              ")%set_interior_forcing()"
                 call marbl_instances(bid)%StatusLog%log_error_trace(log_message, subname)
              end if
-             call print_marbl_log(marbl_instances(bid)%StatusLog, bid)
+             call print_marbl_log(marbl_instances(bid)%StatusLog, bid, i, c)
              call marbl_instances(bid)%StatusLog%erase()
 
              !-----------------------------------------------------------
@@ -850,13 +858,9 @@ contains
        sss)
 
     ! DESCRIPTION:
-    ! Sets surface input forcing data and calls marbl to
-    ! compute surface tracer fluxes
+    ! Sets surface input forcing data
 
-    use domain               , only : nblocks_clinic
     use ecosys_forcing_mod   , only : ecosys_forcing_set_surface_time_varying_forcing_data
-
-    implicit none
 
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: u10_sqr           ! 10m wind speed squared (cm/s)**2
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: ifrac             ! sea ice fraction (non-dimensional)
@@ -894,14 +898,10 @@ contains
        iblock)
 
     ! DESCRIPTION:
-    ! Sets surface input forcing data and calls marbl to
-    ! compute surface tracer fluxes
+    ! Calls marbl to compute surface tracer fluxes
 
-    use named_field_mod      , only : named_field_set
     use ecosys_forcing_mod   , only : surface_forcing_fields
     use ecosys_forcing_mod   , only : ecosys_forcing_comp_stf_riv
-
-    implicit none
 
     real (r8), dimension(:,:,:), intent(in)    :: surface_vals_old
     real (r8), dimension(:,:,:), intent(in)    :: surface_vals_cur  ! module tracers
@@ -914,9 +914,8 @@ contains
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_sflux'
     character(char_len) :: log_message
-    integer (int_kind) :: index_marbl     ! marbl index
-    integer (int_kind) :: i, j, n         ! pop loop indices
-    integer (int_kind) :: glo_scalar_cnt
+    integer (int_kind) :: index_marbl  ! marbl index
+    integer (int_kind) :: i, j, n      ! pop loop indices
     !-----------------------------------------------------------------------
 
     call timer_start(ecosys_set_sflux_timer, iblock)
@@ -925,26 +924,25 @@ contains
     ! Copy data from slab data structure to column input for marbl
     !-----------------------------------------------------------------------
 
-    do j = 1, ny_block
-       do i = 1,nx_block
-          index_marbl = i + (j-1)*nx_block
+    do index_marbl = 1, marbl_col_cnt(iblock)
+       i = marbl_col_to_pop_i(index_marbl,iblock)
+       j = marbl_col_to_pop_j(index_marbl,iblock)
 
-          do n = 1,size(surface_forcing_fields)
-             marbl_instances(iblock)%surface_input_forcings(n)%field_0d(index_marbl) = &
-                  surface_forcing_fields(n)%field_0d(i,j,iblock)
-          end do
-
-          do n = 1,ecosys_tracer_cnt
-             marbl_instances(iblock)%surface_vals(index_marbl,n) = &
-                  p5*(surface_vals_old(i,j,n) + surface_vals_cur(i,j,n))
-          end do
-
-          do n=1,size(saved_state_surf)
-            marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl) = &
-              saved_state_surf(n)%field_2d(i,j,iblock)
-          end do
-
+       do n = 1,size(surface_forcing_fields)
+          marbl_instances(iblock)%surface_input_forcings(n)%field_0d(index_marbl) = &
+               surface_forcing_fields(n)%field_0d(i,j,iblock)
        end do
+
+       do n = 1,ecosys_tracer_cnt
+          marbl_instances(iblock)%surface_vals(index_marbl,n) = &
+               p5*(surface_vals_old(i,j,n) + surface_vals_cur(i,j,n))
+       end do
+
+       do n=1,size(saved_state_surf)
+         marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl) = &
+           saved_state_surf(n)%field_2d(i,j,iblock)
+       end do
+
     end do
 
     !-----------------------------------------------------------------------
@@ -965,34 +963,33 @@ contains
     ! Copy data from marbl output column to pop slab data structure
     !-----------------------------------------------------------------------
 
-    do j = 1, ny_block
-       do i = 1,nx_block
-          index_marbl = i + (j-1)*nx_block
+    do index_marbl = 1, marbl_col_cnt(iblock)
+       i = marbl_col_to_pop_i(index_marbl,iblock)
+       j = marbl_col_to_pop_j(index_marbl,iblock)
 
-          do n=1,size(saved_state_surf)
-            saved_state_surf(n)%field_2d(i,j,iblock) = &
-              marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl)
-          end do
+       do n=1,size(saved_state_surf)
+         saved_state_surf(n)%field_2d(i,j,iblock) = &
+           marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl)
+       end do
 
-          do n=1,2
-            surface_forcing_outputs(i,j,iblock,n) = &
-               marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
-          end do
+       do n=1,sfo_cnt
+         surface_forcing_outputs(i,j,n,iblock) = &
+            marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
+       end do
 
-          do n = 1,ecosys_tracer_cnt
-             stf_module(i,j,n) = &
-                  marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
-          end do
+       do n = 1,ecosys_tracer_cnt
+          stf_module(i,j,n) = &
+               marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
+       end do
 
-          do n=1,marbl_instances(1)%surface_forcing_diags%diag_cnt
-             surface_forcing_diags(i,j,n,iblock) = &
-                  marbl_instances(iblock)%surface_forcing_diags%diags(n)%field_2d(index_marbl)
-          end do
+       do n=1,marbl_instances(1)%surface_forcing_diags%diag_cnt
+          surface_forcing_diags(i,j,n,iblock) = &
+               marbl_instances(iblock)%surface_forcing_diags%diags(n)%field_2d(index_marbl)
+       end do
 
-          ! copy values to be used in computing requested global averages
-          ! arrays have zero extent if none are requested
-          glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface(index_marbl,:)
-       enddo
+       ! copy values to be used in computing requested global averages
+       ! arrays have zero extent if none are requested
+       glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface(index_marbl,:)
     end do
 
     !-----------------------------------------------------------------------
@@ -1001,21 +998,62 @@ contains
 
     call ecosys_forcing_comp_stf_riv(ciso_on, stf_riv_module(:,:,:), iblock)
 
+    call timer_stop(ecosys_set_sflux_timer, iblock)
+
+  end subroutine ecosys_driver_set_sflux
+
+  !***********************************************************************
+
+  subroutine ecosys_driver_post_set_sflux()
+
+    ! DESCRIPTION:
+    ! sflux related code that occurs after the threaded region needs to be exited
+
+    use POP_HaloMod          , only : POP_HaloUpdate
+    use POP_GridHorzMod      , only : POP_gridHorzLocCenter
+    use POP_FieldMod         , only : POP_fieldKindScalar
+    use POP_ErrorMod         , only : POP_Success
+    use domain               , only : POP_haloClinic
+    use named_field_mod      , only : named_field_set
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_post_set_sflux'
+    integer (int_kind) :: iblock    ! block loop index
+    integer (int_kind) :: errorCode ! halo update error code
+    !-----------------------------------------------------------------------
+
+    ! Added halo update for all surface forcing outputs because sw_absorption
+    ! had issue with prognostic Chl and we didn't track down why the halo cells
+    ! mattered in that case
+    ! klindsay thought -- KPP smooths boundary layer depth; CVMix computes KPP
+    ! at all points (not just phys points) and then smooths boundary layer depth
+    ! so computing vertical mixing coefficients only on phys points will require
+    ! halo update for HBLT (and we may be able to remove this halo update as a
+    ! result)
+    call POP_HaloUpdate(surface_forcing_outputs, POP_haloclinic, &
+         POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
+    if (errorCode /= POP_Success) then
+       call document(subname, 'error updating halo for SFO from MARBL')
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
+    endif
+
     !-----------------------------------------------------------------------
     ! Update named fields
     !-----------------------------------------------------------------------
 
-    call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, iblock, totalChl_id))
+    do iblock = 1, nblocks_clinic
+       call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, totalChl_id, iblock))
 
-    !  set air-sea co2 gas flux named field, converting units from
-    !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
-    if (lflux_gas_co2) then
-       call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, iblock, flux_co2_id))
-    end if
+       !  set air-sea co2 gas flux named field, converting units from
+       !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
+       if (lflux_gas_co2) then
+          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, flux_co2_id, iblock))
+       end if
+    end do
 
-    call timer_stop(ecosys_set_sflux_timer, iblock)
-
-  end subroutine ecosys_driver_set_sflux
+  end subroutine ecosys_driver_post_set_sflux
 
   !***********************************************************************
 
@@ -1189,8 +1227,6 @@ contains
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
 
-    implicit none
-
     call ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances(:))
 
   end subroutine ecosys_driver_tavg_forcing
@@ -1217,8 +1253,6 @@ contains
     use ecosys_tracers_and_saved_state_mod, only : saved_state_field_3d
     use io_types, only : io_field_desc
     use io      , only : datafile
-
-    implicit none
 
     character(*)                 , intent(in)    :: action
     type (datafile)              , intent(inout) :: restart_file
@@ -1359,34 +1393,133 @@ contains
 
   !*****************************************************************************
 
-  subroutine print_marbl_log(log_to_print, iblock)
+  subroutine gen_marbl_to_pop_index_mapping
 
-    use marbl_logging             , only : marbl_status_log_entry_type
+    use blocks,        only : get_block
+    use domain,        only : blocks_clinic
+
+    character(*), parameter :: subname = 'ecosys_driver:gen_marbl_to_pop_index_mapping'
+    type(block) :: this_block
+    integer :: index_marbl, i, j, iblock
+
+    allocate(marbl_col_cnt(nblocks_clinic))
+    do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock), iblock)
+      ! marbl_col_cnt is the number of ocean grid cells in the phys grid
+      ! (no halo region)
+      marbl_col_cnt(iblock) = count(land_mask(this_block%ib:this_block%ie, &
+                                              this_block%jb:this_block%je, &
+                                              iblock))
+    end do
+
+    allocate(marbl_col_to_pop_i(maxval(marbl_col_cnt), nblocks_clinic))
+    allocate(marbl_col_to_pop_j(maxval(marbl_col_cnt), nblocks_clinic))
+
+    do iblock = 1, nblocks_clinic
+      index_marbl = 0
+      this_block = get_block(blocks_clinic(iblock), iblock)
+      do j = this_block%jb, this_block%je
+        do i = this_block%ib, this_block%ie
+          if (land_mask(i,j,iblock)) then
+            index_marbl = index_marbl + 1
+            if (index_marbl .gt. marbl_col_cnt(iblock)) then
+              ! Exceeding expected number of columns
+              write(stdout,"(3A)") 'INTERNAL ERROR (', subname, &
+                                   '): index_marbl exceeds marbl_col_cnt'
+              write(stdout,"(A,I0)") 'marbl_col_cnt = ', marbl_col_cnt(iblock)
+              write(stdout,"(A,I0)") 'index_marbl = ', index_marbl
+              call exit_POP(sigAbort, 'Stopping in ' // subname)
+            end if
+            marbl_col_to_pop_i(index_marbl, iblock) = i
+            marbl_col_to_pop_j(index_marbl, iblock) = j
+          end if
+        end do
+      end do
+      if (index_marbl .lt. marbl_col_cnt(iblock)) then
+        ! Exceeding expected number of columns
+        write(stdout,"(3A)") 'INTERNAL ERROR (', subname, &
+                             '): index_marbl is less than marbl_col_cnt'
+        write(stdout,"(A,I0)") 'marbl_col_cnt = ', marbl_col_cnt(iblock)
+        write(stdout,"(A,I0)") 'index_marbl = ', index_marbl
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+      end if
+    end do
+
+  end subroutine gen_marbl_to_pop_index_mapping
+
+  !*****************************************************************************
+
+  subroutine print_marbl_log(log_to_print, iblock, i, j)
+
+    use marbl_logging, only : marbl_status_log_entry_type
+    use grid,          only : TLATD, TLOND
+    use blocks,        only : get_block
+    use domain,        only : blocks_clinic
 
     class(marbl_log_type), intent(in) :: log_to_print
     integer,               intent(in) :: iblock
+    integer,     optional, intent(in) :: i, j
 
     character(len=*), parameter :: subname = 'ecosys_driver:print_marbl_log'
+    character(len=char_len)     :: message_prefix, message_location
     type(marbl_status_log_entry_type), pointer :: tmp
+    integer :: i_loc, j_loc, elem_old
     logical :: iam_master
+    type(block) :: this_block
+
+    ! Set up block id
+    this_block = get_block(blocks_clinic(iblock), iblock)
+    elem_old = -1
+    write(message_prefix, "(A,I0,A,I0,A)") '(Task ', my_task, ', block ', iblock, ')'
 
     ! FIXME (02-2016,mnl): need better logic on which items to print
     iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
     tmp => log_to_print%FullLog
     do while (associated(tmp))
-      if (tmp%lall_tasks.or.iam_master) then
-        if (tmp%lall_tasks.and.(.not.iam_master)) then
-          write(stdout, "(A,I0,A,I0,2A)") "(Task ", my_task, ', block ', iblock, &
-                '): ', trim(tmp%LogMessage)
+      ! 1) Do I need to write this message? Yes, if all tasks should write this
+      !    or if I am master_task
+      if ((.not. tmp%lonly_master_writes) .or. iam_master) then
+        ! 2) Print message location? (only if ElementInd changed and is positive)
+        if (tmp%ElementInd .ne. elem_old) then
+          if (tmp%ElementInd .gt. 0) then
+            if (present(i) .and. present(j)) then
+              write(message_location, "(A,F8.3,A,F7.3,A,I0,A,I0,A,I0)") &
+                   'Message from (lon, lat) (', TLOND(i, j, iblock), ', ', &
+                   TLATD(i, j, iblock), '), which is global (i,j) (', &
+                   this_block%i_glob(i), ', ', this_block%j_glob(j), &
+                   '). Level: ', tmp%ElementInd
+            else
+              i_loc = marbl_col_to_pop_i(tmp%ElementInd, iblock)
+              j_loc = marbl_col_to_pop_j(tmp%ElementInd, iblock)
+              write(message_location, "(A,F8.3,A,F7.3,A,I0,A,I0,A)") &
+                   'Message from (lon, lat) (', TLOND(i_loc, j_loc, iblock), &
+                   ", ", TLATD(i_loc, j_loc, iblock), '), which is global (i,j) (', &
+                   this_block%i_glob(i_loc), ', ', this_block%j_glob(j_loc), ')'
+            end if ! i,j present
+
+            ! master task does not need prefix
+            if (.not. iam_master) then
+              write(stdout, "(A,1X,A)") trim(message_prefix), trim(message_location)
+            else
+              write(stdout, "(A)") trim(message_location)
+            end if ! print message prefix?
+
+          end if   ! ElementInd > 0
+          elem_old = tmp%ElementInd
+        end if     ! ElementInd /= elem_old
+
+        ! master task does not need prefix
+        if (.not. iam_master) then
+          write(stdout, "(A,1X,A)") trim(message_prefix), trim(tmp%LogMessage)
         else
           write(stdout, "(A)") trim(tmp%LogMessage)
-        end if
-      end if
+        end if     ! print message prefix?
+      end if       ! write the message?
       tmp => tmp%next
     end do
 
     if (log_to_print%labort_marbl) then
-      call document(subname, 'ERROR reported from MARBL library')
+      write(stdout, "(A)") 'ERROR reported from MARBL library'
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 

@@ -1,6 +1,36 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    19 April 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: Bring in marbl_dev_levy2 (surface forcing only at ocean points)
+
+Testing:     aux_pop_MARBL with cime5.2.0-alpha.23 and cice5_20170126 compared
+             to baselines generated with pop trunk; bit for bit on
+             yellowstone and hobart
+
+Files Modified:
+ M      .
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 April 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n35_cesm_pop_2_1_20170323
+Tag Summary: Bring in marbl_dev_levy2 (better logging messages)
+
+Testing:     aux_pop_MARBL with cime5.2.0-alpha.23 and cice5_20170126 compared
+             to baselines generated with pop trunk; bit for bit on
+             yellowstone (will run on hobart after commit)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    30 March 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n34_cesm_pop_2_1_20170323
 Tag Summary: Merge latest pop trunk tag

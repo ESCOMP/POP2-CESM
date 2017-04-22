@@ -49,6 +49,7 @@
        ecosys_driver_init,                &
        ecosys_driver_set_sflux_forcing,   &
        ecosys_driver_set_sflux,           &
+       ecosys_driver_post_set_sflux,      &
        ecosys_driver_tavg_forcing,        &
        ecosys_driver_set_interior_forcing,&
        ecosys_driver_set_interior,        &
@@ -1026,6 +1027,8 @@
             STF_RIV(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,iblock), iblock)
          end do
       !$OMP END PARALLEL DO
+
+      call ecosys_driver_post_set_sflux
 
       call ecosys_driver_comp_global_averages('surface')
    end if
