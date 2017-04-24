@@ -36,6 +36,8 @@ module ecosys_forcing_mod
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
 
+  use forcing_fields, only : ATM_NHX_nf_ind, ATM_NOY_nf_ind
+
   implicit none
   private
 
@@ -650,52 +652,68 @@ contains
 
         case ('NOx Flux')
           nox_ind = n
-          if (trim(ndep_data_type).eq.'shr_stream') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                                 marbl_varname=marbl_varname, field_units=units,  &
-                                 unit_conv_factor=ndep_shr_stream_scale_factor,   &
-                                 file_varname='NOy_deposition',                   &
-                                 year_first = ndep_shr_stream_year_first,         &
-                                 year_last = ndep_shr_stream_year_last,           &
-                                 year_align = ndep_shr_stream_year_align,         &
-                                 filename = ndep_shr_stream_file, id=n)
-          else if (trim(ndep_data_type).eq.'monthly-calendar') then
-            file_details => nox_flux_monthly_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, id=n)
+          ! Note that ATM_NOY_nf_ind is set in ocn_comp_mct in the call to name_field_register
+          ! This particular field is a special case - it is present depending on the CAM configuration
+          if (ATM_NOY_nf_ind > 0) then
+             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
+                  marbl_varname=marbl_varname, field_units=units,         &
+                  named_field='ATM_NOY', id=n)
           else
-            write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
-                 'is not a valid option for ndep_data_type'
-            call document(subname, err_msg)
-            call exit_POP(sigAbort, 'Stopping in ' // subname)
+             if (trim(ndep_data_type).eq.'shr_stream') then
+                call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
+                     marbl_varname=marbl_varname, field_units=units,  &
+                     unit_conv_factor=ndep_shr_stream_scale_factor,   &
+                     file_varname='NOy_deposition',                   &
+                     year_first = ndep_shr_stream_year_first,         &
+                     year_last = ndep_shr_stream_year_last,           &
+                     year_align = ndep_shr_stream_year_align,         &
+                     filename = ndep_shr_stream_file, id=n)
+             else if (trim(ndep_data_type).eq.'monthly-calendar') then
+                file_details => nox_flux_monthly_file_loc
+                call init_monthly_surface_forcing_metadata(file_details)
+                call surface_forcing_fields(n)%add_forcing_field(                    &
+                     field_source='POP monthly calendar',            &
+                     marbl_varname=marbl_varname, field_units=units, &
+                     forcing_calendar_name=file_details, id=n)
+             else
+                write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
+                     'is not a valid option for ndep_data_type'
+                call document(subname, err_msg)
+                call exit_POP(sigAbort, 'Stopping in ' // subname)
+             end if
           end if
 
         case ('NHy Flux')
           nhy_ind = n
-          if (trim(ndep_data_type).eq.'shr_stream') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                                 marbl_varname=marbl_varname, field_units=units,  &
-                                 unit_conv_factor=ndep_shr_stream_scale_factor,   &
-                                 file_varname='NHx_deposition',                   &
-                                 year_first = ndep_shr_stream_year_first,         &
-                                 year_last = ndep_shr_stream_year_last,           &
-                                 year_align = ndep_shr_stream_year_align,         &
-                                 filename = ndep_shr_stream_file, id=n)
-          else if (trim(ndep_data_type).eq.'monthly-calendar') then
-            file_details => nhy_flux_monthly_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, id=n)
+          ! Note that ATM_NHX_nf_ind is set in ocn_comp_mct in the call to name_field_register
+          ! This particular field is a special case - it is present depending on the CAM configuration
+          if (ATM_NHX_nf_ind > 0) then
+             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
+                  marbl_varname=marbl_varname, field_units=units,         &
+                  named_field='ATM_NHX', id=n)
           else
-            write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
-                 'is not a valid option for ndep_data_type'
-            call document(subname, err_msg)
-            call exit_POP(sigAbort, 'Stopping in ' // subname)
+             if (trim(ndep_data_type).eq.'shr_stream') then
+                call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
+                     marbl_varname=marbl_varname, field_units=units,  &
+                     unit_conv_factor=ndep_shr_stream_scale_factor,   &
+                     file_varname='NHx_deposition',                   &
+                     year_first = ndep_shr_stream_year_first,         &
+                     year_last = ndep_shr_stream_year_last,           &
+                     year_align = ndep_shr_stream_year_align,         &
+                     filename = ndep_shr_stream_file, id=n)
+             else if (trim(ndep_data_type).eq.'monthly-calendar') then
+                file_details => nhy_flux_monthly_file_loc
+                call init_monthly_surface_forcing_metadata(file_details)
+                call surface_forcing_fields(n)%add_forcing_field(                    &
+                     field_source='POP monthly calendar',            &
+                     marbl_varname=marbl_varname, field_units=units, &
+                     forcing_calendar_name=file_details, id=n)
+             else
+                write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
+                     'is not a valid option for ndep_data_type'
+                call document(subname, err_msg)
+                call exit_POP(sigAbort, 'Stopping in ' // subname)
+             end if
           end if
 
         case ('DIN River Flux')

@@ -29,6 +29,7 @@ module ocn_import_export
    use forcing_fields,    only: SALT_F
    use forcing_fields,    only: SENH_F, LWUP_F, LWDN_F, MELTH_F
    use forcing_fields,    only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
+   use forcing_fields,    only: ATM_NHX_nf_ind, ATM_NOY_nf_ind
    use forcing_fields,    only: IFRAC, U10_SQR, ATM_PRESS
    use forcing_fields,    only: LAMULT, USTOKES, VSTOKES
    use forcing_fields,    only: DUST_FLUX, BLACK_CARBON_FLUX
@@ -406,6 +407,67 @@ contains
       call named_field_set(ATM_CO2_DIAG_nf_ind, WORK1)
    endif
  
+   if (index_x2o_Faxa_nhx > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         ! Note - the input units are kgN/m2/s to nmolN/cm2/s
+         ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
+         ! consistency when bringing in N isotopes into the code
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            WORK1(i,j,iblock) = x2o(index_x2o_Faxa_nhx,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) 
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(WORK1,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'ocn_import_mct: error updating DIAG NHX halo')
+         return
+      endif
+
+      call named_field_set(ATM_NHX_nf_ind, WORK1)
+   endif
+
+   if (index_x2o_Faxa_noy > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         ! Note - the input units are kgN/m2/s to nmolN/cm2/s
+         ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
+         ! consistency when bringing in N isotopes into the code
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            WORK1(i,j,iblock) = x2o(index_x2o_Faxa_noy,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8)
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(WORK1,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'ocn_import_mct: error updating DIAG NOY halo')
+         return
+      endif
+
+      call named_field_set(ATM_NOY_nf_ind, WORK1)
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  diagnostics

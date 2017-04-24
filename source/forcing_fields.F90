@@ -45,6 +45,9 @@ module forcing_fields
       ATM_CO2_PROG_nf_ind = 0, & ! bottom atm level prognostic co2
       ATM_CO2_DIAG_nf_ind = 0    ! bottom atm level diagnostic co2
 
+  integer(kind=int_kind), public :: &
+       ATM_NHX_nf_ind = 0, & ! bottom atm level NHX flux
+       ATM_NOY_nf_ind = 0    ! bottom atm level NOY flux
 
    real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
       public, target :: &

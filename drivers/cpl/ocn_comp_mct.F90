@@ -260,6 +260,16 @@ contains
    if (index_x2o_Sa_co2diag > 0) then
       call named_field_register('ATM_CO2_DIAG', ATM_CO2_DIAG_nf_ind)
    endif
+
+   if (index_x2o_Faxa_nhx > 0) then
+      write(stdout,'(" using ATM_NHX from coupler")')
+      call named_field_register('ATM_NHX', ATM_NHX_nf_ind)
+   endif
+   if (index_x2o_Faxa_noy > 0) then
+      write(stdout,'(" using ATM_NOY from coupler")')
+      call named_field_register('ATM_NOY', ATM_NOY_nf_ind)
+   endif
+
    call register_string('pop_init_coupled')
    call flushm (stdout)
 
