@@ -262,12 +262,12 @@ contains
    endif
 
    if (index_x2o_Faxa_nhx > 0) then
-      write(stdout,'(" using ATM_NHX from coupler")')
-      call named_field_register('ATM_NHX', ATM_NHX_nf_ind)
+      if (my_task == master_task) write(stdout,'(" using ATM_NHx from coupler")')
+      call named_field_register('ATM_NHx', ATM_NHx_nf_ind)
    endif
    if (index_x2o_Faxa_noy > 0) then
-      write(stdout,'(" using ATM_NOY from coupler")')
-      call named_field_register('ATM_NOY', ATM_NOY_nf_ind)
+      if (my_task == master_task) write(stdout,'(" using ATM_NOy from coupler")')
+      call named_field_register('ATM_NOy', ATM_NOy_nf_ind)
    endif
 
    call register_string('pop_init_coupled')

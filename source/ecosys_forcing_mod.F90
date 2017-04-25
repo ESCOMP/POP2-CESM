@@ -36,7 +36,7 @@ module ecosys_forcing_mod
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
 
-  use forcing_fields, only : ATM_NHX_nf_ind, ATM_NOY_nf_ind
+  use forcing_fields, only : ATM_NHx_nf_ind, ATM_NOy_nf_ind
 
   implicit none
   private
@@ -652,12 +652,12 @@ contains
 
         case ('NOx Flux')
           nox_ind = n
-          ! Note that ATM_NOY_nf_ind is set in ocn_comp_mct in the call to name_field_register
+          ! Note that ATM_NOy_nf_ind is set in ocn_comp_mct in the call to name_field_register
           ! This particular field is a special case - it is present depending on the CAM configuration
-          if (ATM_NOY_nf_ind > 0) then
+          if (ATM_NOy_nf_ind > 0) then
              call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
                   marbl_varname=marbl_varname, field_units=units,         &
-                  named_field='ATM_NOY', id=n)
+                  named_field='ATM_NOy', id=n)
           else
              if (trim(ndep_data_type).eq.'shr_stream') then
                 call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
@@ -685,12 +685,12 @@ contains
 
         case ('NHy Flux')
           nhy_ind = n
-          ! Note that ATM_NHX_nf_ind is set in ocn_comp_mct in the call to name_field_register
+          ! Note that ATM_NHx_nf_ind is set in ocn_comp_mct in the call to name_field_register
           ! This particular field is a special case - it is present depending on the CAM configuration
-          if (ATM_NHX_nf_ind > 0) then
+          if (ATM_NHx_nf_ind > 0) then
              call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
                   marbl_varname=marbl_varname, field_units=units,         &
-                  named_field='ATM_NHX', id=n)
+                  named_field='ATM_NHx', id=n)
           else
              if (trim(ndep_data_type).eq.'shr_stream') then
                 call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &

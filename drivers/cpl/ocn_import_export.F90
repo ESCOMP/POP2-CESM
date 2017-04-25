@@ -29,7 +29,7 @@ module ocn_import_export
    use forcing_fields,    only: SALT_F
    use forcing_fields,    only: SENH_F, LWUP_F, LWDN_F, MELTH_F
    use forcing_fields,    only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
-   use forcing_fields,    only: ATM_NHX_nf_ind, ATM_NOY_nf_ind
+   use forcing_fields,    only: ATM_NHx_nf_ind, ATM_NOy_nf_ind
    use forcing_fields,    only: IFRAC, U10_SQR, ATM_PRESS
    use forcing_fields,    only: LAMULT, USTOKES, VSTOKES
    use forcing_fields,    only: DUST_FLUX, BLACK_CARBON_FLUX
@@ -430,11 +430,11 @@ contains
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
-            'ocn_import_mct: error updating DIAG NHX halo')
+            'ocn_import_mct: error updating DIAG NHx halo')
          return
       endif
 
-      call named_field_set(ATM_NHX_nf_ind, WORK1)
+      call named_field_set(ATM_NHx_nf_ind, WORK1)
    endif
 
    if (index_x2o_Faxa_noy > 0) then
@@ -461,11 +461,11 @@ contains
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
-            'ocn_import_mct: error updating DIAG NOY halo')
+            'ocn_import_mct: error updating DIAG NOy halo')
          return
       endif
 
-      call named_field_set(ATM_NOY_nf_ind, WORK1)
+      call named_field_set(ATM_NOy_nf_ind, WORK1)
    endif
 
 !-----------------------------------------------------------------------
