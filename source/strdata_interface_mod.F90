@@ -19,6 +19,7 @@ module strdata_interface_mod
 
   use kinds_mod,        only : char_len
   use kinds_mod,        only : int_kind
+  use kinds_mod,        only : log_kind
   use domain_size,      only : nx_global
   use domain_size,      only : ny_global
   use domain_size,      only : km
@@ -36,6 +37,11 @@ module strdata_interface_mod
   private
 
   public :: strdata_input_type
+  public :: POP_strdata_type_set
+  public :: POP_strdata_type_match
+  public :: POP_strdata_type_cp
+  public :: POP_strdata_type_append_field
+  public :: POP_strdata_type_field_count
   public :: POP_strdata_create
   public :: POP_strdata_advance
 
@@ -47,32 +53,132 @@ module strdata_interface_mod
   type strdata_input_type
     ! Contains arguments for shr_strdata_* that are unique to variable being
     ! read
-    type(shr_strdata_type)  :: sdat
+    character(len=char_len) :: file_name
+    character(len=char_len) :: field_list
     character(len=char_len) :: timer_label
     integer(int_kind)       :: year_first
     integer(int_kind)       :: year_last
     integer(int_kind)       :: year_align
-    character(len=char_len) :: file_name
-    character(len=char_len) :: field_list
+    logical(log_kind)       :: depth_flag
+    character(len=char_len) :: tintalgo
+    character(len=char_len) :: taxMode
+    type(shr_strdata_type)  :: sdat
   end type strdata_input_type
 
 contains
 
-  subroutine POP_strdata_create(inputlist,depthflag,tintalgo)
+  !***********************************************************************
 
-    type(strdata_input_type), intent(inout) :: inputlist
-    logical,        optional, intent(in)    :: depthflag   ! true means 3d data expected
-    character(*),   optional, intent(in)    :: tintalgo    ! time interpolation algorithm
+  subroutine POP_strdata_type_set(strdata_input_var, &
+       file_name, field, timer_label, year_first, year_last, year_align, &
+       depth_flag, tintalgo, taxMode)
 
-    !--- local ---
-    logical :: depthflag_loc
+    type (strdata_input_type), intent(out)   :: strdata_input_var
+    character (len=*),  intent(in)           :: file_name
+    character (len=*),  intent(in)           :: field
+    character (len=*),  intent(in)           :: timer_label
+    integer (int_kind), intent(in)           :: year_first
+    integer (int_kind), intent(in)           :: year_last
+    integer (int_kind), intent(in)           :: year_align
+    logical (log_kind), optional, intent(in) :: depth_flag
+    character (len=*),  optional, intent(in) :: tintalgo
+    character (len=*),  optional, intent(in) :: taxMode
 
-    depthflag_loc = .false.
-    if (present(depthflag)) then
-       depthflag_loc = depthflag
+    strdata_input_var%file_name    = trim(file_name)
+    strdata_input_var%field_list   = trim(field)
+    strdata_input_var%timer_label  = trim(timer_label)
+    strdata_input_var%year_first   = year_first
+    strdata_input_var%year_last    = year_last
+    strdata_input_var%year_align   = year_align
+
+    strdata_input_var%depth_flag   = .false.
+    if (present(depth_flag)) then
+      strdata_input_var%depth_flag = depth_flag
     endif
 
-    if (depthflag_loc) then
+    strdata_input_var%tintalgo     = 'linear'
+    if (present(tintalgo)) then
+      strdata_input_var%tintalgo   = tintalgo
+    endif
+
+    strdata_input_var%taxMode      = 'cycle'
+    if (present(taxMode)) then
+      strdata_input_var%taxMode    = taxMode
+    endif
+
+  end subroutine POP_strdata_type_set
+
+  !***********************************************************************
+
+  function POP_strdata_type_match(strdata_input_var1, strdata_input_var2)
+
+    type (strdata_input_type), intent(in) :: strdata_input_var1
+    type (strdata_input_type), intent(in) :: strdata_input_var2
+
+    logical (log_kind) :: POP_strdata_type_match
+
+    POP_strdata_type_match = &
+      strdata_input_var1%file_name     == strdata_input_var2%file_name  .and. &
+      strdata_input_var1%year_first    == strdata_input_var2%year_first .and. &
+      strdata_input_var1%year_last     == strdata_input_var2%year_last  .and. &
+      strdata_input_var1%year_align    == strdata_input_var2%year_align .and. &
+      strdata_input_var1%depth_flag .eqv. strdata_input_var2%depth_flag .and. &
+      strdata_input_var1%tintalgo      == strdata_input_var2%tintalgo   .and. &
+      strdata_input_var1%taxMode       == strdata_input_var2%taxMode
+
+  end function POP_strdata_type_match
+
+  !***********************************************************************
+
+  subroutine POP_strdata_type_cp(strdata_input_var_in, strdata_input_var_out)
+
+    type (strdata_input_type), intent(in)  :: strdata_input_var_in
+    type (strdata_input_type), intent(out) :: strdata_input_var_out
+
+    strdata_input_var_out%file_name   = strdata_input_var_in%file_name
+    strdata_input_var_out%field_list  = strdata_input_var_in%field_list
+    strdata_input_var_out%timer_label = strdata_input_var_in%timer_label
+    strdata_input_var_out%year_first  = strdata_input_var_in%year_first
+    strdata_input_var_out%year_last   = strdata_input_var_in%year_last
+    strdata_input_var_out%year_align  = strdata_input_var_in%year_align
+    strdata_input_var_out%depth_flag  = strdata_input_var_in%depth_flag
+    strdata_input_var_out%tintalgo    = strdata_input_var_in%tintalgo
+    strdata_input_var_out%taxMode     = strdata_input_var_in%taxMode
+
+  end subroutine POP_strdata_type_cp
+
+  !***********************************************************************
+
+  subroutine POP_strdata_type_append_field(field, strdata_input_var)
+
+    type (strdata_input_type), intent(inout) :: strdata_input_var
+    character (len=*),         intent(in)    :: field
+
+    strdata_input_var%field_list = trim(strdata_input_var%field_list) // ':' // trim(field)
+
+  end subroutine POP_strdata_type_append_field
+
+  !***********************************************************************
+
+  function POP_strdata_type_field_count(strdata_input_var)
+
+    use shr_string_mod, only : shr_string_countChar
+
+    type (strdata_input_type), intent(in) :: strdata_input_var
+
+    integer (int_kind) :: POP_strdata_type_field_count
+
+    POP_strdata_type_field_count = shr_string_countChar(strdata_input_var%field_list, ':') + 1
+
+  end function POP_strdata_type_field_count
+
+  !***********************************************************************
+
+  subroutine POP_strdata_create(inputlist)
+
+    type(strdata_input_type), intent(inout) :: inputlist
+
+    if (inputlist%depth_flag) then
        !--- include nzg and domZvarName in call
        call shr_strdata_create(inputlist%sdat, name='not_used',               &
                             mpicom=POP_communicator,                          &
@@ -96,7 +202,8 @@ contains
                             pio_subsystem=shr_pio_getiosys(inst_name),        &
                             pio_iotype=shr_pio_getiotype(inst_name),          &
                             fillalgo='none', mapalgo='none',                  &
-                            tintalgo=tintalgo)
+                            tintalgo=inputlist%tintalgo,                      &
+                            taxMode=inputlist%taxMode)
     else
        call shr_strdata_create(inputlist%sdat, name='not_used',               &
                             mpicom=POP_communicator,                          &
@@ -119,7 +226,8 @@ contains
                             pio_subsystem=shr_pio_getiosys(inst_name),        &
                             pio_iotype=shr_pio_getiotype(inst_name),          &
                             fillalgo='none', mapalgo='none',                  &
-                            tintalgo=tintalgo)
+                            tintalgo=inputlist%tintalgo,                      &
+                            taxMode=inputlist%taxMode)
     endif
 
     if (my_task == master_task) then
@@ -127,6 +235,8 @@ contains
     endif
 
   end subroutine POP_strdata_create
+
+  !***********************************************************************
 
   subroutine POP_strdata_advance_scalar(inputlist)
 
@@ -147,6 +257,8 @@ contains
                              trim(inputlist%timer_label))
 
   end subroutine POP_strdata_advance_scalar
+
+  !***********************************************************************
 
   subroutine POP_strdata_advance_array(inputlist)
 

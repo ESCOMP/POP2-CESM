@@ -502,12 +502,14 @@
                                 max_blocks_clinic,1))
       S_INTERIOR_DATA = c0
 
-      s_inputlist%timer_label= 's_data'
-      s_inputlist%year_first = s_interior_shr_stream_year_first
-      s_inputlist%year_last  = s_interior_shr_stream_year_last
-      s_inputlist%year_align = s_interior_shr_stream_year_align
-      s_inputlist%file_name  = s_interior_shr_stream_file
-      s_inputlist%field_list = 'SALT'
+      call POP_strdata_type_set(s_inputlist,             &
+         file_name   = s_interior_shr_stream_file,       &
+         field       = 'SALT',                           &
+         timer_label = 's_data',                         &
+         year_first  = s_interior_shr_stream_year_first, &
+         year_last   = s_interior_shr_stream_year_last,  &
+         year_align  = s_interior_shr_stream_year_align, &
+         depth_flag  = .true.)
 
       call get_timer(s_interior_shr_strdata_advance_timer, &
                     'S_INTERIOR_SHR_STRDATA_ADVANCE',1, distrb_clinic%nprocs)
@@ -755,7 +757,7 @@
 
       if (first_call_strdata_create) then
          !--- moved to "get" interface because gsmap and other data not yet set
-         call POP_strdata_create(s_inputlist,depthflag=.true.)
+         call POP_strdata_create(s_inputlist)
       endif
       first_call_strdata_create = .false.
 

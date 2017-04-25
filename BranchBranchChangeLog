@@ -2,6 +2,47 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    24 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n52_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: generalize/refactor strdata_interface_mod and ecosys_forcing_mod
+
+strdata_interface_mod:
+introduce following subroutines/functions in
+   POP_strdata_type_set, POP_strdata_type_match, POP_strdata_type_cp
+   POP_strdata_type_append_field, POP_strdata_type_field_count
+
+POP_strdata_type_set should be called before POP_strdata_create
+
+POP_strdata_create has support for depth_flag, tintalgo, taxMode
+
+ecosys_forcing_mod:
+add tintalgo, taxMode to forcing_file_type in ecosys_forcing_mod
+move ldim3_is_depth from forcing_fields_metadata_type to forcing_fields_type
+add rank to forcing_fields_type
+
+rank is now mandatory in add_forcing_field calls
+dim3_len, ldim3_is_depth, tintalgo, and taxMode are optional in add_forcing_field calls
+
+field allocation and initialization now occurs inside add_forcing_field/forcing_fields_add
+
+Testing:
+MARBL commit a14b74407dcb1b1f8f1b289731e1bcad0d28ea47
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu and hobart/nag: (baseline comparison to marbl_dev_klindsay_n51 tag)
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/strdata_interface_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    22 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n51_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: merge marbl_dev_n36 tag to this branch
