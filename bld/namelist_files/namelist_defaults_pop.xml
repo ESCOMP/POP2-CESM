@@ -1241,12 +1241,19 @@
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
-<riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7_20170226.nc</riv_flux_shr_stream_file>
-<riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6_20170226.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v7">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 
-<riv_flux_shr_stream_year_first>1850</riv_flux_shr_stream_year_first>
-<riv_flux_shr_stream_year_last >1850</riv_flux_shr_stream_year_last >
-<riv_flux_shr_stream_year_align>1850</riv_flux_shr_stream_year_align>
+<riv_flux_shr_stream_file ocn_grid="gx3v7" estuary_type="'vsf_ebm'">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nn_open_ocean_nnsm_e1000r500_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v6" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
+
+<riv_flux_shr_stream_year_first>1900</riv_flux_shr_stream_year_first>
+<riv_flux_shr_stream_year_align>1900</riv_flux_shr_stream_year_align>
+
+<riv_flux_shr_stream_year_last ocn_transient="unset">1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last                      >2000</riv_flux_shr_stream_year_last>
 
 <riv_flux_din_file_varname>din_riv_flux</riv_flux_din_file_varname>
 <riv_flux_din_scale_factor>         1.0</riv_flux_din_scale_factor>

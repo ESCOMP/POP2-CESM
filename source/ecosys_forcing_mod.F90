@@ -426,9 +426,9 @@ contains
     ndep_shr_stream_file       = 'unknown'
     ndep_shr_stream_scale_factor = c1
     riv_flux_shr_stream_file         = 'unknown'
-    riv_flux_shr_stream_year_first   = 1850
-    riv_flux_shr_stream_year_last    = 1850
-    riv_flux_shr_stream_year_align   = 1850
+    riv_flux_shr_stream_year_first   = 1900
+    riv_flux_shr_stream_year_last    = 1900
+    riv_flux_shr_stream_year_align   = 1900
     riv_flux_din_file_varname        = 'din_riv_flux'
     riv_flux_din_scale_factor        = c1
     riv_flux_dip_file_varname        = 'dip_riv_flux'
@@ -1093,7 +1093,7 @@ contains
                             year_first=riv_flux_shr_stream_year_first,                &
                             year_last=riv_flux_shr_stream_year_last,                  &
                             year_align=riv_flux_shr_stream_year_align,                &
-                            taxMode='cycle',                                          &
+                            taxMode='extend',                                         &
                             rank=2, id=n)
     end do
 

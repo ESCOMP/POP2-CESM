@@ -5788,7 +5788,10 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: river_nutrients_GNEWS2000_gx3v7_20170226.nc (gx3v7), river_nutrients_GNEWS2000_gx1v6_20170226.nc (gx1v6,gx1v7)
+Default: riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc (gx3v7),
+riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc (gx1v6,gx1v7)
+riv_nut.gnews_gnm.gx3v7_nn_open_ocean_nnsm_e1000r500_marginal_sea.20170425.nc (gx3v7,estuary_type='vsf_ebm'),
+riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc (gx1v6,gx1v7,estuary_type='vsf_ebm')
 </entry>
 
 <entry 
@@ -5796,7 +5799,7 @@ id="riv_flux_shr_stream_year_first"
 type="integer" 
 category="ecosys"
 group="ecosys_forcing_data_nml" >
-Default: 1850
+Default: 1900
 </entry>
 
 <entry 
@@ -5804,7 +5807,7 @@ id="riv_flux_shr_stream_year_last"
 type="integer" 
 category="ecosys"
 group="ecosys_forcing_data_nml" >
-Default: 1850
+Default: 1900 (OCN_TRANSIENT=unset), 2000
 </entry>
 
 <entry 
@@ -5812,7 +5815,7 @@ id="riv_flux_shr_stream_year_align"
 type="integer" 
 category="ecosys"
 group="ecosys_forcing_data_nml" >
-Default: 1850
+Default: 1900
 </entry>
 
 <entry 

@@ -2,6 +2,28 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    26 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n53_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: change riv_flux_shr_stream defaults
+
+Testing:
+MARBL commit a14b74407dcb1b1f8f1b289731e1bcad0d28ea47
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n52 tag)
+   all tests, except nlcomp and baseline compares, pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n52_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: generalize/refactor strdata_interface_mod and ecosys_forcing_mod

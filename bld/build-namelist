@@ -1527,10 +1527,11 @@ if ($ecosys_on eq "TRUE") {
     die;
   }
 
-  add_default($nl, 'riv_flux_shr_stream_file');
+  my $estuary_type = $nl->get_value('estuary_type');
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type);
   add_default($nl, 'riv_flux_shr_stream_year_first');
-  add_default($nl, 'riv_flux_shr_stream_year_last');
   add_default($nl, 'riv_flux_shr_stream_year_align');
+  add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_din_file_varname');
   add_default($nl, 'riv_flux_din_scale_factor');
   add_default($nl, 'riv_flux_dip_file_varname');
