@@ -812,7 +812,8 @@
       do iblock = 1, nblocks_clinic
         STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
                      (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
-                      MELT_F(:,:,iblock)+ROFF_F(:,:,iblock)+IOFF_F(:,:,iblock))*salinity_factor   &
+                      MELT_F(:,:,iblock)+(c1-MASK_ESTUARY(:,:,iblock))*ROFF_F(:,:,iblock)+&
+                      IOFF_F(:,:,iblock))*salinity_factor   &
                     + SALT_F(:,:,iblock)*sflux_factor)
       enddo
       !$OMP END PARALLEL DO
@@ -823,14 +824,6 @@
 !  Include estuary exchange flow as vertical salt flux
         if (lebm_on)    call set_estuary_exch_circ
 
-!  Remove river runoff from the total freshwater flux if the EBM is on
-!  River runoff is taken care separately
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock = 1, nblocks_clinic
-           STF(:,:,2,iblock) = STF(:,:,2,iblock)-MASK_SR(:,:,iblock)*RCALCT(:,:,iblock)*ROFF_F(:,:,iblock)*salinity_factor
-        enddo
-        !$OMP END PARALLEL DO
-       
         if (lvsf_river) THEN
 !  Add global correction for salt conservation, correcting for using local tracer concenctration in application of ROFF_F
 !  Analogous term for passive tracers is applied in forcing.F90:set_surface_forcing, after STF has been computed

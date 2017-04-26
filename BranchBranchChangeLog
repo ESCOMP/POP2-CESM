@@ -3,6 +3,27 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    26 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n55_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: merge computation of STF(:,:,2) from 2 code blocks into 1
+
+Testing:
+MARBL commit a14b74407dcb1b1f8f1b289731e1bcad0d28ea47
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n54 tag)
+   all tests, except x1 baseline compares, pass
+      x1 baseline comparisons fail because of roundoff differences in STF(:,:,2)
+         these diffs are not present in x3 tests because the EBM is off and no differences are introduced
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/forcing_coupled.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    26 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n54_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: add robustness checks to estuary_vsf_mod.F90
 
