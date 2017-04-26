@@ -3,6 +3,29 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    26 Feb 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n54_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: add robustness checks to estuary_vsf_mod.F90
+
+ensure that ROFF_F == 0 where est_thick_upper == 0 and MASK_ESTUARY == 1
+ensure that STF_RIV == 0 where est_thick_upper == 0 and MASK_ESTUARY == 1
+skip estuary_box_model computations if S_l <= 0, using limit as S_l->0
+
+Testing:
+MARBL commit a14b74407dcb1b1f8f1b289731e1bcad0d28ea47
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n53 tag)
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/estuary_vsf_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    26 Feb 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n53_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: change riv_flux_shr_stream defaults
 

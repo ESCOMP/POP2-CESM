@@ -561,7 +561,7 @@
 
 !-----------------------------------------------------------------------
 
-   if (.false.) then
+   ! ensure that ROFF_F == 0 where est_thick_upper == 0 and MASK_ESTUARY == 1
    do iblock=1,nblocks_clinic
      this_block = get_block(blocks_clinic(iblock),iblock)
      do j=1,ny_block
@@ -573,7 +573,6 @@
        end do
      end do
    enddo
-   endif
 
    ! Compute surface virtual tracer flux using local tracer value
    ! temperature (n=1) is effectively skipped because lhas_vflux(1)==.false.
@@ -834,8 +833,7 @@
 
             ! add STF_RIV
             if (lhas_riv_flux(n)) then
-              ! ensure that STF_RIV is zero where est_thick_upper == 0 and MASK_ESTUARY == 1
-              if (.false.) then
+              ! ensure that STF_RIV == 0 where est_thick_upper == 0 and MASK_ESTUARY == 1
               do j=1,ny_block
                 do i=1,nx_block
                   if ((est_thick_upper(i,j,bid) == c0) .and. (MASK_ESTUARY(i,j,bid) == c1) .and. (STF_RIV(i,j,n,bid) /= c0)) then
@@ -844,7 +842,6 @@
                   endif
                 end do
               end do
-              endif
 
               ! note that FLUX_ROFF_VSF_SRF is positive up and STF_RIV is positive down
               VSF_SRF_p_STF_RIV(:,:) = VSF_SRF_p_STF_RIV(:,:) - MASK_ESTUARY(:,:,bid)*STF_RIV(:,:,n,bid)
@@ -1079,11 +1076,18 @@ subroutine estuary_box_model (Q_r,tide_amp,S_l,W_h,H,a1,a2,h0,   &
 !  constants
 !
 !-----------------------------------------------------------------------
-       g      = grav/100.0_r8
-       rho_0  = rho_fw*1000.0_r8
-       beta_S = 7.7e-4_r8
-       Sc     = 2.2_r8
+      g      = grav/100.0_r8
+      rho_0  = rho_fw*1000.0_r8
+      beta_S = 7.7e-4_r8
+      Sc     = 2.2_r8
 ! Executable Statements
+
+!  skip computations if S_l <= 0, using limit as S_l->0
+      if (S_l <= 0) then
+        Q_u = Q_r
+        Q_l = c0
+        S_u = c0
+      end if
 
   !----Water density----
       rho_r = rho_0
