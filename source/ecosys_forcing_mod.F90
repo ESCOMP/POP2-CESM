@@ -1576,7 +1576,6 @@ contains
     use blocks                , only : get_block
     use constants             , only : field_loc_center
     use constants             , only : field_type_scalar
-    use constants             , only : xkw_coeff
     use forcing_tools         , only : interpolate_forcing
     use forcing_tools         , only : update_forcing_data
     use named_field_mod       , only : named_field_get

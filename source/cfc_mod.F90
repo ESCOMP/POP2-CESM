@@ -995,7 +995,7 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar, p5
+   use constants, only: field_loc_center, field_type_scalar, p5, xkw_coeff
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
@@ -1057,13 +1057,6 @@ contains
 
    logical (log_kind), save :: &
       first = .true.
-
-!-----------------------------------------------------------------------
-!  local parameters
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8      ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
 
 !-----------------------------------------------------------------------
 
