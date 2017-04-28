@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  aliceb,jedwards
+Tag Date:    28 Apr 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170428
+Tag Summary: Bug fix for time period assignment in history files and
+	     fix for POP_AUTO_DECOMP
+
+
+Testing:     alice tested results in
+	/glade2/scratch2/aliceb/archive/g.e20.G.T62_g16.alice_test.001/ocn/hist
+
+	M       cime_config/config_component.xml
+        M       source/tavg.F90
+	M       ChangeLog
+===============================================================================
+Tag Creator: jet
 Developers:  jet
 Tag Date:    4 Apr 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170404
