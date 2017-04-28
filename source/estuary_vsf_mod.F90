@@ -44,6 +44,8 @@
 ! !PUBLIC DATA MEMBERS:
 
    logical, public :: lestuary_on, lvsf_river, lebm_on
+
+   ! per-tracer correction for using local tracer concenctration in application of ROFF_F
    real(r8), dimension(nt), public :: vsf_river_correction
 
    ! mask for estuary model, 1 where it runs and 0 elsewhere
@@ -514,10 +516,7 @@
      end do
    enddo
 
-!-----------------------------------------------------------------------
-      return
    end subroutine init_estuary
-
 
 !***********************************************************************
 !BOP
@@ -536,6 +535,7 @@
    use passive_tracers, only: tracer_ref_val
    use forcing_fields,  only: lhas_vflux, vflux_tracer_cnt
    use constants,       only: ocn_ref_salinity, field_loc_center
+   use prognostic,      only: tracer_d
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -612,20 +612,23 @@
        end if
 
        vsf_river_correction(n) = (gsum_vsf_ref1*glo_ref_val - gsum_vsf_sloc(n2))/area_vsf_correction
-!      if (ldiag_global) then
-       if ( my_task == master_task) then
-         write(stdout,*)  'ESTUARY FORCING (in estuary_vsf_mod)'
-         write(stdout,11)  'vsf_sref   (global sum)          ',gsum_vsf_ref1*glo_ref_val
-         write(stdout,11)  'vsf_slocal (global sum)          ',gsum_vsf_sloc(n2)
-         write(stdout,11)  'vsf_corr (sum_sref-sum_sloc)/area',vsf_river_correction(n)
+       if (ldiag_global) then
+         if ( my_task == master_task) then
+           if (n2 == 1) then
+             write(stdout,*) 'ESTUARY FORCING (in estuary_vsf_mod)'
+           endif
+           write(stdout,*)   'tracer = ' // trim(tracer_d(n)%short_name)
+           write(stdout,11)  'vsf_tref   (global sum)          ',gsum_vsf_ref1*glo_ref_val
+           write(stdout,11)  'vsf_tlocal (global sum)          ',gsum_vsf_sloc(n2)
+           write(stdout,11)  'vsf_corr (sum_sref-sum_sloc)/area',vsf_river_correction(n)
+         endif
        endif
        n2 = n2 + 1
- 11    format(A,1(1pe11.4,2x))
-!      endif
      endif
    end do
 
-   return
+11 format(A,1(1pe11.4,2x))
+
  end subroutine set_estuary_vsf_forcing
 
 !***********************************************************************
@@ -741,9 +744,7 @@
 
          enddo ! i: nx_block loop
       enddo ! j: ny_block loop
-   enddo ! iblock: cblock_climic loop
-
-   return
+   enddo ! iblock: nblocks_clinic loop
 
  end subroutine set_estuary_exch_circ
 
@@ -1087,6 +1088,7 @@ subroutine estuary_box_model (Q_r,tide_amp,S_l,W_h,H,a1,a2,h0,   &
         Q_u = Q_r
         Q_l = c0
         S_u = c0
+        return
       end if
 
   !----Water density----

@@ -2,7 +2,29 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    27 Feb 2017
+Tag Date:    27 Apr 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n57_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: minor revisions from code review, add STATE timer
+
+Testing:
+MARBL commit e908f8a8078e542192a65059f647239939f9d6ef
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n56 tag)
+   all tests pass
+      baseline comparisons fail because of change to gas fluxes
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/estuary_vsf_mod.F90
+M       source/forcing_fields.F90
+M       source/state_mod.F90
+M       source/strdata_interface_mod.F90
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    27 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n56_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: convert xkw_coeff to Wanninkhof 2014
 
@@ -26,7 +48,7 @@ M       source/sf6_mod.F90
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    26 Feb 2017
+Tag Date:    26 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n55_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: merge computation of STF(:,:,2) from 2 code blocks into 1
 
@@ -47,7 +69,7 @@ M       source/forcing_coupled.F90
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    26 Feb 2017
+Tag Date:    26 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n54_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: add robustness checks to estuary_vsf_mod.F90
 
@@ -70,7 +92,7 @@ M       source/estuary_vsf_mod.F90
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    26 Feb 2017
+Tag Date:    26 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n53_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: change riv_flux_shr_stream defaults
 
@@ -92,7 +114,7 @@ M       source/ecosys_forcing_mod.F90
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    24 Feb 2017
+Tag Date:    24 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n52_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: generalize/refactor strdata_interface_mod and ecosys_forcing_mod
 
@@ -133,7 +155,7 @@ M       source/strdata_interface_mod.F90
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    22 Feb 2017
+Tag Date:    22 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n51_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: merge marbl_dev_n36 tag to this branch
 
@@ -159,7 +181,7 @@ M       source/passive_tracers.F90
 
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    21 Feb 2017
+Tag Date:    21 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n50_marbl_dev_n34_cesm_pop_2_1_20170323
 Tag Summary: merge marbl_dev_n34 tag to this branch
 

@@ -51,8 +51,9 @@ module strdata_interface_mod
   end interface
 
   type strdata_input_type
-    ! Contains arguments for shr_strdata_* that are unique to variable being
-    ! read
+    ! Contains arguments for shr_strdata_* that are unique to variables being read
+    ! all type components, except for sdat, set by POP_strdata_type_set
+    ! sdat set by POP_strdata_create
     character(len=char_len) :: file_name
     character(len=char_len) :: field_list
     character(len=char_len) :: timer_label

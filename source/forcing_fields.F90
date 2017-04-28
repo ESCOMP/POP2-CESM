@@ -62,7 +62,7 @@ module forcing_fields
       lhas_riv_flux   ! true if a tracer has a riverine flux
 
    integer(kind=int_kind), public :: &
-      vflux_tracer_cnt ! number of tracer for which lhas_vflux is .true.
+      vflux_tracer_cnt ! number of tracers for which lhas_vflux is .true.
 
    logical (log_kind), public :: &
       lsmft_avail   ! true if SMFT is an available field
