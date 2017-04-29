@@ -57,6 +57,7 @@ module ecosys_tracers_and_saved_state_mod
   integer(int_kind), public :: dic_ind
   integer(int_kind), public :: alk_ind
   integer(int_kind), public :: dic_alt_co2_ind
+  integer(int_kind), public :: alk_alt_co2_ind
   integer(int_kind), public :: di13c_ind
   integer(int_kind), public :: di14c_ind
   integer(int_kind), public :: no3_ind
@@ -246,6 +247,9 @@ Contains
 
     call io_read_fallback_register_tracer(tracername='DIC_ALT_CO2', &
        fallback_opt='alt_field', alt_tracername='DIC')
+
+    call io_read_fallback_register_tracer(tracername='ALK_ALT_CO2', &
+       fallback_opt='alt_field', alt_tracername='ALK')
 
     call io_read_fallback_register_tracer(tracername='DOCr', &
        fallback_opt='const', const_val=38.0_r8)

@@ -23,13 +23,12 @@ set lvariable_PtoC      = $3
 set OCN_TRANSIENT       = $4
 set tracer_restore_vars = $5
 
-# set OCN_TAVG_DIC_ALT_CO2
+# set OCN_TAVG_ALT_CO2
 if ($OCN_TRANSIENT == unset) then
-   setenv OCN_TAVG_DIC_ALT_CO2 FALSE
+   setenv OCN_TAVG_ALT_CO2 FALSE
 else
-   setenv OCN_TAVG_DIC_ALT_CO2 TRUE
+   setenv OCN_TAVG_ALT_CO2 TRUE
 endif
-
 
 if ($lecosys_debug == ".false.") then
 
@@ -113,6 +112,7 @@ if ($lecosys_debug == ".true.") then
 1  Lig_deg
 #  PARTICULATE
 1  calcToSed
+1  calcToSed_ALT_CO2
 1  pocToSed
 1  ponToSed
 1  SedDenitrif
@@ -180,7 +180,7 @@ if ($lecosys_debug == ".true.") then
 EOF
 
 echo "#  River Fluxes" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
-  set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr DIC_ALT_CO2 )
+  set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr DIC_ALT_CO2 ALK_ALT_CO2 )
   foreach tracer ( $tracer_list )
     echo "1  ${tracer}_RIV_FLUX" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   end
@@ -246,7 +246,7 @@ EOF
   end
 
 echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
-  set tracer_list = ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr \
+  set tracer_list = ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK ALK_ALT_CO2 DOC DON DOCr \
                    DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC \
                    diatFe diatSi diazChl diazC diazFe )
   if ($lvariable_PtoC == ".true.") then
@@ -264,6 +264,8 @@ EOF
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 1  FvPER_DIC
 1  FvPER_ALK
+1  FvPER_DIC_ALT_CO2
+1  FvPER_ALK_ALT_CO2
 1  FvICE_DIC
 1  FvICE_ALK
 EOF
@@ -357,6 +359,7 @@ $s1  POP_PROD
 $s1  POP_REMIN
 $s1  POP_REMIN_PO4
 $s1  PON_REMIN_NH4
+$s1  CaCO3_REMIN
 $s1  CaCO3_PROD
 $s1  SiO2_PROD
 $s1  P_iron_PROD
@@ -437,8 +440,8 @@ EOF
 
   # River Fluxes
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr )
-  if ($OCN_TAVG_DIC_ALT_CO2 == TRUE) then
-    set tracer_list = ( $tracer_list DIC_ALT_CO2 )
+  if ($OCN_TAVG_ALT_CO2 == TRUE) then
+    set tracer_list = ( $tracer_list DIC_ALT_CO2 ALK_ALT_CO2 )
   endif
   foreach tracer ( $tracer_list )
     echo "$s1  ${tracer}_RIV_FLUX" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
@@ -510,7 +513,7 @@ EOF
     echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   end
 
-  if ($OCN_TAVG_DIC_ALT_CO2 == TRUE) then
+  if ($OCN_TAVG_ALT_CO2 == TRUE) then
 cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  PH_ALT_CO2
 $s1  DCO2STAR_ALT_CO2
@@ -518,6 +521,10 @@ $s1  DpCO2_ALT_CO2
 $s1  FG_ALT_CO2
 $s1  ATM_ALT_CO2
 $s1  DIC_ALT_CO2
+$s1  ALK_ALT_CO2
+$s1  calcToSed_ALT_CO2
+$s1  CaCO3_ALT_CO2_REMIN
+$s1  CaCO3_ALT_CO2_FLUX_IN
 !  CO3_ALT_CO2
 !  pH_3D_ALT_CO2
 $s1  tend_zint_100m_DIC_ALT_CO2

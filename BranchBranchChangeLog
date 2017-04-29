@@ -2,6 +2,36 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    29 Apr 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n58_marbl_dev_n36_cesm_pop_2_1_20170323
+Tag Summary: add ALK_ALT_CO2 tracer, P_CaCO3_ALT_CO2 sinking particle
+
+new tracer and column_sinking_particle_type var enables DIC_ALT_CO2
+   to not be impacted by increasing CO2 through altered CaCO3 burial
+   because CaCO3 burial depends on DIC & ALK
+
+also add feventflux for gx1v7 in namelist_defaults_pop.xml
+
+Testing:
+MARBL commit 9feb07077774a3d272464cf2ed8c7a9ceca2bd78
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n57 tag)
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildcpp
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    27 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n57_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: minor revisions from code review, add STATE timer
@@ -11,7 +41,6 @@ MARBL commit e908f8a8078e542192a65059f647239939f9d6ef
 
 aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n56 tag)
    all tests pass
-      baseline comparisons fail because of change to gas fluxes
       some MEMLEAK failures
 
 Files Modified:
@@ -20,6 +49,7 @@ M       source/estuary_vsf_mod.F90
 M       source/forcing_fields.F90
 M       source/state_mod.F90
 M       source/strdata_interface_mod.F90
+
 ===============================================================================
 
 Tag Creator: klindsay

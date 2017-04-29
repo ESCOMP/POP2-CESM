@@ -44,7 +44,7 @@ _config_cache_template = """
 def determine_tracer_count(case, decomp_cppdefs):
 ###############################################################################
 
-    ECOSYS_BASE_NT  = 31
+    ECOSYS_BASE_NT  = 32
     lvariable_PtoC  = "TRUE"
     ZOOPLANKTON_CNT = 1
     AUTOTROPH_CNT   = 3

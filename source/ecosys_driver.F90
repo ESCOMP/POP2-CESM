@@ -53,7 +53,7 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
   use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
-  use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
+  use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
@@ -478,6 +478,7 @@ contains
     dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
     alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
     dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
+    alk_alt_co2_ind = marbl_instances(1)%get_tracer_index('ALK_ALT_CO2')
     di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
     di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
 

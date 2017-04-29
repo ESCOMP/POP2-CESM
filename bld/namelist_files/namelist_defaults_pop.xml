@@ -1184,6 +1184,7 @@
 
 <feventflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/feventflux_gx3v7_8gmol_constant_20161122.nc</feventflux_input%filename> 
 <feventflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/feventflux_gx1v6_10gmol_constant_20161118.nc</feventflux_input%filename>
+<feventflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/feventflux_gx1v6_10gmol_constant_20161118.nc</feventflux_input%filename>
 <feventflux_input%file_varname>FESEDFLUXIN</feventflux_input%file_varname>
 <feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>

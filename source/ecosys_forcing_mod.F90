@@ -35,7 +35,7 @@ module ecosys_forcing_mod
   use strdata_interface_mod     , only : strdata_input_type
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
-  use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind
+  use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
@@ -506,14 +506,15 @@ contains
 
     ! Set surf_avg for all tracers
     surf_avg(:) = c0
-    if (any((/dic_ind, dic_alt_co2_ind, alk_ind/).eq.0)) then
-      call document(subname, 'dic_ind, alk_ind, and dic_alt_co2_ind must be non-zero')
+    if (any((/dic_ind, dic_alt_co2_ind, alk_ind, alk_alt_co2_ind/).eq.0)) then
+      call document(subname, 'dic_ind, alk_ind, dic_alt_co2_ind, and alk_alt_co2_ind must be non-zero')
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
-    surf_avg(dic_ind) = surf_avg_dic_const
+    surf_avg(dic_ind)         = surf_avg_dic_const
     surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
-    surf_avg(alk_ind) = surf_avg_alk_const
+    surf_avg(alk_ind)         = surf_avg_alk_const
+    surf_avg(alk_alt_co2_ind) = surf_avg_alk_const
 
     if (ciso_on) then
        if (any((/di13c_ind, di14c_ind/).eq.0)) then
@@ -1067,6 +1068,7 @@ contains
           file_varname = riv_flux_alk_file_varname
           scale_factor = riv_flux_alk_scale_factor
           lhas_riv_flux(alk_ind) = .true.
+          lhas_riv_flux(alk_alt_co2_ind) = .true.
         case ('doc')
           doc_riv_flux_ind = n
           file_varname = riv_flux_doc_file_varname
@@ -1958,6 +1960,7 @@ contains
     ! because alk stf_riv has two terms (alk_riv_flux_ind and din_riv_flux_ind),
     ! initialize it to zero and have both terms be cumulative
     stf_riv(:,:,alk_ind) = c0
+    stf_riv(:,:,alk_alt_co2_ind) = c0
 
     riv_flux_ind = din_riv_flux_ind
     if (riv_flux_ind > 0) then
@@ -1966,6 +1969,7 @@ contains
 
       ! subtract din term from ALK stf_riv
       stf_riv(:,:,alk_ind)  = stf_riv(:,:,alk_ind) - riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      stf_riv(:,:,alk_alt_co2_ind)  = stf_riv(:,:,alk_alt_co2_ind) - riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
     endif
 
     riv_flux_ind = dip_riv_flux_ind
@@ -2019,6 +2023,7 @@ contains
     if (riv_flux_ind > 0) then
       processed_field_cnt   = processed_field_cnt + 1
       stf_riv(:,:,alk_ind)  = stf_riv(:,:,alk_ind) + riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+      stf_riv(:,:,alk_alt_co2_ind)  = stf_riv(:,:,alk_alt_co2_ind) + riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
     endif
 
     riv_flux_ind = doc_riv_flux_ind
