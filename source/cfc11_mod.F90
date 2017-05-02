@@ -859,7 +859,7 @@ contains
 ! !USES:
 
    use constants, only: field_loc_center, field_type_scalar, &
-       mpercm, eps, p5, cmperm
+       mpercm, eps, p5, cmperm, xkw_coeff
    use time_management, only: thour00, check_time_flag, iyear,  &
        seconds_this_year, seconds_in_year, tday
    use broadcast, only: broadcast_scalar
@@ -937,14 +937,6 @@ contains
     real(r8), dimension(nx_block,ny_block) :: &
          WORK1, WORK2 ! temporaries for averages
 
-    !---------------------------------------------------------------------------
-    !   local parameters
-    !---------------------------------------------------------------------------
-
-    real(r8), parameter :: &
-         xkw_coeff = 8.6e-9_r8       ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
-
-    !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
 
     STF_MODULE = c0

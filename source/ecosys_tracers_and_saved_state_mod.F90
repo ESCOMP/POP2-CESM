@@ -53,12 +53,25 @@ module ecosys_tracers_and_saved_state_mod
   ! # of tracers expected from MARBL
   integer(int_kind), parameter, public :: marbl_tracer_cnt = MARBL_NT
 
-  ! Indices of tracers needed for virtual flux
+  ! Indices of tracers needed for virtual flux or river fluxes
   integer(int_kind), public :: dic_ind
   integer(int_kind), public :: alk_ind
   integer(int_kind), public :: dic_alt_co2_ind
+  integer(int_kind), public :: alk_alt_co2_ind
   integer(int_kind), public :: di13c_ind
   integer(int_kind), public :: di14c_ind
+  integer(int_kind), public :: no3_ind
+  integer(int_kind), public :: po4_ind
+  integer(int_kind), public :: don_ind
+  integer(int_kind), public :: donr_ind
+  integer(int_kind), public :: dop_ind
+  integer(int_kind), public :: dopr_ind
+  integer(int_kind), public :: sio3_ind
+  integer(int_kind), public :: fe_ind
+  integer(int_kind), public :: doc_ind
+  integer(int_kind), public :: docr_ind
+  integer(int_kind), public :: do13c_ind
+  integer(int_kind), public :: do14c_ind
 
   !---------------------------------------------------------------------
   !  Private variables read in via &ecosys_tracer_init_nml
@@ -99,6 +112,9 @@ Contains
 
     use POP_ErrorMod, only : POP_Success, POP_ErrorSet
 
+    use io_read_fallback_mod, only : io_read_fallback_register_tracer
+    use io_read_fallback_mod, only : io_read_fallback_register_field
+
     use passive_tracer_tools, only : rest_read_tracer_block
     use passive_tracer_tools, only : file_read_single_tracer
     use passive_tracer_tools, only : read_field
@@ -133,12 +149,12 @@ Contains
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
     character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file
     integer (int_kind)      , intent(out)   :: errorCode
-    
+
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_tracers_and_saved_state_mod:ecosys_tracers_and_saved_state_init'
-    integer :: n, k, bid
+    integer :: n, k, iblock
     character(char_len) :: init_option, init_file_fmt
     integer (int_kind)                  :: nml_error                          ! error flag for nml read
     character(char_len_long)            :: ioerror_msg
@@ -226,11 +242,48 @@ Contains
     end if
 
     !-----------------------------------------------------------------------
+    !  Enable tracers and saved state to be read from older IC/restart files
+    !-----------------------------------------------------------------------
+
+    call io_read_fallback_register_tracer(tracername='DIC_ALT_CO2', &
+       fallback_opt='alt_field', alt_tracername='DIC')
+
+    call io_read_fallback_register_tracer(tracername='ALK_ALT_CO2', &
+       fallback_opt='alt_field', alt_tracername='ALK')
+
+    call io_read_fallback_register_tracer(tracername='DOCr', &
+       fallback_opt='const', const_val=38.0_r8)
+
+    call io_read_fallback_register_tracer(tracername='Lig', &
+       fallback_opt='const', const_val=2.0e-3_r8)
+
+    call io_read_fallback_register_tracer(tracername='spP', &
+       fallback_opt='alt_field', alt_tracername='spC', scalefactor=c1/117.0_r8)
+
+    call io_read_fallback_register_tracer(tracername='diatP', &
+       fallback_opt='alt_field', alt_tracername='diatC', scalefactor=c1/117.0_r8)
+
+    call io_read_fallback_register_tracer(tracername='diazP', &
+       fallback_opt='alt_field', alt_tracername='diazC', scalefactor=0.32_r8/117.0_r8)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_SURF', &
+       fallback_opt='const', const_val=c0)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_SURF_ALT_CO2', &
+       fallback_opt='const', const_val=c0)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_3D', &
+       fallback_opt='const', const_val=c0)
+
+    call io_read_fallback_register_field(fieldname='MARBL_PH_3D_ALT_CO2', &
+       fallback_opt='const', const_val=c0)
+
+    !-----------------------------------------------------------------------
     !  initialize saved state
     !-----------------------------------------------------------------------
 
-    select case (init_ecosys_option)
-       
+    select case (trim(init_ecosys_option))
+
     case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
 
        ecosys_restart_filename = char_blank
@@ -286,7 +339,7 @@ Contains
 
       end select
 
-      select case (init_option)
+      select case (trim(init_option))
 
         ! For restart run, either read from specified file or TS restart file
         case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
@@ -337,12 +390,12 @@ Contains
 
     end do
 
-    do bid=1, nblocks_clinic
+    do iblock = 1, nblocks_clinic
        do n = 1, marbl_tracer_cnt
           do k = 1, km
-             where (.not. land_mask(:, :, bid) .or. k > KMT(:, :, bid))
-                TRACER_MODULE(:, :, k, n, curtime, bid) = c0
-                TRACER_MODULE(:, :, k, n, oldtime, bid) = c0
+             where (.not. land_mask(:, :, iblock) .or. k > KMT(:, :, iblock))
+                TRACER_MODULE(:, :, k, n, curtime, iblock) = c0
+                TRACER_MODULE(:, :, k, n, oldtime, iblock) = c0
              end where
           end do
        end do
@@ -405,9 +458,7 @@ Contains
 
   subroutine read_restart_saved_state(file_fmt, filename, state)
 
-    use passive_tracer_tools, only : field_exists_in_file
     use passive_tracer_tools, only : read_field
-    use io_tools            , only : document
     use blocks              , only : nx_block, ny_block
     use domain_size         , only : km, max_blocks_clinic
 
@@ -416,31 +467,21 @@ Contains
     real(r8) :: tmp_field_3d(nx_block, ny_block, km, max_blocks_clinic)
     type(ecosys_saved_state_type), dimension(:), intent(inout) :: state
 
-    character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:read_restart_saved_state'
-    character(len=char_len) :: log_message
     integer :: k, n
 
-    call set_saved_state_zero(state)
     do n=1,size(state)
-      if (field_exists_in_file(file_fmt, filename, state(n)%file_varname)) then
-        select case (state(n)%rank)
-          case (2)
-            call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 state(n)%field_2d(:,:,:))
-          case (3)
-            call read_field(file_fmt, filename, state(n)%file_varname,        &
-                 tmp_field_3d)
-            ! Transpose data after reading
-            do k=1, km
-              state(n)%field_3d(k,:,:,:) = tmp_field_3d(:,:,k,:)
-            end do
-        end select
-      else
-        write(log_message, "(4A)") trim(state(n)%file_varname),               &
-                                   ' does not exist in ', trim(filename),     &
-                                   ', setting to 0'
-        call document(subname, log_message)
-      end if
+      select case (state(n)%rank)
+        case (2)
+          call read_field(file_fmt, filename, state(n)%file_varname,        &
+               state(n)%field_2d(:,:,:))
+        case (3)
+          call read_field(file_fmt, filename, state(n)%file_varname,        &
+               tmp_field_3d)
+          ! Transpose data after reading
+          do k=1, km
+            state(n)%field_3d(k,:,:,:) = tmp_field_3d(:,:,k,:)
+          end do
+      end select
     end do
 
   end subroutine read_restart_saved_state
@@ -621,7 +662,7 @@ Contains
         tracer_inputs(ind)%default_val  = tracer_ext(n)%default_val
       end if
     end do
-          
+
   end subroutine set_tracer_read
 
   !-----------------------------------------------------------------------

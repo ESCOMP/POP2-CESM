@@ -109,7 +109,7 @@
   !---------------------------------------------------------------------
 
   real (r8), parameter, public :: &
-       xkw_coeff = 8.6e-9_r8 ! in s/cm, from a = 0.31 cm/hr s^2/m^2 in Wannikhof 1992
+       xkw_coeff = 6.97e-9_r8 ! in s/cm, from a = 0.251 cm/hr s^2/m^2 in Wannikhof 2014
 
 !  !PUBLIC DATA MEMBERS:
 
