@@ -350,7 +350,6 @@ my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
 my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
 my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
-my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
