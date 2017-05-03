@@ -65,7 +65,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
-   use estuary_mod   
+   use estuary_vsf_mod   
    use running_mean_mod, only: running_mean_test_update_var
 
    implicit none
@@ -84,6 +84,7 @@
       tavg_TEMP,         &! tavg id for temperature
       tavg_TEMP_MAX,     &! tavg id for maximum temperature
       tavg_TEMP_MIN,     &! tavg id for maximum temperature
+      tavg_TEMP_RF,      &! tavg id for Robert Filter temperature adjustment
       tavg_dTEMP_POS_3D, &! tavg id for positive temperature timestep difference
       tavg_dTEMP_POS_2D, &! tavg id for positive temperature timestep difference
       tavg_dTEMP_NEG_3D, &! tavg id for negative temperature timestep difference
@@ -93,6 +94,7 @@
       tavg_SALT,         &! tavg id for salinity
       tavg_SALT_MAX,     &! tavg id for maximum salinity
       tavg_SALT_MIN,     &! tavg id for minimum salinity
+      tavg_SALT_RF,      &! tavg id for Robert Filter salinity adjustment
       tavg_TEMP2,        &! tavg id for temperature squared
       tavg_TEMP_27,      &! tavg id for temperature at level 27
       tavg_TEMP_43,      &! tavg id for temperature at level 43
@@ -312,6 +314,17 @@
                           tavg_method=tavg_method_min,                 &
                           long_name='Minimum Potential Temperature',   &
                           units='degC', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
+  !*** define fields for off-line tracer budget computations
+   call define_tavg_field(tavg_TEMP_RF,'TEMP_RF',3,                     &
+                          long_name='Robert Filter Potential Temperature Adjustment',&
+                          units='degC', grid_loc='3111',                &
+                          coordinates='TLONG TLAT z_t time')
+  call define_tavg_field(tavg_SALT_RF,'SALT_RF',3,                      &
+                          long_name='Robert Filter Salinity Adjustment',&
+                          units='gram/kilogram', grid_loc='3111',       &
+                          scale_factor=1000.0_r8,                       &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_dTEMP_POS_3D,'dTEMP_POS_3D',3,          &

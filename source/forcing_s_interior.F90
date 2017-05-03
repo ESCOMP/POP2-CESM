@@ -502,12 +502,14 @@
                                 max_blocks_clinic,1))
       S_INTERIOR_DATA = c0
 
-      s_inputlist%timer_label= 's_data'
-      s_inputlist%year_first = s_interior_shr_stream_year_first
-      s_inputlist%year_last  = s_interior_shr_stream_year_last
-      s_inputlist%year_align = s_interior_shr_stream_year_align
-      s_inputlist%file_name  = s_interior_shr_stream_file
-      s_inputlist%field_list = 'SALT'
+      call POP_strdata_type_set(s_inputlist,             &
+         file_name   = s_interior_shr_stream_file,       &
+         field       = 'SALT',                           &
+         timer_label = 's_data',                         &
+         year_first  = s_interior_shr_stream_year_first, &
+         year_last   = s_interior_shr_stream_year_last,  &
+         year_align  = s_interior_shr_stream_year_align, &
+         depth_flag  = .true.)
 
       call get_timer(s_interior_shr_strdata_advance_timer, &
                     'S_INTERIOR_SHR_STRDATA_ADVANCE',1, distrb_clinic%nprocs)
@@ -755,12 +757,10 @@
 
       if (first_call_strdata_create) then
          !--- moved to "get" interface because gsmap and other data not yet set
-         call POP_strdata_create(s_inputlist,depthflag=.true.)
+         call POP_strdata_create(s_inputlist)
       endif
       first_call_strdata_create = .false.
 
-      s_inputlist%date = iyear*10000 + imonth*100 + iday
-      s_inputlist%time = isecond + 60 * (iminute + 60 * ihour)
       call timer_start(s_interior_shr_strdata_advance_timer)
       call POP_strdata_advance(s_inputlist) 
       call timer_stop(s_interior_shr_strdata_advance_timer)
@@ -769,17 +769,17 @@
 
       S_INTERIOR_DATA(:,:,:,:,:) = c0
       n = 0
-      do k=1,km
       do iblock = 1, nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)
-         do j=this_block%jb,this_block%je
-         do i=this_block%ib,this_block%ie
-            n = n + 1
-            S_INTERIOR_DATA(i,j,k,iblock,1) = &
-               s_inputlist%sdat%avs(1)%rAttr(1,n)
+         do k=1,km
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+               n = n + 1
+               S_INTERIOR_DATA(i,j,k,iblock,1) = &
+                  s_inputlist%sdat%avs(1)%rAttr(1,n)
+            enddo
+            enddo
          enddo
-         enddo
-      enddo
       enddo
 
       call POP_HaloUpdate(S_INTERIOR_DATA(:,:,:,:,1),POP_haloClinic, &

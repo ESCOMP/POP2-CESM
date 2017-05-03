@@ -172,6 +172,9 @@
    integer (POP_i4), dimension(:,:,:), allocatable, public, target :: &
       REGION_MASK      ! mask defining regions, marginal seas
 
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
+      RCALCT_OPEN_OCEAN! like RCALCT, but zero for marginal seas
+
 !-----------------------------------------------------------------------
 !
 !     define types used with region masks and marginal seas balancing
@@ -2534,6 +2537,8 @@
       RCALCT = c0
    endwhere
 
+   RCALCT_OPEN_OCEAN = RCALCT
+
    where (KMU >= 1)
       CALCU = .true.
       RCALCU = c1
@@ -2648,6 +2653,8 @@
    call scatter_global(REGION_MASK, REGION_G, master_task,distrb_clinic, &
                        field_loc_center, field_type_scalar)
    deallocate(REGION_G)
+
+   where (REGION_MASK < 0) RCALCT_OPEN_OCEAN = 0
 
    num_regions = global_maxval(abs(REGION_MASK), &
                                distrb_clinic, field_loc_center)

@@ -24,9 +24,6 @@
       </test>
     </grid>
     <grid name="T62_g37">
-      <test name="ERS_Ld3">
-        <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/default">userdefined</machine>
-      </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">yellowstone</machine>
@@ -43,13 +40,6 @@
     <grid name="T62_t12">
       <test name="SBN">
         <machine compiler="null" testtype="null">null</machine>
-      </test>
-    </grid>
-  </compset>
-  <compset name="C1DECO">
-    <grid name="T62_g37">
-      <test name="PET_D_Ld2">
-        <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys_restore_gx3v7">userdefined</machine>
       </test>
     </grid>
   </compset>
@@ -93,17 +83,10 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_restore_gx3v7">hobart</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_restore_gx3v7">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_restore_gx3v7">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">yellowstone</machine>
       </test>
-      <test name="ERS_D_Ld3">
-        <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ciso_abio_dic_dic14">userdefined</machine>
-      </test>
       <test name="ERS_Ld3">
-        <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys_restore_gx3v7">userdefined</machine>
         <machine compiler="intel" testtype="aux_testsystem" testmods="pop/default">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
@@ -115,20 +98,19 @@
       </test>
       <test name="ERS_Ld5_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
-      </test>
-      <test name="PET_D_Ld2">
-        <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys_restore_gx3v7">userdefined</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">yellowstone</machine>
       </test>
       <test name="SMS">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_ladjust_bury_coeff">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_apply_nhx_surface_emis">hobart</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">hobart</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">hobart</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_read_fallback_gx3v7">yellowstone</machine>
       </test>
       <test name="SMS_D">
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys">yellowstone</machine>
-      </test>
-      <test name="SMS_D_Ld2">
-        <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys">userdefined</machine>
       </test>
       <test name="SMS_Ld2">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
@@ -167,6 +149,9 @@
       <test name="ERS">
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">hobart</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
+      </test>
+      <test name="ERS_Ld5">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_tavg">yellowstone</machine>
       </test>
       <test name="ICP">
         <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">yellowstone</machine>
@@ -243,6 +228,9 @@
     <grid name="T62_g16">
       <test name="ERS">
         <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>
+      </test>
+      <test name="ERS_Ld5">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_5day_tavg">yellowstone</machine>
       </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>

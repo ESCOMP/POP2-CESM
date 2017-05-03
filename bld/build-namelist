@@ -1233,7 +1233,10 @@ add_default($nl, "irf_on");
 add_default($nl, 'estuary_option');
 add_default($nl, 'estuary_type');
 add_default($nl, 'ebm_param_option');
-add_default($nl, 'ebm_param_filename');
+add_default($nl, 'ebm_param_filename', 'nofail'=>1);
+if (not $nl->get_value('ebm_param_filename')) {
+	add_default($nl, 'ebm_param_filename', 'val'=>'unknown_ebm_param_filename','noprepend'=>1);
+}
 add_default($nl, 'ebm_param_file_fmt');
 add_default($nl, 'tide_amp');
 add_default($nl, 'W_h');
@@ -1432,6 +1435,8 @@ EOF
   add_default($nl, 'lflux_gas_co2');
   add_default($nl, 'lapply_nhx_surface_emis');
 
+  add_default($nl, 'lvariable_PtoC');
+
   # FIXME : replace following with ladjust_bury_coeff=.true. branch
   # when "restfile" is implemented for scalar saved state
   if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
@@ -1487,15 +1492,10 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'fesedflux_input%file_fmt');
   add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  add_default($nl, 'din_riv_flux_input%filename');
-  add_default($nl, 'dip_riv_flux_input%filename');
-  add_default($nl, 'don_riv_flux_input%filename');
-  add_default($nl, 'dop_riv_flux_input%filename');
-  add_default($nl, 'dsi_riv_flux_input%filename');
-  add_default($nl, 'dfe_riv_flux_input%filename');
-  add_default($nl, 'dic_riv_flux_input%filename');
-  add_default($nl, 'alk_riv_flux_input%filename');
-  add_default($nl, 'doc_riv_flux_input%filename');
+  add_default($nl, 'feventflux_input%filename');
+  add_default($nl, 'feventflux_input%file_varname');
+  add_default($nl, 'feventflux_input%file_fmt');
+  add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
   my $lapply_nhx_surface_emis = $nl->get_value('lapply_nhx_surface_emis');
 
@@ -1525,6 +1525,30 @@ if ($ecosys_on eq "TRUE") {
     print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosys module\n";
     die;
   }
+
+  my $estuary_type = $nl->get_value('estuary_type');
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type);
+  add_default($nl, 'riv_flux_shr_stream_year_first');
+  add_default($nl, 'riv_flux_shr_stream_year_align');
+  add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
+  add_default($nl, 'riv_flux_din_file_varname');
+  add_default($nl, 'riv_flux_din_scale_factor');
+  add_default($nl, 'riv_flux_dip_file_varname');
+  add_default($nl, 'riv_flux_dip_scale_factor');
+  add_default($nl, 'riv_flux_don_file_varname');
+  add_default($nl, 'riv_flux_don_scale_factor');
+  add_default($nl, 'riv_flux_dop_file_varname');
+  add_default($nl, 'riv_flux_dop_scale_factor');
+  add_default($nl, 'riv_flux_dsi_file_varname');
+  add_default($nl, 'riv_flux_dsi_scale_factor');
+  add_default($nl, 'riv_flux_dfe_file_varname');
+  add_default($nl, 'riv_flux_dfe_scale_factor');
+  add_default($nl, 'riv_flux_dic_file_varname');
+  add_default($nl, 'riv_flux_dic_scale_factor');
+  add_default($nl, 'riv_flux_alk_file_varname');
+  add_default($nl, 'riv_flux_alk_scale_factor');
+  add_default($nl, 'riv_flux_doc_file_varname');
+  add_default($nl, 'riv_flux_doc_scale_factor');
 
   add_default($nl, 'gas_flux_forcing_opt');
 
@@ -1567,18 +1591,24 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'ciso_atm_data_year');
   }
 
-  add_default($nl, 'restoreable_tracer_names');
-  add_default($nl, 'restore_data_file_varnames');
+  add_default($nl, 'restorable_tracer_names');
 
   # The size of the array restore_data_filenames depends on the size of
-  # restoreable_tracer_names
-  my @tracer_names = split(/,/,$nl->get_value('restoreable_tracer_names'));
+  # restorable_tracer_names
+  my @tracer_names = split(/,/,$nl->get_value('restorable_tracer_names'));
   my $tracer_cnt =$#tracer_names+1;
   add_default($nl, 'restore_data_filenames_derived');
   my $restore_data_file= "$tracer_cnt*" . $nl->get_value('restore_data_filenames_derived');
   add_default($nl, 'restore_data_filenames', 'val'=>"$restore_data_file", 'quote'=>'FALSE');
+  add_default($nl, 'restore_data_file_varnames');
+
   add_default($nl, 'restore_inv_tau_opt');
   add_default($nl, 'restore_inv_tau_const');
+
+  add_default($nl, 'restore_inv_tau_input%filename');
+  add_default($nl, 'restore_inv_tau_input%file_varname');
+  add_default($nl, 'restore_inv_tau_input%file_fmt');
+  add_default($nl, 'restore_inv_tau_input%scale_factor');
 
   add_default($nl, 'surf_avg_dic_const');
   add_default($nl, 'surf_avg_alk_const');
@@ -1680,25 +1710,31 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'parm_Fe_bioavail');
   add_default($nl, 'parm_o2_min');
   add_default($nl, 'parm_o2_min_delta');
-  add_default($nl, 'parm_kappa_nitrif');
+  add_default($nl, 'parm_kappa_nitrif_per_day');
   add_default($nl, 'parm_nitrif_par_lim');
   add_default($nl, 'parm_labile_ratio');
   add_default($nl, 'parm_init_POC_bury_coeff');
   add_default($nl, 'parm_init_POP_bury_coeff');
   add_default($nl, 'parm_init_bSi_bury_coeff');
-  add_default($nl, 'parm_fe_scavenge_rate0');
+  add_default($nl, 'parm_Fe_scavenge_coeffA');
+  add_default($nl, 'parm_Fe_scavenge_coeffB');
+  add_default($nl, 'parm_Fe_scavenge_rate0');
+  add_default($nl, 'parm_Lig_scavenge_rate0');
+  add_default($nl, 'parm_FeLig_scavenge_rate0');
+  add_default($nl, 'parm_Lig_degrade_rate0');
+  add_default($nl, 'parm_Fe_desorption_rate0');
   add_default($nl, 'parm_f_prod_sp_CaCO3');
   add_default($nl, 'parm_POC_diss');
   add_default($nl, 'parm_SiO2_diss');
   add_default($nl, 'parm_CaCO3_diss');
-  add_default($nl, 'fe_max_scale2');
+  add_default($nl, 'parm_sed_denitrif_coeff');
   add_default($nl, 'bury_coeff_rmean_timescale_years');
 
   add_default($nl, 'parm_scalelen_z');
   add_default($nl, 'parm_scalelen_vals');
 
-  add_default($nl, 'zooplankton(1)%z_mort_0');
-  add_default($nl, 'zooplankton(1)%z_mort2_0');
+  add_default($nl, 'zooplankton(1)%z_mort_0_per_day');
+  add_default($nl, 'zooplankton(1)%z_mort2_0_per_day');
   add_default($nl, 'zooplankton(1)%loss_thres');
 
   add_default($nl, 'autotrophs(1)%kFe');
@@ -1724,7 +1760,7 @@ if ($ecosys_on eq "TRUE") {
 
   add_default($nl, 'grazing(1,1)%auto_ind');
   add_default($nl, 'grazing(1,1)%zoo_ind');
-  add_default($nl, 'grazing(1,1)%z_umax_0');
+  add_default($nl, 'grazing(1,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(1,1)%z_grz');
   add_default($nl, 'grazing(1,1)%graze_zoo');
   add_default($nl, 'grazing(1,1)%graze_poc');
@@ -1734,7 +1770,7 @@ if ($ecosys_on eq "TRUE") {
 
   add_default($nl, 'grazing(2,1)%auto_ind');
   add_default($nl, 'grazing(2,1)%zoo_ind');
-  add_default($nl, 'grazing(2,1)%z_umax_0');
+  add_default($nl, 'grazing(2,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(2,1)%z_grz');
   add_default($nl, 'grazing(2,1)%graze_zoo');
   add_default($nl, 'grazing(2,1)%graze_poc');
@@ -1744,7 +1780,7 @@ if ($ecosys_on eq "TRUE") {
 
   add_default($nl, 'grazing(3,1)%auto_ind');
   add_default($nl, 'grazing(3,1)%zoo_ind');
-  add_default($nl, 'grazing(3,1)%z_umax_0');
+  add_default($nl, 'grazing(3,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(3,1)%z_grz');
   add_default($nl, 'grazing(3,1)%graze_zoo');
   add_default($nl, 'grazing(3,1)%graze_poc');
@@ -1757,6 +1793,8 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'caco3_bury_thres_opt');
   add_default($nl, 'caco3_bury_thres_depth');
   add_default($nl, 'pon_bury_coeff');
+
+  add_default($nl, 'tracer_restore_vars');
 
   if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_fract_factors');
@@ -2618,7 +2656,10 @@ sub module_tavg_script_args() {
   my $module = shift;
   my $cfg    = shift;
   if ($module eq "ecosys") {
-    return ($nl->get_value('lecosys_debug'));
+    return ($nl->get_value('lecosys_debug'),
+            $nl->get_value('lvariable_PtoC'),
+            $OCN_TRANSIENT,
+            $nl->get_value('tracer_restore_vars'));
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
@@ -2634,7 +2675,9 @@ sub module_tavg_script_args() {
     my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
     my $mcog_ncols = @mcog_col_to_bin;
     my $mcog_nbins = max @mcog_col_to_bin;
-    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"), $mcog_ncols, $mcog_nbins);
+    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"),
+            $mcog_ncols,
+            $mcog_nbins);
   }
   return "";
 }

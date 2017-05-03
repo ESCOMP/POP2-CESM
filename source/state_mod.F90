@@ -35,6 +35,7 @@
    use io
    use broadcast
    use time_management
+   use timers
    use exit_mod
    use shr_sys_mod
 
@@ -236,6 +237,14 @@
    logical (log_kind) ::  &
      lccsm_control_compatible
 
+!-----------------------------------------------------------------------
+!
+!  timers
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: timer_state
+
 !EOC
 !***********************************************************************
 
@@ -327,12 +336,16 @@
       mwjfdensqt0, mwjfdensqt2
 
 !-----------------------------------------------------------------------
+
+   bid = this_block%local_id
+
+   call timer_start(timer_state, block_id=bid)
+
+!-----------------------------------------------------------------------
 !
 !  first check for valid range if requested
 !
 !-----------------------------------------------------------------------
-
-   bid = this_block%local_id
 
    select case (state_range_iopt)
    case (state_range_ignore)
@@ -661,6 +674,8 @@
 !-----------------------------------------------------------------------
 
    end select
+
+   call timer_stop(timer_state, block_id=bid)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1140,6 +1155,10 @@
 !-----------------------------------------------------------------------
 
    lccsm_control_compatible = registry_match('lccsm_control_compatible')
+
+!-----------------------------------------------------------------------
+
+   call get_timer(timer_state, 'STATE', nblocks_clinic, distrb_clinic%nprocs)
 
 !-----------------------------------------------------------------------
 !EOC

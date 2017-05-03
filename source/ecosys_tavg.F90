@@ -33,8 +33,8 @@
   ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_tavg_init
-  public :: ecosys_tavg_accumulate
-  public :: ecosys_tavg_accumulate_flux
+  public :: ecosys_tavg_accumulate_interior
+  public :: ecosys_tavg_accumulate_surface
 
   !-----------------------------------------------------------------------
   !  define tavg id for interior diagnostics, diagnostics related to
@@ -43,7 +43,6 @@
   !-----------------------------------------------------------------------
 
   integer (int_kind), allocatable :: tavg_ids_interior_forcing(:)
-  integer (int_kind), allocatable :: tavg_ids_interior_restore(:)
   integer (int_kind), allocatable :: tavg_ids_surface_forcing(:)
 
   integer (int_kind) :: tavg_ECOSYS_IFRAC_2 ! ice fraction duplicate
@@ -63,6 +62,8 @@ contains
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
 
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
     implicit none
 
     type(marbl_interface_class)  , intent(in) :: marbl_instance
@@ -71,6 +72,8 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
+    character(char_len) :: sname, lname
+    integer (int_kind) :: n
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -78,14 +81,12 @@ contains
     !-----------------------------------------------------------------------
 
     associate(&
-         interior_diags => marbl_instance%interior_forcing_diags%diags, &
-         restore_diags  => marbl_instance%interior_restore_diags%diags, &
-         surface_diags  => marbl_instance%surface_forcing_diags%diags   &
+         interior_forcing => marbl_instance%interior_forcing_diags%diags, &
+         surface_forcing  => marbl_instance%surface_forcing_diags%diags   &
          )
 
-      allocate(tavg_ids_interior_forcing(size(interior_diags)))
-      allocate(tavg_ids_interior_restore(size(restore_diags)))
-      allocate(tavg_ids_surface_forcing(size(surface_diags)))
+    allocate(tavg_ids_interior_forcing(size(interior_forcing)))
+    allocate(tavg_ids_surface_forcing(size(surface_forcing)))
 
     end associate
 
@@ -95,15 +96,11 @@ contains
 
     associate(&
          interior_forcing_diags => marbl_instance%interior_forcing_diags, &
-         interior_restore_diags => marbl_instance%interior_restore_diags, &
          surface_forcing_diags => marbl_instance%surface_forcing_diags    &
          )
 
       call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing_diags, &
            tavg_ids=tavg_ids_interior_forcing)
-
-      call ecosys_tavg_define_from_diag(marbl_diags=interior_restore_diags,  &
-           tavg_ids=tavg_ids_interior_restore)
 
       call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing_diags,  &
            tavg_ids=tavg_ids_surface_forcing)
@@ -139,43 +136,23 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate(i, c, bid, &
-       marbl_interior_forcing_diags,           &
-       marbl_interior_restore_diags,           &
-       marbl_surface_forcing_diags)
+  subroutine ecosys_tavg_accumulate_interior(i, c, bid, &
+       marbl_interior_forcing_diags)
 
     implicit none
 
     integer , dimension(:), intent(in) :: i, c ! column indices
     integer ,               intent(in) :: bid ! block index
 
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_forcing_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_restore_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_surface_forcing_diags
+    type(marbl_diagnostics_type), intent(in) :: marbl_interior_forcing_diags
     !-----------------------------------------------------------------------
 
-    if (present(marbl_interior_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_interior_forcing_diags,  &
-           tavg_ids = tavg_ids_interior_forcing, &
-           num_elements =marbl_interior_forcing_diags%num_elements)
-    end if
+    call ecosys_tavg_accumulate_from_diag(i, c, bid, &
+         marbl_diags = marbl_interior_forcing_diags,  &
+         tavg_ids = tavg_ids_interior_forcing, &
+         num_elements =marbl_interior_forcing_diags%num_elements)
 
-    if (present(marbl_interior_restore_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_interior_restore_diags,   &
-           tavg_ids = tavg_ids_interior_restore, &
-           num_elements = marbl_interior_restore_diags%num_elements)
-    end if
-
-    if (present(marbl_surface_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_surface_forcing_diags,   &
-           tavg_ids = tavg_ids_surface_forcing, &
-           num_elements = marbl_surface_forcing_diags%num_elements)
-    end if
-
-  end subroutine ecosys_tavg_accumulate
+  end subroutine ecosys_tavg_accumulate_interior
 
   !***********************************************************************
 
@@ -215,11 +192,12 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_flux(surface_forcing_diags, marbl_instances)
+  subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances)
 
     ! Compute diagnostics for surface fluxes
 
-    use marbl_diagnostics_mod, only : ind => marbl_surface_forcing_diag_ind
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+    use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
 
     implicit none
 
@@ -229,7 +207,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer :: i, iblock
+    integer :: i, n, iblock
     integer :: nblocks_clinic
     !-----------------------------------------------------------------------
 
@@ -265,7 +243,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-  end subroutine ecosys_tavg_accumulate_flux
+  end subroutine ecosys_tavg_accumulate_surface
 
   !***********************************************************************
 
