@@ -121,6 +121,8 @@ contains
 !
 ! !INTERFACE:
   subroutine ocn_init_mct( EClock, cdata_o, x2o_o, o2x_o, NLFilename )
+
+    use ecosys_forcing_mod, only : ldriver_has_ndep
 !
 ! !DESCRIPTION:
 ! Initialize POP 
@@ -261,13 +263,16 @@ contains
       call named_field_register('ATM_CO2_DIAG', ATM_CO2_DIAG_nf_ind)
    endif
 
+   ldriver_has_ndep = .false.
    if (index_x2o_Faxa_nhx > 0) then
       if (my_task == master_task) write(stdout,'(" using ATM_NHx from coupler")')
       call named_field_register('ATM_NHx', ATM_NHx_nf_ind)
+      ldriver_has_ndep = .true.
    endif
    if (index_x2o_Faxa_noy > 0) then
       if (my_task == master_task) write(stdout,'(" using ATM_NOy from coupler")')
       call named_field_register('ATM_NOy', ATM_NOy_nf_ind)
+      ldriver_has_ndep = .true.
    endif
 
    call register_string('pop_init_coupled')

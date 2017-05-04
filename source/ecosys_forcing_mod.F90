@@ -36,8 +36,6 @@ module ecosys_forcing_mod
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
 
-  use forcing_fields, only : ATM_NHx_nf_ind, ATM_NOy_nf_ind
-
   implicit none
   private
 
@@ -131,54 +129,55 @@ module ecosys_forcing_mod
   !  Variables read in via &ecosys_forcing_data_nml
   !---------------------------------------------------------------------
 
-  character(char_len),  target :: dust_flux_source             ! option for atmospheric dust deposition
-  type(tracer_read),    target :: dust_flux_input             ! namelist input for dust_flux
-  character(char_len),  target :: iron_flux_source             ! option for atmospheric iron deposition
-  type(tracer_read),    target :: iron_flux_input             ! namelist input for iron_flux
-  type(tracer_read),    target :: fesedflux_input                    ! namelist input for iron_flux
-  character(char_len),  target :: ndep_data_type               ! type of ndep forcing
-  type(tracer_read),    target :: nox_flux_monthly_input      ! namelist input for nox_flux_monthly
-  type(tracer_read),    target :: nhy_flux_monthly_input      ! namelist input for nhy_flux_monthly
-  integer(int_kind),    target :: ndep_shr_stream_year_first   ! first year in stream to use
-  integer(int_kind),    target :: ndep_shr_stream_year_last    ! last year in stream to use
-  integer(int_kind),    target :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
-  character(char_len),  target :: ndep_shr_stream_file         ! file containing domain and input data
-  real(r8),             target :: ndep_shr_stream_scale_factor ! unit conversion factor
-  type(tracer_read),    target :: din_riv_flux_input          ! namelist input for din_riv_flux
-  type(tracer_read),    target :: dip_riv_flux_input          ! namelist input for dip_riv_flux
-  type(tracer_read),    target :: don_riv_flux_input          ! namelist input for don_riv_flux
-  type(tracer_read),    target :: dop_riv_flux_input          ! namelist input for dop_riv_flux
-  type(tracer_read),    target :: dsi_riv_flux_input          ! namelist input for dsi_riv_flux
-  type(tracer_read),    target :: dfe_riv_flux_input          ! namelist input for dfe_riv_flux
-  type(tracer_read),    target :: dic_riv_flux_input          ! namelist input for dic_riv_flux
-  type(tracer_read),    target :: alk_riv_flux_input          ! namelist input for alk_riv_flux
-  type(tracer_read),    target :: doc_riv_flux_input          ! namelist input for doc_riv_flux
-  character(char_len),  target :: gas_flux_forcing_opt        ! option for forcing gas fluxes
-  character(char_len),  target :: gas_flux_forcing_file        ! file containing gas flux forcing fields
-  type(tracer_read),    target :: gas_flux_fice               ! ice fraction for gas fluxes
-  type(tracer_read),    target :: gas_flux_ws                 ! wind speed for gas fluxes
-  type(tracer_read),    target :: gas_flux_ap                 ! atmospheric pressure for gas fluxes
-  character(char_len),  target :: atm_co2_opt                 ! option for atmospheric co2 concentration
-  real(r8),             target :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
-  character(char_len),  target :: atm_alt_co2_opt             ! option for atmospheric alternative CO2
-  real(r8),             target :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
-  logical(log_kind),    target :: liron_patch                  ! flag for iron patch fertilization
-  character(char_len),  target :: iron_patch_flux_filename     ! file containing name of iron patch file
-  integer(int_kind),    target :: iron_patch_month             ! integer month to add patch flux
-  integer(int_kind),    target :: ciso_atm_model_year            ! arbitrary model year
-  integer(int_kind),    target :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-  integer(int_kind),    target :: ciso_atm_d13c_data_nbval       ! number of values in ciso_atm_d13c_filename
-  integer(int_kind),    target :: ciso_atm_d14c_data_nbval       ! number of values in ciso_atm_d14c_filename
-  real(r8), allocatable, target :: ciso_atm_d13c_data(:)          ! atmospheric D13C values in datafile
-  real(r8), allocatable, target :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric D13C values in datafile
-  real(r8), allocatable, target :: ciso_atm_d14c_data(:,:)        ! atmospheric D14C values in datafile (sh, eq, nh, in permil)
-  real(r8), allocatable, target :: ciso_atm_d14c_data_yr(:,:)     ! date of atmospheric D14C values in datafile (sh, eq, nh)
-  real(r8),             target :: ciso_atm_d13c_const            ! atmospheric D13C constant [permil]
-  real(r8),             target :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
-  character(char_len),  target :: ciso_atm_d13c_opt              ! option for CO2 and D13C varying or constant forcing
-  character(char_len),  target :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
-  character(char_len),  target :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
-  character(char_len),  target :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
+  character(char_len) :: dust_flux_source             ! option for atmospheric dust deposition
+  type(tracer_read)   :: dust_flux_input             ! namelist input for dust_flux
+  character(char_len) :: iron_flux_source             ! option for atmospheric iron deposition
+  type(tracer_read)   :: iron_flux_input             ! namelist input for iron_flux
+  type(tracer_read)   :: fesedflux_input                    ! namelist input for iron_flux
+  logical(log_kind)   :: lignore_driver_ndep
+  character(char_len) :: ndep_data_type               ! type of ndep forcing
+  type(tracer_read)   :: nox_flux_monthly_input      ! namelist input for nox_flux_monthly
+  type(tracer_read)   :: nhy_flux_monthly_input      ! namelist input for nhy_flux_monthly
+  integer(int_kind)   :: ndep_shr_stream_year_first   ! first year in stream to use
+  integer(int_kind)   :: ndep_shr_stream_year_last    ! last year in stream to use
+  integer(int_kind)   :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
+  character(char_len) :: ndep_shr_stream_file         ! file containing domain and input data
+  real(r8)            :: ndep_shr_stream_scale_factor ! unit conversion factor
+  type(tracer_read)   :: din_riv_flux_input          ! namelist input for din_riv_flux
+  type(tracer_read)   :: dip_riv_flux_input          ! namelist input for dip_riv_flux
+  type(tracer_read)   :: don_riv_flux_input          ! namelist input for don_riv_flux
+  type(tracer_read)   :: dop_riv_flux_input          ! namelist input for dop_riv_flux
+  type(tracer_read)   :: dsi_riv_flux_input          ! namelist input for dsi_riv_flux
+  type(tracer_read)   :: dfe_riv_flux_input          ! namelist input for dfe_riv_flux
+  type(tracer_read)   :: dic_riv_flux_input          ! namelist input for dic_riv_flux
+  type(tracer_read)   :: alk_riv_flux_input          ! namelist input for alk_riv_flux
+  type(tracer_read)   :: doc_riv_flux_input          ! namelist input for doc_riv_flux
+  character(char_len) :: gas_flux_forcing_opt        ! option for forcing gas fluxes
+  character(char_len) :: gas_flux_forcing_file        ! file containing gas flux forcing fields
+  type(tracer_read)   :: gas_flux_fice               ! ice fraction for gas fluxes
+  type(tracer_read)   :: gas_flux_ws                 ! wind speed for gas fluxes
+  type(tracer_read)   :: gas_flux_ap                 ! atmospheric pressure for gas fluxes
+  character(char_len) :: atm_co2_opt                 ! option for atmospheric co2 concentration
+  real(r8)            :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
+  character(char_len) :: atm_alt_co2_opt             ! option for atmospheric alternative CO2
+  real(r8)            :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
+  logical(log_kind)   :: liron_patch                  ! flag for iron patch fertilization
+  character(char_len) :: iron_patch_flux_filename     ! file containing name of iron patch file
+  integer(int_kind)   :: iron_patch_month             ! integer month to add patch flux
+  integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
+  integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
+  integer(int_kind)   :: ciso_atm_d13c_data_nbval       ! number of values in ciso_atm_d13c_filename
+  integer(int_kind)   :: ciso_atm_d14c_data_nbval       ! number of values in ciso_atm_d14c_filename
+  real(r8), allocatable :: ciso_atm_d13c_data(:)          ! atmospheric D13C values in datafile
+  real(r8), allocatable :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric D13C values in datafile
+  real(r8), allocatable :: ciso_atm_d14c_data(:,:)        ! atmospheric D14C values in datafile (sh, eq, nh, in permil)
+  real(r8), allocatable :: ciso_atm_d14c_data_yr(:,:)     ! date of atmospheric D14C values in datafile (sh, eq, nh)
+  real(r8)            :: ciso_atm_d13c_const            ! atmospheric D13C constant [permil]
+  real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
+  character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and D13C varying or constant forcing
+  character(char_len) :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
+  character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
+  character(char_len) :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
 
   ! For tracer restoring, we need three things:
   ! (1) list of tracers to apply restoring to
@@ -191,6 +190,9 @@ module ecosys_forcing_mod
   ! Also need to know what time scale to restore on
   character(char_len)                              :: restore_inv_tau_opt
   real(r8)                                         :: restore_inv_tau_const
+
+  ! Is NDEP available from the driver?
+  logical(log_kind), public :: ldriver_has_ndep
 
   !-----------------------------------------------------------------------
   !  input surface forcing
@@ -327,8 +329,10 @@ contains
     real(r8) :: surf_avg_di14c_const
 
     namelist /ecosys_forcing_data_nml/                                        &
-         dust_flux_source, dust_flux_input, iron_flux_source,                 &
-         iron_flux_input, fesedflux_input, ndep_data_type,                    &
+         dust_flux_source, dust_flux_input,                                   &
+         iron_flux_source, iron_flux_input,                                   &
+         fesedflux_input,                                                     &
+         lignore_driver_ndep, ndep_data_type,                                 &
          nox_flux_monthly_input, nhy_flux_monthly_input,                      &
          ndep_shr_stream_year_first, ndep_shr_stream_year_last,               &
          ndep_shr_stream_year_align, ndep_shr_stream_file,                    &
@@ -367,6 +371,7 @@ contains
     iron_flux_source             = 'monthly-calendar'
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
+    lignore_driver_ndep = .false.
     ndep_data_type = 'monthly-calendar'
     call set_defaults_tracer_read(nox_flux_monthly_input, file_varname='nox_flux')
     call set_defaults_tracer_read(nhy_flux_monthly_input, file_varname='nhy_flux')
@@ -429,6 +434,22 @@ contains
        write(stdout,*)
        write(stdout,delim_fmt)
     endif
+
+    ! Consistency check
+    if ((.not. lignore_driver_ndep) .and. (ldriver_has_ndep) .and. &
+        (ndep_data_type.ne.'driver')) then
+        ! If either named field index is greater than 0, then either
+        ! ndep_data_type must be driver or lignore_driver_ndep must be .true.
+        call document(subname, "ERROR: coupler is providing nitrogen deposition but ndep_data_type is not 'driver'")
+        call document(subname, "To use the coupler values, set ndep_data_type = 'driver'")
+        call document(subname, 'Otherwise set lignore_driver_ndep = .true.')
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
+
+    if ((ndep_data_type.eq.'driver') .and. (.not. ldriver_has_ndep)) then
+        call document(subname, "ERROR: ndep_data_type is 'driver' but coupler is not providing nitrogen deposition!")
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
 
     if (ciso_on) then
        call ciso_init_atm_D13_D14()
@@ -652,68 +673,60 @@ contains
 
         case ('NOx Flux')
           nox_ind = n
-          ! Note that ATM_NOy_nf_ind is set in ocn_comp_mct in the call to name_field_register
-          ! This particular field is a special case - it is present depending on the CAM configuration
-          if (ATM_NOy_nf_ind > 0) then
-             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
-                  marbl_varname=marbl_varname, field_units=units,         &
-                  named_field='ATM_NOy', id=n)
+          if (trim(ndep_data_type).eq.'shr_stream') then
+            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
+                                 marbl_varname=marbl_varname, field_units=units,  &
+                                 unit_conv_factor=ndep_shr_stream_scale_factor,   &
+                                 file_varname='NOy_deposition',                   &
+                                 year_first = ndep_shr_stream_year_first,         &
+                                 year_last = ndep_shr_stream_year_last,           &
+                                 year_align = ndep_shr_stream_year_align,         &
+                                 filename = ndep_shr_stream_file, id=n)
+          else if (trim(ndep_data_type).eq.'monthly-calendar') then
+            file_details => nox_flux_monthly_file_loc
+            call init_monthly_surface_forcing_metadata(file_details)
+            call surface_forcing_fields(n)%add_forcing_field(                    &
+                                 field_source='POP monthly calendar',            &
+                                 marbl_varname=marbl_varname, field_units=units, &
+                                 forcing_calendar_name=file_details, id=n)
+          else if (trim(ndep_data_type).eq.'driver') then
+            call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
+                                 marbl_varname=marbl_varname, field_units=units,         &
+                                 named_field='ATM_NOy', id=n)
           else
-             if (trim(ndep_data_type).eq.'shr_stream') then
-                call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                     marbl_varname=marbl_varname, field_units=units,  &
-                     unit_conv_factor=ndep_shr_stream_scale_factor,   &
-                     file_varname='NOy_deposition',                   &
-                     year_first = ndep_shr_stream_year_first,         &
-                     year_last = ndep_shr_stream_year_last,           &
-                     year_align = ndep_shr_stream_year_align,         &
-                     filename = ndep_shr_stream_file, id=n)
-             else if (trim(ndep_data_type).eq.'monthly-calendar') then
-                file_details => nox_flux_monthly_file_loc
-                call init_monthly_surface_forcing_metadata(file_details)
-                call surface_forcing_fields(n)%add_forcing_field(                    &
-                     field_source='POP monthly calendar',            &
-                     marbl_varname=marbl_varname, field_units=units, &
-                     forcing_calendar_name=file_details, id=n)
-             else
-                write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
-                     'is not a valid option for ndep_data_type'
-                call document(subname, err_msg)
-                call exit_POP(sigAbort, 'Stopping in ' // subname)
-             end if
+            write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
+                 'is not a valid option for ndep_data_type'
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('NHy Flux')
           nhy_ind = n
-          ! Note that ATM_NHx_nf_ind is set in ocn_comp_mct in the call to name_field_register
-          ! This particular field is a special case - it is present depending on the CAM configuration
-          if (ATM_NHx_nf_ind > 0) then
-             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
-                  marbl_varname=marbl_varname, field_units=units,         &
-                  named_field='ATM_NHx', id=n)
+          if (trim(ndep_data_type).eq.'shr_stream') then
+            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
+                                 marbl_varname=marbl_varname, field_units=units,  &
+                                 unit_conv_factor=ndep_shr_stream_scale_factor,   &
+                                 file_varname='NHx_deposition',                   &
+                                 year_first = ndep_shr_stream_year_first,         &
+                                 year_last = ndep_shr_stream_year_last,           &
+                                 year_align = ndep_shr_stream_year_align,         &
+                                 filename = ndep_shr_stream_file, id=n)
+          else if (trim(ndep_data_type).eq.'monthly-calendar') then
+            file_details => nhy_flux_monthly_file_loc
+            call init_monthly_surface_forcing_metadata(file_details)
+            call surface_forcing_fields(n)%add_forcing_field(                    &
+                                 field_source='POP monthly calendar',            &
+                                 marbl_varname=marbl_varname, field_units=units, &
+                                 forcing_calendar_name=file_details, id=n)
+          else if (trim(ndep_data_type).eq.'driver') then
+            call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
+                                 marbl_varname=marbl_varname, field_units=units,         &
+                                 named_field='ATM_NHx', id=n)
           else
-             if (trim(ndep_data_type).eq.'shr_stream') then
-                call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                     marbl_varname=marbl_varname, field_units=units,  &
-                     unit_conv_factor=ndep_shr_stream_scale_factor,   &
-                     file_varname='NHx_deposition',                   &
-                     year_first = ndep_shr_stream_year_first,         &
-                     year_last = ndep_shr_stream_year_last,           &
-                     year_align = ndep_shr_stream_year_align,         &
-                     filename = ndep_shr_stream_file, id=n)
-             else if (trim(ndep_data_type).eq.'monthly-calendar') then
-                file_details => nhy_flux_monthly_file_loc
-                call init_monthly_surface_forcing_metadata(file_details)
-                call surface_forcing_fields(n)%add_forcing_field(                    &
-                     field_source='POP monthly calendar',            &
-                     marbl_varname=marbl_varname, field_units=units, &
-                     forcing_calendar_name=file_details, id=n)
-             else
-                write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
-                     'is not a valid option for ndep_data_type'
-                call document(subname, err_msg)
-                call exit_POP(sigAbort, 'Stopping in ' // subname)
-             end if
+            write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
+                 'is not a valid option for ndep_data_type'
+            call document(subname, err_msg)
+            call exit_POP(sigAbort, 'Stopping in ' // subname)
           end if
 
         case ('DIN River Flux')
