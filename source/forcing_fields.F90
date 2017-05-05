@@ -56,9 +56,16 @@ module forcing_fields
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       public, target :: &
-      STF,  &!  surface tracer fluxes
-      TFW    ! tracer content in freshwater flux
+      STF,      &! surface tracer fluxes
+      STF_RIV,  &! riverine tracer fluxes
+      TFW        ! tracer content in freshwater flux
 
+   logical (log_kind), dimension(nt), public :: &
+      lhas_vflux,   & ! true if a tracer uses virtual fluxes
+      lhas_riv_flux   ! true if a tracer has a riverine flux
+
+   integer(kind=int_kind), public :: &
+      vflux_tracer_cnt ! number of tracers for which lhas_vflux is .true.
 
    logical (log_kind), public :: &
       lsmft_avail   ! true if SMFT is an available field

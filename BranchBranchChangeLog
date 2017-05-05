@@ -1,6 +1,66 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    5 May 2016
+Tag Name:    pop2/branch_tags/marbl_dev_ndep_tags/marbl_dev_ndep_n04_marbl_dev_n38_cesm_pop_2_1_20170323
+Tag Summary: Merge latest marbl_dev
+
+Testing: this branch is answer changing due to setting lapply_nhx_surface_emis
+         to .true. instead of false; so I generated new baselines and then
+         re-ran aux_pop_MARBL from marbl_dev_n38 with the new surface
+         emissions flag. I'm still getting NLCOMP failures because user_nl_pop
+         is different between the two, but BASELINE comparisons are
+         bit-for-bit. (Did this extravagent test on yellowstone only; ran test
+         suite on hobart to make sure nag is happy.)
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_read_fallback_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+ M      drivers/cpl
+M       drivers/cpl/ocn_comp_mct.F90
+ M      drivers/cpl_none
+M       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/baroclinic.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/constants.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/grid.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/io.F90
+A  +    source/io_read_fallback_mod.F90
+M       source/passive_tracers.F90
+M       source/schmidt_number.F90
+M       source/sf6_mod.F90
+M       source/state_mod.F90
+M       source/step_mod.F90
+M       source/strdata_interface_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    4 May 2016
 Tag Name:    pop2/branch_tags/marbl_dev_ndep_tags/marbl_dev_ndep_n03_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: Default lapply_nhx_surface_emis = .true. now, and remove forcing

@@ -833,17 +833,17 @@ contains
     allocate(gindex(lsize),stat=ier)
 
     n = 0
-    do k = 1,km
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-       do i=this_block%ib,this_block%ie
-          n=n+1
-          gindex(n) = (k-1)*(nx_global*ny_global) + &
-             (this_block%j_glob(j)-1)*(nx_global) + this_block%i_glob(i) 
+       do k = 1,km
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n=n+1
+             gindex(n) = (k-1)*(nx_global*ny_global) + &
+                (this_block%j_glob(j)-1)*(nx_global) + this_block%i_glob(i) 
+          enddo
+          enddo
        enddo
-       enddo
-    enddo
     enddo
 
     call mct_gsMap_init( gsMap3d_ocn, gindex, mpicom_ocn, OCNID, lsize, gsize )
@@ -961,59 +961,59 @@ contains
     endif
 
     n=0
-    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-       do i=this_block%ib,this_block%ie
-          n=n+1
-          data(n) = TLOND(i,j,iblock)
+       do k = 1,klev
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n=n+1
+             data(n) = TLOND(i,j,iblock)
+          enddo
+          enddo
        enddo
-       enddo
-    enddo
     enddo
     call mct_gGrid_importRattr(dom_o,"lon",data,lsize) 
 
     n=0
-    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-       do i=this_block%ib,this_block%ie
-          n=n+1
-          data(n) = TLATD(i,j,iblock)
+       do k = 1,klev
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n=n+1
+             data(n) = TLATD(i,j,iblock)
+          enddo
+          enddo
        enddo
-       enddo
-    enddo
     enddo
     call mct_gGrid_importRattr(dom_o,"lat",data,lsize) 
 
     n=0
-    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-       do i=this_block%ib,this_block%ie
-          n=n+1
-          data(n) = TAREA(i,j,iblock)/(radius*radius)
+       do k = 1,klev
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n=n+1
+             data(n) = TAREA(i,j,iblock)/(radius*radius)
+          enddo
+          enddo
        enddo
-       enddo
-    enddo
     enddo
     call mct_gGrid_importRattr(dom_o,"area",data,lsize) 
 
     n=0 
-    do k = 1,klev
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-       do i=this_block%ib,this_block%ie
-          n=n+1
-          data(n) = float(KMT(i,j,iblock)) 
-          if (data(n) > 1.0_r8) data(n) = 1.0_r8
+       do k = 1,klev
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n=n+1
+             data(n) = float(KMT(i,j,iblock)) 
+             if (data(n) > 1.0_r8) data(n) = 1.0_r8
+          enddo
+          enddo
        enddo
-       enddo
-    enddo
     enddo
     call mct_gGrid_importRattr(dom_o,"mask",data,lsize) 
     call mct_gGrid_importRattr(dom_o,"frac",data,lsize) 

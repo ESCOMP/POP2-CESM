@@ -33,8 +33,8 @@
   ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_tavg_init
-  public :: ecosys_tavg_accumulate
-  public :: ecosys_tavg_accumulate_flux
+  public :: ecosys_tavg_accumulate_interior
+  public :: ecosys_tavg_accumulate_surface
 
   !-----------------------------------------------------------------------
   !  define tavg id for interior diagnostics, diagnostics related to
@@ -43,7 +43,6 @@
   !-----------------------------------------------------------------------
 
   integer (int_kind), allocatable :: tavg_ids_interior_forcing(:)
-  integer (int_kind), allocatable :: tavg_ids_interior_restore(:)
   integer (int_kind), allocatable :: tavg_ids_surface_forcing(:)
 
   integer (int_kind) :: tavg_ECOSYS_IFRAC_2 ! ice fraction duplicate
@@ -63,6 +62,8 @@ contains
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
 
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+
     implicit none
 
     type(marbl_interface_class)  , intent(in) :: marbl_instance
@@ -71,6 +72,8 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
+    character(char_len) :: sname, lname
+    integer (int_kind) :: n
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -78,14 +81,12 @@ contains
     !-----------------------------------------------------------------------
 
     associate(&
-         cnt_interior_forcing => marbl_instance%interior_forcing_diags%diag_cnt, &
-         cnt_interior_restore => marbl_instance%interior_restore_diags%diag_cnt, &
-         cnt_surface_forcing  => marbl_instance%surface_forcing_diags%diag_cnt   &
+         interior_forcing => marbl_instance%interior_forcing_diags%diags, &
+         surface_forcing  => marbl_instance%surface_forcing_diags%diags   &
          )
 
-    allocate(tavg_ids_interior_forcing(cnt_interior_forcing))
-    allocate(tavg_ids_interior_restore(cnt_interior_restore))
-    allocate(tavg_ids_surface_forcing(cnt_surface_forcing))
+    allocate(tavg_ids_interior_forcing(size(interior_forcing)))
+    allocate(tavg_ids_surface_forcing(size(surface_forcing)))
 
     end associate
 
@@ -95,18 +96,14 @@ contains
 
     associate(&
          interior_forcing_diags => marbl_instance%interior_forcing_diags, &
-         interior_restore_diags => marbl_instance%interior_restore_diags, &
          surface_forcing_diags => marbl_instance%surface_forcing_diags    &
          )
 
-    call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing_diags, &
-         tavg_ids=tavg_ids_interior_forcing)
+      call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing_diags, &
+           tavg_ids=tavg_ids_interior_forcing)
 
-    call ecosys_tavg_define_from_diag(marbl_diags=interior_restore_diags,  &
-         tavg_ids=tavg_ids_interior_restore)
-
-    call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing_diags,  &
-         tavg_ids=tavg_ids_surface_forcing)
+      call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing_diags,  &
+           tavg_ids=tavg_ids_surface_forcing)
 
     end associate
 
@@ -139,43 +136,23 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate(i, c, bid, &
-       marbl_interior_forcing_diags,           &
-       marbl_interior_restore_diags,           &
-       marbl_surface_forcing_diags)
+  subroutine ecosys_tavg_accumulate_interior(i, c, bid, &
+       marbl_interior_forcing_diags)
 
     implicit none
 
     integer , dimension(:), intent(in) :: i, c ! column indices
     integer ,               intent(in) :: bid ! block index
 
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_forcing_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_restore_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_surface_forcing_diags
+    type(marbl_diagnostics_type), intent(in) :: marbl_interior_forcing_diags
     !-----------------------------------------------------------------------
 
-    if (present(marbl_interior_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_interior_forcing_diags,  &
-           tavg_ids = tavg_ids_interior_forcing, &
-           num_elements =marbl_interior_forcing_diags%num_elements)
-    end if
+    call ecosys_tavg_accumulate_from_diag(i, c, bid, &
+         marbl_diags = marbl_interior_forcing_diags,  &
+         tavg_ids = tavg_ids_interior_forcing, &
+         num_elements =marbl_interior_forcing_diags%num_elements)
 
-    if (present(marbl_interior_restore_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_interior_restore_diags,   &
-           tavg_ids = tavg_ids_interior_restore, &
-           num_elements = marbl_interior_restore_diags%num_elements)
-    end if
-
-    if (present(marbl_surface_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-           marbl_diags = marbl_surface_forcing_diags,   &
-           tavg_ids = tavg_ids_surface_forcing, &
-           num_elements = marbl_surface_forcing_diags%num_elements)
-    end if
-
-  end subroutine ecosys_tavg_accumulate
+  end subroutine ecosys_tavg_accumulate_interior
 
   !***********************************************************************
 
@@ -199,15 +176,15 @@ contains
 
     associate(diags => marbl_diags%diags(:))
 
-    do n=1,marbl_diags%diag_cnt
-       do ne = 1,num_elements
-          if (allocated(diags(n)%field_2d)) then
-             call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n), bid, i(ne), c(ne))
-          else
-             call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n), bid, i(ne), c(ne))
-          end if
-       end do
-    end do
+      do n=1,size(diags)
+         do ne = 1,num_elements
+            if (allocated(diags(n)%field_2d)) then
+               call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n), bid, i(ne), c(ne))
+            else
+               call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n), bid, i(ne), c(ne))
+            end if
+         end do
+      end do
 
     end associate
 
@@ -215,11 +192,12 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_flux(surface_forcing_diags, marbl_instances)
+  subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances)
 
     ! Compute diagnostics for surface fluxes
 
-    use marbl_diagnostics_mod, only : ind => marbl_surface_forcing_diag_ind
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+    use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
 
     implicit none
 
@@ -229,7 +207,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer :: i, iblock
+    integer :: i, n, iblock
     integer :: nblocks_clinic
     !-----------------------------------------------------------------------
 
@@ -238,9 +216,9 @@ contains
     !$OMP PARALLEL DO PRIVATE(iblock,i)
     do iblock=1,nblocks_clinic
 
-       associate (diag_cnt => marbl_instances(iblock)%surface_forcing_diags%diag_cnt)
+       associate (diags => marbl_instances(iblock)%surface_forcing_diags%diags)
 
-       do i = 1,diag_cnt
+       do i = 1,size(diags)
           call accumulate_tavg_field(surface_forcing_diags(:,:,i,iblock),     &
                tavg_ids_surface_forcing(i), iblock, 1)
        end do
@@ -265,7 +243,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-  end subroutine ecosys_tavg_accumulate_flux
+  end subroutine ecosys_tavg_accumulate_surface
 
   !***********************************************************************
 
@@ -285,7 +263,7 @@ contains
 
     associate(diags => marbl_diags%diags(:))
 
-      do n=1,marbl_diags%diag_cnt
+      do n=1,size(diags)
          if (trim(diags(n)%vertical_grid).eq.'none') then
             ndims = 2
             gloc = '2110'
