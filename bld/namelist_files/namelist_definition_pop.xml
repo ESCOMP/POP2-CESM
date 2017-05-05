@@ -5655,7 +5655,8 @@ Default: none provided
 id="ndep_data_type"
 type="char*256" 
 category="ecosys"
-group="ecosys_forcing_data_nml" >
+group="ecosys_forcing_data_nml"
+valid_values="shr_stream,monthly-calendar,driver" >
 Default: 'monthly-calendar' or 'shr_stream'
 </entry>
 
@@ -5912,8 +5913,7 @@ Default: 1.0
 id="riv_flux_dfe_file_varname"
 type="char*256" 
 category="ecosys"
-group="ecosys_forcing_data_nml"
-valid_values="shr_stream,monthly-calendar,driver">
+group="ecosys_forcing_data_nml">
 Default: 'dfe_riv_flux'
 </entry>
 
