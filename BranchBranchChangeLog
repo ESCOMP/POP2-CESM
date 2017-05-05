@@ -2,6 +2,31 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    4 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n59_marbl_dev_n38_cesm_pop_2_1_20170323
+Tag Summary: merge marbl_dev_n38 tag to this branch
+
+Testing:
+MARBL commit 46cb8345d3b8e0c787555bfceafba8b8592d4096
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n59 tag)
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    29 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n58_marbl_dev_n36_cesm_pop_2_1_20170323
 Tag Summary: add ALK_ALT_CO2 tracer, P_CaCO3_ALT_CO2 sinking particle

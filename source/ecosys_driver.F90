@@ -382,7 +382,7 @@ contains
             gcm_num_PAR_subcols = mcog_nbins,                                 &
             gcm_num_elements_interior_forcing = 1,                            & 
             gcm_num_elements_surface_forcing = marbl_col_cnt(iblock),         &
-            gcm_dz = dz,                                                      &
+            gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
             gcm_nl_buffer = nl_buffer,                                        &
@@ -533,8 +533,8 @@ contains
     !  Initialize ecosys_driver module variables
     !--------------------------------------------------------------------
 
-    associate(diag_cnt => marbl_instances(1)%surface_forcing_diags%diag_cnt)
-      allocate(surface_forcing_diags(nx_block, ny_block, diag_cnt, nblocks_clinic))
+    associate(diags => marbl_instances(1)%surface_forcing_diags%diags)
+      allocate(surface_forcing_diags(nx_block, ny_block, size(diags), nblocks_clinic))
     end associate
 
     surface_forcing_diags = c0
@@ -983,7 +983,7 @@ contains
                marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
        end do
 
-       do n=1,marbl_instances(1)%surface_forcing_diags%diag_cnt
+       do n=1,size(marbl_instances(1)%surface_forcing_diags%diags)
           surface_forcing_diags(i,j,n,iblock) = &
                marbl_instances(iblock)%surface_forcing_diags%diags(n)%field_2d(index_marbl)
        end do
