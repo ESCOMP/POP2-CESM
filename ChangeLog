@@ -1,4 +1,28 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    5 May 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170505
+Tag Summary: Bug fixes in buildcpp and update tests for cheyenne instead of
+             yellowstone.
+
+             Bugfixes are
+             * Handling of IRF_MODE in OCN_TRACER_MODULES_OPT was broken (the
+               mode is a string, not integer)
+             * If IRF_NT=0, script needs ocn_grid to determine IRF_NT (if
+               IRF_MODE = 'offline_transport' then the number of tracers added
+               is grid-dependent)
+
+             The change to the testlist means running running create_test with
+             * --xml-machine cheyenne --machine yellowstone if you want to run
+               tests on yellowstone
+             * --xml-machine cheyenne to run on cheyenne
+
+Testing:     aux_pop test list is bit-for-bit with previous tag on yellowstone
+
+M       cime_config/buildcpp
+M       cime_config/testdefs/testlist_pop.xml
+===============================================================================
 Tag Creator: jet
 Developers:  aliceb,jedwards
 Tag Date:    28 Apr 2017
