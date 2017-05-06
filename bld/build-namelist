@@ -1475,13 +1475,13 @@ EOF
 ############################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'dust_flux_source');
+  add_default($nl, 'dust_flux_source','ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'dust_flux_input%filename');
   add_default($nl, 'dust_flux_input%file_fmt');
   add_default($nl, 'dust_flux_input%file_varname');
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
-  add_default($nl, 'iron_flux_source');
+  add_default($nl, 'iron_flux_source','ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'iron_flux_input%filename');
   add_default($nl, 'iron_flux_input%file_fmt');
   add_default($nl, 'iron_flux_input%file_varname');
@@ -1716,8 +1716,6 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'parm_init_POC_bury_coeff');
   add_default($nl, 'parm_init_POP_bury_coeff');
   add_default($nl, 'parm_init_bSi_bury_coeff');
-  add_default($nl, 'parm_Fe_scavenge_coeffA');
-  add_default($nl, 'parm_Fe_scavenge_coeffB');
   add_default($nl, 'parm_Fe_scavenge_rate0');
   add_default($nl, 'parm_Lig_scavenge_rate0');
   add_default($nl, 'parm_FeLig_scavenge_rate0');

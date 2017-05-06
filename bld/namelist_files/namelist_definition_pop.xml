@@ -6570,27 +6570,11 @@ Default: 1.1 for gx3v7, 1.0 otherwise
 </entry>
 
 <entry 
-id="parm_Fe_scavenge_coeffA"
-type="real" 
-category="ecosys"
-group="marbl_parms_nml" >
-Default: 1.45
-</entry>
-
-<entry 
-id="parm_Fe_scavenge_coeffB"
-type="real" 
-category="ecosys"
-group="marbl_parms_nml" >
-Default: 1.0
-</entry>
-
-<entry 
 id="parm_Fe_scavenge_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 25.0
+Default: 15.0
 </entry>
 
 <entry 
@@ -6598,7 +6582,7 @@ id="parm_Lig_scavenge_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 0.005
+Default: 0.015
 </entry>
 
 <entry 
@@ -6606,7 +6590,7 @@ id="parm_FeLig_scavenge_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 1.0
+Default: 1.3
 </entry>
 
 <entry 
@@ -6614,7 +6598,7 @@ id="parm_Lig_degrade_rate0"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 0.000095
+Default: 0.000094
 </entry>
 
 <entry 
@@ -6638,7 +6622,7 @@ id="parm_POC_diss"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 90.0e2
+Default: 100.0e2
 </entry>
 
 <entry 
@@ -6646,7 +6630,7 @@ id="parm_SiO2_diss"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 660.0e2
+Default: 770.0e2
 </entry>
 
 <entry 
@@ -6654,7 +6638,7 @@ id="parm_CaCO3_diss"
 type="real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: 450.0e2
+Default: 550.0e2
 </entry>
 
 <entry 
@@ -6678,7 +6662,7 @@ id="parm_scalelen_z"
 type="real(4)" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/100.0e2, 250.0e2, 500.0e2, 750.0e2/)
+Default: (/100.0e2, 250.0e2, 500.0e2, 100.0e2/)
 </entry>
 
 <entry 
@@ -6686,7 +6670,7 @@ id="parm_scalelen_vals"
 type="real(4)" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 1.0, 3.3, 4.2, 4.4 /) for gx3v7, (/ 1.0, 3.3, 4.2, 4.5 /) otherwise
+Default: (/ 1.0, 3.3, 4.2, 4.4 /) for gx3v7, (/ 1.0, 2.2, 4.0, 5.0 /) otherwise
 </entry>
 
 <entry 
@@ -6718,7 +6702,7 @@ id="autotrophs%kFe"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 0.025e-3, 0.05e-3, 0.025e-3 /)
+Default: (/ 0.03e-3, 0.06e-3, 0.045e-3 /)
 </entry>
 
 <entry 
@@ -6726,7 +6710,7 @@ id="autotrophs%kPO4"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 0.005, 0.05, 0.02 /)
+Default: (/ 0.01, 0.05, 0.015 /)
 </entry>
 
 <entry 
@@ -6734,7 +6718,7 @@ id="autotrophs%kDOP"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 0.025, 0.1, 0.02 /)
+Default: (/ 0.3, 0.5, 0.075 /)
 </entry>
 
 <entry 
@@ -6742,7 +6726,7 @@ id="autotrophs%kNO3"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 0.15, 0.45, 3.0 /)
+Default: (/ 0.25, 0.5, 2.0 /)
 </entry>
 
 <entry 
@@ -6750,7 +6734,7 @@ id="autotrophs%kNH4"
 type="dtype(3)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 0.005, 0.05, 0.3 /)
+Default: (/ 0.01, 0.05, 0.2 /)
 </entry>
 
 <entry 
@@ -6782,7 +6766,7 @@ id="grazing%z_umax_0_per_day"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 3.3, 3.05, 3.05 /)
+Default: (/ 3.3, 3.05, 3.1 /)
 </entry>
 
 <entry 
@@ -6806,7 +6790,7 @@ id="grazing%graze_poc"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="marbl_parms_nml" >
-Default: (/ 0.0, 0.39, 0.1 /)
+Default: (/ 0.0, 0.38, 0.1 /)
 </entry>
 
 <entry 

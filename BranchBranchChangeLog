@@ -2,6 +2,29 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    6 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n60_marbl_dev_n38_cesm_pop_2_1_20170323
+Tag Summary: updated default parms
+
+Testing:
+MARBL commit 3e74ee8400a3a7ea551be404ce162090cc595660 science/iron_scav_update branch
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n59 tag)
+   all tests, except baseline compares, pass
+      baseline comparisons fail because of parameter value changes
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    4 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n59_marbl_dev_n38_cesm_pop_2_1_20170323
 Tag Summary: merge marbl_dev_n38 tag to this branch
