@@ -84,6 +84,7 @@
 
    real (POP_r8), allocatable, dimension(:,:,:,:,:), private :: STORE_RF
    real (POP_r8), allocatable, dimension(:,:,:,:),   private :: VOLSUM_RF
+   real (POP_r8), allocatable, dimension(:,:,:),     private :: WORKB
    real (POP_r8), allocatable, dimension(:,:),       private :: WORK1
    real (POP_r8), allocatable, dimension(:,:),       private :: WORK2
    real (POP_r8), allocatable, dimension(:,:),       private :: rf_sum
@@ -98,21 +99,18 @@
    real (POP_r8),                                    private :: rf_sump
    real (POP_r8),                                    private :: rf_volume_2_km
    real (POP_r8),                                    private :: rf_volume_total_cur
-   real (POP_r8),                                    private :: rf_volume_total_new
-   real (POP_r8),                                    private :: rf_volsfc_cur
-   real (POP_r8),                                    private :: rf_volsfc_new
-   real (POP_r8),                                    private :: rf_volsfc_invar
+   real (POP_r8)                                             :: rf_ocean_norm
+   real (POP_r8), allocatable, dimension(:)                  :: open_ocean_area_t_k
+   real (POP_r8)                                             :: open_ocean_volume_2_km
 
    logical (POP_Logical), allocatable, dimension(:,:,:,:)    :: LMASK_BUDGT
    real    (POP_r8),      allocatable, dimension(:,:,:,:), private ::  MASK_BUDGT
 
    logical (POP_Logical) :: lrf_budget_collect_tracer_mean_initial
    logical (POP_Logical) :: lrf_budget_collect_S1
-   logical (POP_Logical) :: lrf_prnt_sequencing = .false.
-   logical (POP_Logical) :: lrf_prnt_conserve   = .false.  !sanity check for development purposes
-
-
-
+   logical (POP_Logical) :: lrf_prnt_conserve_adj = .false.
+   logical (POP_Logical) :: lrf_prnt_sequencing   = .false.
+   logical (POP_Logical) :: lrf_prnt_conserve     = .false.  !sanity check for development purposes
 
 !EOP
 !BOC
@@ -942,7 +940,7 @@
    type (block)     :: this_block  ! block information for current block
 
    logical (log_kind) :: lrf_accumulate_RF_terms
-   logical (log_kind) :: lrf_step_diagnostics
+   logical (log_kind) :: lrf_step_diagnostics = .false.
 
 !-----------------------------------------------------------------------
 !
@@ -1170,16 +1168,24 @@
    endif ! sfc_layer_type == sfc_layer_varthick
          ! ====================================
 
-   rf_volsfc_new = global_sum(TAREA(:,:,:)*(dz(1) + PSURF(:,:,newtime,:)/grav),   &
-                          distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
-   rf_volsfc_cur = global_sum(TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav),   &
-                          distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
 
-   rf_volume_total_cur = rf_volume_2_km + rf_volsfc_cur
+   !*** add time-dependent surface volume to time-invariant volume
+   WORKB(:,:,:) = TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav)
+
+   rf_volume_total_cur = rf_volume_2_km + global_sum(WORKB,  &
+                         distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
+
+   if (registry_match ('partially-coupled')) then
+     rf_ocean_norm = rf_volume_total_cur
+   else
+     !*** in fully coupled model, normalize by open-ocean volume (no marginal seas)
+     rf_ocean_norm = open_ocean_volume_2_km + global_sum(WORKB,  &
+                      distrb_clinic,field_loc_center,RCALCT_OPEN_OCEAN) !surface
+   endif
 
    do n=1,nt
 
-     rf_S(n) = rf_Svol(n)/rf_volume_total_cur
+     rf_S(n) = rf_Svol(n)/rf_ocean_norm
 
      if (nsteps_total == 1 .or. lrf_nonzero_newtime .or. lrf_conserveVT) then
        rf_conservation_factor = rf_S(n)
@@ -1194,6 +1200,7 @@
 
      if (lrf_conserveVT) call step_RF_doc ('conserve', n, rf_conserve_factor_cur)
 
+
      !***  apply RF conservation adjustment to TRACERs at all vertical levels
      !$OMP PARALLEL DO PRIVATE(iblock,k)
      do iblock = 1,nblocks_clinic
@@ -1201,10 +1208,10 @@
        do k=1,km
          if (lrf_nonzero_newtime) &
          TRACER(:,:,k,n,newtime,iblock) =  &
-         TRACER(:,:,k,n,newtime,iblock) - rf_conserve_factor_new*MASK_BUDGT(:,:,k,iblock)
+         TRACER(:,:,k,n,newtime,iblock) - rf_conserve_factor_new*RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
 
          TRACER(:,:,k,n,curtime,iblock) =  &
-         TRACER(:,:,k,n,curtime,iblock) - rf_conserve_factor_cur*MASK_BUDGT(:,:,k,iblock)
+         TRACER(:,:,k,n,curtime,iblock) - rf_conserve_factor_cur*RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
        enddo ! k
 
      end do ! block loop (iblock)
@@ -1219,7 +1226,6 @@
    call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
                                  MASK_BUDGT, bgtarea_t_k, step_call = .true.)
 
-   lrf_step_diagnostics = .false. 
    if (lrf_step_diagnostics) then
       !***  placeholder for step diagnostics
       !$OMP PARALLEL DO PRIVATE(iblock,this_block)
@@ -1508,7 +1514,10 @@
 
    real (POP_r8) :: rfthick
 
-   integer (POP_i4) :: iblock, k
+   integer (POP_i4) :: iblock, i, j, k
+
+   type (block) ::        &
+      this_block          ! block information for current block
 
 !-----------------------------------------------------------------------
 !
@@ -1530,8 +1539,9 @@
 
    allocate (STORE_RF(nx_block,ny_block,km,nt,nblocks_clinic)) ; STORE_RF = c0
    allocate (VOLSUM_RF(nx_block,ny_block,nt,nblocks_clinic))   ; VOLSUM_RF = c0
-   allocate (WORK1(nx_block,ny_block)) ; WORK1 = c0
-   allocate (WORK2(nx_block,ny_block)) ; WORK2 = c0
+   allocate (WORKB(nx_block,ny_block,nblocks_clinic))          ; WORKB = c0
+   allocate (WORK1(nx_block,ny_block))                         ; WORK1 = c0
+   allocate (WORK2(nx_block,ny_block))                         ; WORK2 = c0
 
    !*** NOTE:
    !    rf_S_prev and rf_Svol are defined and initialized in time_management.F90 and restart.F90
@@ -1539,20 +1549,20 @@
    allocate ( MASK_BUDGT(nx_block,ny_block,km,nblocks_clinic))
 
    allocate (bgtarea_t_k(km))         ; bgtarea_t_k=c0
+   allocate (open_ocean_area_t_k(km)) ; open_ocean_area_t_k=c0
    allocate (rf_S(nt))                ; rf_S       =c0  ! Robert filter tracer conservations term
    allocate (rf_Svol(nt))             ; rf_Svol    =c0  ! S*volume
    allocate (rf_Svol_avg(nt))         ; rf_Svol_avg=c0  ! S*volume average two time levels
-   allocate (rf_S_avg(nt))            ; rf_S_avg=c0
-   allocate (rf_sum(km,nt))           ; rf_sum=c0
+   allocate (rf_S_avg(nt))            ; rf_S_avg   =c0
+   allocate (rf_sum(km,nt))           ; rf_sum     =c0
    allocate (rf_trvol_initial(nt))    ; rf_trvol_initial=c0
    allocate (rf_trvol_final  (nt))    ; rf_trvol_final=c0
 
    lrf_budget_collect_S1                  = .false.
    lrf_budget_collect_tracer_mean_initial = .true.
 
+   open_ocean_volume_2_km = c0
    rf_volume_2_km = c0
-   rf_volsfc_cur  = c0
-   rf_volsfc_new  = c0
 
    !*** LMASK_BUDGT
 
@@ -1561,7 +1571,7 @@
      do k=1,km
        if (lrobert_filter) then
          if (registry_match ('partially-coupled')) then
-           LMASK_BUDGT(:,:,k,iblock) = (KMT(:,:,iblock) >= k .and.  MASK_SR(:,:,iblock) > 0)
+           LMASK_BUDGT(:,:,k,iblock) = CALCT_OPEN_OCEAN_3D(:,:,k,iblock)
          else
            LMASK_BUDGT(:,:,k,iblock) = (KMT(:,:,iblock) >= k )
          endif
@@ -1572,32 +1582,35 @@
    end do ! block loop (iblock)
    !$OMP END PARALLEL DO
 
-     where (LMASK_BUDGT)
-       MASK_BUDGT = c1
-     elsewhere
-       MASK_BUDGT = c0
-     endwhere
+   where (LMASK_BUDGT)
+     MASK_BUDGT = c1
+   elsewhere
+     MASK_BUDGT = c0
+   endwhere
 
-     !*** time-invariant areas and volumes
-     write(stdout,*) 'k, area_t_k(k), bgtarea_t_k(k)'
 
-     do k=1,km
-       bgtarea_t_k(k) = global_sum(TAREA,distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
-       rfthick = bgtarea_t_k(k)*dz(k)
-       if (k .ge. 2) rf_volume_2_km = rf_volume_2_km + rfthick
-       write(stdout,1099) k, area_t_k(k),  bgtarea_t_k(k)
-     enddo ! k
+   !*** time-invariant areas and volumes
+   write(stdout,*) 'k, area_t_k(k), bgtarea_t_k(k) open_ocean_area_t_k(k)'
 
-     write(stdout,*) ' '
-     write(stdout,1100)    'rf_volume_2_km', rf_volume_2_km
+   do k=1,km
+     bgtarea_t_k(k) = global_sum(TAREA,distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
+     rfthick = bgtarea_t_k(k)*dz(k)
+     if (k .ge. 2) rf_volume_2_km = rf_volume_2_km + rfthick
 
-     !*** time-invariant surface-layer volume
-     k=1
-     rf_volsfc_invar = global_sum(TAREA(:,:,:)*(dz(k)),  &
-                       distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
+     open_ocean_area_t_k(k) = global_sum(TAREA,distrb_clinic,field_loc_center, &
+                                         RCALCT_OPEN_OCEAN_3D(:,:,k,:))
+     if (k .ge. 2) open_ocean_volume_2_km = open_ocean_volume_2_km +  &
+                                            open_ocean_area_t_k(k)*dz(k)
+     write(stdout,1099) k, area_t_k(k), bgtarea_t_k(k), open_ocean_area_t_k(k)
+   enddo ! k
 
-1099 format (2x, i4, 2x, 2(1pe25.15))
-1100 format (2x, a,  2x, 2(1pe25.15))
+   !*** time-invariant areas and volumes
+   write(stdout,*) ' '
+   write(stdout,1100)    'open_ocean_volume_2_km ', open_ocean_volume_2_km
+   write(stdout,1100)    'rf_volume_2_km         ', rf_volume_2_km
+
+1099 format (2x, i4, 2x, 3(1pe25.15))
+1100 format (2x, a,  2x, 3(1pe25.15))
 
    end subroutine init_step
 !***********************************************************************
@@ -1641,13 +1654,34 @@
      write(stdout,*) 'lrf_nonzero_newtime = ', lrf_nonzero_newtime
    endif
 
+   !*** optionally document rf_S values
+   
+   if (lrf_prnt_conserve_adj) then
+     if (my_task == master_task .and. iblock == 1) then
+       do n=1,nt
+         if (n == 1) then
+         write (stdout,3000) 'TEMP', 'correction',rf_S(n)
+         write (stdout,3000) 'TEMP', 'p5*(RF+RF_old) correction',p5*(rf_S(n)+rf_S_prev(n))
+       else if (n == 2) then
+         write (stdout,3000) 'SALT', 'correction',rf_S(n)
+         write (stdout,3000) 'SALT', 'p5*(RF+RF_old) correction',p5*(rf_S(n)+rf_S_prev(n))
+      !else if (n == 3) then
+      !  write (stdout,3000) 'IAGE', 'correction',rf_S(n)
+       endif
+      enddo ! n
+     endif
+    endif ! lrf_prnt_conserve_adj
+
+
    !*** collect TEMP at specified levels
    if (km >= 27) &
       call accumulate_tavg_field(TRACER(:,:,27,1,curtime,iblock),tavg_TEMP_27,iblock,27)
-!jt   if (km >= 43) &
-!jt      call accumulate_tavg_field(TRACER(:,:,43,1,curtime,iblock),tavg_TEMP_43,iblock,43)
+!  if (km >= 43) &
+!     call accumulate_tavg_field(TRACER(:,:,43,1,curtime,iblock),tavg_TEMP_43,iblock,43)
 
    if (iblock == 1) first_trip = .false.
+
+3000 format (1x, '(step_diagnostics) ', a, 1x,'RF volume-based', 1x,a,1x, 1pE26.15)
 
    end subroutine step_diagnostics
 

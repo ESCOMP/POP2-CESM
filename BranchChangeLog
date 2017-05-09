@@ -1,5 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n39_cesm_pop_2_1_20170508
+Tag Summary: Merge latest pop trunk tag
+
+Testing:     aux_pop and aux_pop_MARBL with cime5.3.0-alpha.07 and cice5_20170316
+             gx3v7 should be bit-for-bit with previous marbl_dev tag but gx1v6 is
+             not (trunk was answer-changing for gx1 grids)
+
+Files Modified:
+M       ChangeLog
+M       bld/generate_pop_decomp.xml
+M       cime_config/buildcpp
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/forcing_shf.F90
+M       source/grid.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    3 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n38_cesm_pop_2_1_20170323

@@ -6,28 +6,28 @@
         <machine compiler="pgi" testtype="aux_rasm" testmods="pop/default">eastwind</machine>
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">evergreen</machine>
         <machine compiler="pgi" testtype="aux_rasm" testmods="pop/default">olympus</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_science" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_science" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="ERS_Lm3">
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">edison</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="PFS">
-        <machine compiler="intel" testtype="csltiming">yellowstone</machine>
+        <machine compiler="intel" testtype="csltiming">cheyenne</machine>
       </test>
       <test name="SMS">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/cvmix">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cvmix">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_g37">
       <test name="ERS_Ld30">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14_transient">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14_transient">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_s11">
@@ -46,22 +46,22 @@
   <compset name="CECO">
     <grid name="T62_g16">
       <test name="ERI">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso">cheyenne</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/ecosys">cheyenne</machine>
       </test>
       <test name="ERS">
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">hobart</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">hobart</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">cheyenne</machine>
       </test>
       <test name="ERS_E_Lm3">
-        <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="ERS_Ld5_D">
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso">cheyenne</machine>
       </test>
       <test name="ERS_Lm3">
         <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">bluewaters</machine>
@@ -69,36 +69,36 @@
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">eos</machine>
       </test>
       <test name="OCP">
-        <machine compiler="intel" testtype="aux_scripts">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_scripts">cheyenne</machine>
       </test>
       <test name="PFS">
-        <machine compiler="intel" testtype="csltiming">yellowstone</machine>
+        <machine compiler="intel" testtype="csltiming">cheyenne</machine>
       </test>
       <test name="SMS">
-        <machine compiler="intel" testtype="aux_drv" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_drv" testmods="pop/ecosys">cheyenne</machine>
       </test>
       <test name="SMS_Ld20">
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_shr_stream">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_shr_stream">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">cheyenne</machine>
       </test>
       <test name="ERS_Ld3">
-        <machine compiler="intel" testtype="aux_testsystem" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_testsystem" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="ERS_Ld30">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_transient">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_transient">cheyenne</machine>
       </test>
       <test name="ERS_Ld5_D">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">cheyenne</machine>
       </test>
       <test name="SMS">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
@@ -106,11 +106,11 @@
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_apply_nhx_surface_emis">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">hobart</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">hobart</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_read_fallback_gx3v7">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_read_fallback_gx3v7">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_read_fallback_gx3v7">cheyenne</machine>
       </test>
       <test name="SMS_D">
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys">cheyenne</machine>
       </test>
       <test name="SMS_Ld2">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
@@ -118,29 +118,29 @@
       </test>
       <test name="SMS_Ld2_D">
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_daily_r4_tavg">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_daily_r4_tavg">cheyenne</machine>
       </test>
       <test name="SMS_P15x1_D">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
       </test>
     </grid>
   </compset>
   <compset name="CIAF">
     <grid name="T62_g16">
       <test name="ERS_IOP">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">cheyenne</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/default">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="ERS_Lm3">
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">hobart</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/default">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="SMS_DE">
-        <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">cheyenne</machine>
       </test>
     </grid>
   </compset>
@@ -151,44 +151,44 @@
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
       </test>
       <test name="ERS_Ld5">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_tavg">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_tavg">cheyenne</machine>
       </test>
       <test name="ICP">
-        <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="PET">
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">bluewaters</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">edison</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">eos</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="PFS">
-        <machine compiler="intel" testtype="csltiming">yellowstone</machine>
+        <machine compiler="intel" testtype="csltiming">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_g37">
       <test name="ERI">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="ERS">
-        <machine compiler="gnu" testtype="aux_pop" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="gnu" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="gnu" testtype="aux_pop" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="gnu" testtype="prealpha" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="ERS_Ld30">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/presaero">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14_presaero">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/presaero">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14_presaero">cheyenne</machine>
       </test>
       <test name="ERS_Lm3">
-        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="ERS_Lm3_E">
-        <machine compiler="intel" testtype="aux_esmf" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_esmf" testmods="pop/cice">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_s11">
@@ -197,13 +197,13 @@
       </test>
       <test name="ERS_IOP">
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="SMS_D">
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_t12">
@@ -215,59 +215,59 @@
     </grid>
     <grid name="f19_g16_rx1">
       <test name="ERI">
-        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">cheyenne</machine>
       </test>
     </grid>
     <grid name="f45_g37_rx1">
       <test name="PET">
-        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">cheyenne</machine>
       </test>
     </grid>
   </compset>
   <compset name="GECO">
     <grid name="T62_g16">
       <test name="ERS">
-        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>
+        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">cheyenne</machine>
       </test>
       <test name="ERS_Ld5">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_5day_tavg">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_5day_tavg">cheyenne</machine>
       </test>
       <test name="PFS">
-        <machine compiler="intel" testtype="csltiming">yellowstone</machine>
+        <machine compiler="intel" testtype="csltiming">cheyenne</machine>
       </test>
       <test name="SBN">
         <machine compiler="null" testtype="null">null</machine>
       </test>
       <test name="SMS">
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_daily_r4_tavg">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_daily_r4_tavg">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_dust_flux_driver">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_ladjust_bury_coeff">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_apply_nhx_surface_emis">yellowstone</machine>
+        <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_dust_flux_driver">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_ladjust_bury_coeff">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_apply_nhx_surface_emis">cheyenne</machine>
       </test>
       <test name="ERS_Ld30">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
       </test>
       <test name="ERS_Ld5_D">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">cheyenne</machine>
       </test>
       <test name="SMS_D">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys">cheyenne</machine>
       </test>
     </grid>
     <grid name="f19_g16_rx1">
       <test name="ERS">
-        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">cheyenne</machine>
       </test>
       <test name="ERS_D">
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">edison</machine>
@@ -279,12 +279,12 @@
   <compset name="GIAF">
     <grid name="T62_g16">
       <test name="ERS_IOP">
-        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="ERS_Lm3">
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">cheyenne</machine>
       </test>
     </grid>
   </compset>
