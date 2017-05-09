@@ -706,30 +706,29 @@
       case ('nyear')
          tavg_freq_iopt(ns) = freq_opt_nyear
          write(stdout,freq_fmt) ns, tavg_freq(ns),' years  '
-         write(time_period_freq(ns),'(a,i0)') 'year_',tavg_freq_iopt(ns)
+         write(time_period_freq(ns),'(a,i0)') 'year_',tavg_file_freq(ns)
       case ('nmonth')
          tavg_freq_iopt(ns) = freq_opt_nmonth
          write(stdout,freq_fmt) ns, tavg_freq(ns),' months '
-	 write(time_period_freq(ns),'(a,i0)') 'month_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'month_',tavg_file_freq(ns)
       case ('nday')
          tavg_freq_iopt(ns) = freq_opt_nday
          write(stdout,freq_fmt) ns, tavg_freq(ns),' days   '
-	 write(time_period_freq(ns),'(a,i0)') 'day_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'day_',tavg_file_freq(ns)
       case ('nhour')
          tavg_freq_iopt(ns) = freq_opt_nhour
          write(stdout,freq_fmt) ns, tavg_freq(ns),' hours  '
-	 write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_file_freq(ns)
       case ('nsecond')
          tavg_freq_iopt(ns) = freq_opt_nsecond
          write(stdout,freq_fmt) ns, tavg_freq(ns),' seconds'
-	 write(time_period_freq(ns),'(a,i0)') 'second_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'second_',tavg_file_freq(ns)
       case ('nstep')
          tavg_freq_iopt(ns) = freq_opt_nstep
          write(stdout,freq_fmt) ns, tavg_freq(ns),' steps  '
-	 write(time_period_freq(ns),'(a,i0)') 'step_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'step_',tavg_file_freq(ns)
       case default
          tavg_freq_iopt(ns) = -1000
-	 write(time_period_freq(ns),'(a)') 'undefined'
       end select
 
       if (tavg_freq_iopt(ns) /= freq_opt_never) then
@@ -780,6 +779,7 @@
            write(stdout,freq_fmt) ns, tavg_file_freq(ns),' steps  '
         case default
            tavg_file_freq_iopt(ns) = -1000
+	   write(time_period_freq(ns),'(a)') 'undefined'
         end select
       endif
 
