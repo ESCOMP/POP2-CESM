@@ -1,4 +1,66 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  njn01, gokhan
+Tag Date:    9 May 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170508
+Tag Summary: modify Robert Filtering code to fix a problem with salinity drift in marginal seas
+
+
+Testing: This mod only affects the ocean configurations using robert filter (1 degree).  The 1 degree tests
+	are expected to be different because the mod is answer changing (it has been validated by Gokhan in
+	coupled testing).  All other resolutions of aux_pop pass.
+
+
+	from Nancy's README on her testing.
+	Primary tests:
+	==============
+
+	   1) oob -- same as "Case 149," where the problem with salinity drift in marginal seas was first observed
+	     /glade/p/cgd/oce/people/njn01/cases/robert/margseas/b.e20.B1850.f09_g17.pi_control.all.149.RF.margseas.01
+
+	   2) same as 1), except RF tracer-conservation-term modification
+	     /glade/p/cgd/oce/people/njn01/cases/robert/margseas/b.e20.B1850.f09_g17.pi_control.all.149.RF.margseas.02
+	      This case was run for five years and approved by Gokhan
+
+	   3) same as 2), except cleaned-up code from supplemental tests listed below
+	     /glade/p/cgd/oce/people/njn01/cases/robert/margseas/b.e20.B1850.f09_g17.pi_control.all.149.RF.margseas.02b
+	      This case was run for one month, and is b4b with month 1 of case 2).  The three modified files used
+	      in this experiment's SourceMods/src.pop directory are identical to those in the Supplemental test cases
+	      below.
+
+
+
+	Supplemental tests:
+	===================
+
+	   After running primary test cases 1) and 2), I set up these supplemental test cases in which I could
+	   clean up the experimental version used in case 2) (expand upon KL's RCALC_OPEN_OCEAN mods, eg).  In
+	   the process, I discovered a bug in the code used in case149. This buggy code was not triggered
+	   in case 149; it was a partially-coupled-option bug only.  I corrected that bug and tested in the
+	   giaf case below. (the 'partially-coupled' string referenced in step_mod.F90 was *not* registered;
+	   I modified forcing_shf.F90 so that now it is registered)
+
+
+	    1) giaf
+	       /glade/u/home/njn01/ROBERT/cases/cesm20/giaf.c2b4m.gx1v6.robert.1hr.07g
+
+	    2) B1850
+	       /glade/u/home/njn01/ROBERT/cases/cesm20/B1850.c2b4m.gx1v6.robert.1hr.08
+
+	Tests:
+	      giaf:  Three years: check tracer budget diagnostics -- acceptable balance/imbalance
+	                          check precipitation factor -- ok
+	                          re-test with various incarnations of cleaned-up code
+	      B1850: 6- to 10-day runs with daily budget diagnostics.
+
+	NOTE: CIME tag in the supplemental tests is /glade/p/cgd/oce/people/njn01/MODELS/CESM/cesm2_0_alpha04b
+
+	M       source/step_mod.F90
+	M       source/grid.F90
+	M       source/forcing_shf.F90
+	M       ChangeLog
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    5 May 2017

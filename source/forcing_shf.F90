@@ -21,6 +21,7 @@
    use io
    use grid
    use forcing_tools
+   use registry
    use time_management
    use prognostic
    use exit_mod
@@ -425,6 +426,7 @@
       !$OMP END PARALLEL DO
 
    case ('partially-coupled')
+      call register_string('partially-coupled')
       lsw_absorb = .false.
       shf_data_num_fields = 1
       allocate(shf_data_names(shf_data_num_fields), &
