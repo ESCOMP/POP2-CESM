@@ -3381,7 +3381,7 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    end if
 
-   kmax = avail_tavg_fields(field_id)%km
+   kmax = min(avail_tavg_fields(field_id)%km, KMT(i,j,block))
 
 !-----------------------------------------------------------------------
 !
