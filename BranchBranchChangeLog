@@ -2,6 +2,50 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    14 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n61_marbl_dev_n38_cesm_pop_2_1_20170323
+Tag Summary: compset updates/cleanup, rework cfc/sf6 initialization, cfc dataset/testing update
+
+rename CECO and GECO compsets to C1850ECO and G1850ECO, to indicate 1850 forcings
+add G1850ECOIAF compset
+
+add sf6 to HIST and 5505 compsets
+change pattern matching on HIST and 5505 compsets (to avoid matching HIST with CPLHIST)
+
+add CORE2 as valid value to OCN_TRANSIENT
+   add cfc/sf6 calendar offsets for this setting
+
+improve cfc/sf6 initialization with runtime io_read_fallback_register_tracer const=c0
+   if effective cfc/sf6 calendar year is less than p{cfc,sf6}_first_nonzero_year
+
+updated atm cfc dataset
+
+add cfc_sf6 test to aux_pop
+
+Testing:
+MARBL commit 3e74ee8400a3a7ea551be404ce162090cc595660 science/iron_scav_update branch
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n59 tag)
+   baselines were renamed to account for compset name change
+   ww3 required change for long restart filename
+   all tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/cfc_mod.F90
+M       source/sf6_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    6 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n60_marbl_dev_n38_cesm_pop_2_1_20170323
 Tag Summary: updated default parms

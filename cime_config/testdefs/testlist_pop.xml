@@ -7,6 +7,7 @@
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">evergreen</machine>
         <machine compiler="pgi" testtype="aux_rasm" testmods="pop/default">olympus</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cfc_sf6">yellowstone</machine>
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="aux_science" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
@@ -43,7 +44,7 @@
       </test>
     </grid>
   </compset>
-  <compset name="CECO">
+  <compset name="C1850ECO">
     <grid name="T62_g16">
       <test name="ERI">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
@@ -224,7 +225,7 @@
       </test>
     </grid>
   </compset>
-  <compset name="GECO">
+  <compset name="G1850ECO">
     <grid name="T62_g16">
       <test name="ERS">
         <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>

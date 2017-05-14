@@ -49,7 +49,7 @@
   </compset>
 
   <compset>
-    <alias>CECO</alias> 
+    <alias>C1850ECO</alias> 
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
@@ -72,8 +72,13 @@
   </compset>
 
   <compset>
-    <alias>GECO</alias>
+    <alias>G1850ECO</alias>
     <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>G1850ECOIAF</alias>
+    <lname>1850_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
   </compset>
 
   <!-- Single Column POP -->

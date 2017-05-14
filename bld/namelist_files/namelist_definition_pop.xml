@@ -4635,7 +4635,7 @@ valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_b
 Option for initialization of cfc.
 
 Valid Values: 'ccsm_startup', 'zero', 'ccsm_startup_spunup', 'restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid', 'file'
-Default: Set by CESM scripts ('zero' for starting 1850-2000 transient run, 'ccsm_$runtype'otherwise)
+Default: ccsm_$runtype
 </entry>
 
 <entry 
@@ -4718,7 +4718,19 @@ group="cfc_nml"
 input_pathname="abs" >
 File name for ascii time series of atm cfc11.
 
-Default: '$DIN_LOC_ROOT/ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc'
+Default: '$DIN_LOC_ROOT/ocn/pop/res_indpt/forcing/cfc_atm_20170512.nc'
+</entry>
+
+<entry
+id="pcfc_first_nonzero_year"
+type="integer"
+category="passive_tracers"
+group="cfc_nml" >
+first year of non-zero values in pcfc_file
+If the effective cfc calendar year is less than this,
+and cfc tracers are being read from a restart file,
+then a fallback of const=0 for I/O reading is registered.
+Default: 1936
 </entry>
 
 <entry 
@@ -4728,7 +4740,7 @@ category="passive_tracers"
 group="derived" >
 Arbitrary model year.
 
-Default: 1850 for 1850-2000 transient run, 1 otherwise. 
+Default: 1850 for OCN_TRANSIENT=1850-2000, 310 for OCN_TRANSIENT=CORE2, 1 otherwise. 
 </entry>
 
 <entry 
@@ -4738,7 +4750,7 @@ category="passive_tracers"
 group="derived" >
 Year in data that corresponds to model_year.
 
-Default: 1850 for 1850-2000 transient run, 1981 otherwise. 
+Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2, 1 otherwise. 
 </entry>
 
 <entry 
@@ -4889,7 +4901,7 @@ valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_b
 Option for initialization of sf6.
 
 Valid Values: 'ccsm_startup', 'zero', 'ccsm_startup_spunup', 'restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid', 'file'
-Default: Set by CESM scripts ('zero' for starting 1850-2000 transient run, 'ccsm_$runtype'otherwise)
+Default: ccsm_$runtype
 </entry>
 
 <entry 
@@ -4972,7 +4984,19 @@ group="sf6_nml"
 input_pathname="abs" >
 File name for ascii time series of atm sf6.
 
-Default: '/glade/p/work/mclong/cfc_atm_hist/cfc_sf6_n2o_atm_20160311.nc'
+Default: '$DIN_LOC_ROOT/ocn/pop/res_indpt/forcing/sf6_atm_20160311.nc'
+</entry>
+
+<entry
+id="psf6_first_nonzero_year"
+type="integer"
+category="passive_tracers"
+group="sf6_nml" >
+first year of non-zero values in psf6_file
+If the effective sf6 calendar year is less than this,
+and the sf6 tracer is being read from a restart file,
+then a fallback of const=0 for I/O reading is registered.
+Default: 1953
 </entry>
 
 <entry 

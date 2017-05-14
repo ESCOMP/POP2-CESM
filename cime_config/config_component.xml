@@ -77,8 +77,8 @@
     <valid_values></valid_values>
     <default_value>iage</default_value>
     <values modifier='merge'>
-      <value compset="HIST">cfc</value>
-      <value compset="5505">cfc</value>
+      <value compset="^HIST">cfc sf6</value>
+      <value compset="^5505">cfc sf6</value>
       <value compset="_POP2%ECO">ecosys</value>
     </values>
     <group>build_component_pop</group>
@@ -115,9 +115,10 @@
 
   <entry id="OCN_TRANSIENT">
     <type>char</type>
-    <valid_values>unset,1850-2000,rcp4.5,rcp8.5</valid_values>
+    <valid_values>unset,CORE2,1850-2000,rcp4.5,rcp8.5</valid_values>
     <default_value>unset</default_value>
     <values>
+      <value compset="DATM%IAF">CORE2</value>
       <value compset="^5505_CAM">1850-2000</value>
       <value compset="^HIST_CAM">1850-2000</value>
       <value compset="^RCP4_CAM">rcp4.5</value>

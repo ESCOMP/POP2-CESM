@@ -1031,15 +1031,19 @@
 
 <cfc_formulation>model</cfc_formulation>
 
-<data_year&cfc_nml>1981</data_year&cfc_nml>
-<data_year&cfc_nml ocn_transient="1850-2000">1850</data_year&cfc_nml>
+<data_year&cfc_nml                           >   1</data_year&cfc_nml>
+<model_year&cfc_nml                          >   1</model_year&cfc_nml>
+
+<data_year&cfc_nml  ocn_transient="CORE2"    >2009</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="CORE2"    > 310</model_year&cfc_nml>
+
+<data_year&cfc_nml  ocn_transient="1850-2000">1850</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
 
 <init_cfc_init_file>same_as_TS</init_cfc_init_file>
 
-<model_year&cfc_nml>1</model_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
-
-<pcfc_file>ocn/pop/res_indpt/forcing/pcfc1112_atm_20130410.nc</pcfc_file>
+<pcfc_file>ocn/pop/res_indpt/forcing/cfc_atm_20170512.nc</pcfc_file>
+<pcfc_first_nonzero_year>1936</pcfc_first_nonzero_year>
 
 <!---------------------------->
 <!--        sf6_nml         -->
@@ -1047,16 +1051,19 @@
 
 <sf6_formulation>model</sf6_formulation>
 
-<data_year&sf6_nml>1981</data_year&sf6_nml>
-<data_year&sf6_nml ocn_transient="1850-2000">1850</data_year&sf6_nml>
+<data_year&sf6_nml                           >   1</data_year&sf6_nml>
+<model_year&sf6_nml                          >   1</model_year&sf6_nml>
+
+<data_year&sf6_nml  ocn_transient="CORE2"    >2009</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="CORE2"    > 310</model_year&sf6_nml>
+
+<data_year&sf6_nml  ocn_transient="1850-2000">1850</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
 
 <init_sf6_init_file>same_as_TS</init_sf6_init_file>
 
-<model_year&sf6_nml>1</model_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
-
 <psf6_file>ocn/pop/res_indpt/forcing/sf6_atm_20160311.nc</psf6_file>
-
+<psf6_first_nonzero_year>1953</psf6_first_nonzero_year>
 
 <!---------------------------->
 <!--    abio_dic_dic14_nml  -->

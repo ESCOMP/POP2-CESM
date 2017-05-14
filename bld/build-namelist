@@ -1263,48 +1263,42 @@ if ($iage_on eq "TRUE") {
 
 my $cfc_on = $cfg->get("use_cfc");
 if ($cfc_on eq "TRUE") {
+    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'pcfc_first_nonzero_year');
 
-#===============================================================================
-#  values of init_cfc_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set in $CASEROOT/env_run.xml
-#
-#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_cfc_option
-#  TRUE           any             any             continue    ccsm_continue
-#  FALSE          <= 1930         any             $RUN_TYPE   zero
-#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
-#  FALSE          > 1930          startup         $RUN_TYPE   abort
-#===============================================================================
+    # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective cfc year >= pcfc_first_nonzero_year
+    # then make the user specify init_cfc_option.
 
-    my $init_cfc_option;
-    $init_cfc_option = "ccsm_${RUN_TYPE}";
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      if ($RUN_TYPE ne "continue") {
-        my $RUN_DAY_ONE = $RUN_STARTDATE;
-        if ($RUN_TYPE eq "branch") {
-          $RUN_DAY_ONE = $RUN_REFDATE;
-        }
-        my @START_ARRAY = split('-',$RUN_DAY_ONE);
-        my $START_YEAR = @START_ARRAY[0];
-        print "Setting initial CFCs based on starting the run in $START_YEAR\n";
-        if ($START_YEAR le 1930) {
-          $init_cfc_option = "zero";
-        } else {
-          if ($RUN_TYPE eq "startup") {
-            # Check to see if init_cfc_option was set in user_nl_pop
-            $init_cfc_option = $nl->get_variable_value("cfc_nml", "init_cfc_option");
-            if ($init_cfc_option eq "") {
-              # If not, error out with message saying value must be specified 
-              print "ERROR: CFCs cannot be automatically initializd post 1930 in a startup run! Set init_cfc_option in user_nl_pop before building pop_in.\n";
-              die;
-            }
-          }
+    if ($RUN_TYPE eq "startup") {
+      # RUN_TYPE gets changed to continue if CONTINUE_RUN eq "TRUE",
+      # so we may assume here that CONTINUE_RUN eq "FALSE"
+
+      my $RUN_DAY_ONE = $RUN_STARTDATE;
+      if ($RUN_TYPE eq "branch") {
+        $RUN_DAY_ONE = $RUN_REFDATE;
+      }
+      my @START_ARRAY = split('-',$RUN_DAY_ONE);
+      my $START_YEAR = @START_ARRAY[0];
+
+      my $cfc_model_year = $nl->get_value("model_year&cfc_nml");
+      my $cfc_data_year  = $nl->get_value("data_year&cfc_nml");
+      my $START_YEAR_adj = $START_YEAR - $cfc_model_year + $cfc_data_year;
+      my $pcfc_first_nonzero_year = $nl->get_value("pcfc_first_nonzero_year");
+
+      if ($START_YEAR_adj ge $pcfc_first_nonzero_year) {
+        # Abort if init_cfc_option was not set in user_nl_pop
+        if ($nl->get_variable_value("cfc_nml", "init_cfc_option") eq "") {
+          print "RUN_TYPE=startup\n",
+                "START_YEAR_adj=$START_YEAR_adj ge pcfc_first_nonzero_year=$pcfc_first_nonzero_year\n",
+                "ERROR: CFCs cannot be automatically initialized post $pcfc_first_nonzero_year in a startup run\n",
+                "Set init_cfc_option or change pcfc_first_nonzero_year in user_nl_pop.\n";
+          die;
         }
       }
     }
-    add_default($nl, 'init_cfc_option', 'val'=>"$init_cfc_option");
 
-    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'init_cfc_option', 'val'=>"ccsm_$RUN_TYPE");
 
     add_default($nl, 'cfc_formulation');
     add_default($nl, 'pcfc_file');
@@ -1317,48 +1311,42 @@ if ($cfc_on eq "TRUE") {
 
 my $sf6_on = $cfg->get("use_sf6");
 if ($sf6_on eq "TRUE") {
+    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'psf6_first_nonzero_year');
 
-#===============================================================================
-#  values of init_sf6_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set in $CASEROOT/env_run.xml
-#
-#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_sf6_option
-#  TRUE           any             any             continue    ccsm_continue
-#  FALSE          <= 1930         any             $RUN_TYPE   zero
-#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
-#  FALSE          > 1930          startup         $RUN_TYPE   abort
-#===============================================================================
+    # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective sf6 year >= psf6_first_nonzero_year
+    # then make the user specify init_sf6_option.
 
-    my $init_sf6_option;
-    $init_sf6_option = "ccsm_${RUN_TYPE}";
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      if ($RUN_TYPE ne "continue") {
-        my $RUN_DAY_ONE = $RUN_STARTDATE;
-        if ($RUN_TYPE eq "branch") {
-          $RUN_DAY_ONE = $RUN_REFDATE;
-        }
-        my @START_ARRAY = split('-',$RUN_DAY_ONE);
-        my $START_YEAR = @START_ARRAY[0];
-        print "Setting initial SF6 based on starting the run in $START_YEAR\n";
-        if ($START_YEAR le 1930) {
-          $init_sf6_option = "zero";
-        } else {
-          if ($RUN_TYPE eq "startup") {
-            # Check to see if init_sf6_option was set in user_nl_pop
-            $init_sf6_option = $nl->get_variable_value("sf6_nml", "init_sf6_option");
-            if ($init_sf6_option eq "") {
-              # If not, error out with message saying value must be specified 
-              print "ERROR: SF6 cannot be automatically initializd post 1930 in a startup run! Set init_sf6_option in user_nl_pop before building pop_in.\n";
-              die;
-            }
-          }
+    if ($RUN_TYPE eq "startup") {
+      # RUN_TYPE gets changed to continue if CONTINUE_RUN eq "TRUE",
+      # so we may assume here that CONTINUE_RUN eq "FALSE"
+
+      my $RUN_DAY_ONE = $RUN_STARTDATE;
+      if ($RUN_TYPE eq "branch") {
+        $RUN_DAY_ONE = $RUN_REFDATE;
+      }
+      my @START_ARRAY = split('-',$RUN_DAY_ONE);
+      my $START_YEAR = @START_ARRAY[0];
+
+      my $sf6_model_year = $nl->get_value("model_year&sf6_nml");
+      my $sf6_data_year  = $nl->get_value("data_year&sf6_nml");
+      my $START_YEAR_adj = $START_YEAR - $sf6_model_year + $sf6_data_year;
+      my $psf6_first_nonzero_year = $nl->get_value("psf6_first_nonzero_year");
+
+      if ($START_YEAR_adj ge $psf6_first_nonzero_year) {
+        # Abort if init_sf6_option was not set in user_nl_pop
+        if ($nl->get_variable_value("sf6_nml", "init_sf6_option") eq "") {
+          print "RUN_TYPE=startup\n",
+                "START_YEAR_adj=$START_YEAR_adj ge psf6_first_nonzero_year=$psf6_first_nonzero_year\n",
+                "ERROR: sf6s cannot be automatically initialized post $psf6_first_nonzero_year in a startup run\n",
+                "Set init_sf6_option or change psf6_first_nonzero_year in user_nl_pop.\n";
+          die;
         }
       }
     }
-    add_default($nl, 'init_sf6_option', 'val'=>"$init_sf6_option");
 
-    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'init_sf6_option', 'val'=>"ccsm_$RUN_TYPE");
 
     add_default($nl, 'sf6_formulation');
     add_default($nl, 'psf6_file');

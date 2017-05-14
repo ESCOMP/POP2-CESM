@@ -37,6 +37,7 @@ module cfc_mod
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair
    use passive_tracer_tools, only : read_field, tracer_read
+   use time_management, only : iyear, iday_of_year, frac_day, days_in_year
    use broadcast
    use netcdf
 
@@ -96,32 +97,33 @@ module cfc_mod
 !-----------------------------------------------------------------------
 
    character(char_len) :: &
-      cfc_formulation,     & ! how to calculate flux (ocmip or model)
-      pcfc_file              ! filename for ascii time series of atm cfc11
+      cfc_formulation,        & ! how to calculate flux (ocmip or model)
+      pcfc_file                 ! filename for netCDF time series of atm pcfc
 
    integer (int_kind) ::  &
-      model_year,          & ! arbitrary model year
-      data_year,           & ! year in data that corresponds to model_year
-      pcfc_data_len          ! length of atmospheric pcfc record
+      model_year,             & ! arbitrary model year
+      data_year,              & ! year in data that corresponds to model_year
+      pcfc_data_len,          & ! length of atmospheric pcfc record
+      pcfc_first_nonzero_year   ! first year of non-zero values in pcfc_file
 
    real (r8), parameter :: &
       max_pcfc_extension = 2.0_r8
       ! maximum number of years that pcfc record will be extrapolated
 
    real (r8), dimension(:), allocatable :: &
-      pcfc_date,           & ! date for atmospheric pcfc record (years)
-      pcfc11_nh,           & ! pcfc11 data for northern hemisphere (pmol/mol)
-      pcfc11_sh,           & ! pcfc11 data for southern hemisphere (pmol/mol)
-      pcfc12_nh,           & ! pcfc12 data for northern hemisphere (pmol/mol)
-      pcfc12_sh              ! pcfc12 data for southern hemisphere (pmol/mol)
+      pcfc_date,              & ! date for atmospheric pcfc record (years)
+      pcfc11_nh,              & ! pcfc11 data for northern hemisphere (pmol/mol)
+      pcfc11_sh,              & ! pcfc11 data for southern hemisphere (pmol/mol)
+      pcfc12_nh,              & ! pcfc12 data for northern hemisphere (pmol/mol)
+      pcfc12_sh                 ! pcfc12 data for southern hemisphere (pmol/mol)
 
    real (r8), dimension(:,:,:,:), allocatable :: &
-      INTERP_WORK            ! temp array for interpolate_forcing output
+      INTERP_WORK               ! temp array for interpolate_forcing output
 
    type(forcing_monthly_every_ts) :: &
-      fice_file,           & ! ice fraction, if read from file
-      xkw_file,            & ! a * wind-speed ** 2, if read from file
-      ap_file                ! atmoshperic pressure, if read from file
+      fice_file,              & ! ice fraction, if read from file
+      xkw_file,               & ! a * wind-speed ** 2, if read from file
+      ap_file                   ! atmoshperic pressure, if read from file
 
 !-----------------------------------------------------------------------
 !  define tavg id for 2d fields related to surface fluxes
@@ -191,6 +193,7 @@ contains
    use timers, only: get_timer
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
        rest_read_tracer_block, file_read_tracer_block
+    use io_read_fallback_mod, only: io_read_fallback_register_tracer
 
 ! !INPUT PARAMETERS:
 
@@ -240,8 +243,11 @@ contains
 
    namelist /cfc_nml/ &
       init_cfc_option, init_cfc_init_file, init_cfc_init_file_fmt, &
-      tracer_init_ext, pcfc_file, model_year, data_year, &
+      tracer_init_ext, pcfc_file, pcfc_first_nonzero_year, model_year, data_year, &
       cfc_formulation, gas_flux_fice, gas_flux_ws, gas_flux_ap
+
+   real (r8) :: &
+      mapped_date               ! date of current model timestep mapped to data timeline
 
    character (char_len) ::  &
       cfc_restart_filename      ! modified file name for restart file
@@ -285,10 +291,11 @@ contains
       tracer_init_ext(n)%file_fmt     = 'bin'
    end do
 
-   pcfc_file       = 'unknown'
-   model_year      = 1
-   data_year       = 1931
-   cfc_formulation = 'model'
+   pcfc_file               = 'unknown'
+   pcfc_first_nonzero_year = 1936
+   model_year              = 1
+   data_year               = 1
+   cfc_formulation         = 'model'
 
    gas_flux_fice%filename     = 'unknown'
    gas_flux_fice%file_varname = 'FICE'
@@ -346,6 +353,7 @@ contains
    end do
 
    call broadcast_scalar(pcfc_file, master_task)
+   call broadcast_scalar(pcfc_first_nonzero_year, master_task)
    call broadcast_scalar(model_year, master_task)
    call broadcast_scalar(data_year, master_task)
    call broadcast_scalar(cfc_formulation, master_task)
@@ -389,6 +397,17 @@ contains
       endif
 
    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
+
+      ! if mapped_date is less than pcfc_first_nonzero_year then
+      ! register c0 as an io_read_fallback option
+      mapped_date = iyear + (iday_of_year-1+frac_day)/days_in_year &
+                    - model_year + data_year
+      if (mapped_date < pcfc_first_nonzero_year) then
+         call io_read_fallback_register_tracer(tracername='CFC11', &
+            fallback_opt='const', const_val=c0)
+         call io_read_fallback_register_tracer(tracername='CFC12', &
+            fallback_opt='const', const_val=c0)
+      endif
 
       cfc_restart_filename = char_blank
 
@@ -1256,7 +1275,6 @@ contains
 
    use grid, only : TLATD
    use constants, only : c10
-   use time_management, only : iyear, iday_of_year, frac_day, days_in_year
 
 ! !INPUT PARAMETERS:
 
