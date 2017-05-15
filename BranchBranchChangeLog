@@ -1,6 +1,20 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    15 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n85_marbl_dev_n40_cesm_pop_2_1_20170508
+Tag Summary: Bring in latest marbl_dev tag to allow testing on cheyenne
+
+Testing:     aux_pop_MARBL bit-for-bit with marbl_dev_n40 on cheyenne
+             (had tested a previous tag on hobart, and this was a minor update)
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    11 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n84_marbl_dev_n39_cesm_pop_2_1_20170508
 Tag Summary: Code cleanup following review
