@@ -200,6 +200,8 @@ module ecosys_forcing_mod
 
   ! Is NDEP available from the driver?
   logical(log_kind), public :: ldriver_has_ndep
+  logical(log_kind), public :: ldriver_has_atm_co2_diag
+  logical(log_kind), public :: ldriver_has_atm_co2_prog
 
   ! Data type for reading interior forcing from shr_stream
   type (strdata_input_type), pointer :: interior_strdata_inputlist_ptr(:)
@@ -506,7 +508,27 @@ contains
        write(stdout,delim_fmt)
     endif
 
-    ! Consistency check
+    ! Consistency checks
+    ! Diagnostic ATM_CO2 requested from driver but driver doesn't provide it?
+    if ((trim(atm_co2_opt) .eq. 'drv_diag') .and. (.not. ldriver_has_atm_co2_diag)) then
+        call document(subname, "ERROR: atm_co2_opt is requesting diagnostic CO2 from coupler but coupler is not providing it!")
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
+
+    ! Prognostic ATM_CO2 requested from driver but driver doesn't provide it?
+    if ((trim(atm_co2_opt) .eq. 'drv_prog') .and. (.not. ldriver_has_atm_co2_prog)) then
+        call document(subname, "ERROR: atm_co2_opt is requesting prognostic CO2 from coupler but coupler is not providing it!")
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
+
+    ! NDEP requested from driver but driver doesn't provide it?
+    if ((ndep_data_type.eq.'driver') .and. (.not. ldriver_has_ndep)) then
+        call document(subname, "ERROR: ndep_data_type is 'driver' but coupler is not providing nitrogen deposition!")
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
+
+    ! NDEP provided by driver but not read and not intentionally
+    ! ignored?
     if ((.not. lignore_driver_ndep) .and. (ldriver_has_ndep) .and. &
         (ndep_data_type.ne.'driver')) then
         ! If either named field index is greater than 0, then either
@@ -514,11 +536,6 @@ contains
         call document(subname, "ERROR: coupler is providing nitrogen deposition but ndep_data_type is not 'driver'")
         call document(subname, "To use the coupler values, set ndep_data_type = 'driver'")
         call document(subname, 'Otherwise set lignore_driver_ndep = .true.')
-        call exit_POP(sigAbort, 'Stopping in ' // subname)
-    end if
-
-    if ((ndep_data_type.eq.'driver') .and. (.not. ldriver_has_ndep)) then
-        call document(subname, "ERROR: ndep_data_type is 'driver' but coupler is not providing nitrogen deposition!")
         call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 

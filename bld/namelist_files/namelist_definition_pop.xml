@@ -5375,7 +5375,7 @@ Default: .true.
 </entry>
 
 <entry 
-id="lapply_nhx_surface_emis"
+id="lcompute_nhx_surface_emis"
 type="logical" 
 category="ecosys"
 group="marbl_config_nml" >

@@ -1433,7 +1433,7 @@ EOF
   add_default($nl, 'lecovars_full_depth_tavg');
   add_default($nl, 'lflux_gas_o2');
   add_default($nl, 'lflux_gas_co2');
-  add_default($nl, 'lapply_nhx_surface_emis');
+  add_default($nl, 'lcompute_nhx_surface_emis');
 
   add_default($nl, 'lvariable_PtoC');
 
@@ -1497,7 +1497,7 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  my $lapply_nhx_surface_emis = $nl->get_value('lapply_nhx_surface_emis');
+  my $lcompute_nhx_surface_emis = $nl->get_value('lcompute_nhx_surface_emis');
 
   add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
   my $ndep_data_type = $nl->get_value('ndep_data_type');
@@ -1505,11 +1505,11 @@ if ($ecosys_on eq "TRUE") {
   $ndep_data_type =~ s/['"]//g;
   if ($ndep_data_type ne "driver") {
     if ($OCN_TRANSIENT eq "unset") {
-      add_default($nl, 'nox_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
+      add_default($nl, 'nox_flux_monthly_input%filename');
       add_default($nl, 'nox_flux_monthly_input%file_fmt');
       add_default($nl, 'nox_flux_monthly_input%file_varname');
       add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-      add_default($nl, 'nhy_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
+      add_default($nl, 'nhy_flux_monthly_input%filename');
       add_default($nl, 'nhy_flux_monthly_input%file_fmt');
       add_default($nl, 'nhy_flux_monthly_input%file_varname');
       add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
@@ -1518,7 +1518,7 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'ndep_shr_stream_year_last');
       add_default($nl, 'ndep_shr_stream_year_align');
       add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-      add_default($nl, 'ndep_shr_stream_file', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
+      add_default($nl, 'ndep_shr_stream_file');
     } elsif (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
       add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
       add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
