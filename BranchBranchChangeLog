@@ -3,6 +3,37 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    14 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n62_marbl_dev_n40_cesm_pop_2_1_20170508
+Tag Summary: merge marbl_dev_n40 tag to this branch
+
+Testing:
+MARBL commit d7cc4ccd27cf4d3b8242e1164c62c38edfc61a0a science/iron_scav_update branch
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n61 tag)
+   all tests, except x1 baseline compares, pass
+      x1 baseline comparisons fail because of bug fix from trunk
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/generate_pop_decomp.xml
+M       cime_config/buildcpp
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/forcing_shf.F90
+M       source/grid.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    14 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n61_marbl_dev_n38_cesm_pop_2_1_20170323
 Tag Summary: compset updates/cleanup, rework cfc/sf6 initialization, cfc dataset/testing update
 
@@ -25,7 +56,7 @@ add cfc_sf6 test to aux_pop
 Testing:
 MARBL commit 3e74ee8400a3a7ea551be404ce162090cc595660 science/iron_scav_update branch
 
-aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n59 tag)
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n60 tag)
    baselines were renamed to account for compset name change
    ww3 required change for long restart filename
    all tests pass

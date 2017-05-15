@@ -20,7 +20,7 @@
     <group>case_comp</group>
     <file>env_case.xml</file>
     <desc>This component requires a clean build if the pelayout changes, if this variable is
-                not defined for a component it is assumed false
+                not defined for a component it is assumed FALSE
     </desc>
   </entry>
 
@@ -177,11 +177,11 @@
 
   <entry id="POP_AUTO_DECOMP">
     <type>logical</type>
-    <valid_values>true,false</valid_values>
-    <default_value>true</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>TRUE</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>if false, user must set the POP decomp, otherwise cesm_setup script sets it</desc>
+    <desc>if FALSE, user must set the POP decomp, otherwise cesm_setup script sets it</desc>
   </entry>
 
   <entry id="POP_BLCKX">
@@ -190,7 +190,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Size of pop block in first horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Size of pop block in first horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_BLCKY">
@@ -199,7 +199,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Size of pop block in second horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Size of pop block in second horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_NX_BLOCKS">
@@ -208,7 +208,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Number of pop blocks in first horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Number of pop blocks in first horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_NY_BLOCKS">
@@ -217,7 +217,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Number of pop blocks in second horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Number of pop blocks in second horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_MXBLCKS">
@@ -226,7 +226,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Max number of pop blocks per processor (do not edit if POP_AUTO_DECOMP is true</desc>
+    <desc>Max number of pop blocks per processor (do not edit if POP_AUTO_DECOMP is TRUE</desc>
   </entry>
 
   <entry id="POP_DECOMPTYPE">
@@ -235,7 +235,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>pop block distribution type (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>pop block distribution type (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_CPPDEFS">

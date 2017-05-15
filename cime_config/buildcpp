@@ -80,7 +80,9 @@ def determine_tracer_count(case, decomp_cppdefs):
             elif varname == "IRF_NT":
                 IRF_NT = int(value)
             elif varname == "IRF_MODE":
-                IRF_MODE = int(value)
+                is_valid_value = (value == "offline_transport") or (value == "NK_precond")
+                expect(is_valid_value, "%s is not a valid value for %s in OCN_TRACER_MODULES_OPT" % (value, varname))
+                IRF_MODE = value
             else:
                 expect(False, "%s is not a valid value in OCN_TRACER_MODULES_OPT" %(varname))
 
@@ -134,6 +136,7 @@ def determine_tracer_count(case, decomp_cppdefs):
             elif module == "IRF":
                 use_irf = "TRUE"
                 if IRF_NT == 0:
+                    ocn_grid=case.get_value("OCN_GRID")
                     if IRF_MODE == "offline_transport" and ocn_grid == "gx3v7":
                         IRF_NT = 156
                     elif IRF_MODE == "offline_transport" and ocn_grid == "gx1v6":
@@ -144,7 +147,7 @@ def determine_tracer_count(case, decomp_cppdefs):
                         expect (False, "IRF_MODE %s is not a valid choice for IRF_MODE!" %IRF_MODE)
                 NT = NT + IRF_NT
             else:
-                expect(Fasle, "module %s is not a valid value in OCN_TRACER_MODULES!" %module)
+                expect(False, "module %s is not a valid value in OCN_TRACER_MODULES!" %module)
     NT = NT + MARBL_NT
 
     #----------------------------------------------------
