@@ -175,6 +175,12 @@
    real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
       RCALCT_OPEN_OCEAN! like RCALCT, but zero for marginal seas
 
+   real (POP_r8), dimension(nx_block,ny_block,km,max_blocks_clinic), public :: &
+      RCALCT_OPEN_OCEAN_3D !like RCALCT_OPEN_OCEAN, but 3D, not surface
+
+   logical (POP_Logical), dimension(nx_block,ny_block,km,max_blocks_clinic), public :: &
+      CALCT_OPEN_OCEAN_3D !logical counterpart of RCALCT_OPEN_OCEAN_3D
+
 !-----------------------------------------------------------------------
 !
 !     define types used with region masks and marginal seas balancing
@@ -1097,6 +1103,23 @@
       if (my_task == master_task) write(stdout,'(a24)') &
          ' No region masks defined'
    endif
+
+!-----------------------------------------------------------------------
+!
+!  define 3D open-ocean mask after optional area masks have been taken 
+!  into account
+!
+!-----------------------------------------------------------------------
+
+   do k=1,km
+     CALCT_OPEN_OCEAN_3D(:,:,k,:) = (KMT(:,:,:) >= k .and.  RCALCT_OPEN_OCEAN(:,:,:) > c0)
+   enddo ! k
+
+   where (CALCT_OPEN_OCEAN_3D)
+     RCALCT_OPEN_OCEAN_3D = c1
+   elsewhere
+     RCALCT_OPEN_OCEAN_3D = c0
+   endwhere
 
 !-----------------------------------------------------------------------
 !
@@ -2547,6 +2570,7 @@
       RCALCU = c0
    endwhere
 
+
 !-----------------------------------------------------------------------
 !
 !  depth level fields (KMT,KMU) to north,south,east,west
@@ -2654,7 +2678,7 @@
                        field_loc_center, field_type_scalar)
    deallocate(REGION_G)
 
-   where (REGION_MASK < 0) RCALCT_OPEN_OCEAN = 0
+   where (REGION_MASK < 0) RCALCT_OPEN_OCEAN = c0
 
    num_regions = global_maxval(abs(REGION_MASK), &
                                distrb_clinic, field_loc_center)

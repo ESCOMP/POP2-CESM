@@ -252,7 +252,6 @@ module ecosys_forcing_mod
                        Fe_dep_ind   = 0, &
                        bc_dep_ind   = 0, &
                        xco2_ind     = 0, &
-                       mask_ind     = 0, &
                        ifrac_ind    = 0, &
                        ap_ind       = 0, &
                        sst_ind      = 0, &
@@ -596,12 +595,6 @@ contains
       marbl_varname = marbl_req_surface_forcing_fields(n)%metadata%varname
       units         = marbl_req_surface_forcing_fields(n)%metadata%field_units
       select case (trim(marbl_req_surface_forcing_fields(n)%metadata%varname))
-        case ('surface_mask')
-          mask_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='SURFACE_MASK', rank=2, id=n)
-
         case ('d13c')
           d13c_ind = n
           call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
@@ -1812,14 +1805,7 @@ contains
 
              do iblock = 1,nblocks_clinic
 
-                if (index == mask_ind) then
-                   where(land_mask(:,:,iblock))
-                     forcing_field%field_0d(:,:,iblock) = c1
-                   elsewhere
-                     forcing_field%field_0d(:,:,iblock) = c0
-                   end where
-
-                else if (index == ifrac_ind) then
+                if (index == ifrac_ind) then
                    forcing_field%field_0d(:,:,iblock) = ifrac(:,:,iblock)
 
                 else if (index == ap_ind) then
