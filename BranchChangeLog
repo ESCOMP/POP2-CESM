@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    15 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n41_cesm_pop_2_1_20170508
+Tag Summary: Bring in latest marbl_dev_levy (remove surface mask)
+
+Testing:     aux_pop_MARBL on cheyenne (bit-for-bit with marbl_dev_n40, plus made
+             new baselines because system issues prevented intel ERI baseline
+             from being generated with previous tag)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    12 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n40_cesm_pop_2_1_20170508
 Tag Summary: MARBL bug fix caught by intel 17 debug testing (updating MARBL
