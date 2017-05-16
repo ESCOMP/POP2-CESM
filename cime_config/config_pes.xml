@@ -189,7 +189,7 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="any">
       <pes pesize="any" compset="any">
 	<comment>none</comment>
@@ -226,9 +226,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="any">
-      <pes pesize="any" compset="DATM.+CICE.+POP2[^%].+SWAV">
+      <pes pesize="any" compset="DATM.+CICE.+POP2[^%]">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -263,9 +263,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="any">
-      <pes pesize="L" compset="DATM.+CICE.+SWAV">
+      <pes pesize="L" compset="DATM.+CICE">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -301,7 +301,7 @@
     </mach>
   </grid>
 
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="any">
       <pes pesize="L" compset="any">
 	<comment>none</comment>
@@ -338,7 +338,7 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="yellowstone">
       <pes pesize="any" compset="any">
 	<comment>none</comment>
@@ -375,7 +375,7 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="yellowstone">
       <pes pesize="T" compset="any">
 	<comment>none</comment>
@@ -412,9 +412,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="yellowstone">
-      <pes pesize="any" compset="DATM.+CICE.+POP2%ECO.+SWAV">
+      <pes pesize="any" compset="DATM.+CICE.+POP2%ECO">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>45</ntasks_atm>
@@ -449,9 +449,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="yellowstone">
-      <pes pesize="any" compset="DATM.+CICE.+POP2[^%].+SWAV">
+      <pes pesize="any" compset="DATM.+CICE.+POP2[^%]">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>-8</ntasks_atm>
@@ -486,9 +486,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="yellowstone">
-      <pes pesize="any" compset="DATM.+DICE.+SWAV">
+      <pes pesize="any" compset="DATM.+DICE">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>60</ntasks_atm>
@@ -523,7 +523,7 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="edison">
       <pes pesize="any" compset="any">
 	<comment>none</comment>
@@ -560,7 +560,7 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="stampede|titan">
       <pes pesize="any" compset="any">
 	<comment>none</comment>
@@ -673,7 +673,7 @@
   </grid>
   <grid name="a%T62.+oi%tx0.1">
     <mach name="any">
-      <pes pesize="any" compset="DATM.+CICE.+SWAV">
+      <pes pesize="any" compset="DATM.+CICE">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>48</ntasks_atm>
@@ -710,7 +710,7 @@
   </grid>
   <grid name="a%T62.+oi%tx0.1">
     <mach name="any">
-      <pes pesize="any" compset="DATM.+DICE.+SWAV">
+      <pes pesize="any" compset="DATM.+DICE">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>48</ntasks_atm>
@@ -856,9 +856,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%1.9x2.5.+oi%gx1v6">
+  <grid name="a%1.9x2.5.+oi%gx1">
     <mach name="edison">
-      <pes pesize="any" compset="DATM.+CICE.+SWAV">
+      <pes pesize="any" compset="DATM.+CICE">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -893,9 +893,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%1.9x2.5.+oi%gx1v6">
+  <grid name="a%1.9x2.5.+oi%gx1">
     <mach name="yellowstone">
-      <pes pesize="any" compset="DATM.+CICE.+SWAV">
+      <pes pesize="any" compset="DATM.+CICE">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -967,9 +967,9 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%1.9x2.5.+oi%gx1v6.+w%ww3">
+  <grid name="a%1.9x2.5.+oi%gx1.+w%ww3">
     <mach name="yellowstone">
-      <pes pesize="any" compset="WW3|DWAV">
+      <pes pesize="any" compset="any">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>180</ntasks_atm>
@@ -1004,7 +1004,7 @@
       </pes>
     </mach>
   </grid>
-  <grid name="a%T62.+oi%gx1v6">
+  <grid name="a%T62.+oi%gx1">
     <mach name="hobart">
       <pes pesize="any" compset="any">
         <ntasks>

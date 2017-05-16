@@ -2,6 +2,31 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n87_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: New testmods_dir for turning off all output (for performance
+             tuning); also removed dependency on SWAV from default pe layouts.
+
+             Found three bugs:
+             1. step_mod.F90 was calling diag_for_tracer_budgets_rf_Sterms
+                even if ldiag_global_tracer_budgets = .false. (fixed in tag)
+             2. Domain file missing for gx1v7, so C / CECO compsets fail
+                (reported on CIME issue page by dbailey)
+             3. Problem reading river inputs on gx1v7 (GECO compset fails,
+                this issue has not been addressed yet)
+
+Testing:     None for this branch, going to do some timing studies and update
+             default PE layouts for C, CECO, G, GECO,
+
+Files Modified:
+M       cime_config/config_pes.xml
+A       cime_config/testdefs/testmods_dirs/pop/no_output
+A       cime_config/testdefs/testmods_dirs/pop/no_output/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/no_output/user_nl_pop
+M       source/step_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n86_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: Bring in latest marbl_dev tag (ndep via coupler)
 
