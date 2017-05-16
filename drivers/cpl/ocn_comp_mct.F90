@@ -105,10 +105,10 @@ module ocn_comp_mct
       nsend, nrecv
 
    character(char_len) :: &
-      runtype         
+      runtype
 
    type(seq_infodata_type), pointer :: &
-      infodata   
+      infodata
 
 !=======================================================================
 
@@ -121,6 +121,10 @@ contains
 !
 ! !INTERFACE:
   subroutine ocn_init_mct( EClock, cdata_o, x2o_o, o2x_o, NLFilename )
+
+    use ecosys_forcing_mod, only : ldriver_has_ndep
+    use ecosys_forcing_mod, only : ldriver_has_atm_co2_diag
+    use ecosys_forcing_mod, only : ldriver_has_atm_co2_prog
 !
 ! !DESCRIPTION:
 ! Initialize POP 
@@ -254,12 +258,22 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   if (index_x2o_Sa_co2prog > 0) then
+   ldriver_has_atm_co2_prog = (index_x2o_Sa_co2prog > 0)
+   if (ldriver_has_atm_co2_prog) then
       call named_field_register('ATM_CO2_PROG', ATM_CO2_PROG_nf_ind)
    endif
-   if (index_x2o_Sa_co2diag > 0) then
+   ldriver_has_atm_co2_diag = (index_x2o_Sa_co2diag > 0)
+   if (ldriver_has_atm_co2_diag) then
       call named_field_register('ATM_CO2_DIAG', ATM_CO2_DIAG_nf_ind)
    endif
+
+   ldriver_has_ndep = (index_x2o_Faxa_nhx > 0) .or. (index_x2o_Faxa_noy > 0)
+   if (ldriver_has_ndep) then
+      if (my_task == master_task) write(stdout,'(" using ATM_NHx and ATM_NOy from coupler")')
+      call named_field_register('ATM_NHx', ATM_NHx_nf_ind)
+      call named_field_register('ATM_NOy', ATM_NOy_nf_ind)
+   endif
+
    call register_string('pop_init_coupled')
    call flushm (stdout)
 
