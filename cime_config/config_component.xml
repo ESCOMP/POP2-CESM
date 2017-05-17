@@ -100,6 +100,7 @@
     <valid_values>full,partial</valid_values>
     <default_value>full</default_value>
     <values>
+      <value compset="_DATM%CPLHIST.*_POP2">full</value>
       <value compset="_DATM.*_POP2">partial</value>
     </values>
     <group>build_pop</group>

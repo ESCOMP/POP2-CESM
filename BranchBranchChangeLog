@@ -2,6 +2,35 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    17 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n63_marbl_dev_n40_cesm_pop_2_1_20170508
+Tag Summary: compset settings corrections, add precip_fact_const nml var, add G1850ECOIAF test
+
+compset settings corrections
+   add ndep settings for OCN_TRANSIENT==CORE2
+   set OCN_COUPLING=full for CPLHIST
+
+Testing:
+MARBL commit d7cc4ccd27cf4d3b8242e1164c62c38edfc61a0a science/iron_scav_update branch
+
+aux_pop_MARBL yellowstone/intel and yellowstone/gnu: (baseline comparison to marbl_dev_klindsay_n62 tag)
+   all tests, except NLCOMP and BASELINE for new test, pass
+      NLCOMP tests fail because of new POP namelist variable
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/forcing_sfwf.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    14 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n62_marbl_dev_n40_cesm_pop_2_1_20170508
 Tag Summary: merge marbl_dev_n40 tag to this branch

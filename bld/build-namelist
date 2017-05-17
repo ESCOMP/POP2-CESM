@@ -1064,6 +1064,7 @@ add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'lfw_as_salt_flx');
+add_default($nl,'precip_fact_const');
 
 ##########################################
 # namelist group: forcing_pt_interior_nml#
@@ -1488,7 +1489,7 @@ if ($ecosys_on eq "TRUE") {
   my $lapply_nhx_surface_emis = $nl->get_value('lapply_nhx_surface_emis');
 
   add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
-  if ($OCN_TRANSIENT eq "unset") {
+  if (($OCN_TRANSIENT eq "unset") or ($OCN_TRANSIENT eq "CORE2")) {
     add_default($nl, 'nox_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
     add_default($nl, 'nox_flux_monthly_input%file_fmt');
     add_default($nl, 'nox_flux_monthly_input%file_varname');

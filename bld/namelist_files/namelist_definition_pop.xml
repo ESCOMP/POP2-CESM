@@ -3314,6 +3314,17 @@ LANL Default: N/A, CESM only
 CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 </entry>
 
+<entry 
+id="precip_fact_const"
+type="real"
+category="forcing"
+group="forcing_sfwf_nml" >
+Value used for precip_fact when ladjust_precip=.false..
+
+LANL Default: N/A, CESM only
+CESM Default: 1.0
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: forcing_pt_interior_nml  - -->
 <!-- - - - - - - - - - - - - - - - - - -->
