@@ -3,6 +3,36 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    18 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n65_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: revisions from code review of n61 and n63
+
+add testmods_dirs for cfc_sf6 test
+remove unneeded RUN_DAY_ONE var in build-namelist
+base ndep file add_default calls on ndep_data_type, not ocn_transient
+add ocn_transient tag to 1850-2000 shr_stream ndep settings in namelist defaults
+
+Testing:
+MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n63 tag on yellowstone)
+   ERS.T62_g37.C1850ECO.cheyenne_intel.pop-ciso_transient failed, suspect is running out of memory
+   all other tests pass
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/cfc_sf6
+A       cime_config/testdefs/testmods_dirs/pop/cfc_sf6/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/cfc_sf6/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/cfc_sf6/user_nl_pop
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    18 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n64_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: merge marbl_dev_n42 tag to this branch
 
