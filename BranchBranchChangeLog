@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    18 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n88_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: Better pe layouts on yellowstone, general clean-up of config_pes.xml,
+             and starting to work towards cheyenne layouts as well. Note that
+             C and G compsets on yellowstone now  run on 16 cores / node
+             instead of the CESM default of 15, but do not turn on hyperthreading.
+
+             Also added some decompositions to generate_pop_decomp.xml and
+             fixed a typo in the marbl_dev BranchChangeLog.
+
+Testing:     Still no test suites to report, but I have verified that yellowstone
+             timing numbers are showing more throughput.
+
+Files Modified:
+M       BranchChangeLog
+M       bld/generate_pop_decomp.xml
+M       cime_config/config_pes.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    16 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n87_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: New testmods_dir for turning off all output (for performance
