@@ -2,6 +2,55 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    18 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n64_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: merge marbl_dev_n42 tag to this branch
+
+n42: Allow ndep_data_type = "driver"
+n41: Bring in latest marbl_dev_levy (remove surface mask)
+
+Testing:
+MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n63 tag on yellowstone)
+   ERS.T62_g37.C1850ECO.cheyenne_intel.pop-ciso_transient failed, suspect is running out of memory
+   all other tests, except NLCOMP and BASELINE, pass
+      NLCOMP tests fail because
+         lapply_nhx_surface_emis renamed to lcompute_nhx_surface_emis, and changed value
+         ndep datasets changed
+      BASELINE tests fail because nml value changes changed results
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+ M      cime_config
+M       cime_config/testdefs/testlist_pop.xml
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream/user_nl_pop
+ M      drivers/cpl
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+ M      drivers/cpl_none
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_fields.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    17 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n63_marbl_dev_n40_cesm_pop_2_1_20170508
 Tag Summary: compset settings corrections, add precip_fact_const nml var, add G1850ECOIAF test

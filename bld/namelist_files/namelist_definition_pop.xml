@@ -5410,7 +5410,7 @@ Default: .true.
 </entry>
 
 <entry 
-id="lapply_nhx_surface_emis"
+id="lcompute_nhx_surface_emis"
 type="logical" 
 category="ecosys"
 group="marbl_config_nml" >
@@ -5690,8 +5690,19 @@ Default: none provided
 id="ndep_data_type"
 type="char*256" 
 category="ecosys"
-group="ecosys_forcing_data_nml" >
+group="ecosys_forcing_data_nml"
+valid_values="shr_stream,monthly-calendar,driver" >
 Default: 'monthly-calendar' or 'shr_stream'
+</entry>
+
+<entry 
+id="lignore_driver_ndep"
+type="logical"
+category="ecosys"
+group="ecosys_forcing_data_nml">
+If .false., abort if the coupler passes NHx or NOy and ndep_data_type is not 'driver'
+
+Default: .false.
 </entry>
 
 <entry 
@@ -5937,7 +5948,7 @@ Default: 1.0
 id="riv_flux_dfe_file_varname"
 type="char*256" 
 category="ecosys"
-group="ecosys_forcing_data_nml" >
+group="ecosys_forcing_data_nml">
 Default: 'dfe_riv_flux'
 </entry>
 
