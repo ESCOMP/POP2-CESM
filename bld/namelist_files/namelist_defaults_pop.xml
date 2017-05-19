@@ -1118,7 +1118,7 @@
 <!-- ecosys derived vars    -->
 <!---------------------------->
 
-<lecosys_debug>.false.</lecosys_debug>
+<lecosys_tavg_all>.false.</lecosys_tavg_all>
 
 <!---------------------------->
 <!--     marbl_config_nml   -->

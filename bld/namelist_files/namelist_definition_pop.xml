@@ -5340,11 +5340,19 @@ Default: 1
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry
-id="lecosys_debug"
+id="lecosys_tavg_all"
 type="logical"
 category="ecosys"
 group="derived">
 When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
+</entry>
+
+<entry
+id="lecosys_tavg_alt_co2"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will output alt_co2 related fields
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

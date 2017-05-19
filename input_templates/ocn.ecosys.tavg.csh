@@ -18,19 +18,12 @@ endif
 @ s2 = $my_stream    # use an ecosystem-defined stream
 @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
-set lecosys_debug       = $2
-set lvariable_PtoC      = $3
-set OCN_TRANSIENT       = $4
-set tracer_restore_vars = $5
+set lecosys_tavg_all     = $2
+set lecosys_tavg_alt_co2 = $3
+set lvariable_PtoC       = $4
+set tracer_restore_vars  = $5
 
-# set OCN_TAVG_ALT_CO2
-if ($OCN_TRANSIENT == unset) then
-   setenv OCN_TAVG_ALT_CO2 FALSE
-else
-   setenv OCN_TAVG_ALT_CO2 TRUE
-endif
-
-if ($lecosys_debug == ".false.") then
+if ($lecosys_tavg_all == ".false.") then
 
   cat >! $CASEBUILD/popconf/ecosys.tavg.nml << EOF
 tavg_freq_opt             = 'nday'   'nyear'
@@ -54,7 +47,7 @@ else
   touch $CASEBUILD/popconf/ecosys.tavg.nml
 endif
 
-if ($lecosys_debug == ".true.") then
+if ($lecosys_tavg_all == ".true.") then
 
   cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  GENERAL INTERIOR DIAGNOSTICS
@@ -270,7 +263,7 @@ EOF
 1  FvICE_ALK
 EOF
 
-else # ecosys not in debug mode
+else # ecosys not in lecosys_tavg_all mode
   cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  ECOSYS_ATM_PRESS
 $s1  ECOSYS_IFRAC
@@ -441,7 +434,7 @@ EOF
 
   # River Fluxes
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr )
-  if ($OCN_TAVG_ALT_CO2 == TRUE) then
+  if ($lecosys_tavg_alt_co2 == ".true.") then
     set tracer_list = ( $tracer_list DIC_ALT_CO2 ALK_ALT_CO2 )
   endif
   foreach tracer ( $tracer_list )
@@ -514,7 +507,7 @@ EOF
     echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   end
 
-  if ($OCN_TAVG_ALT_CO2 == TRUE) then
+  if ($lecosys_tavg_alt_co2 == ".true.") then
 cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  PH_ALT_CO2
 $s1  DCO2STAR_ALT_CO2

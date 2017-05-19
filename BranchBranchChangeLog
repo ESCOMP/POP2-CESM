@@ -2,6 +2,33 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    19 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n66_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: improve logic for when alt_co2 tavg fields are written out, rename lecosys_debug to lecosys_tavg_all
+
+New derived namelist var lecosys_tavg_alt_co2 determines when alt_co2 tavg fields are written out.
+It is .true. unless atm_co2 and atm_alt_co2 forcing options are equivalent.
+
+Testing:
+MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
+
+aux_pop_MARBL yellowstone/{intel,gnu} --namelists-only : (baseline comparison to marbl_dev_klindsay_n65 tag on yellowstone)
+   test fail, but only because lecosys_debug was renamed to lecosys_tavg_all
+
+All paths in setting of lecosys_tavg_alt_co2 were tested in a separate test.
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    18 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n65_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: revisions from code review of n61 and n63
@@ -14,7 +41,7 @@ add ocn_transient tag to 1850-2000 shr_stream ndep settings in namelist defaults
 Testing:
 MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
 
-aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n63 tag on yellowstone)
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n64 tag on yellowstone)
    ERS.T62_g37.C1850ECO.cheyenne_intel.pop-ciso_transient failed, suspect is running out of memory
    all other tests pass
       some MEMLEAK failures
