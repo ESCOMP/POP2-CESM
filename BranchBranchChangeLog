@@ -1,6 +1,21 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    21 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n89_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: Better pe layouts on cheyenne and more general clean-up of config_pes.xml
+
+             Also added some decompositions to generate_pop_decomp.xml
+
+Testing:     Still no test suites to report, but I have verified that cheyenne
+             timing numbers are showing more throughput.
+
+Files Modified:
+M       bld/generate_pop_decomp.xml
+M       cime_config/config_pes.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    18 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n88_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: Better pe layouts on yellowstone, general clean-up of config_pes.xml,
