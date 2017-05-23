@@ -98,7 +98,7 @@
       <!-- C and CECO with gx3v7 on cheyenne:
            all components share 72x1 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2">
-        <comment>C or CECO, gx3v7 resolution on cheyenne</comment>
+        <comment>C or CECO; gx3v7 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>72</ntasks_ocn>
           <ntasks_ice>72</ntasks_ice>
@@ -136,7 +136,7 @@
            CICE gets 36x1
            all other components share 36x1 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
-        <comment>G, gx3v7 resolution on cheyenne</comment>
+        <comment>G; gx3v7 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>72</ntasks_ocn>
           <ntasks_ice>36</ntasks_ice>
@@ -160,7 +160,7 @@
         <rootpe>
           <rootpe_ocn>72</rootpe_ocn>
           <rootpe_ice>36</rootpe_ice>
-          <rootpe_cpl>0</rootpe_cpl>
+          <rootpe_cpl>36</rootpe_cpl>
           <rootpe_wav>0</rootpe_wav>
           <rootpe_atm>0</rootpe_atm>
           <rootpe_glc>0</rootpe_glc>
@@ -173,7 +173,7 @@
            POP gets 72x1
            all other components share 36x1 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
-        <comment>GECO, gx3v7 resolution on cheyenne</comment>
+        <comment>GECO; gx3v7 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>72</ntasks_ocn>
           <ntasks_ice>36</ntasks_ice>
@@ -248,57 +248,19 @@
     </mach>
   </grid>
 
-  <!-- Defaults for gx1v6 or gx1v7 resolution -->
-  <grid name="oi%gx1v6|oi%gx1v7">
+  <!-- Defaults for gx1v6, gx1v7, or tx1v1 resolution -->
+  <grid name="oi%gx1v[67]|oi%tx1v1">
 
-    <!-- gx1v6 or gx1v7 resolution on yellowstone  -->
+    <!-- gx1v6, gx1v7, or tx1v1 resolution on yellowstone  -->
     <mach name="yellowstone">
 
-      <!-- any compset, gx1v6 or gx1v7 with pesize="T" on yellowstone:
-           all components share 32x1 -->
-      <pes pesize="T" compset="_DATM.*_POP2">
-        <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
-        <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>gx1v6 on yellowstone, pesize="T"</comment>
-        <ntasks>
-          <ntasks_ocn>32</ntasks_ocn>
-          <ntasks_ice>32</ntasks_ice>
-          <ntasks_cpl>32</ntasks_cpl>
-          <ntasks_wav>32</ntasks_wav>
-          <ntasks_atm>32</ntasks_atm>
-          <ntasks_glc>32</ntasks_glc>
-          <ntasks_lnd>32</ntasks_lnd>
-          <ntasks_rof>32</ntasks_rof>
-        </ntasks>
-        <nthrds>
-          <nthrds_ocn>1</nthrds_ocn>
-          <nthrds_ice>1</nthrds_ice>
-          <nthrds_cpl>1</nthrds_cpl>
-          <nthrds_wav>1</nthrds_wav>
-          <nthrds_atm>1</nthrds_atm>
-          <nthrds_glc>1</nthrds_glc>
-          <nthrds_lnd>1</nthrds_lnd>
-          <nthrds_rof>1</nthrds_rof>
-        </nthrds>
-        <rootpe>
-          <rootpe_ocn>0</rootpe_ocn>
-          <rootpe_ice>0</rootpe_ice>
-          <rootpe_cpl>0</rootpe_cpl>
-          <rootpe_wav>0</rootpe_wav>
-          <rootpe_atm>0</rootpe_atm>
-          <rootpe_glc>0</rootpe_glc>
-          <rootpe_lnd>0</rootpe_lnd>
-          <rootpe_rof>0</rootpe_rof>
-        </rootpe>
-      </pes>
-
-      <!-- C compset, gx1v6 or gx1v7 resolution on yellowstone:
+      <!-- C compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
            POP gets 128x1
            all other components share 16x1 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2[^%]">
         <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
         <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>C, gx1v6 or gx1v7 resolution on yellowstone</comment>
+        <comment>C; gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
         <ntasks>
           <ntasks_ocn>128</ntasks_ocn>
           <ntasks_ice>16</ntasks_ice>
@@ -331,13 +293,13 @@
         </rootpe>
       </pes>
 
-      <!-- CECO, gx1v6 or gx1v7 on yellowstone:
+      <!-- CECO compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
            POP gets 432x1
            all other components share 16x1 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2%ECO">
         <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
         <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>CECO, gx1v6 or gx1v7 resolution on yellowstone</comment>
+        <comment>CECO; gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
         <ntasks>
           <ntasks_ocn>432</ntasks_ocn>
           <ntasks_ice>16</ntasks_ice>
@@ -370,14 +332,14 @@
         </rootpe>
       </pes>
 
-      <!-- G compset, gx1v6 or gx1v7 resolution on yellowstone:
+      <!-- G compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
            POP gets 128x1
-           CICE / coupler get 64x1
+           CICE / coupler get 48x1
            All other components share 16x1 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
         <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
         <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>G, gx1v6 or gx1v7 resolution on yellowstone</comment>
+        <comment>G; gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
         <ntasks>
           <ntasks_ocn>128</ntasks_ocn>
           <ntasks_ice>48</ntasks_ice>
@@ -410,14 +372,14 @@
         </rootpe>
       </pes>
 
-      <!-- GECO compset, gx1v6 or gx1v7 resolution on yellowstone:
+      <!-- GECO compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
            POP gets 432x1
            CICE and coupler get 48x1
            everyone else shares 16x1 on yellowstone-->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
         <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
         <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>GECO, gx1v6 or gx1v7 resolution on yellowstone</comment>
+        <comment>GECO; gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
         <ntasks>
           <ntasks_ocn>432</ntasks_ocn>
           <ntasks_ice>48</ntasks_ice>
@@ -451,14 +413,14 @@
       </pes>
     </mach>
 
-    <!-- gx1v6 or gx1v7 resolution on cheyenne  -->
+    <!-- gx1v6, gx1v7, or tx1v1 resolution on cheyenne  -->
     <mach name="cheyenne">
 
-      <!-- C compset, gx1v6 or gx1v7 on cheyenne:
+      <!-- C compset, gx1v6, gx1v7, or tx1v1 on cheyenne:
            POP gets 144x1
            all other components share 36x1 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2[^%]">
-        <comment>C, gx1v6 or gx1v7 resolution on cheyenne</comment>
+        <comment>C; gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>144</ntasks_ocn>
           <ntasks_ice>36</ntasks_ice>
@@ -491,11 +453,11 @@
         </rootpe>
       </pes>
 
-      <!-- CECO compset with gx1v6 or gx1v7 resolution on cheyenne
+      <!-- CECO compset with gx1v6, gx1v7, or tx1v1 resolution on cheyenne
            POP gets 216x2
            all other components share 18x2 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2%ECO">
-        <comment>CECO, gx1v6 or gx1v7 resolution on cheyenne</comment>
+        <comment>CECO; gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>216</ntasks_ocn>
           <ntasks_ice>18</ntasks_ice>
@@ -514,7 +476,7 @@
           <nthrds_atm>2</nthrds_atm>
           <nthrds_glc>2</nthrds_glc>
           <nthrds_lnd>2</nthrds_lnd>
-          <nthrds_rof>1</nthrds_rof>
+          <nthrds_rof>2</nthrds_rof>
         </nthrds>
         <rootpe>
           <rootpe_ocn>18</rootpe_ocn>
@@ -528,11 +490,11 @@
         </rootpe>
       </pes>
 
-      <!-- G compset, gx1v6 or gx1v7 on cheyenne:
+      <!-- G compset, gx1v6, gx1v7, or tx1v1 on cheyenne:
            POP gets 144x1
            all other components share 72x1 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
-        <comment>G, gx1v6 or gx1v7 resolution on cheyenne</comment>
+        <comment>G; gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>144</ntasks_ocn>
           <ntasks_ice>72</ntasks_ice>
@@ -565,11 +527,11 @@
         </rootpe>
       </pes>
 
-      <!-- GECO compset, gx1v6 or gx1v7 resolution on cheyenne:
+      <!-- GECO compset, gx1v6, gx1v7, or tx1v1 resolution on cheyenne:
            POP gets 216x2
            all other components share 36x2 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
-        <comment>GECO, gx1v6 or gx1v7 resolution on cheyenne</comment>
+        <comment>GECO; gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>216</ntasks_ocn>
           <ntasks_ice>36</ntasks_ice>
@@ -603,177 +565,13 @@
       </pes>
     </mach>
 
-    <!-- C, CECO, G, and GECO with gx1v6 or gx1v7 on hobart:
+    <!-- C, CECO, G, and GECO with gx1v6, gx1v7, or tx1v1 on hobart:
          all components share 48x1 -->
     <mach name="hobart">
       <pes pesize="any" compset="_DATM.*_POP2">
+        <comment>gx1v6, gx1v7, or tx1v1 resolution on hobart</comment>
         <ntasks>
-          <ntasks_ocn>48</ntasks_ocn>
-          <ntasks_ice>48</ntasks_ice>
-          <ntasks_cpl>48</ntasks_cpl>
-          <ntasks_wav>48</ntasks_wav>
-          <ntasks_atm>48</ntasks_atm>
-          <ntasks_glc>48</ntasks_glc>
-          <ntasks_lnd>48</ntasks_lnd>
-          <ntasks_rof>48</ntasks_rof>
-        </ntasks>
-        <nthrds>
-          <nthrds_ocn>1</nthrds_ocn>
-          <nthrds_ice>1</nthrds_ice>
-          <nthrds_cpl>1</nthrds_cpl>
-          <nthrds_wav>1</nthrds_wav>
-          <nthrds_atm>1</nthrds_atm>
-          <nthrds_glc>1</nthrds_glc>
-          <nthrds_lnd>1</nthrds_lnd>
-          <nthrds_rof>1</nthrds_rof>
-        </nthrds>
-        <rootpe>
-          <rootpe_ocn>0</rootpe_ocn>
-          <rootpe_ice>0</rootpe_ice>
-          <rootpe_cpl>0</rootpe_cpl>
-          <rootpe_wav>0</rootpe_wav>
-          <rootpe_atm>0</rootpe_atm>
-          <rootpe_glc>0</rootpe_glc>
-          <rootpe_lnd>0</rootpe_lnd>
-          <rootpe_rof>0</rootpe_rof>
-        </rootpe>
-      </pes>
-    </mach>
-  </grid>
-
-  <!-- Defaults for tx1v1 -->
-  <grid name="oi%tx1v1">
-
-    <mach name="yellowstone">
-
-      <!-- C compset, tx1v1 on yellowstone:
-           POP gets 128x1
-           all other components share 16x1 -->
-      <pes pesize="any" compset="_DATM.*_DICE.*_POP2[^%]">
-        <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
-        <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>C, tx1v1 resolution on yellowstone</comment>
-        <ntasks>
-          <ntasks_ocn>128</ntasks_ocn>
-          <ntasks_ice>16</ntasks_ice>
-          <ntasks_cpl>16</ntasks_cpl>
-          <ntasks_wav>16</ntasks_wav>
-          <ntasks_atm>16</ntasks_atm>
-          <ntasks_glc>16</ntasks_glc>
-          <ntasks_lnd>16</ntasks_lnd>
-          <ntasks_rof>16</ntasks_rof>
-        </ntasks>
-        <nthrds>
-          <nthrds_ocn>1</nthrds_ocn>
-          <nthrds_ice>1</nthrds_ice>
-          <nthrds_cpl>1</nthrds_cpl>
-          <nthrds_wav>1</nthrds_wav>
-          <nthrds_atm>1</nthrds_atm>
-          <nthrds_glc>1</nthrds_glc>
-          <nthrds_lnd>1</nthrds_lnd>
-          <nthrds_rof>1</nthrds_rof>
-        </nthrds>
-        <rootpe>
-          <rootpe_ocn>16</rootpe_ocn>
-          <rootpe_ice>0</rootpe_ice>
-          <rootpe_cpl>0</rootpe_cpl>
-          <rootpe_wav>0</rootpe_wav>
-          <rootpe_atm>0</rootpe_atm>
-          <rootpe_glc>0</rootpe_glc>
-          <rootpe_lnd>0</rootpe_lnd>
-          <rootpe_rof>0</rootpe_rof>
-        </rootpe>
-      </pes>
-
-      <!-- G compset, tx1v1 resolution on yellowstone:
-           POP gets 128x1
-           CICE / coupler get 64x1
-           All other components share 16x1 -->
-      <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
-        <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
-        <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>G, tx1v1 resolution on yellowstone</comment>
-        <ntasks>
-          <ntasks_ocn>128</ntasks_ocn>
-          <ntasks_ice>48</ntasks_ice>
-          <ntasks_cpl>48</ntasks_cpl>
-          <ntasks_wav>16</ntasks_wav>
-          <ntasks_atm>16</ntasks_atm>
-          <ntasks_glc>16</ntasks_glc>
-          <ntasks_lnd>16</ntasks_lnd>
-          <ntasks_rof>16</ntasks_rof>
-        </ntasks>
-        <nthrds>
-          <nthrds_ocn>1</nthrds_ocn>
-          <nthrds_ice>1</nthrds_ice>
-          <nthrds_cpl>1</nthrds_cpl>
-          <nthrds_wav>1</nthrds_wav>
-          <nthrds_atm>1</nthrds_atm>
-          <nthrds_glc>1</nthrds_glc>
-          <nthrds_lnd>1</nthrds_lnd>
-          <nthrds_rof>1</nthrds_rof>
-        </nthrds>
-        <rootpe>
-          <rootpe_ocn>64</rootpe_ocn>
-          <rootpe_ice>16</rootpe_ice>
-          <rootpe_cpl>16</rootpe_cpl>
-          <rootpe_wav>0</rootpe_wav>
-          <rootpe_atm>0</rootpe_atm>
-          <rootpe_glc>0</rootpe_glc>
-          <rootpe_lnd>0</rootpe_lnd>
-          <rootpe_rof>0</rootpe_rof>
-        </rootpe>
-      </pes>
-    </mach>
-
-    <!-- tx1v1 resolution on cheyenne  -->
-    <mach name="cheyenne">
-
-
-      <!-- C compset, tx1v1 on cheyenne:
-           POP gets 144x1
-           all other components share 36x1 -->
-      <pes pesize="any" compset="_DATM.*_DICE.*_POP2[^%]">
-        <comment>C, tx1v1 resolution on cheyenne</comment>
-        <ntasks>
-          <ntasks_ocn>144</ntasks_ocn>
-          <ntasks_ice>36</ntasks_ice>
-          <ntasks_cpl>36</ntasks_cpl>
-          <ntasks_wav>36</ntasks_wav>
-          <ntasks_atm>36</ntasks_atm>
-          <ntasks_glc>36</ntasks_glc>
-          <ntasks_lnd>36</ntasks_lnd>
-          <ntasks_rof>36</ntasks_rof>
-        </ntasks>
-        <nthrds>
-          <nthrds_ocn>1</nthrds_ocn>
-          <nthrds_ice>1</nthrds_ice>
-          <nthrds_cpl>1</nthrds_cpl>
-          <nthrds_wav>1</nthrds_wav>
-          <nthrds_atm>1</nthrds_atm>
-          <nthrds_glc>1</nthrds_glc>
-          <nthrds_lnd>1</nthrds_lnd>
-          <nthrds_rof>1</nthrds_rof>
-        </nthrds>
-        <rootpe>
-          <rootpe_ocn>36</rootpe_ocn>
-          <rootpe_ice>0</rootpe_ice>
-          <rootpe_cpl>0</rootpe_cpl>
-          <rootpe_wav>0</rootpe_wav>
-          <rootpe_atm>0</rootpe_atm>
-          <rootpe_glc>0</rootpe_glc>
-          <rootpe_lnd>0</rootpe_lnd>
-          <rootpe_rof>0</rootpe_rof>
-        </rootpe>
-      </pes>
-
-      <!-- G compset, tx1v1 on cheyenne:
-           POP gets 144x1
-           all other components share 72x1 -->
-      <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
-        <comment>G, gx1v6 or gx1v7 resolution on cheyenne</comment>
-        <ntasks>
-          <ntasks_ocn>144</ntasks_ocn>
+          <ntasks_ocn>72</ntasks_ocn>
           <ntasks_ice>72</ntasks_ice>
           <ntasks_cpl>72</ntasks_cpl>
           <ntasks_wav>72</ntasks_wav>
@@ -793,7 +591,7 @@
           <nthrds_rof>1</nthrds_rof>
         </nthrds>
         <rootpe>
-          <rootpe_ocn>72</rootpe_ocn>
+          <rootpe_ocn>0</rootpe_ocn>
           <rootpe_ice>0</rootpe_ice>
           <rootpe_cpl>0</rootpe_cpl>
           <rootpe_wav>0</rootpe_wav>
