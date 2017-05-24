@@ -1235,10 +1235,12 @@
       !$OMP END PARALLEL DO
    endif
 
+   if (ldiag_global_tracer_budgets) then
    if (check_time_flag(tavg_streams(budget_stream)%field_flag)) then
      !*** time to collect <S_n> for use in this budget interval
      !    note: this collects values computed in this timestep
      call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_sn = .true.)
+   endif
    endif
 
    !-----------------------------------------------------------------------
