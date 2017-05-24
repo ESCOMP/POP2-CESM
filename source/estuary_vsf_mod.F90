@@ -1187,8 +1187,8 @@ subroutine cubsolve(a,b,c,roots)
 
 ! !DESCRIPTION:
 !  This subroutine is to solve the 3rd order polynomial analytically.
-!  Source of code: http://www.helioscorner.com
-!
+!  Source of code: https://web.archive.org/web/20141219193637/http://www.helioscorner.com/
+!                  http://www.helioscorner.com
 ! QSun, MMWhitney, 2014.06.18
 
 !     use constants, only: pi
@@ -1248,7 +1248,7 @@ subroutine cubsolve(a,b,c,roots)
       if (X .EQ. 0.0_r8) then
         Y = 0.0_r8
       else
-        Y = Q/Y
+        Y = Q/X
       endif
 
       XY = X+Y
