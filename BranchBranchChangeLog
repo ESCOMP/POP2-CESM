@@ -2,6 +2,39 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    25 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n67_marbl_dev_n42_cesm_pop_2_1_20170508
+Tag Summary: fix bug in processing of tavg_contents file (symptom was occasional hang in tavg global sums)
+
+processing of tavg_contents file was sometimes accessing uninitialized rows of tavg_contents_request
+   in subroutine init_tavg in tavg.F90
+this sometimes led to hangs in global sums of tavg_global because different tasks had different flags
+   for which fields were being averaged (which also led to inconsistent tavg buffer sizes)
+
+add checks, using new module var_consistency_mod.F90, to verify that tavg buffer sizes are the same across all tasks
+
+this fixed the ciso_transient ERS failure on cheyenne/intel first mentioned in n64
+
+Testing:
+MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
+   plus non-tagged version of fix for MARBL bug #163
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n65)
+   except for tests mentioned below, all tests pass
+      NLCOMP tests fail, because lecosys_debug was renamed to lecosys_tavg_all (compared to n65)
+      BASELINE tests for ecosys_ladjust_bury_coeff failed becuase of fix for MARBL bug #163
+      BASELINE test for ciso_transient on cheyenne/intel failed because baseline didn't exist
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/tavg.F90
+A       source/var_consistency_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    19 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n66_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: improve logic for when alt_co2 tavg fields are written out, rename lecosys_debug to lecosys_tavg_all
