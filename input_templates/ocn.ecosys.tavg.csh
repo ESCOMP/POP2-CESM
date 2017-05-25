@@ -20,8 +20,9 @@ endif
 
 set lecosys_tavg_all     = $2
 set lecosys_tavg_alt_co2 = $3
-set lvariable_PtoC       = $4
-set tracer_restore_vars  = $5
+set ladjust_bury_coeff   = $4
+set lvariable_PtoC       = $5
+set tracer_restore_vars  = $6
 
 if ($lecosys_tavg_all == ".false.") then
 
@@ -171,6 +172,17 @@ if ($lecosys_tavg_all == ".true.") then
 1  FG_CO2_2
 1  STF_O2_2
 EOF
+
+  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+#  bury coefficients (only available if ladjust_bury_coeff==.true.)
+EOF
+if ($ladjust_bury_coeff == ".true.") then
+  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+1  MARBL_rmean_glo_scalar_POC_bury_coeff
+1  MARBL_rmean_glo_scalar_POP_bury_coeff
+1  MARBL_rmean_glo_scalar_POP_bury_coeff
+EOF
+endif
 
 echo "#  River Fluxes" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr DIC_ALT_CO2 ALK_ALT_CO2 )
@@ -431,6 +443,14 @@ $s3  HDIFE_Fe
 $s3  HDIFN_Fe
 $s3  HDIFB_Fe
 EOF
+
+  if ($ladjust_bury_coeff == ".true.") then
+    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+$s1  MARBL_rmean_glo_scalar_POC_bury_coeff
+$s1  MARBL_rmean_glo_scalar_POP_bury_coeff
+$s1  MARBL_rmean_glo_scalar_bSi_bury_coeff
+EOF
+  endif
 
   # River Fluxes
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr )

@@ -41,6 +41,7 @@ module ecosys_driver
   use ecosys_tavg               , only : ecosys_tavg_init
   use ecosys_tavg               , only : ecosys_tavg_accumulate_interior
   use ecosys_tavg               , only : ecosys_tavg_accumulate_surface
+  use ecosys_tavg               , only : ecosys_tavg_accumulate_scalar_rmeans
 
   use passive_tracer_tools      , only : tracer_read
 
@@ -1105,6 +1106,8 @@ contains
        allocate(glo_avg(glo_avg_field_cnt))
        allocate(glo_avg_rmean(glo_avg_field_cnt))
 
+       ! call barrier to get consistent timing info
+       ! overhead is low because we're already calling a global_sum right after this
        call POP_Barrier()
 
        call timer_start(timer)
@@ -1156,6 +1159,8 @@ contains
     end do
 
     call ecosys_driver_update_scalar_rmeans(field_source)
+
+    call ecosys_tavg_accumulate_scalar_rmeans(marbl_instances(1), field_source)
 
   end subroutine ecosys_driver_set_global_scalars
 
