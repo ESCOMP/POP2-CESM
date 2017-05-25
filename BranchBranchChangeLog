@@ -3,6 +3,42 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    25 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n69_marbl_dev_n44_cesm_pop_2_1_20170516
+Tag Summary: merge marbl_dev_n44 tag to this branch
+
+n44: merge pop trunk (20170516) onto marbl_dev
+     bug fix in cubic root find for estuary box model
+n43: Update default PE layouts and POP decompositions on NCAR machines
+
+Testing:
+MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
+   plus non-tagged version of fix for MARBL bug #163
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n68)
+   except for tests mentioned below, all tests pass
+      NLCOMP tests fail, only because of change to decompositions and PE layouts
+      BASELINE tests fail because of change to decompositions and PE layouts
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       bld/generate_pop_decomp.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/performance_eval
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       source/estuary_vsf_mod.F90
+M       source/step_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    25 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n68_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: add running means of global scalars (e.g., bury coefficients) to tavg output
 

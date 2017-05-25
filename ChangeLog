@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  klindsay
+Tag Date:    16 May 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170516
+Tag Summary: bug fix to correct use of an uninitialized variable in the EBM
+             relevant url for the code in question:
+	     https://web.archive.org/web/20141219193637/http://www.helioscorner.com/
+
+Testing: This mod only affects the ocean configurations using the EBM (1 degree).  The 1 degree tests
+	are expected to be different because the mod is answer changing.  All other resolutions of aux_pop pass.
+	(A test case was looked at by Keith to verify that the fix looked ok. Cecile is running her controls with this fix in.
+
+	M       source/estuary_vsf_mod.F90
+	M       ChangeLog
+===============================================================================
+Tag Creator: jet
 Developers:  njn01, gokhan
 Tag Date:    9 May 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170508
