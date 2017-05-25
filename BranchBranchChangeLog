@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    25 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n92_marbl_dev_n43_cesm_pop_2_1_20170508
+Tag Summary: Merge marbl_dev_n43 in (results in marbl_dev_levy identical
+             to marbl_dev, except for addition of BranchBranchChangeLog and
+             some svn:mergeinfo properties)
+
+Testing:     verify this branch is identical to marbl_dev_n43, which has been
+             tested
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+ M      drivers/cpl
+ M      drivers/cpl_none
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    23 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n91_marbl_dev_n42_cesm_pop_2_1_20170508
 Tag Summary: Clean-up following code review
