@@ -3178,11 +3178,13 @@ contains
     end if
 
     ! confirm that dim3_len == km if ldim3_is_depth is .true.
-    if (this%ldim3_is_depth .and. dim3_len /= km) then
-      call document(subname, 'marbl_varname', marbl_varname)
-      call document(subname, 'dim3_len', dim3_len)
-      call document(subname, 'ldim3_is_depth is true, but dim3 size /= km')
-      call exit_POP(sigAbort, 'Stopping in ' // subname)
+    if (this%ldim3_is_depth) then
+      if (dim3_len /= km) then
+        call document(subname, 'marbl_varname', marbl_varname)
+        call document(subname, 'dim3_len', dim3_len)
+        call document(subname, 'ldim3_is_depth is true, but dim3 size /= km')
+        call exit_POP(sigAbort, 'Stopping in ' // subname)
+      end if
     end if
 
     ! confirm that source == 'internal' if rank is 3 and ldim3_is_depth is .false.

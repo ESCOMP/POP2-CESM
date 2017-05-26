@@ -74,7 +74,7 @@ contains
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: mismatch
-   integer (int_kind) :: var_master
+   integer (int_kind) :: var_master ! var, broadcast from master_task
 
 !-----------------------------------------------------------------------
 
@@ -86,7 +86,7 @@ contains
 
    if (var /= var_master) then
      mismatch = .true.
-     write(stdout, '(a,i0,x,a,x,2(x,i0))') 'var_consistency_check mismatch: my_task=', &
+     write(stdout, '(a,i0,1x,a,1x,2(1x,i0))') 'var_consistency_check mismatch: my_task=', &
        my_task, trim(message), var, var_master
    end if
 
@@ -126,7 +126,7 @@ contains
 
    logical (log_kind) :: mismatch
    integer (int_kind) :: n
-   integer (int_kind) :: var_master(size(var))
+   integer (int_kind) :: var_master(size(var)) ! var, broadcast from master_task
 
 !-----------------------------------------------------------------------
 
@@ -139,7 +139,7 @@ contains
    do n = 1, size(var)
      if (var(n) /= var_master(n)) then
        mismatch = .true.
-       write(stdout, '(a,i0,x,a,a,i0,x,2(x,i0))') 'var_consistency_check mismatch: my_task=', &
+       write(stdout, '(a,i0,1x,a,a,i0,1x,2(1x,i0))') 'var_consistency_check mismatch: my_task=', &
          my_task, trim(message), ', n=', n, var(n), var_master(n)
      end if
    end do
@@ -179,7 +179,7 @@ contains
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: mismatch
-   logical (log_kind) :: var_master
+   logical (log_kind) :: var_master ! var, broadcast from master_task
 
 !-----------------------------------------------------------------------
 
@@ -191,7 +191,7 @@ contains
 
    if (var .neqv. var_master) then
      mismatch = .true.
-     write(stdout, '(a,i0,x,a,x,2(x,l))') 'var_consistency_check mismatch: my_task=', &
+     write(stdout, '(a,i0,1x,a,1x,2(1x,l1))') 'var_consistency_check mismatch: my_task=', &
        my_task, trim(message), var, var_master
    end if
 
@@ -231,7 +231,7 @@ contains
 
    logical (log_kind) :: mismatch
    integer (int_kind) :: n
-   logical (log_kind) :: var_master(size(var))
+   logical (log_kind) :: var_master(size(var)) ! var, broadcast from master_task
 
 !-----------------------------------------------------------------------
 
@@ -244,7 +244,7 @@ contains
    do n = 1, size(var)
      if (var(n) .neqv. var_master(n)) then
        mismatch = .true.
-       write(stdout, '(a,i0,x,a,a,i0,x,2(x,l))') 'var_consistency_check mismatch: my_task=', &
+       write(stdout, '(a,i0,1x,a,a,i0,1x,2(1x,l1))') 'var_consistency_check mismatch: my_task=', &
          my_task, trim(message), ', n=', n, var(n), var_master(n)
      end if
    end do
@@ -284,7 +284,7 @@ contains
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: mismatch
-   real (r8)          :: var_master
+   real (r8)          :: var_master ! var, broadcast from master_task
 
 !-----------------------------------------------------------------------
 
@@ -296,7 +296,7 @@ contains
 
    if (var /= var_master) then
      mismatch = .true.
-     write(stdout, '(a,i0,x,a,x,2(x,1pe23.16))') 'var_consistency_check mismatch: my_task=', &
+     write(stdout, '(a,i0,1x,a,1x,2(1x,1pe23.16))') 'var_consistency_check mismatch: my_task=', &
        my_task, trim(message), var, var_master
    end if
 
@@ -336,7 +336,7 @@ contains
 
    logical (log_kind) :: mismatch
    integer (int_kind) :: n
-   real (r8)          :: var_master(size(var))
+   real (r8)          :: var_master(size(var)) ! var, broadcast from master_task
 
 !-----------------------------------------------------------------------
 
@@ -349,7 +349,7 @@ contains
    do n = 1, size(var)
      if (var(n) /= var_master(n)) then
        mismatch = .true.
-       write(stdout, '(a,i0,x,a,a,i0,x,2(x,1pe23.16))') 'var_consistency_check mismatch: my_task=', &
+       write(stdout, '(a,i0,1x,a,a,i0,1x,2(1x,1pe23.16))') 'var_consistency_check mismatch: my_task=', &
          my_task, trim(message), ', n=', n, var(n), var_master(n)
      end if
    end do

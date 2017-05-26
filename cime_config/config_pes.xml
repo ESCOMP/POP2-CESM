@@ -566,19 +566,19 @@
     </mach>
 
     <!-- C, C+ECO (e.g., C1850ECO), G, and G+ECO (e.g., G1850ECO) with gx1v6, gx1v7, or tx1v1 on hobart:
-         all components share 48x1 -->
+         all components share 120x1 -->
     <mach name="hobart">
       <pes pesize="any" compset="_DATM.*_POP2">
         <comment>gx1v6, gx1v7, or tx1v1 resolution on hobart</comment>
         <ntasks>
-          <ntasks_ocn>72</ntasks_ocn>
-          <ntasks_ice>72</ntasks_ice>
-          <ntasks_cpl>72</ntasks_cpl>
-          <ntasks_wav>72</ntasks_wav>
-          <ntasks_atm>72</ntasks_atm>
-          <ntasks_glc>72</ntasks_glc>
-          <ntasks_lnd>72</ntasks_lnd>
-          <ntasks_rof>72</ntasks_rof>
+          <ntasks_ocn>120</ntasks_ocn>
+          <ntasks_ice>120</ntasks_ice>
+          <ntasks_cpl>120</ntasks_cpl>
+          <ntasks_wav>120</ntasks_wav>
+          <ntasks_atm>120</ntasks_atm>
+          <ntasks_glc>120</ntasks_glc>
+          <ntasks_lnd>120</ntasks_lnd>
+          <ntasks_rof>120</ntasks_rof>
         </ntasks>
         <nthrds>
           <nthrds_ocn>1</nthrds_ocn>

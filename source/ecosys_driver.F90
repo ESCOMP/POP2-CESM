@@ -1274,8 +1274,7 @@ contains
     integer :: n
     !-----------------------------------------------------------------------
 
-    if (trim(action) == 'define') then
-
+    if (.not. allocated(surface_iodesc)) then
        allocate(surface_iodesc(size(saved_state_surf)))
        allocate(interior_iodesc(size(saved_state_interior)))
        allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))

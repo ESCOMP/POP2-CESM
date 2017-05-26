@@ -2,6 +2,46 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    26 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n70_marbl_dev_n44_cesm_pop_2_1_20170516
+Tag Summary: revisions from code review of n67 and n68 and fixes and additional test for hobart
+
+code review:
+fix typo in input_templates/ocn.ecosys.tavg.csh
+fix I/O edit descriptors and add comments in var_consistency_mod.F90
+
+hobart mods: 
+add target attribute to fields being passed to POP I/O infrastructure
+other misc changes to enable nag/DEBUG
+new hobart test ERS_Ld5_D.T62_g37.C1850ECO.hobart_nag.pop-ecosys
+increase task count for [tg]x1 to 120
+
+Testing:
+MARBL commit f14e4dfaad228100ff83f828d4ef767aff264f69 science/iron_scav_update branch
+   plus non-tagged version of fix for MARBL bug #163
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n69)
+   except for tests mentioned below, all tests pass
+      NLCOMP and BASELINE fail for new test
+      some TPUTCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/hmix_aniso.F90
+M       source/tidal_mixing.F90
+M       source/var_consistency_mod.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    25 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n69_marbl_dev_n44_cesm_pop_2_1_20170516
 Tag Summary: merge marbl_dev_n44 tag to this branch

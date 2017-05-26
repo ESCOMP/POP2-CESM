@@ -180,7 +180,7 @@ if ($ladjust_bury_coeff == ".true.") then
   cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 1  MARBL_rmean_glo_scalar_POC_bury_coeff
 1  MARBL_rmean_glo_scalar_POP_bury_coeff
-1  MARBL_rmean_glo_scalar_POP_bury_coeff
+1  MARBL_rmean_glo_scalar_bSi_bury_coeff
 EOF
 endif
 

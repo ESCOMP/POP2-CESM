@@ -40,11 +40,11 @@ module ecosys_tracers_and_saved_state_mod
      real (r8), allocatable, dimension(:,:,:,:) :: field_3d
   end type ecosys_saved_state_type
 
-  type(ecosys_saved_state_type), allocatable, dimension(:), public :: saved_state_surf
-  type(ecosys_saved_state_type), allocatable, dimension(:), public :: saved_state_interior
+  type(ecosys_saved_state_type), allocatable, target, dimension(:), public :: saved_state_surf
+  type(ecosys_saved_state_type), allocatable, target, dimension(:), public :: saved_state_interior
   ! Transpose field_3d into this array before writing restart
   ! (nx_block, ny_block, km, max_blocks_clinic)
-  real(r8), allocatable, dimension(:,:,:,:), public :: saved_state_field_3d
+  real(r8), allocatable, target, dimension(:,:,:,:), public :: saved_state_field_3d
 
   !-----------------------------------------------------------------------
   ! public variables
@@ -573,10 +573,10 @@ Contains
 
     implicit none
 
-    type (datafile),                             intent(inout) :: restart_file
-    character(*),                                intent(in)    :: action
-    type(ecosys_saved_state_type), dimension(:), intent(in)    :: state
-    type(io_field_desc),           dimension(:), intent(inout) :: iodesc
+    type (datafile),                                     intent(inout) :: restart_file
+    character(*),                                        intent(in)    :: action
+    type(ecosys_saved_state_type), target, dimension(:), intent(in)    :: state
+    type(io_field_desc),                   dimension(:), intent(inout) :: iodesc
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------

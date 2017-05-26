@@ -100,7 +100,7 @@
 !
 !-----------------------------------------------------------------------
  
-   real (r8), dimension(:,:,:,:), allocatable :: &  
+   real (r8), dimension(:,:,:,:), allocatable, target :: &  
       F_PARA,                 &! spatial dependence of viscosity
                                ! parallel to alignment direction
       F_PERP                   ! spatial dependence of viscosity

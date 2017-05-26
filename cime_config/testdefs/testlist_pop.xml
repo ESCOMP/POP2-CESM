@@ -100,6 +100,7 @@
       <test name="ERS_Ld5_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">cheyenne</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
       </test>
       <test name="SMS">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_read_fallback_gx3v7">cheyenne</machine>
