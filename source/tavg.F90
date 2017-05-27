@@ -2753,7 +2753,7 @@
             end do
 !njn01      !$OMP END PARALLEL DO
 
-            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
+            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc, tag=20000+nfield)
 
             select case(field_loc)
             case(field_loc_center)
@@ -2815,7 +2815,7 @@
             end do
 !njn01      !$OMP END PARALLEL DO
 
-            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
+            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc, tag=30000+nfield)
 
             select case(field_loc)
             case(field_loc_center)
@@ -3023,7 +3023,7 @@
 
    denom_u = tavg_norm*area_u
 
-   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc)
+   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc, tag=id)
 
    select case(field_loc)
      case(field_loc_center)
@@ -7790,7 +7790,7 @@
 
    do n_reg=1,n_reg_0D
      SAVG_0D(n_reg) = global_sum ( WORK(:,:,:),distrb_clinic,  &
-                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg))  &
+                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg), tag=n_reg)  &
                          / SAVG_0D_AREA(n_reg)
    enddo ! n_reg
 

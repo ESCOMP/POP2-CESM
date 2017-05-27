@@ -2,6 +2,49 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    27 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n71_marbl_dev_n44_cesm_pop_2_1_20170516
+Tag Summary: add internal consistency checks
+
+add ldebug flag, set to .true. when DEBUG=TRUE or in test suite (except in performance_eval)
+
+add optional argument tag to global_sum functions
+   verify that tag is consistent across all tasks, when debug==.true. and tag is present
+
+add tag argument to global_sum calls in tavg_global, tavg_global_sum_2D, and tavg_local_spatial_avg
+
+add consistency checks for the following
+   tracer module index bounds
+   scalar and 1D arguments to running_mean_init_var_vals
+   scalar and 1D arguments to running_mean_update_var (if ldebug==.true.)
+
+Testing:
+MARBL commit f959e7229b30fdc814bddb613e9ca5d3300c38c3 science/iron_scav_update branch
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n70)
+   except for tests mentioned below, all tests pass
+      NLCOMP fails because of new nl var ldebug
+      some MEMLEAK and MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/default/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_pop
+M       mpi/POP_ReductionsMod.F90
+M       mpi/global_reductions.F90
+M       source/initial.F90
+M       source/passive_tracer_tools.F90
+M       source/prognostic.F90
+M       source/running_mean_mod.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    26 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n70_marbl_dev_n44_cesm_pop_2_1_20170516
 Tag Summary: revisions from code review of n67 and n68 and fixes and additional test for hobart

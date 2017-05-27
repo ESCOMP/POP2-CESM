@@ -935,6 +935,9 @@
 <lccsm_control_compatible ocn_grid="tx1v1"  >.false.</lccsm_control_compatible> 
 <lccsm_control_compatible ocn_grid="tx0.1v2">.false.</lccsm_control_compatible> 
 
+<ldebug>.false.</ldebug>
+<ldebug DEBUG="TRUE">.true.</ldebug>
+
 <!---------------------------->
 <!--overflows_nml -->
 <!---------------------------->

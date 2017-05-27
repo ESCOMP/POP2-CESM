@@ -350,6 +350,7 @@ my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
 my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
 my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
+my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
@@ -1175,6 +1176,7 @@ add_default($nl,'lcoupled');
 add_default($nl,'lccsm');
 add_default($nl,'b4b_flag');
 add_default($nl,'lccsm_control_compatible');
+add_default($nl,'ldebug', 'DEBUG'=>"$DEBUG");
 
 ##########################################
 # namelist group: overflows_nml          #

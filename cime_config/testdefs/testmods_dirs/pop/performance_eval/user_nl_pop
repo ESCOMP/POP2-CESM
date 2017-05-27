@@ -9,3 +9,4 @@ moc_requested = .false.
 n_heat_trans_requested = .false.
 n_salt_trans_requested = .false.
 diag_gm_bolus = .false.
+ldebug = .false.

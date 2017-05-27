@@ -4061,6 +4061,16 @@ Flag to run POP with code that is bit-for-bit with the ccsm4 control run. (Accor
 Default: .false.
 </entry>
 
+<entry 
+id="ldebug"
+type="logical"
+category="context"
+group="context_nml" >
+If this is true, then various internal consistency checks are enabled.
+
+Default: DEBUG from env_run.xml, but overridable by user_nl_pop
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: overflows_nml            - -->
