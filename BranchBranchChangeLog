@@ -2,6 +2,33 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    29 May 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n72_marbl_dev_n44_cesm_pop_2_1_20170516
+Tag Summary: bug fixes, correct handling of vsf_river_correction for passive tracers
+
+vsf_river_correction(2) was incorrectly included in FvPER(n) and STF(n)
+   because STF(n) was wrong, fixing this bug changes tracer values
+vsf_river_correction(n), n=3..nt, was included in STF(n), but not FvPER(n)
+   this is only a diagnostic bug
+
+Testing:
+MARBL commit f959e7229b30fdc814bddb613e9ca5d3300c38c3 science/iron_scav_update branch
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n71)
+   except for tests mentioned below, all tests pass
+      BASELINE tests fail because these bug fixes change answers
+      some MEMLEAK and MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    27 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n71_marbl_dev_n44_cesm_pop_2_1_20170516
 Tag Summary: add internal consistency checks
