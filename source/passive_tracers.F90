@@ -1093,10 +1093,12 @@
 
    !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val)
    do iblock = 1,nblocks_clinic
-      ! if lvsf_river is enabled, do not include vsf_river_correction(2) when
-      ! computing tracer virtual flux
+      ! If lvsf_river is enabled, do not include vsf_river_correction(2) when
+      ! computing tracer virtual flux. vsf_river_correction is only present in STF(2)
+      ! where MASK_ESTUARY=1.
       if (lvsf_river) then
-         STF2_m_river_correction(:,:,iblock) = STF(:,:,2,iblock) - vsf_river_correction(2)
+         STF2_m_river_correction(:,:,iblock) = STF(:,:,2,iblock) - &
+            MASK_ESTUARY(:,:,iblock)*vsf_river_correction(2)
       else
          STF2_m_river_correction(:,:,iblock) = STF(:,:,2,iblock)
       endif
