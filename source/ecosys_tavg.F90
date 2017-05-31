@@ -35,6 +35,7 @@
   public :: ecosys_tavg_init
   public :: ecosys_tavg_accumulate_interior
   public :: ecosys_tavg_accumulate_surface
+  public :: ecosys_tavg_accumulate_scalar_rmeans
 
   !-----------------------------------------------------------------------
   !  define tavg id for interior diagnostics, diagnostics related to
@@ -50,6 +51,9 @@
   integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
   integer (int_kind) :: tavg_DpCO2_2        ! delta pco2 duplicate
   integer (int_kind) :: tavg_DIC_GAS_FLUX_2 ! dic flux duplicate
+
+  integer (int_kind), allocatable :: tavg_ids_scalar_rmean_interior(:)
+  integer (int_kind), allocatable :: tavg_ids_scalar_rmean_surface(:)
 
   !***********************************************************************
 
@@ -74,6 +78,7 @@ contains
     character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
     character(char_len) :: sname, lname
     integer (int_kind) :: n
+    integer (int_kind) :: rmean_var_cnt
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -131,6 +136,20 @@ contains
                            long_name='DIC Surface Gas Flux',            &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
+
+    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior)
+    allocate(tavg_ids_scalar_rmean_interior(rmean_var_cnt))
+    do n = 1, rmean_var_cnt
+      call define_tavg_field(tavg_ids_scalar_rmean_interior(n), &
+                             marbl_instance%glo_scalar_rmean_interior(n)%sname, 0)
+    end do
+
+    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface)
+    allocate(tavg_ids_scalar_rmean_surface(rmean_var_cnt))
+    do n = 1, rmean_var_cnt
+      call define_tavg_field(tavg_ids_scalar_rmean_surface(n), &
+                             marbl_instance%glo_scalar_rmean_surface(n)%sname, 0)
+    end do
 
   end subroutine ecosys_tavg_init
 
@@ -194,7 +213,7 @@ contains
 
   subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances)
 
-    ! Compute diagnostics for surface fluxes
+    ! Accumulate diagnostics for surface fluxes
 
     use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
     use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
@@ -244,6 +263,37 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine ecosys_tavg_accumulate_surface
+
+  !***********************************************************************
+
+  subroutine ecosys_tavg_accumulate_scalar_rmeans(marbl_instance, field_source)
+
+    ! Accumulate diagnostics for scalar running means
+
+    implicit none
+
+    type(marbl_interface_class), intent(in) :: marbl_instance
+    character (*),               intent(in) :: field_source   ! 'interior' or 'surface'
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    integer :: n
+    !-----------------------------------------------------------------------
+
+    if (trim(field_source) == 'interior') then
+      do n = 1, size(marbl_instance%glo_scalar_rmean_interior)
+        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior(n)%rmean, &
+                                   tavg_ids_scalar_rmean_interior(n))
+      end do
+    else
+      do n = 1, size(marbl_instance%glo_scalar_rmean_surface)
+        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface(n)%rmean, &
+                                   tavg_ids_scalar_rmean_surface(n))
+      end do
+    end if
+
+  end subroutine ecosys_tavg_accumulate_scalar_rmeans
 
   !***********************************************************************
 

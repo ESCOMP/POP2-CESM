@@ -8,7 +8,7 @@
     <!-- Un-recognized grid on any machine -->
     <mach name="any">
 
-      <!-- C, CECO, G, and GECO when either resolution or machine is un-recognized:
+      <!-- C, C+ECO (e.g., C1850ECO), G, and G+ECO (e.g., G1850ECO) when either resolution or machine is un-recognized:
            all components run on single node with 1 thread -->
       <pes pesize="any" compset="_DATM.*_POP2">
         <comment>Either did not recognize the resolution or the machine name specified</comment>
@@ -53,7 +53,7 @@
     <!-- gx3v7 resolution on yellowstone  -->
     <mach name="yellowstone">
 
-      <!-- C, CECO, G, and GECO with gx3v7 on yellowstone:
+      <!-- C, C+ECO (e.g., C1850ECO), G, and G+ECO (e.g., G1850ECO) with gx3v7 on yellowstone:
            all components share 32x1 -->
       <pes pesize="any" compset="_DATM.*_POP2">
         <comment>gx3v7 resolution on yellowstone</comment>
@@ -95,10 +95,10 @@
     <!-- gx3v7 resolution on cheyenne  -->
     <mach name="cheyenne">
 
-      <!-- C and CECO with gx3v7 on cheyenne:
+      <!-- C and C+ECO (e.g., C1850ECO) with gx3v7 on cheyenne:
            all components share 72x1 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2">
-        <comment>C or CECO; gx3v7 resolution on cheyenne</comment>
+        <comment>C or C+ECO (e.g., C1850ECO); gx3v7 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>72</ntasks_ocn>
           <ntasks_ice>72</ntasks_ice>
@@ -169,11 +169,11 @@
         </rootpe>
       </pes>
 
-      <!-- GECO with gx3v7 on cheyenne:
+      <!-- G+ECO (e.g., G1850ECO) with gx3v7 on cheyenne:
            POP gets 72x1
            all other components share 36x1 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
-        <comment>GECO; gx3v7 resolution on cheyenne</comment>
+        <comment>G+ECO (e.g., G1850ECO); gx3v7 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>72</ntasks_ocn>
           <ntasks_ice>36</ntasks_ice>
@@ -210,7 +210,7 @@
     <!-- gx3v7 resolution on hobart -->
     <mach name="hobart">
 
-      <!-- C, CECO, G, and GECO with gx3v7 on hobart:
+      <!-- C, C+ECO (e.g., C1850ECO), G, and G+ECO (e.g., G1850ECO) with gx3v7 on hobart:
            all components share 24x1 -->
       <pes pesize="any" compset="_DATM.*_POP2">
         <comment>gx3v7 resolution on hobart</comment>
@@ -293,13 +293,13 @@
         </rootpe>
       </pes>
 
-      <!-- CECO compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
+      <!-- C+ECO (e.g., C1850ECO) compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
            POP gets 432x1
            all other components share 16x1 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2%ECO">
         <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
         <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>CECO; gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
+        <comment>C+ECO (e.g., C1850ECO); gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
         <ntasks>
           <ntasks_ocn>432</ntasks_ocn>
           <ntasks_ice>16</ntasks_ice>
@@ -372,14 +372,14 @@
         </rootpe>
       </pes>
 
-      <!-- GECO compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
+      <!-- G+ECO (e.g., G1850ECO) compset, gx1v6, gx1v7, or tx1v1 resolution on yellowstone:
            POP gets 432x1
            CICE and coupler get 48x1
            everyone else shares 16x1 on yellowstone-->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
         <MAX_TASKS_PER_NODE>16</MAX_TASKS_PER_NODE>
         <PES_PER_NODE>16</PES_PER_NODE>
-        <comment>GECO; gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
+        <comment>G+ECO (e.g., G1850ECO); gx1v6, gx1v7, or tx1v1 resolution on yellowstone</comment>
         <ntasks>
           <ntasks_ocn>432</ntasks_ocn>
           <ntasks_ice>48</ntasks_ice>
@@ -453,11 +453,11 @@
         </rootpe>
       </pes>
 
-      <!-- CECO compset with gx1v6, gx1v7, or tx1v1 resolution on cheyenne
+      <!-- C+ECO (e.g., C1850ECO) compset with gx1v6, gx1v7, or tx1v1 resolution on cheyenne
            POP gets 216x2
            all other components share 18x2 -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2%ECO">
-        <comment>CECO; gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
+        <comment>C+ECO (e.g., C1850ECO); gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>216</ntasks_ocn>
           <ntasks_ice>18</ntasks_ice>
@@ -527,11 +527,11 @@
         </rootpe>
       </pes>
 
-      <!-- GECO compset, gx1v6, gx1v7, or tx1v1 resolution on cheyenne:
+      <!-- G+ECO (e.g., G1850ECO) compset, gx1v6, gx1v7, or tx1v1 resolution on cheyenne:
            POP gets 216x2
            all other components share 36x2 -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
-        <comment>GECO; gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
+        <comment>G+ECO (e.g., G1850ECO); gx1v6, gx1v7, or tx1v1 resolution on cheyenne</comment>
         <ntasks>
           <ntasks_ocn>216</ntasks_ocn>
           <ntasks_ice>36</ntasks_ice>
@@ -565,20 +565,20 @@
       </pes>
     </mach>
 
-    <!-- C, CECO, G, and GECO with gx1v6, gx1v7, or tx1v1 on hobart:
-         all components share 48x1 -->
+    <!-- C, C+ECO (e.g., C1850ECO), G, and G+ECO (e.g., G1850ECO) with gx1v6, gx1v7, or tx1v1 on hobart:
+         all components share 120x1 -->
     <mach name="hobart">
       <pes pesize="any" compset="_DATM.*_POP2">
         <comment>gx1v6, gx1v7, or tx1v1 resolution on hobart</comment>
         <ntasks>
-          <ntasks_ocn>72</ntasks_ocn>
-          <ntasks_ice>72</ntasks_ice>
-          <ntasks_cpl>72</ntasks_cpl>
-          <ntasks_wav>72</ntasks_wav>
-          <ntasks_atm>72</ntasks_atm>
-          <ntasks_glc>72</ntasks_glc>
-          <ntasks_lnd>72</ntasks_lnd>
-          <ntasks_rof>72</ntasks_rof>
+          <ntasks_ocn>120</ntasks_ocn>
+          <ntasks_ice>120</ntasks_ice>
+          <ntasks_cpl>120</ntasks_cpl>
+          <ntasks_wav>120</ntasks_wav>
+          <ntasks_atm>120</ntasks_atm>
+          <ntasks_glc>120</ntasks_glc>
+          <ntasks_lnd>120</ntasks_lnd>
+          <ntasks_rof>120</ntasks_rof>
         </ntasks>
         <nthrds>
           <nthrds_ocn>1</nthrds_ocn>

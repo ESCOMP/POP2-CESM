@@ -416,25 +416,8 @@
    call set_ap(ATM_PRESS)
 
    if (nt > 2) then
-      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF,STF_RIV)
-   endif
-
-   if ( lvsf_river ) then
-      !$OMP PARALLEL DO PRIVATE(iblock,n)
-      do iblock = 1, nblocks_clinic
-         do n = 3, nt
-            ! add STF_RIV to STF where the ebm is not handling it
-            if (lhas_riv_flux(n)) then
-               STF(:,:,n,iblock) = STF(:,:,n,iblock) + (c1-MASK_ESTUARY(:,:,iblock))*STF_RIV(:,:,n,iblock)
-            endif
-            ! Add global correction for tracer conservation, correcting for
-            ! using local tracer concenctration in application of ROFF_F
-            if (lhas_vflux(n)) then
-               STF(:,:,n,iblock) = STF(:,:,n,iblock) + MASK_ESTUARY(:,:,iblock)*vsf_river_correction(n)
-            endif
-         end do
-      end do
-      !$OMP END PARALLEL DO
+      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX, &
+                                     lvsf_river,MASK_ESTUARY,vsf_river_correction,STF,STF_RIV)
    endif
 
    ! running_mean_test_update_sflux_var is only necessary for test mode

@@ -34,7 +34,7 @@
    use communicate, only: my_task, master_task, init_communicate
    use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
-   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime
+   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime, ldebug
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
@@ -714,7 +714,7 @@
       nml_error,            &! namelist i/o error flag
       number_of_fatal_errors
 
-   namelist /context_nml/ lcoupled, lccsm, b4b_flag, lccsm_control_compatible
+   namelist /context_nml/ lcoupled, lccsm, b4b_flag, lccsm_control_compatible, ldebug
 
 !-----------------------------------------------------------------------
 !
@@ -727,6 +727,7 @@
    lccsm                    = .false.
    b4b_flag                 = .false.
    lccsm_control_compatible = .true.
+   ldebug                   = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -752,6 +753,7 @@
    call broadcast_scalar(lccsm,                    master_task)
    call broadcast_scalar(b4b_flag,                 master_task)
    call broadcast_scalar(lccsm_control_compatible, master_task)
+   call broadcast_scalar(ldebug,                   master_task)
 
 !-----------------------------------------------------------------------
 !

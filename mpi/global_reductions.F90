@@ -20,8 +20,10 @@
    use distribution
    use domain_size
    use domain
-   use exit_mod
-   use registry
+   use exit_mod,            only : exit_POP, SigAbort
+   use registry,            only : registry_match
+   use prognostic,          only : ldebug
+   use var_consistency_mod, only : var_consistency_check
    !use timers
 
    implicit none
@@ -142,7 +144,7 @@
 ! !IROUTINE: global_sum
 ! !INTERFACE:
 
- function global_sum_nfields_dbl(X, dist, field_loc, MASK)
+ function global_sum_nfields_dbl(X, dist, field_loc, MASK, tag)
 
 ! !DESCRIPTION:
 !  computes the global sums of the physical domain of a set of 2-d
@@ -175,6 +177,10 @@
                         size(X,dim=4)), intent(in), optional :: &
       MASK                 ! real 2d multiplicative mask
 
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
 ! !OUTPUT PARAMETERS:
 
    real (r8), dimension(size(X,dim=3)) :: &
@@ -200,6 +206,12 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_nfields_dbl:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -368,7 +380,7 @@
 ! !IROUTINE: global_sum
 ! !INTERFACE:
 
- function global_sum_dbl(X, dist, field_loc, MASK)
+ function global_sum_dbl(X, dist, field_loc, MASK, tag)
 
 ! !DESCRIPTION:
 !  computes the global sum of the _physical domain_ of a 2-d
@@ -403,6 +415,10 @@
                               size(X,dim=3)), intent(in), optional :: &
       MASK                 ! real multiplicative mask
 
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
 ! !OUTPUT PARAMETERS:
 
    real (r8) :: &
@@ -432,6 +448,14 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_dbl:tag', tag)
+   endif
+
+!-----------------------------------------------------------------------
 
    if (.not. b4b) then
 
@@ -591,7 +615,7 @@
 
 !***********************************************************************
 
- function global_sum_real(X, dist, field_loc, MASK)
+ function global_sum_real(X, dist, field_loc, MASK, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -621,6 +645,10 @@
                               size(X,dim=2), &
                               size(X,dim=3)), intent(in), optional :: &
       MASK                 ! real multiplicative mask
+
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 !-----------------------------------------------------------------------
 !
@@ -653,6 +681,13 @@
    type (block) :: &
       this_block          ! holds local block information
 
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_real:tag', tag)
+   endif
+
+!-----------------------------------------------------------------------
 
    if (.not. b4b) then
 
@@ -801,7 +836,7 @@
 
 !***********************************************************************
 
- function global_sum_int(X, dist, field_loc, MASK)
+ function global_sum_int(X, dist, field_loc, MASK, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -831,6 +866,10 @@
                               size(X,dim=2), &
                               size(X,dim=3)), intent(in), optional :: &
       MASK                 ! real multiplicative mask
+
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 !-----------------------------------------------------------------------
 !
@@ -863,6 +902,13 @@
    type (block) :: &
       this_block          ! holds local block information
 
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_int:tag', tag)
+   endif
+
+!-----------------------------------------------------------------------
 
    if (.not. b4b) then
 
@@ -1013,7 +1059,7 @@
 
 !***********************************************************************
 
- function global_sum_scalar_dbl(local_scalar, dist)
+ function global_sum_scalar_dbl(local_scalar, dist, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -1029,10 +1075,20 @@
    real (r8), intent(inout) :: &
       local_scalar                ! local scalar to be compared
 
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
    real (r8) :: &
       global_sum_scalar_dbl   ! resulting global sum
 
    integer (int_kind) :: ierr ! MPI error flag
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_scalar_dbl:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1054,7 +1110,7 @@
 
 !***********************************************************************
 
- function global_sum_scalar_real(local_scalar, dist)
+ function global_sum_scalar_real(local_scalar, dist, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -1070,10 +1126,20 @@
    type (distrb), intent(in) :: &
       dist                 ! distribution from which this is called
 
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
    real (r4) :: &
       global_sum_scalar_real   ! resulting global sum
 
    integer (int_kind) :: ierr ! MPI error flag
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_scalar_real:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1095,7 +1161,7 @@
 
 !***********************************************************************
 
- function global_sum_scalar_int(local_scalar, dist)
+ function global_sum_scalar_int(local_scalar, dist, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -1111,10 +1177,20 @@
    type (distrb), intent(in) :: &
       dist                 ! distribution from which this is called
 
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
    integer (int_kind) :: &
       global_sum_scalar_int   ! resulting global sum
 
    integer (int_kind) :: ierr ! MPI error flag
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_scalar_int:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1140,7 +1216,7 @@
 ! !IROUTINE: global_sum_prod
 ! !INTERFACE:
 
- function global_sum_prod_dbl (X,Y,dist,field_loc, MASK)
+ function global_sum_prod_dbl (X,Y,dist,field_loc, MASK, tag)
 
 ! !DESCRIPTION:
 !  this routine performs a global sum over the physical domain
@@ -1176,6 +1252,10 @@
      intent(in), optional :: &
      MASK               ! real multiplicative mask
 
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
 ! !OUTPUT PARAMETERS:
 
    real (r8) :: &
@@ -1205,6 +1285,13 @@
    type (block) :: &
       this_block          ! holds local block information
 
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_prod_dbl:tag', tag)
+   endif
+
+!-----------------------------------------------------------------------
 
    if (.not. b4b) then
 
@@ -1357,7 +1444,7 @@
 
 !***********************************************************************
 
- function global_sum_prod_real (X, Y, dist, field_loc, MASK)
+ function global_sum_prod_real (X, Y, dist, field_loc, MASK, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -1388,6 +1475,10 @@
      dimension(size(X,dim=1),size(X,dim=2),size(X,dim=3)), &
      intent(in), optional :: &
      MASK               ! real multiplicative mask
+
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 !-----------------------------------------------------------------------
 !
@@ -1421,6 +1512,13 @@
    type (block) :: &
       this_block          ! holds local block information
 
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_prod_real:tag', tag)
+   endif
+
+!-----------------------------------------------------------------------
 
    if (.not. b4b) then
 
@@ -1575,7 +1673,7 @@
 
 !***********************************************************************
 
- function global_sum_prod_int (X, Y, dist, field_loc, MASK)
+ function global_sum_prod_int (X, Y, dist, field_loc, MASK, tag)
 
 !-----------------------------------------------------------------------
 !
@@ -1606,6 +1704,10 @@
      dimension(size(X,dim=1),size(X,dim=2),size(X,dim=3)), &
      intent(in), optional :: &
      MASK               ! real multiplicative mask
+
+   integer (int_kind), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 !-----------------------------------------------------------------------
 !
@@ -1638,6 +1740,13 @@
    type (block) :: &
       this_block          ! holds local block information
 
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('global_sum_prod_int:tag', tag)
+   endif
+
+!-----------------------------------------------------------------------
 
    if (.not. b4b) then
 

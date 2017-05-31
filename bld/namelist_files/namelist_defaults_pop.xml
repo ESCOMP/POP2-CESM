@@ -792,6 +792,8 @@
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
 
+<precip_fact_const>1.0</precip_fact_const>
+
 <!---------------------------->
 <!-- forcing_pt_interior_nml-->
 <!---------------------------->
@@ -933,6 +935,9 @@
 <lccsm_control_compatible ocn_grid="tx1v1"  >.false.</lccsm_control_compatible> 
 <lccsm_control_compatible ocn_grid="tx0.1v2">.false.</lccsm_control_compatible> 
 
+<ldebug>.false.</ldebug>
+<ldebug DEBUG="TRUE">.true.</ldebug>
+
 <!---------------------------->
 <!--overflows_nml -->
 <!---------------------------->
@@ -1031,15 +1036,19 @@
 
 <cfc_formulation>model</cfc_formulation>
 
-<data_year&cfc_nml>1981</data_year&cfc_nml>
-<data_year&cfc_nml ocn_transient="1850-2000">1850</data_year&cfc_nml>
+<data_year&cfc_nml                           >   1</data_year&cfc_nml>
+<model_year&cfc_nml                          >   1</model_year&cfc_nml>
+
+<data_year&cfc_nml  ocn_transient="CORE2"    >2009</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="CORE2"    > 310</model_year&cfc_nml>
+
+<data_year&cfc_nml  ocn_transient="1850-2000">1850</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
 
 <init_cfc_init_file>same_as_TS</init_cfc_init_file>
 
-<model_year&cfc_nml>1</model_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
-
-<pcfc_file>ocn/pop/res_indpt/forcing/pcfc1112_atm_20130410.nc</pcfc_file>
+<pcfc_file>ocn/pop/res_indpt/forcing/cfc_atm_20170512.nc</pcfc_file>
+<pcfc_first_nonzero_year>1936</pcfc_first_nonzero_year>
 
 <!---------------------------->
 <!--        sf6_nml         -->
@@ -1047,16 +1056,19 @@
 
 <sf6_formulation>model</sf6_formulation>
 
-<data_year&sf6_nml>1981</data_year&sf6_nml>
-<data_year&sf6_nml ocn_transient="1850-2000">1850</data_year&sf6_nml>
+<data_year&sf6_nml                           >   1</data_year&sf6_nml>
+<model_year&sf6_nml                          >   1</model_year&sf6_nml>
+
+<data_year&sf6_nml  ocn_transient="CORE2"    >2009</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="CORE2"    > 310</model_year&sf6_nml>
+
+<data_year&sf6_nml  ocn_transient="1850-2000">1850</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
 
 <init_sf6_init_file>same_as_TS</init_sf6_init_file>
 
-<model_year&sf6_nml>1</model_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
-
 <psf6_file>ocn/pop/res_indpt/forcing/sf6_atm_20160311.nc</psf6_file>
-
+<psf6_first_nonzero_year>1953</psf6_first_nonzero_year>
 
 <!---------------------------->
 <!--    abio_dic_dic14_nml  -->
@@ -1109,7 +1121,7 @@
 <!-- ecosys derived vars    -->
 <!---------------------------->
 
-<lecosys_debug>.false.</lecosys_debug>
+<lecosys_tavg_all>.false.</lecosys_tavg_all>
 
 <!---------------------------->
 <!--     marbl_config_nml   -->
@@ -1153,7 +1165,8 @@
 <!-- ecosys_forcing_data_nml - -->
 <!-------------------------- - -->
 
-<dust_flux_source>monthly-calendar</dust_flux_source>    
+<dust_flux_source ocn_coupling="partial">monthly-calendar</dust_flux_source>    
+<dust_flux_source                       >driver          </dust_flux_source>    
 
 <dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename> 
 <dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename> 
@@ -1162,7 +1175,8 @@
 <dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>
 <dust_flux_input%scale_factor>1.0e-1</dust_flux_input%scale_factor>
 
-<iron_flux_source>monthly-calendar</iron_flux_source>    
+<iron_flux_source ocn_coupling="partial">monthly-calendar</iron_flux_source>    
+<iron_flux_source                       >driver-derived  </iron_flux_source>    
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename> 
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename> 
@@ -1189,11 +1203,8 @@
 <feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
 
-<ndep_data_type>monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="unset"    >monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>
-<ndep_data_type ocn_transient="rcp4.5">shr_stream</ndep_data_type>
-<ndep_data_type ocn_transient="rcp8.5">shr_stream</ndep_data_type>
+<ndep_data_type ocn_transient="unset">monthly-calendar</ndep_data_type>
+<ndep_data_type ocn_transient="CORE2">monthly-calendar</ndep_data_type>
 
 <nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
 <nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
@@ -1213,22 +1224,25 @@
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
-<ndep_shr_stream_year_first>1849</ndep_shr_stream_year_first>
-<ndep_shr_stream_year_last>2006</ndep_shr_stream_year_last>
-<ndep_shr_stream_year_align>1849</ndep_shr_stream_year_align>
-<ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx3v7_c160717.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx1v6_c160717.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx1v6_c160717.nc</ndep_shr_stream_file>
+<ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>              
+<ndep_shr_stream_year_first ocn_transient="1850-2000">1849</ndep_shr_stream_year_first>
+<ndep_shr_stream_year_last  ocn_transient="1850-2000">2006</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="1850-2000">1849</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="1850-2000">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx3v7_c160717.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="1850-2000">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx1v6_c160717.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="1850-2000">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_w_nhx_emis_gx1v6_c160717.nc</ndep_shr_stream_file>
 
+<ndep_data_type ocn_transient="rcp4.5">shr_stream</ndep_data_type>              
 <ndep_shr_stream_year_first ocn_transient="rcp4.5">2004</ndep_shr_stream_year_first>
-<ndep_shr_stream_year_last ocn_transient="rcp4.5">2101</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_last  ocn_transient="rcp4.5">2101</ndep_shr_stream_year_last>
 <ndep_shr_stream_year_align ocn_transient="rcp4.5">2004</ndep_shr_stream_year_align>
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp4.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp45_gx3v7_c100816.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file>
 
+<ndep_data_type ocn_transient="rcp8.5">shr_stream</ndep_data_type>              
 <ndep_shr_stream_year_first ocn_transient="rcp8.5">2004</ndep_shr_stream_year_first>
-<ndep_shr_stream_year_last ocn_transient="rcp8.5">2101</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_last  ocn_transient="rcp8.5">2101</ndep_shr_stream_year_last>
 <ndep_shr_stream_year_align ocn_transient="rcp8.5">2004</ndep_shr_stream_year_align>
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="rcp8.5">ocn/pop/gx3v7/forcing/ndep_ocn_rcp85_gx3v7_c100816.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file>
@@ -1287,7 +1301,6 @@
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
 <restorable_tracer_names>'PO4','NO3','SiO3','O2','ALK'</restorable_tracer_names>
-<restore_data_filenames_derived ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</restore_data_filenames_derived>
 
 <restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_POP_gx3v7_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
@@ -1401,54 +1414,52 @@
 <parm_init_bSi_bury_coeff ocn_grid="gx3v7">1.1</parm_init_bSi_bury_coeff>
 <parm_init_bSi_bury_coeff                 >1.0</parm_init_bSi_bury_coeff>
 
-<parm_Fe_scavenge_coeffA>      1.45 </parm_Fe_scavenge_coeffA>
-<parm_Fe_scavenge_coeffB>       1.0 </parm_Fe_scavenge_coeffB>
-<parm_Fe_scavenge_rate0>       25.0 </parm_Fe_scavenge_rate0>
-<parm_Lig_scavenge_rate0>     0.005 </parm_Lig_scavenge_rate0>
-<parm_FeLig_scavenge_rate0>     1.0 </parm_FeLig_scavenge_rate0>
-<parm_Lig_degrade_rate0>   0.000095 </parm_Lig_degrade_rate0>
+<parm_Fe_scavenge_rate0>       15.0 </parm_Fe_scavenge_rate0>
+<parm_Lig_scavenge_rate0>     0.015 </parm_Lig_scavenge_rate0>
+<parm_FeLig_scavenge_rate0>     1.3 </parm_FeLig_scavenge_rate0>
+<parm_Lig_degrade_rate0>   0.000094 </parm_Lig_degrade_rate0>
 <parm_Fe_desorption_rate0>   1.0e-6 </parm_Fe_desorption_rate0>
 
 <parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.075</parm_f_prod_sp_CaCO3>
 <parm_f_prod_sp_CaCO3                 >0.070</parm_f_prod_sp_CaCO3>
 
-<parm_POC_diss  > 90.0e2</parm_POC_diss>
-<parm_SiO2_diss >660.0e2</parm_SiO2_diss>
-<parm_CaCO3_diss>450.0e2</parm_CaCO3_diss>
+<parm_POC_diss  >100.0e2</parm_POC_diss>
+<parm_SiO2_diss >770.0e2</parm_SiO2_diss>
+<parm_CaCO3_diss>500.0e2</parm_CaCO3_diss>
 
 <parm_sed_denitrif_coeff ocn_grid="gx3v7">1.4</parm_sed_denitrif_coeff>
 <parm_sed_denitrif_coeff                 >1.0</parm_sed_denitrif_coeff>
 
 <bury_coeff_rmean_timescale_years>10.0</bury_coeff_rmean_timescale_years>
 
-<parm_scalelen_z                    >100.0e2, 250.0e2, 500.0e2,  750.0e2</parm_scalelen_z>
+<parm_scalelen_z                    >100.0e2, 250.0e2, 500.0e2, 1000.0e2</parm_scalelen_z>
 <parm_scalelen_vals ocn_grid="gx3v7">    1.0,     3.3,     4.2,      4.4</parm_scalelen_vals>
-<parm_scalelen_vals                 >    1.0,     3.3,     4.2,      4.5</parm_scalelen_vals>
+<parm_scalelen_vals                 >    1.0,     2.2,     4.0,      5.0</parm_scalelen_vals>
 
 
 <zooplankton(1)%z_mort_0_per_day>  0.1   </zooplankton(1)%z_mort_0_per_day>
 <zooplankton(1)%z_mort2_0_per_day> 0.4   </zooplankton(1)%z_mort2_0_per_day>
 <zooplankton(1)%loss_thres>        0.075 </zooplankton(1)%loss_thres>
 
-<autotrophs(1)%kFe  >0.025e-3</autotrophs(1)%kFe>
-<autotrophs(1)%kPO4 >0.005   </autotrophs(1)%kPO4>
-<autotrophs(1)%kDOP >0.025   </autotrophs(1)%kDOP>
-<autotrophs(1)%kNO3 >0.15    </autotrophs(1)%kNO3>
-<autotrophs(1)%kNH4 >0.005   </autotrophs(1)%kNH4>
+<autotrophs(1)%kFe  >0.03e-3 </autotrophs(1)%kFe>
+<autotrophs(1)%kPO4 >0.01    </autotrophs(1)%kPO4>
+<autotrophs(1)%kDOP >0.3     </autotrophs(1)%kDOP>
+<autotrophs(1)%kNO3 >0.25    </autotrophs(1)%kNO3>
+<autotrophs(1)%kNH4 >0.01    </autotrophs(1)%kNH4>
 <autotrophs(1)%kSiO3>0.0     </autotrophs(1)%kSiO3>
 
-<autotrophs(2)%kFe  >0.05e-3 </autotrophs(2)%kFe>
+<autotrophs(2)%kFe  >0.06e-3 </autotrophs(2)%kFe>
 <autotrophs(2)%kPO4 >0.05    </autotrophs(2)%kPO4>
-<autotrophs(2)%kDOP >0.1     </autotrophs(2)%kDOP>
-<autotrophs(2)%kNO3 >0.45    </autotrophs(2)%kNO3>
-<autotrophs(2)%kNH4 >0.05   </autotrophs(2)%kNH4>
+<autotrophs(2)%kDOP >0.5     </autotrophs(2)%kDOP>
+<autotrophs(2)%kNO3 >0.5     </autotrophs(2)%kNO3>
+<autotrophs(2)%kNH4 >0.05    </autotrophs(2)%kNH4>
 <autotrophs(2)%kSiO3>0.7     </autotrophs(2)%kSiO3>
 
-<autotrophs(3)%kFe  >0.025e-3</autotrophs(3)%kFe>
-<autotrophs(3)%kPO4 >0.02    </autotrophs(3)%kPO4>
-<autotrophs(3)%kDOP >0.02    </autotrophs(3)%kDOP>
-<autotrophs(3)%kNO3 >3.0     </autotrophs(3)%kNO3>
-<autotrophs(3)%kNH4 >0.3     </autotrophs(3)%kNH4>
+<autotrophs(3)%kFe  >0.045e-3</autotrophs(3)%kFe>
+<autotrophs(3)%kPO4 >0.015   </autotrophs(3)%kPO4>
+<autotrophs(3)%kDOP >0.075   </autotrophs(3)%kDOP>
+<autotrophs(3)%kNO3 >2.0     </autotrophs(3)%kNO3>
+<autotrophs(3)%kNH4 >0.2     </autotrophs(3)%kNH4>
 <autotrophs(3)%kSiO3>0.0     </autotrophs(3)%kSiO3>
 
 <grazing(1,1)%auto_ind        >1   </grazing(1,1)%auto_ind> 
@@ -1466,14 +1477,14 @@
 <grazing(2,1)%z_umax_0_per_day>3.05</grazing(2,1)%z_umax_0_per_day>
 <grazing(2,1)%z_grz           >1.2 </grazing(2,1)%z_grz> 
 <grazing(2,1)%graze_zoo       >0.25</grazing(2,1)%graze_zoo> 
-<grazing(2,1)%graze_poc       >0.39</grazing(2,1)%graze_poc> 
+<grazing(2,1)%graze_poc       >0.38</grazing(2,1)%graze_poc> 
 <grazing(2,1)%graze_doc       >0.06</grazing(2,1)%graze_doc> 
 <grazing(2,1)%f_zoo_detr      >0.24</grazing(2,1)%f_zoo_detr> 
 <grazing(2,1)%grazing_function>1   </grazing(2,1)%grazing_function> 
 
 <grazing(3,1)%auto_ind        >3   </grazing(3,1)%auto_ind> 
 <grazing(3,1)%zoo_ind         >-1  </grazing(3,1)%zoo_ind> 
-<grazing(3,1)%z_umax_0_per_day>3.05</grazing(3,1)%z_umax_0_per_day>
+<grazing(3,1)%z_umax_0_per_day>3.1 </grazing(3,1)%z_umax_0_per_day>
 <grazing(3,1)%z_grz           >1.2 </grazing(3,1)%z_grz> 
 <grazing(3,1)%graze_zoo       >0.3 </grazing(3,1)%graze_zoo> 
 <grazing(3,1)%graze_poc       >0.1 </grazing(3,1)%graze_poc> 

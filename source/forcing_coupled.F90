@@ -825,9 +825,10 @@
         if (lebm_on)    call set_estuary_exch_circ
 
         if (lvsf_river) THEN
-!  Add global correction for salt conservation, correcting for using local tracer concenctration in application of ROFF_F
-!  Analogous term for passive tracers is applied in forcing.F90:set_surface_forcing, after STF has been computed
-!  Marginal Seas excluded for the global correction
+!  Add global correction for salt conservation, correcting for using local
+!  tracer concentration in application of ROFF_F. Analogous term for passive
+!  tracers is applied in passive_tracers.F90:set_sflux_passive_tracers,
+!  after STF has been computed. Correction is applied where MASK_ESTUARY=1.
           !$OMP PARALLEL DO PRIVATE(iblock)
           do iblock = 1, nblocks_clinic
             STF(:,:,2,iblock) = STF(:,:,2,iblock) + MASK_ESTUARY(:,:,iblock)*vsf_river_correction(2)

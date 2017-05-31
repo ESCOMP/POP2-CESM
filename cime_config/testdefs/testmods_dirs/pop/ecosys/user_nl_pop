@@ -1,1 +1,1 @@
-lecosys_debug = .true.
+lecosys_tavg_all = .true.
