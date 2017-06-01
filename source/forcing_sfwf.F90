@@ -54,6 +54,7 @@
    real (r8), public :: &! public for use in restart
       sum_precip,       &! global precip for water balance
       precip_fact = c1, &! factor for adjusting precip for water balance
+      precip_fact_const,&! value used for precip_fact when ladjust_precip=.false.
       ssh_initial        ! initial ssh
 
    real (r8), dimension(km), public :: &
@@ -238,7 +239,8 @@
                                ladjust_precip,      sfwf_weak_restore,&
                                sfwf_strong_restore, lfw_as_salt_flx,  &
                                sfwf_strong_restore_ms,                &
-                               lsend_precip_fact,   lms_balance
+                               lsend_precip_fact,   lms_balance,      &
+                               precip_fact_const
 
 !-----------------------------------------------------------------------
 !
@@ -265,6 +267,7 @@
    sfwf_strong_restore    = 0.6648_r8
    lfw_as_salt_flx        = .false.
    lsend_precip_fact      = .false.
+   precip_fact_const      = c1
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -302,6 +305,19 @@
    call broadcast_scalar(lfw_as_salt_flx,        master_task)
    call broadcast_scalar(lsend_precip_fact,      master_task)
    call broadcast_scalar(lms_balance,            master_task)
+   call broadcast_scalar(precip_fact_const,      master_task)
+
+!-----------------------------------------------------------------------
+!
+!  set precip_fact if ladjust_precip=.false.
+!
+!-----------------------------------------------------------------------
+
+   if (.not. ladjust_precip) then
+      precip_fact = precip_fact_const
+      call document ('init_sfwf', 'setting precip_fact to precip_fact_const')
+      call document ('init_sfwf', 'precip_fact', precip_fact)
+   endif
 
 !-----------------------------------------------------------------------
 !

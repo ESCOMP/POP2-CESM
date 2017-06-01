@@ -350,6 +350,7 @@ my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
 my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
 my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
+my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
@@ -1064,6 +1065,7 @@ add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'lfw_as_salt_flx');
+add_default($nl,'precip_fact_const');
 
 ##########################################
 # namelist group: forcing_pt_interior_nml#
@@ -1174,6 +1176,7 @@ add_default($nl,'lcoupled');
 add_default($nl,'lccsm');
 add_default($nl,'b4b_flag');
 add_default($nl,'lccsm_control_compatible');
+add_default($nl,'ldebug', 'DEBUG'=>"$DEBUG");
 
 ##########################################
 # namelist group: overflows_nml          #
@@ -1263,48 +1266,38 @@ if ($iage_on eq "TRUE") {
 
 my $cfc_on = $cfg->get("use_cfc");
 if ($cfc_on eq "TRUE") {
+    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'pcfc_first_nonzero_year');
 
-#===============================================================================
-#  values of init_cfc_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set in $CASEROOT/env_run.xml
-#
-#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_cfc_option
-#  TRUE           any             any             continue    ccsm_continue
-#  FALSE          <= 1930         any             $RUN_TYPE   zero
-#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
-#  FALSE          > 1930          startup         $RUN_TYPE   abort
-#===============================================================================
+    # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective cfc year >= pcfc_first_nonzero_year
+    # then make the user specify init_cfc_option.
 
-    my $init_cfc_option;
-    $init_cfc_option = "ccsm_${RUN_TYPE}";
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      if ($RUN_TYPE ne "continue") {
-        my $RUN_DAY_ONE = $RUN_STARTDATE;
-        if ($RUN_TYPE eq "branch") {
-          $RUN_DAY_ONE = $RUN_REFDATE;
-        }
-        my @START_ARRAY = split('-',$RUN_DAY_ONE);
-        my $START_YEAR = @START_ARRAY[0];
-        print "Setting initial CFCs based on starting the run in $START_YEAR\n";
-        if ($START_YEAR le 1930) {
-          $init_cfc_option = "zero";
-        } else {
-          if ($RUN_TYPE eq "startup") {
-            # Check to see if init_cfc_option was set in user_nl_pop
-            $init_cfc_option = $nl->get_variable_value("cfc_nml", "init_cfc_option");
-            if ($init_cfc_option eq "") {
-              # If not, error out with message saying value must be specified 
-              print "ERROR: CFCs cannot be automatically initializd post 1930 in a startup run! Set init_cfc_option in user_nl_pop before building pop_in.\n";
-              die;
-            }
-          }
+    if ($RUN_TYPE eq "startup") {
+      # RUN_TYPE gets changed to continue if CONTINUE_RUN eq "TRUE",
+      # so we may assume here that CONTINUE_RUN eq "FALSE"
+
+      my @START_ARRAY = split('-',$RUN_STARTDATE);
+      my $START_YEAR = @START_ARRAY[0];
+
+      my $cfc_model_year = $nl->get_value("model_year&cfc_nml");
+      my $cfc_data_year  = $nl->get_value("data_year&cfc_nml");
+      my $START_YEAR_adj = $START_YEAR - $cfc_model_year + $cfc_data_year;
+      my $pcfc_first_nonzero_year = $nl->get_value("pcfc_first_nonzero_year");
+
+      if ($START_YEAR_adj ge $pcfc_first_nonzero_year) {
+        # Abort if init_cfc_option was not set in user_nl_pop
+        if ($nl->get_variable_value("cfc_nml", "init_cfc_option") eq "") {
+          print "RUN_TYPE=startup\n",
+                "START_YEAR_adj=$START_YEAR_adj ge pcfc_first_nonzero_year=$pcfc_first_nonzero_year\n",
+                "ERROR: CFCs cannot be automatically initialized post $pcfc_first_nonzero_year in a startup run\n",
+                "Set init_cfc_option or change pcfc_first_nonzero_year in user_nl_pop.\n";
+          die;
         }
       }
     }
-    add_default($nl, 'init_cfc_option', 'val'=>"$init_cfc_option");
 
-    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'init_cfc_option', 'val'=>"ccsm_$RUN_TYPE");
 
     add_default($nl, 'cfc_formulation');
     add_default($nl, 'pcfc_file');
@@ -1317,48 +1310,38 @@ if ($cfc_on eq "TRUE") {
 
 my $sf6_on = $cfg->get("use_sf6");
 if ($sf6_on eq "TRUE") {
+    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'psf6_first_nonzero_year');
 
-#===============================================================================
-#  values of init_sf6_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set in $CASEROOT/env_run.xml
-#
-#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_sf6_option
-#  TRUE           any             any             continue    ccsm_continue
-#  FALSE          <= 1930         any             $RUN_TYPE   zero
-#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
-#  FALSE          > 1930          startup         $RUN_TYPE   abort
-#===============================================================================
+    # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective sf6 year >= psf6_first_nonzero_year
+    # then make the user specify init_sf6_option.
 
-    my $init_sf6_option;
-    $init_sf6_option = "ccsm_${RUN_TYPE}";
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      if ($RUN_TYPE ne "continue") {
-        my $RUN_DAY_ONE = $RUN_STARTDATE;
-        if ($RUN_TYPE eq "branch") {
-          $RUN_DAY_ONE = $RUN_REFDATE;
-        }
-        my @START_ARRAY = split('-',$RUN_DAY_ONE);
-        my $START_YEAR = @START_ARRAY[0];
-        print "Setting initial SF6 based on starting the run in $START_YEAR\n";
-        if ($START_YEAR le 1930) {
-          $init_sf6_option = "zero";
-        } else {
-          if ($RUN_TYPE eq "startup") {
-            # Check to see if init_sf6_option was set in user_nl_pop
-            $init_sf6_option = $nl->get_variable_value("sf6_nml", "init_sf6_option");
-            if ($init_sf6_option eq "") {
-              # If not, error out with message saying value must be specified 
-              print "ERROR: SF6 cannot be automatically initializd post 1930 in a startup run! Set init_sf6_option in user_nl_pop before building pop_in.\n";
-              die;
-            }
-          }
+    if ($RUN_TYPE eq "startup") {
+      # RUN_TYPE gets changed to continue if CONTINUE_RUN eq "TRUE",
+      # so we may assume here that CONTINUE_RUN eq "FALSE"
+
+      my @START_ARRAY = split('-',$RUN_STARTDATE);
+      my $START_YEAR = @START_ARRAY[0];
+
+      my $sf6_model_year = $nl->get_value("model_year&sf6_nml");
+      my $sf6_data_year  = $nl->get_value("data_year&sf6_nml");
+      my $START_YEAR_adj = $START_YEAR - $sf6_model_year + $sf6_data_year;
+      my $psf6_first_nonzero_year = $nl->get_value("psf6_first_nonzero_year");
+
+      if ($START_YEAR_adj ge $psf6_first_nonzero_year) {
+        # Abort if init_sf6_option was not set in user_nl_pop
+        if ($nl->get_variable_value("sf6_nml", "init_sf6_option") eq "") {
+          print "RUN_TYPE=startup\n",
+                "START_YEAR_adj=$START_YEAR_adj ge psf6_first_nonzero_year=$psf6_first_nonzero_year\n",
+                "ERROR: sf6s cannot be automatically initialized post $psf6_first_nonzero_year in a startup run\n",
+                "Set init_sf6_option or change psf6_first_nonzero_year in user_nl_pop.\n";
+          die;
         }
       }
     }
-    add_default($nl, 'init_sf6_option', 'val'=>"$init_sf6_option");
 
-    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'init_sf6_option', 'val'=>"ccsm_$RUN_TYPE");
 
     add_default($nl, 'sf6_formulation');
     add_default($nl, 'psf6_file');
@@ -1404,18 +1387,10 @@ if ($abio_on eq "TRUE") {
  }
 
 ##########################################
-# namelist group: ecosys derived vars    #
-##########################################
-
-my $ecosys_on = $cfg->get("use_ecosys");
-if ($ecosys_on eq "TRUE") {
-    add_default($nl, 'lecosys_debug');
-}
-
-##########################################
 # namelist group: marbl_config_nml       #
 ##########################################
 
+my $ecosys_on = $cfg->get("use_ecosys");
 my $ciso_on = $cfg->get("use_ciso");
 
 if ($ecosys_on eq "TRUE") {
@@ -1475,13 +1450,13 @@ EOF
 ############################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'dust_flux_source');
+  add_default($nl, 'dust_flux_source','ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'dust_flux_input%filename');
   add_default($nl, 'dust_flux_input%file_fmt');
   add_default($nl, 'dust_flux_input%file_varname');
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
-  add_default($nl, 'iron_flux_source');
+  add_default($nl, 'iron_flux_source','ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'iron_flux_input%filename');
   add_default($nl, 'iron_flux_input%file_fmt');
   add_default($nl, 'iron_flux_input%file_varname');
@@ -1501,32 +1476,24 @@ if ($ecosys_on eq "TRUE") {
   my $ndep_data_type = $nl->get_value('ndep_data_type');
   # Need to strip the quotes
   $ndep_data_type =~ s/['"]//g;
-  if ($ndep_data_type ne "driver") {
-    if ($OCN_TRANSIENT eq "unset") {
-      add_default($nl, 'nox_flux_monthly_input%filename');
-      add_default($nl, 'nox_flux_monthly_input%file_fmt');
-      add_default($nl, 'nox_flux_monthly_input%file_varname');
-      add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-      add_default($nl, 'nhy_flux_monthly_input%filename');
-      add_default($nl, 'nhy_flux_monthly_input%file_fmt');
-      add_default($nl, 'nhy_flux_monthly_input%file_varname');
-      add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    } elsif ($OCN_TRANSIENT eq "1850-2000") {
-      add_default($nl, 'ndep_shr_stream_year_first');
-      add_default($nl, 'ndep_shr_stream_year_last');
-      add_default($nl, 'ndep_shr_stream_year_align');
-      add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-      add_default($nl, 'ndep_shr_stream_file');
-    } elsif (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
-      add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
-      add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    } else {
-      print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosys module\n";
-      die;
-    }
+  if ($ndep_data_type eq "monthly-calendar") {
+    add_default($nl, 'nox_flux_monthly_input%filename');
+    add_default($nl, 'nox_flux_monthly_input%file_fmt');
+    add_default($nl, 'nox_flux_monthly_input%file_varname');
+    add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+    add_default($nl, 'nhy_flux_monthly_input%filename');
+    add_default($nl, 'nhy_flux_monthly_input%file_fmt');
+    add_default($nl, 'nhy_flux_monthly_input%file_varname');
+    add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+  } elsif ($ndep_data_type eq "shr_stream") {
+    add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+  } elsif ($ndep_data_type ne "driver") {
+    print " ndep_data_type=$ndep_data_type not supported by ecosys module\n";
+    die;
   }
 
   my $estuary_type = $nl->get_value('estuary_type');
@@ -1719,8 +1686,6 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'parm_init_POC_bury_coeff');
   add_default($nl, 'parm_init_POP_bury_coeff');
   add_default($nl, 'parm_init_bSi_bury_coeff');
-  add_default($nl, 'parm_Fe_scavenge_coeffA');
-  add_default($nl, 'parm_Fe_scavenge_coeffB');
   add_default($nl, 'parm_Fe_scavenge_rate0');
   add_default($nl, 'parm_Lig_scavenge_rate0');
   add_default($nl, 'parm_FeLig_scavenge_rate0');
@@ -1812,7 +1777,43 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
+}
+
+##########################################
+# namelist group: ecosys derived vars    #
+##########################################
+
+if ($ecosys_on eq "TRUE") {
+    add_default($nl, 'lecosys_tavg_all');
+
+    # Set lecosys_tavg_alt_co2=.true. unless
+    # atm_co2 and atm_alt_co2 forcing options are equivalent
+    my $lecosys_tavg_alt_co2 = '.true.';
+
+    my $atm_co2_opt     = $nl->get_value('atm_co2_opt');
+    my $atm_alt_co2_opt = $nl->get_value('atm_alt_co2_opt');
+
+    # strip quotes
+    $atm_co2_opt     =~ s/[\'\"]//g;
+    $atm_alt_co2_opt =~ s/[\'\"]//g;
+
+    if ($atm_co2_opt eq $atm_alt_co2_opt) {
+      # If both are set to 'const', then equivalence depends on the const value.
+      #   Currently atm_co2_opt=atm_alt_co2_opt implies atm_co2_opt=const,
+      #   because const is the only valid value for atm_alt_co2_opt. But leave
+      #   the check in, in case more valid values are added to atm_alt_co2_opt.
+      if ($atm_co2_opt eq 'const') {
+        my $atm_co2_const     = $nl->get_value('atm_co2_const');
+        my $atm_alt_co2_const = $nl->get_value('atm_alt_co2_const');
+        if ($atm_co2_const eq $atm_alt_co2_const) {
+          $lecosys_tavg_alt_co2 = '.false.';
+        }
+      } else {
+        $lecosys_tavg_alt_co2 = '.false.';
+      }
     }
+    add_default($nl, 'lecosys_tavg_alt_co2', 'val'=>"$lecosys_tavg_alt_co2");
+}
  
 ##########################################
 # namelist group: irf_nml                #
@@ -2659,9 +2660,10 @@ sub module_tavg_script_args() {
   my $module = shift;
   my $cfg    = shift;
   if ($module eq "ecosys") {
-    return ($nl->get_value('lecosys_debug'),
+    return ($nl->get_value('lecosys_tavg_all'),
+            $nl->get_value('lecosys_tavg_alt_co2'),
+            $nl->get_value('ladjust_bury_coeff'),
             $nl->get_value('lvariable_PtoC'),
-            $OCN_TRANSIENT,
             $nl->get_value('tracer_restore_vars'));
   }
   if ($module eq "IRF") {

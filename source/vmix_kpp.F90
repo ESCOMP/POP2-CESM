@@ -1564,8 +1564,8 @@
                                  CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8, &
                                  tidal_mix_max)
             end if
-            KVMIX(i,j,:) = DIFF_COL(1:nlev)
-            KVMIX_M(i,j,:) = VISC_COL(1:nlev)
+            KVMIX(i,j,1:nlev) = DIFF_COL(1:nlev)
+            KVMIX_M(i,j,1:nlev) = VISC_COL(1:nlev)
             KVMIX(i,j,km) = c0
             KVMIX_M(i,j,km) = c0
             if (lrich) then

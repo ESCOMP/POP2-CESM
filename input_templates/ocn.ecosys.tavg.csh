@@ -18,19 +18,13 @@ endif
 @ s2 = $my_stream    # use an ecosystem-defined stream
 @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
-set lecosys_debug       = $2
-set lvariable_PtoC      = $3
-set OCN_TRANSIENT       = $4
-set tracer_restore_vars = $5
+set lecosys_tavg_all     = $2
+set lecosys_tavg_alt_co2 = $3
+set ladjust_bury_coeff   = $4
+set lvariable_PtoC       = $5
+set tracer_restore_vars  = $6
 
-# set OCN_TAVG_ALT_CO2
-if ($OCN_TRANSIENT == unset) then
-   setenv OCN_TAVG_ALT_CO2 FALSE
-else
-   setenv OCN_TAVG_ALT_CO2 TRUE
-endif
-
-if ($lecosys_debug == ".false.") then
+if ($lecosys_tavg_all == ".false.") then
 
   cat >! $CASEBUILD/popconf/ecosys.tavg.nml << EOF
 tavg_freq_opt             = 'nday'   'nyear'
@@ -54,7 +48,7 @@ else
   touch $CASEBUILD/popconf/ecosys.tavg.nml
 endif
 
-if ($lecosys_debug == ".true.") then
+if ($lecosys_tavg_all == ".true.") then
 
   cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  GENERAL INTERIOR DIAGNOSTICS
@@ -179,6 +173,17 @@ if ($lecosys_debug == ".true.") then
 1  STF_O2_2
 EOF
 
+  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+#  bury coefficients (only available if ladjust_bury_coeff==.true.)
+EOF
+if ($ladjust_bury_coeff == ".true.") then
+  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+1  MARBL_rmean_glo_scalar_POC_bury_coeff
+1  MARBL_rmean_glo_scalar_POP_bury_coeff
+1  MARBL_rmean_glo_scalar_bSi_bury_coeff
+EOF
+endif
+
 echo "#  River Fluxes" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr DIC_ALT_CO2 ALK_ALT_CO2 )
   foreach tracer ( $tracer_list )
@@ -270,7 +275,7 @@ EOF
 1  FvICE_ALK
 EOF
 
-else # ecosys not in debug mode
+else # ecosys not in lecosys_tavg_all mode
   cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  ECOSYS_ATM_PRESS
 $s1  ECOSYS_IFRAC
@@ -352,24 +357,25 @@ $s1  Lig_deg
 $s1  bSi_form
 $s1  NITRIF
 $s1  DENITRIF
-$s1  POC_PROD
-$s1  POC_REMIN
-$s1  POC_REMIN_DIC
-$s1  POP_PROD
-$s1  POP_REMIN
-$s1  POP_REMIN_PO4
-$s1  PON_REMIN_NH4
-$s1  CaCO3_REMIN
+$s1  CaCO3_FLUX_IN
 $s1  CaCO3_PROD
-$s1  SiO2_PROD
+$s1  CaCO3_REMIN
+$s1  dust_FLUX_IN
+$s1  dust_REMIN
+$s1  P_iron_FLUX_IN
 $s1  P_iron_PROD
 $s1  P_iron_REMIN
 $s1  POC_FLUX_IN
+$s1  POC_PROD
+$s1  POC_REMIN
+$s1  POC_REMIN_DIC
+$s1  PON_REMIN_NH4
 $s1  POP_FLUX_IN
-$s1  CaCO3_FLUX_IN
+$s1  POP_PROD
+$s1  POP_REMIN
+$s1  POP_REMIN_PO4
 $s1  SiO2_FLUX_IN
-$s1  P_iron_FLUX_IN
-$s1  dust_FLUX_IN
+$s1  SiO2_PROD
 $s1  PAR_avg
 $s1  DON_prod
 $s1  DOP_prod
@@ -438,9 +444,17 @@ $s3  HDIFN_Fe
 $s3  HDIFB_Fe
 EOF
 
+  if ($ladjust_bury_coeff == ".true.") then
+    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+$s1  MARBL_rmean_glo_scalar_POC_bury_coeff
+$s1  MARBL_rmean_glo_scalar_POP_bury_coeff
+$s1  MARBL_rmean_glo_scalar_bSi_bury_coeff
+EOF
+  endif
+
   # River Fluxes
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr )
-  if ($OCN_TAVG_ALT_CO2 == TRUE) then
+  if ($lecosys_tavg_alt_co2 == ".true.") then
     set tracer_list = ( $tracer_list DIC_ALT_CO2 ALK_ALT_CO2 )
   endif
   foreach tracer ( $tracer_list )
@@ -513,7 +527,7 @@ EOF
     echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
   end
 
-  if ($OCN_TAVG_ALT_CO2 == TRUE) then
+  if ($lecosys_tavg_alt_co2 == ".true.") then
 cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 $s1  PH_ALT_CO2
 $s1  DCO2STAR_ALT_CO2

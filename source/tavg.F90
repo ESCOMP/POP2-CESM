@@ -488,6 +488,10 @@
 ! !REVISION HISTORY:
 !  same as module
 
+! !USES:
+
+   use var_consistency_mod, only: var_consistency_check
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -1061,6 +1065,7 @@
         !*** inactive field; skip the rest of this block
         ignored = ignored + 1
         call document ('init_tavg', 'inactive tavg_contents field: ',  trim(char_temp))
+        tavg_contents_request(n) = ' '
       else
         char_temp = adjustl(char_temp)
         cindex = index(char_temp,' ')
@@ -1121,6 +1126,13 @@
 
    !*** adjust tavg_num_requested_fields to account for rejected duplicate requests:
    tavg_num_requested_fields = tavg_num_contents_lines - duplicate - ignored
+
+   ! check vars related to tavg var count for consistency across tasks
+   ! do this for all vars in one call, so that all mismatches are caught
+
+   call var_consistency_check('tavg_var_cnt', &
+     (/ tavg_bufsize_0d, tavg_bufsize_2d, tavg_bufsize_3d, tavg_bufsize_3dt, &
+        tavg_num_contents_lines, duplicate, ignored /))
 
    call document ('init_tavg', 'Total number of tavg fields requested ',  tavg_num_requested_fields)
 
@@ -2741,7 +2753,7 @@
             end do
 !njn01      !$OMP END PARALLEL DO
 
-            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
+            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc, tag=20000+nfield)
 
             select case(field_loc)
             case(field_loc_center)
@@ -2803,7 +2815,7 @@
             end do
 !njn01      !$OMP END PARALLEL DO
 
-            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
+            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc, tag=30000+nfield)
 
             select case(field_loc)
             case(field_loc_center)
@@ -3011,7 +3023,7 @@
 
    denom_u = tavg_norm*area_u
 
-   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc)
+   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc, tag=id)
 
    select case(field_loc)
      case(field_loc_center)
@@ -7778,7 +7790,7 @@
 
    do n_reg=1,n_reg_0D
      SAVG_0D(n_reg) = global_sum ( WORK(:,:,:),distrb_clinic,  &
-                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg))  &
+                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg), tag=n_reg)  &
                          / SAVG_0D_AREA(n_reg)
    enddo ! n_reg
 

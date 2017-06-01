@@ -952,7 +952,8 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF,STF_RIV)
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX, &
+                                      lvsf_river,MASK_ESTUARY,vsf_river_correction,STF,STF_RIV)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module that compute surface fluxes
@@ -962,18 +963,25 @@
 
 ! !INPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) ::   &
-      U10_SQR,  & ! 10m wind speed squared
-      ICE_FRAC, & ! sea ice fraction (non-dimensional)
-      PRESS,    & ! sea level atmospheric pressure (Pascals)
-      DUST_FLUX,& ! dust flux (g/cm^2/s)
-      BLACK_CARBON_FLUX  ! black carbon flux (g/cm^2/s)
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
+      U10_SQR,           & ! 10m wind speed squared
+      ICE_FRAC,          & ! sea ice fraction (non-dimensional)
+      PRESS,             & ! sea level atmospheric pressure (Pascals)
+      DUST_FLUX,         & ! dust flux (g/cm^2/s)
+      BLACK_CARBON_FLUX, & ! black carbon flux (g/cm^2/s)
+      MASK_ESTUARY         ! mask for estuary model, 1 where it runs and 0 elsewhere
+
+  logical (log_kind), intent(in) :: &
+      lvsf_river
+
+   real (r8), dimension(nt), intent(in) :: &
+      vsf_river_correction ! per-tracer correction for using local tracer concenctration in application of ROFF_F
 
 ! !INPUT/OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(inout) :: &
-      STF,      &! surface tracer fluxes
-      STF_RIV    ! riverine tracer fluxes
+      STF,               & ! surface tracer fluxes
+      STF_RIV              ! riverine tracer fluxes
 
 !EOP
 !BOC
@@ -984,7 +992,7 @@
    logical (log_kind) :: first_call = .true.
    real (r8)          :: ref_val
    integer (int_kind) :: iblock, n
-
+   real (r8), dimension(nx_block,ny_block,nblocks_clinic) :: STF2_m_river_correction
 
 !-----------------------------------------------------------------------
 
@@ -1079,17 +1087,38 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  add virtual fluxes for tracers that specify a non-zero ref_val
+!  add virtual fluxes for tracers that use them
+!  add STF_RIV to STF where the ebm is not handling it
 !-----------------------------------------------------------------------
 
    !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val)
    do iblock = 1,nblocks_clinic
+      ! If lvsf_river is enabled, do not include vsf_river_correction(2) when
+      ! computing tracer virtual flux. vsf_river_correction is only present in STF(2)
+      ! where MASK_ESTUARY=1.
+      if (lvsf_river) then
+         STF2_m_river_correction(:,:,iblock) = STF(:,:,2,iblock) - &
+            MASK_ESTUARY(:,:,iblock)*vsf_river_correction(2)
+      else
+         STF2_m_river_correction(:,:,iblock) = STF(:,:,2,iblock)
+      endif
       do n=3,nt
          if (lhas_vflux(n)) then
             ref_val = tracer_ref_val(n)
             FvPER(:,:,n,iblock) = &
-               (ref_val/(ocn_ref_salinity*ppt_to_salt)) * STF(:,:,2,iblock)
+               (ref_val/(ocn_ref_salinity*ppt_to_salt)) * STF2_m_river_correction(:,:,iblock)
+            ! Add global correction for salt conservation, correcting for using
+            ! local tracer concentration in application of ROFF_F.
+            ! Correction is applied where MASK_ESTUARY=1.
+            if (lvsf_river) then
+               FvPER(:,:,n,iblock) = FvPER(:,:,n,iblock) + &
+                  MASK_ESTUARY(:,:,iblock)*vsf_river_correction(n)
+            endif
             STF(:,:,n,iblock) = STF(:,:,n,iblock) + FvPER(:,:,n,iblock)
+         endif
+         if (lhas_riv_flux(n)) then
+            STF(:,:,n,iblock) = STF(:,:,n,iblock) + &
+               (c1-MASK_ESTUARY(:,:,iblock))*STF_RIV(:,:,n,iblock)
          endif
       end do
    end do
@@ -1399,16 +1428,18 @@
 
 ! !INPUT PARAMETERS:
 
-  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
-      intent(in) :: STF, STF_RIV
+  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(in) :: &
+      STF,               & ! surface tracer fluxes
+      STF_RIV              ! riverine tracer fluxes
 
-  logical(log_kind), intent(in) :: lvsf_river
+  logical(log_kind), intent(in) :: &
+      lvsf_river
 
-  real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
-      intent(in) :: MASK_ESTUARY
+  real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
+      MASK_ESTUARY         ! mask for estuary model, 1 where it runs and 0 elsewhere
 
-  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
-      intent(in) :: FLUX_ROFF_VSF_SRF
+  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(in) :: &
+      FLUX_ROFF_VSF_SRF    !
 
 !EOP
 !BOC

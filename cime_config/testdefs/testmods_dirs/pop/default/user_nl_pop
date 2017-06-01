@@ -4,3 +4,4 @@
     tavg_freq_opt = 'nday'
     tavg_file_freq_opt = 'nday'
 /
+ldebug = .true.

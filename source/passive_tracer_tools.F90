@@ -30,6 +30,7 @@
    use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: TAREA, RCALCT, area_t
    use global_reductions, only: global_sum
+   use var_consistency_mod, only : var_consistency_check
    use blocks
 
    implicit none
@@ -940,6 +941,9 @@
       error_string
 
 !-----------------------------------------------------------------------
+
+   call var_consistency_check('set_tracer_indices:' /&
+      &/ trim(module_string), (/ module_nt, cumulative_nt /))
 
    ind_begin = cumulative_nt + 1
    ind_end = ind_begin + module_nt - 1
