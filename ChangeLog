@@ -47,6 +47,10 @@ Tag Summary: merge latest marbl_dev branch tag (n46) onto trunk
                  as well as PGI (17.0.4 or later)
              24. Uses latest version of MARBL (0.17.1)
 
+Testing: aux_pop on cheyenne and yellowstone, aux_pop_MARBL on hobart (all
+         compared to marbl_dev_n45 baselines; bit-for-bit & NLCOMP also
+         passes)
+
  M      .
 M       SVN_EXTERNAL_DIRECTORIES
 M       bld/build-namelist
