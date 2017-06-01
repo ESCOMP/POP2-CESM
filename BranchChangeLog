@@ -1,6 +1,19 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    1 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n47_cesm_pop_2_1_20170601
+Tag Summary: merge latest POP trunk onto marbl_dev
+
+Testing:     No new testing for this tag; see ChangeLog for aux_pop testing on
+             POP trunk and previous entries in this file for aux_pop_MARBL
+             tests
+
+Files Modified:
+M       ChangeLog
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    31 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n46_cesm_pop_2_1_20170516
 Tag Summary: update MARBL to work around a PGI issue
