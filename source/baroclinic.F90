@@ -65,7 +65,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
-   use estuary_mod 
+   use estuary_vsf_mod   
    use running_mean_mod, only: running_mean_test_update_var
 
    implicit none

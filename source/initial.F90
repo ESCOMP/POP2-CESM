@@ -34,7 +34,7 @@
    use communicate, only: my_task, master_task, init_communicate
    use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
-   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime
+   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime, ldebug
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
@@ -87,7 +87,7 @@
 #endif
    use overflows
    use overflow_type
-   use estuary_mod, only: init_estuary   
+   use estuary_vsf_mod, only: init_estuary   
    use running_mean_mod, only: running_mean_init
    use mcog, only: init_mcog
    use software_eng_mod, only : lchange_ans, init_software_eng
@@ -518,6 +518,8 @@
       return
    endif
 
+   call init_vflux
+
 !-----------------------------------------------------------------------
 !
 !  initialize running mean module, only necessary for test mode
@@ -712,7 +714,7 @@
       nml_error,            &! namelist i/o error flag
       number_of_fatal_errors
 
-   namelist /context_nml/ lcoupled, lccsm, b4b_flag, lccsm_control_compatible
+   namelist /context_nml/ lcoupled, lccsm, b4b_flag, lccsm_control_compatible, ldebug
 
 !-----------------------------------------------------------------------
 !
@@ -725,6 +727,7 @@
    lccsm                    = .false.
    b4b_flag                 = .false.
    lccsm_control_compatible = .true.
+   ldebug                   = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -750,6 +753,7 @@
    call broadcast_scalar(lccsm,                    master_task)
    call broadcast_scalar(b4b_flag,                 master_task)
    call broadcast_scalar(lccsm_control_compatible, master_task)
+   call broadcast_scalar(ldebug,                   master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -1635,6 +1639,49 @@
 
 
  end subroutine init_ts
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_vflux
+! !INTERFACE:
+
+ subroutine init_vflux
+
+! !DESCRIPTION:
+! Set forcing_fields vars related to virtual fluxes
+
+! !REVISION HISTORY:
+!  same as module
+
+   use forcing_fields, only : lhas_vflux, vflux_tracer_cnt
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: n
+
+!-----------------------------------------------------------------------
+
+   if (.not. registry_match('init_passive_tracers')) then
+      call exit_POP(sigAbort, 'init_passive_tracers not called before ' /&
+         &/ 'init_vflux. This is necessary for init_vflux ' /&
+         &/ 'to count how many tracers use virtual fluxes.')
+   end if
+
+   lhas_vflux(1) = .false.
+   lhas_vflux(2) = .true.
+
+   vflux_tracer_cnt = count(lhas_vflux)
+
+   call register_string('init_vflux')
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_vflux
 
 !***********************************************************************
 !BOP

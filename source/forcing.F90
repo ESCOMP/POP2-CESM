@@ -49,7 +49,8 @@
    use registry
    use forcing_fields
    use mcog, only: mcog_nbins, QSW_BIN, QSW_RAW_BIN
-   use estuary_mod, only:lestuary_on,lvsf_river,FLUX_ROFF_VSF_SRF
+   use estuary_vsf_mod, only:lvsf_river,MASK_ESTUARY,FLUX_ROFF_VSF_SRF
+   use estuary_vsf_mod, only:vsf_river_correction
 
    implicit none
    private
@@ -140,7 +141,10 @@
    SMF       = c0
    SMFT      = c0
    STF       = c0
+   STF_RIV   = c0
    TFW       = c0
+
+   lhas_riv_flux = .false.
 
 !-----------------------------------------------------------------------
 !
@@ -297,7 +301,7 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       TFRZ               
-   integer (int_kind) :: index_qsw, iblock, ncol, nbin
+   integer (int_kind) :: index_qsw, iblock, ncol, nbin, n
    real (r8) ::  &
       cosz_day,  &
       qsw_eps
@@ -354,7 +358,7 @@
          cosz_day = tday00_interval_beg + interval_cum_dayfrac(index_qsw-1) &
             - interval_cum_dayfrac(nsteps_per_interval)
 
-         !$OMP PARALLEL DO PRIVATE(iblock)
+         !$OMP PARALLEL DO PRIVATE(iblock,nbin)
          do iblock = 1, nblocks_clinic
 
             call compute_cosz(cosz_day, iblock, QSW_COSZ_WGHT(:,:,iblock))
@@ -411,8 +415,10 @@
 
    call set_ap(ATM_PRESS)
 
-   if (nt > 2)  &
-      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX,STF)
+   if (nt > 2) then
+      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,DUST_FLUX,BLACK_CARBON_FLUX, &
+                                     lvsf_river,MASK_ESTUARY,vsf_river_correction,STF,STF_RIV)
+   endif
 
    ! running_mean_test_update_sflux_var is only necessary for test mode
    call running_mean_test_update_sflux_var
@@ -504,12 +510,12 @@
                WORK = c0
             end where
          else
-            if ( lestuary_on .and. lvsf_river ) then
+            if ( lvsf_river ) then
             ! ROFF_F should be included in the SFWF term in the open ocean
             ! ROFF_F in the Marginal Seas is already included in STF(:,:,2,iblock)
                where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
                  WORK =STF(:,:,2,iblock)/salinity_factor&
-                      -MASK_SR(:,:,iblock)*FLUX_ROFF_VSF_SRF(:,:,2,iblock)/salinity_factor
+                      -MASK_ESTUARY(:,:,iblock)*FLUX_ROFF_VSF_SRF(:,:,2,iblock)/salinity_factor
                elsewhere
                   WORK = c0
                end where

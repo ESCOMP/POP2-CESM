@@ -139,6 +139,8 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use estuary_vsf_mod, only : lvsf_river, MASK_ESTUARY, FLUX_ROFF_VSF_SRF
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -268,7 +270,8 @@
 
    call tavg_set_flag(update_time=.true.)
    call tavg_forcing
-   if (nt > 2) call passive_tracers_tavg_sflux(STF)
+   if (nt > 2) call passive_tracers_tavg_sflux(STF, STF_RIV, &
+      lvsf_river, MASK_ESTUARY, FLUX_ROFF_VSF_SRF)
    call movie_forcing
 
 
@@ -1232,10 +1235,12 @@
       !$OMP END PARALLEL DO
    endif
 
+   if (ldiag_global_tracer_budgets) then
    if (check_time_flag(tavg_streams(budget_stream)%field_flag)) then
      !*** time to collect <S_n> for use in this budget interval
      !    note: this collects values computed in this timestep
      call diag_for_tracer_budgets_rf_Sterms (rf_S, rf_volume_total_cur, collect_sn = .true.)
+   endif
    endif
 
    !-----------------------------------------------------------------------

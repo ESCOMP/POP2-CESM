@@ -51,7 +51,9 @@
    use named_field_mod, only: named_field_register, named_field_get_index, &
        named_field_set, named_field_get
    use forcing_fields
-   use estuary_mod   
+   use estuary_vsf_mod, only: lestuary_on, lvsf_river, lebm_on
+   use estuary_vsf_mod, only: MASK_ESTUARY, vsf_river_correction
+   use estuary_vsf_mod, only: set_estuary_vsf_forcing, set_estuary_exch_circ
    use mcog, only: tavg_mcog
    use mcog, only: FRAC_BIN, QSW_RAW_BIN
       
@@ -802,42 +804,38 @@
 !  if not a variable thickness surface layer or if fw_as_salt_flx
 !  flag is on, convert fresh and salt inputs to a virtual salinity flux
 !
+!  Add ROFF_F to STF(:,:,2) where the ebm is not handling it
+!
 !-----------------------------------------------------------------------
 
       !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1, nblocks_clinic
         STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
                      (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
-                      MELT_F(:,:,iblock)+ROFF_F(:,:,iblock)+IOFF_F(:,:,iblock))*salinity_factor   &
+                      MELT_F(:,:,iblock)+(c1-MASK_ESTUARY(:,:,iblock))*ROFF_F(:,:,iblock)+&
+                      IOFF_F(:,:,iblock))*salinity_factor   &
                     + SALT_F(:,:,iblock)*sflux_factor)
       enddo
       !$OMP END PARALLEL DO
  
       if ( lestuary_on ) then
 !  Treat river runoff as the interior source
-       if (lvsf_river) call set_estuary_vsf_forcing
+        if (lvsf_river) call set_estuary_vsf_forcing
 !  Include estuary exchange flow as vertical salt flux
-       if (lebm_on)    call set_estuary_exch_circ
+        if (lebm_on)    call set_estuary_exch_circ
 
-!  Remove river runoff from the total freshwater flux if the EBM is on
-!  River runoff is taken care separately
-       !$OMP PARALLEL DO PRIVATE(iblock)
-       do iblock = 1, nblocks_clinic
-           STF(:,:,2,iblock) = STF(:,:,2,iblock)-MASK_SR(:,:,iblock)*RCALCT(:,:,iblock)*ROFF_F(:,:,iblock)*salinity_factor
-       enddo
-       !$OMP END PARALLEL DO
-       
-       if (lvsf_river) THEN
-         !$OMP PARALLEL DO PRIVATE(iblock)
-!  Add global correction for salt conservation with local river reference salinity
-!  Marginal Seas excluded for the global correction
-         do iblock = 1, nblocks_clinic
-           STF(:,:,2,iblock) = &
-                & STF(:,:,2,iblock) + MASK_SR(:,:,iblock)*vsf_river_correction
-         enddo
-         !$OMP END PARALLEL DO
-       endif
-     endif
+        if (lvsf_river) THEN
+!  Add global correction for salt conservation, correcting for using local
+!  tracer concentration in application of ROFF_F. Analogous term for passive
+!  tracers is applied in passive_tracers.F90:set_sflux_passive_tracers,
+!  after STF has been computed. Correction is applied where MASK_ESTUARY=1.
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock = 1, nblocks_clinic
+            STF(:,:,2,iblock) = STF(:,:,2,iblock) + MASK_ESTUARY(:,:,iblock)*vsf_river_correction(2)
+          enddo
+          !$OMP END PARALLEL DO
+        endif
+      endif
 !-----------------------------------------------------------------------
 !
 !  balance salt/freshwater in marginal seas

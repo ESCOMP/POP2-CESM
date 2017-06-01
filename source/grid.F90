@@ -2678,8 +2678,7 @@
                        field_loc_center, field_type_scalar)
    deallocate(REGION_G)
 
-   where (REGION_MASK < 0) RCALCT_OPEN_OCEAN = 0
-
+   where (REGION_MASK < 0) RCALCT_OPEN_OCEAN = c0
 
    num_regions = global_maxval(abs(REGION_MASK), &
                                distrb_clinic, field_loc_center)

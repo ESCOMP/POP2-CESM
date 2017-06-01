@@ -1,4 +1,120 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    1 June 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170601
+Tag Summary: merge latest marbl_dev branch tag (n46) onto trunk
+
+             1. Bug fixes:
+                a. Elemental Jint integrals should not include restoring
+                b. P-limitation formula was incorrect
+                c. Fixed MARBL bug caught by intel 17
+                d. processing of taavg_contents file was sometimes accessing
+                   uninitialized rows of tavg_contents_request in tavg:init_tavg();
+                   this sometimes led to hangs in global sums (in tavg_global())
+                   because different tasks had different glags for which fields
+                   were being averaged. Also led to inconsistent tavg buffer sizes.
+                e. EBM correction terms were not being applied correctly
+             2. Improved logging messages from MARBL
+             3. Remove surface mask from MARBL (only send ocean grid cells
+                for computing surface forcing)
+             4. Add Lig tracer, reformulate iron scavenging
+             5. Variable P:C ratio => new tracer per autotroph
+                -- Optional (default on), controlled by lvariable_PtoC
+             6. Remove river fluxes from MARBL (GCM passes them as external forcing)
+             7. Use Wanninkhof 2014 for Schmidt numbers / xkw_coeff
+             8. Add ALK_ALT_CO2 tracer / P_CaCO3_ALT_CO2 sinking particle
+             9. Improved MARBL diagnostic type
+             10. Removed duplicate data from marbl_domain_type
+             11. Removed locmip_k1_k2_bug_fix from MARBL namelist
+             12. Allow ndep_data_type = "driver" (receive ndep from flux coupler)
+             13. lapply_nhx_surface_emis = .true. by default
+             14. Cleaned up a lot of tests in the aux_pop and aux_pop_MARBL
+                 testlists
+                 -- removed some that were no longer necessary
+                 -- added a performance evaluation test (no restart or history files)
+             15. Renamed ecosys-enabled compsets: CECO -> C1850ECO, GECO -> G1850ECO
+             16. Introduced G1850ECOIAF compset
+             17. Better PE layouts out of the box for NCAR machines (all C and G
+                 compsets)
+             18. Update default values for many MARBL parameters
+             19. sf6 & cfc tracer modules both enabled in transient runs (and other
+                 appropriate compsets) -- used to just enable cfcs in those cases
+             20. Improve logic on whether MARBL's alt_co2 vars should be in tavg
+             21. Added running means of global scalars to tavg output
+             22. New consistency checks to avoid future issues like (1d)
+             23. Cleaned up code so we can test with NAG (even with DEBUG=TRUE)
+                 as well as PGI (17.0.4 or later)
+             24. Uses latest version of MARBL (0.17.1)
+
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/cfc_sf6
+M       cime_config/testdefs/testmods_dirs/pop/default/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_read_fallback_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/performance_eval
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+M       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       mpi/POP_ReductionsMod.F90
+M       mpi/global_reductions.F90
+M       source/baroclinic.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/constants.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/forcing_sfwf.F90
+M       source/grid.F90
+M       source/hmix_aniso.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/io.F90
+A  +    source/io_read_fallback_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+M       source/running_mean_mod.F90
+M       source/schmidt_number.F90
+M       source/sf6_mod.F90
+M       source/state_mod.F90
+M       source/step_mod.F90
+M       source/strdata_interface_mod.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+A  +    source/var_consistency_mod.F90
+M       source/vmix_kpp.F90
+===============================================================================
 Tag Creator: jet
 Developers:  klindsay
 Tag Date:    16 May 2017

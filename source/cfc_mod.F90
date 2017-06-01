@@ -37,6 +37,7 @@ module cfc_mod
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair
    use passive_tracer_tools, only : read_field, tracer_read
+   use time_management, only : iyear, iday_of_year, frac_day, days_in_year
    use broadcast
    use netcdf
 
@@ -96,32 +97,33 @@ module cfc_mod
 !-----------------------------------------------------------------------
 
    character(char_len) :: &
-      cfc_formulation,     & ! how to calculate flux (ocmip or model)
-      pcfc_file              ! filename for ascii time series of atm cfc11
+      cfc_formulation,        & ! how to calculate flux (ocmip or model)
+      pcfc_file                 ! filename for netCDF time series of atm pcfc
 
    integer (int_kind) ::  &
-      model_year,          & ! arbitrary model year
-      data_year,           & ! year in data that corresponds to model_year
-      pcfc_data_len          ! length of atmospheric pcfc record
+      model_year,             & ! arbitrary model year
+      data_year,              & ! year in data that corresponds to model_year
+      pcfc_data_len,          & ! length of atmospheric pcfc record
+      pcfc_first_nonzero_year   ! first year of non-zero values in pcfc_file
 
    real (r8), parameter :: &
       max_pcfc_extension = 2.0_r8
       ! maximum number of years that pcfc record will be extrapolated
 
    real (r8), dimension(:), allocatable :: &
-      pcfc_date,           & ! date for atmospheric pcfc record (years)
-      pcfc11_nh,           & ! pcfc11 data for northern hemisphere (pmol/mol)
-      pcfc11_sh,           & ! pcfc11 data for southern hemisphere (pmol/mol)
-      pcfc12_nh,           & ! pcfc12 data for northern hemisphere (pmol/mol)
-      pcfc12_sh              ! pcfc12 data for southern hemisphere (pmol/mol)
+      pcfc_date,              & ! date for atmospheric pcfc record (years)
+      pcfc11_nh,              & ! pcfc11 data for northern hemisphere (pmol/mol)
+      pcfc11_sh,              & ! pcfc11 data for southern hemisphere (pmol/mol)
+      pcfc12_nh,              & ! pcfc12 data for northern hemisphere (pmol/mol)
+      pcfc12_sh                 ! pcfc12 data for southern hemisphere (pmol/mol)
 
    real (r8), dimension(:,:,:,:), allocatable :: &
-      INTERP_WORK            ! temp array for interpolate_forcing output
+      INTERP_WORK               ! temp array for interpolate_forcing output
 
    type(forcing_monthly_every_ts) :: &
-      fice_file,           & ! ice fraction, if read from file
-      xkw_file,            & ! a * wind-speed ** 2, if read from file
-      ap_file                ! atmoshperic pressure, if read from file
+      fice_file,              & ! ice fraction, if read from file
+      xkw_file,               & ! a * wind-speed ** 2, if read from file
+      ap_file                   ! atmoshperic pressure, if read from file
 
 !-----------------------------------------------------------------------
 !  define tavg id for 2d fields related to surface fluxes
@@ -191,6 +193,7 @@ contains
    use timers, only: get_timer
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
        rest_read_tracer_block, file_read_tracer_block
+    use io_read_fallback_mod, only: io_read_fallback_register_tracer
 
 ! !INPUT PARAMETERS:
 
@@ -240,8 +243,11 @@ contains
 
    namelist /cfc_nml/ &
       init_cfc_option, init_cfc_init_file, init_cfc_init_file_fmt, &
-      tracer_init_ext, pcfc_file, model_year, data_year, &
+      tracer_init_ext, pcfc_file, pcfc_first_nonzero_year, model_year, data_year, &
       cfc_formulation, gas_flux_fice, gas_flux_ws, gas_flux_ap
+
+   real (r8) :: &
+      mapped_date               ! date of current model timestep mapped to data timeline
 
    character (char_len) ::  &
       cfc_restart_filename      ! modified file name for restart file
@@ -285,10 +291,11 @@ contains
       tracer_init_ext(n)%file_fmt     = 'bin'
    end do
 
-   pcfc_file       = 'unknown'
-   model_year      = 1
-   data_year       = 1931
-   cfc_formulation = 'model'
+   pcfc_file               = 'unknown'
+   pcfc_first_nonzero_year = 1936
+   model_year              = 1
+   data_year               = 1
+   cfc_formulation         = 'model'
 
    gas_flux_fice%filename     = 'unknown'
    gas_flux_fice%file_varname = 'FICE'
@@ -346,6 +353,7 @@ contains
    end do
 
    call broadcast_scalar(pcfc_file, master_task)
+   call broadcast_scalar(pcfc_first_nonzero_year, master_task)
    call broadcast_scalar(model_year, master_task)
    call broadcast_scalar(data_year, master_task)
    call broadcast_scalar(cfc_formulation, master_task)
@@ -389,6 +397,17 @@ contains
       endif
 
    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
+
+      ! if mapped_date is less than pcfc_first_nonzero_year then
+      ! register c0 as an io_read_fallback option
+      mapped_date = iyear + (iday_of_year-1+frac_day)/days_in_year &
+                    - model_year + data_year
+      if (mapped_date < pcfc_first_nonzero_year) then
+         call io_read_fallback_register_tracer(tracername='CFC11', &
+            fallback_opt='const', const_val=c0)
+         call io_read_fallback_register_tracer(tracername='CFC12', &
+            fallback_opt='const', const_val=c0)
+      endif
 
       cfc_restart_filename = char_blank
 
@@ -995,7 +1014,7 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar, p5
+   use constants, only: field_loc_center, field_type_scalar, p5, xkw_coeff
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
@@ -1057,13 +1076,6 @@ contains
 
    logical (log_kind), save :: &
       first = .true.
-
-!-----------------------------------------------------------------------
-!  local parameters
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8      ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
 
 !-----------------------------------------------------------------------
 
@@ -1263,7 +1275,6 @@ contains
 
    use grid, only : TLATD
    use constants, only : c10
-   use time_management, only : iyear, iday_of_year, frac_day, days_in_year
 
 ! !INPUT PARAMETERS:
 
@@ -1401,59 +1412,65 @@ contains
 ! !IROUTINE: comp_cfc_schmidt
 ! !INTERFACE:
 
- subroutine comp_cfc_schmidt(LAND_MASK, SST_in, CFC11_SCHMIDT, CFC12_SCHMIDT)
+ subroutine comp_cfc_schmidt(LAND_MASK, SST_IN, CFC11_SCHMIDT, CFC12_SCHMIDT)
 
 ! !DESCRIPTION:
 !  Compute Schmidt numbers of CFCs.
-!  Ref : Zheng et al. (1998), JGR, Vol. 103, No. C1, pp 1375-1379
+!
+!  range of validity of fit is -2:40
+!
+!  Ref : Wanninkhof 2014, Relationship between wind speed 
+!        and gas exchange over the ocean revisited,
+!        Limnol. Oceanogr.: Methods, 12, 
+!        doi:10.4319/lom.2014.12.351
 !
 ! !REVISION HISTORY:
 !  same as module
 
 ! !INPUT PARAMETERS:
 
-   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
-      LAND_MASK          ! land mask for this block
-
-   real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      SST_in             ! sea surface temperature (C)
+   logical (log_kind), intent(in)  :: LAND_MASK(nx_block,ny_block)      ! land mask for this block
+   real (r8)         , intent(in)  :: SST_IN(nx_block,ny_block)         ! sea surface temperature (C)
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
-      CFC11_SCHMIDT,   & ! Schmidt number of CFC11 (non-dimensional)
-      CFC12_SCHMIDT      ! Schmidt number of CFC12 (non-dimensional)
+   real (r8)         , intent(out) :: CFC11_SCHMIDT(nx_block,ny_block)  ! Schmidt number of CFC11 (non-dimensional)
+   real (r8)         , intent(out) :: CFC12_SCHMIDT(nx_block,ny_block)  ! Schmidt number of CFC12 (non-dimensional)
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
+   integer(int_kind)    :: i, j
+   real (r8)            :: SST(nx_block,ny_block)
 
-   real (r8), parameter :: &
-      a1_11 = 3501.8_r8,        a1_12 = 3845.4_r8, &
-      a2_11 = -210.31_r8,       a2_12 = -228.95_r8, &
-      a3_11 =    6.1851_r8,     a3_12 =    6.1908_r8, &
-      a4_11 =   -0.07513_r8,    a4_12 =   -0.067430_r8
+   real (r8), parameter :: a_11 = 3579.2_r8
+   real (r8), parameter :: b_11 = -222.63_r8
+   real (r8), parameter :: c_11 =    7.5749_r8
+   real (r8), parameter :: d_11 =   -0.14595_r8
+   real (r8), parameter :: e_11 =    0.0011874_r8
 
-   real (r8), dimension(nx_block,ny_block) :: &
-      SST                ! sea surface temperature (C)
+   real (r8), parameter :: a_12 = 3828.1_r8
+   real (r8), parameter :: b_12 = -249.86_r8
+   real (r8), parameter :: c_12 =    8.7603_r8
+   real (r8), parameter :: d_12 =   -0.1716_r8
+   real (r8), parameter :: e_12 =    0.001408_r8
 
 !-----------------------------------------------------------------------
-! Zheng's fit only uses data up to 30
-! when temp exceeds 35, use 35
-! CFC11 fit goes negative for temp > 42.15
-!-----------------------------------------------------------------------
 
-   SST = merge(SST_in, 35.0_r8, SST_in < 35.0_r8)
-
-   where (LAND_MASK)
-      CFC11_SCHMIDT = a1_11 + SST * (a2_11 + SST * (a3_11 + a4_11 * SST))
-      CFC12_SCHMIDT = a1_12 + SST * (a2_12 + SST * (a3_12 + a4_12 * SST))
-   elsewhere
-      CFC11_SCHMIDT = c0
-      CFC12_SCHMIDT = c0
-   endwhere
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+            SST(i,j) = max(-2.0_r8, min(40.0_r8, SST_IN(i,j)))
+            CFC11_SCHMIDT(i,j) = a_11 + SST(i,j) * (b_11 + SST(i,j) * (c_11 + SST(i,j) * (d_11 + SST(i,j) * e_11)))
+            CFC12_SCHMIDT(i,j) = a_12 + SST(i,j) * (b_12 + SST(i,j) * (c_12 + SST(i,j) * (d_12 + SST(i,j) * e_12)))
+         else
+            CFC11_SCHMIDT(i,j) = c0
+            CFC12_SCHMIDT(i,j) = c0
+         endif
+      end do
+   end do
 
 !-----------------------------------------------------------------------
 !EOC

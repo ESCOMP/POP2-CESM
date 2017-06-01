@@ -1,0 +1,8 @@
+
+model_year&cfc_nml = 1
+data_year&cfc_nml = 1980
+pcfc_first_nonzero_year = 1981 ! allow startup to start in 1980
+
+model_year&sf6_nml = 1
+data_year&sf6_nml = 1980
+psf6_first_nonzero_year = 1981 ! allow startup to start in 1980

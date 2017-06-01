@@ -35,6 +35,7 @@ module sf6_mod
    use io_types,    only: stdout
    use io_tools,    only: document
    use tavg,        only: define_tavg_field, accumulate_tavg_field
+   use time_management, only : iyear, iday_of_year, frac_day, days_in_year
 
    use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair
    use passive_tracer_tools, only : read_field, tracer_read
@@ -98,12 +99,13 @@ module sf6_mod
 
    character(char_len) :: &
       sf6_formulation,     & ! how to calculate flux (ocmip or model)
-      psf6_file              ! filename for time series of atm sf6
+      psf6_file              ! filename for netCDF time series of atm psf6
 
    integer (int_kind) ::  &
-      model_year,          & ! arbitrary model year
-      data_year,           & ! year in data that corresponds to model_year
-      psf6_data_len          ! length of atmospheric psf6 record
+      model_year,             & ! arbitrary model year
+      data_year,              & ! year in data that corresponds to model_year
+      psf6_data_len,          & ! length of atmospheric psf6 record
+      psf6_first_nonzero_year   ! first year of non-zero values in psf6_file
 
    real (r8), parameter :: &
       max_psf6_extension = 2.0_r8
@@ -188,6 +190,8 @@ contains
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
        rest_read_tracer_block, file_read_tracer_block
 
+   use io_read_fallback_mod, only: io_read_fallback_register_tracer
+
 ! !INPUT PARAMETERS:
 
    character (*), intent(in) ::  &
@@ -236,8 +240,11 @@ contains
 
    namelist /sf6_nml/ &
       init_sf6_option, init_sf6_init_file, init_sf6_init_file_fmt, &
-      tracer_init_ext, psf6_file, model_year, data_year, &
+      tracer_init_ext, psf6_file, psf6_first_nonzero_year, model_year, data_year, &
       sf6_formulation, gas_flux_fice, gas_flux_ws, gas_flux_ap
+
+   real (r8) :: &
+      mapped_date               ! date of current model timestep mapped to data timeline
 
    character (char_len) ::  &
       sf6_restart_filename      ! modified file name for restart file
@@ -281,10 +288,11 @@ contains
       tracer_init_ext(n)%file_fmt     = 'bin'
    end do
 
-   psf6_file       = 'unknown'
-   model_year      = 1
-   data_year       = 1931
-   sf6_formulation = 'model'
+   psf6_file               = 'unknown'
+   psf6_first_nonzero_year = 1953
+   model_year              = 1
+   data_year               = 1
+   sf6_formulation         = 'model'
 
    gas_flux_fice%filename     = 'unknown'
    gas_flux_fice%file_varname = 'FICE'
@@ -342,6 +350,7 @@ contains
    end do
 
    call broadcast_scalar(psf6_file, master_task)
+   call broadcast_scalar(psf6_first_nonzero_year, master_task)
    call broadcast_scalar(model_year, master_task)
    call broadcast_scalar(data_year, master_task)
    call broadcast_scalar(sf6_formulation, master_task)
@@ -385,6 +394,15 @@ contains
       endif
 
    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
+
+      ! if mapped_date is less than psf6_first_nonzero_year then
+      ! register c0 as an io_read_fallback option
+      mapped_date = iyear + (iday_of_year-1+frac_day)/days_in_year &
+                    - model_year + data_year
+      if (mapped_date < psf6_first_nonzero_year) then
+         call io_read_fallback_register_tracer(tracername='SF6', &
+            fallback_opt='const', const_val=c0)
+      endif
 
       sf6_restart_filename = char_blank
 
@@ -955,7 +973,7 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar, p5
+   use constants, only: field_loc_center, field_type_scalar, p5, xkw_coeff
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
@@ -1014,13 +1032,6 @@ contains
 
    logical (log_kind), save :: &
       first = .true.
-
-!-----------------------------------------------------------------------
-!  local parameters
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8      ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
 
 !-----------------------------------------------------------------------
 
@@ -1209,7 +1220,6 @@ contains
 
    use grid, only : TLATD
    use constants, only : c10
-   use time_management, only : iyear, iday_of_year, frac_day, days_in_year
 
 ! !INPUT PARAMETERS:
 
@@ -1333,10 +1343,12 @@ contains
 ! !IROUTINE: comp_sf6_schmidt
 ! !INTERFACE:
 
- subroutine comp_sf6_schmidt(LAND_MASK, SST_in, SF6_SCHMIDT)
+ subroutine comp_sf6_schmidt(LAND_MASK, SST_IN, SF6_SCHMIDT)
 
 ! !DESCRIPTION:
 !  Compute Schmidt numbers of SF6s.
+!
+!  range of validity of fit is -2:40
 !
 !  Ref : Wanninkhof 2014, Relationship between wind speed 
 !        and gas exchange over the ocean revisited,
@@ -1348,43 +1360,39 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
-      LAND_MASK          ! land mask for this block
-
-   real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      SST_in             ! sea surface temperature (C)
+   logical (log_kind), intent(in)  :: LAND_MASK(nx_block,ny_block)    ! land mask for this block
+   real (r8)         , intent(in)  :: SST_IN(nx_block,ny_block)       ! sea surface temperature (C)
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
-      SF6_SCHMIDT  ! Schmidt number of SF6 (non-dimensional)
+   real (r8)         , intent(out) :: SF6_SCHMIDT(nx_block,ny_block)  ! Schmidt number of SF6 (non-dimensional)
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
+   integer(int_kind)    :: i, j
+   real (r8)            :: SST(nx_block,ny_block)
 
-   real (r8), parameter :: &
-      a1 = 3177.5_r8, &
-      a2 = -200.57_r8, &
-      a3 =    6.8865_r8, &
-      a4 =   -0.13335_r8, &
-      a5 =    0.0010877_r8
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      SST                ! sea surface temperature (C)
+   real (r8), parameter :: a = 3177.5_r8
+   real (r8), parameter :: b = -200.57_r8
+   real (r8), parameter :: c =    6.8865_r8
+   real (r8), parameter :: d =   -0.13335_r8
+   real (r8), parameter :: e =    0.0010877_r8
 
 !-----------------------------------------------------------------------
-! empirical fit only uses data up to 40
-!-----------------------------------------------------------------------
-   SST = merge(SST_in, 40.0_r8, SST_in < 40.0_r8)
 
-   where (LAND_MASK)
-      SF6_SCHMIDT = a1 + SST * (a2 + SST * (a3 + SST * (a4 + a5 * SST)))
-   elsewhere
-      SF6_SCHMIDT = c0
-   endwhere
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+            SST(i,j) = max(-2.0_r8, min(40.0_r8, SST_IN(i,j)))
+            SF6_SCHMIDT(i,j) = a + SST(i,j) * (b + SST(i,j) * (c + SST(i,j) * (d + SST(i,j) * e)))
+         else
+            SF6_SCHMIDT(i,j) = c0
+         endif
+      end do
+   end do
 
 !-----------------------------------------------------------------------
 !EOC

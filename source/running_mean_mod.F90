@@ -52,6 +52,8 @@ module running_mean_mod
    use blocks, only: nx_block, ny_block
    use domain, only: nblocks_clinic
    use constants, only: c0, p5, c1, c2, c3, c4
+   use prognostic, only: ldebug
+   use var_consistency_mod, only : var_consistency_check
 
    use io_types, only: datafile, io_dim, io_field_desc
    use io_types, only: construct_file, construct_io_dim, construct_io_field
@@ -722,6 +724,17 @@ contains
    end select
 
 !-----------------------------------------------------------------------
+
+   ! init_var_vals only happens at init, so always perform this consistency check
+   if (present(vals_0d)) then
+      call var_consistency_check('running_mean_init_var_vals:vals_0d', vals_0d)
+   else if (present(vals_1d_1klev)) then
+      call var_consistency_check('running_mean_init_var_vals:vals_1d_1klev', vals_1d_1klev)
+   else if (present(vals_1d_klevs)) then
+      call var_consistency_check('running_mean_init_var_vals:vals_1d_klevs', vals_1d_klevs)
+   endif
+
+!-----------------------------------------------------------------------
 !  initialize values from subroutine arguments
 !-----------------------------------------------------------------------
 
@@ -862,6 +875,18 @@ contains
          call exit_POP(sigAbort, 'k must be supplied if vals_3d_1klev_blocks is supplied')
       endif
    end select
+
+!-----------------------------------------------------------------------
+
+   if (ldebug) then
+      if (present(vals_0d)) then
+         call var_consistency_check('running_mean_update_var:vals_0d', vals_0d)
+      else if (present(vals_1d_1klev)) then
+         call var_consistency_check('running_mean_update_var:vals_1d_1klev', vals_1d_1klev)
+      else if (present(vals_1d_klevs)) then
+         call var_consistency_check('running_mean_update_var:vals_1d_klevs', vals_1d_klevs)
+      endif
+   endif
 
 !-----------------------------------------------------------------------
 !  update values from subroutine arguments
