@@ -381,7 +381,6 @@ contains
        call marbl_instances(iblock)%init(                                     &
             gcm_num_levels = km,                                              &
             gcm_num_PAR_subcols = mcog_nbins,                                 &
-            gcm_num_elements_interior_forcing = 1,                            & 
             gcm_num_elements_surface_forcing = marbl_col_cnt(iblock),         &
             gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &

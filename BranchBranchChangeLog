@@ -1,6 +1,19 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    2 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n95_marbl_dev_n47_cesm_pop_2_1_20170601
+Tag Summary: Removed gcm_num_elements_interior_forcing from MARBL
+             interface, which is reflected in call from ecosys_driver
+
+Testing:     aux_pop_MARBL on cheyenne, yellowstone, and hobart at b4b with
+             marbl_dev_n45
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    1 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n94_marbl_dev_n47_cesm_pop_2_1_20170601
 Tag Summary: Merge marbl_dev_n47 in (results in marbl_dev_levy identical
