@@ -2,6 +2,33 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    3 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n74_marbl_dev_n47_cesm_pop_2_1_20170601
+Tag Summary: merge marbl_dev_n47 tag to this branch
+
+no code/script changes, just updating to marbl_dev_klindsay having been brought
+to marbl_dev and trunk
+
+Testing:
+MARBL commit f959e7229b30fdc814bddb613e9ca5d3300c38c3 science/iron_scav_update branch
+
+aux_pop_MARBL {yellowstone,cheyenne}/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n73)
+   except for tests mentioned below, all tests pass
+      some MEMLEAK and MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+ M      drivers/cpl
+ M      drivers/cpl_none
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    31 May 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n73_marbl_dev_n44_cesm_pop_2_1_20170516
 Tag Summary: bug fix, correct fix in marbl_dev_klindsay_n72
