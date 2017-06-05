@@ -2,7 +2,7 @@
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    3 June 2017
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170516
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170603
 Tag Summary: Minor changes in pop config_compsets.xml
 	     Added compsets version specifier and removed a couple of comments as requested by jedwards 
 
@@ -11,8 +11,6 @@ Testing: aux_pop on cheyenne. compared to cesm_pop_2_1_20170601 baselines; bit-f
 
 	M       ChangeLog
 	M       cime_config/config_compsets.xml
-	X       source/cvmix
-	X       source/marbl
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy, klindsay
