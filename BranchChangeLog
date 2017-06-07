@@ -1,6 +1,25 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    7 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n48_cesm_pop_2_1_20170601
+Tag Summary: merge latest marbl_dev_levy (n95) into marbl_dev
+
+             This code removes gcm_num_elements_interior_forcing from the MARBL
+             interface.
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP passed as well) when compared
+             to the June 1st POP trunk tag on cheyenne, yellowstone, and hobart
+             Note that I tested this from marbl_dev_levy and did not re-run tests
+             after the merge onto marbl_dev.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    1 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n47_cesm_pop_2_1_20170601
 Tag Summary: merge latest POP trunk onto marbl_dev
