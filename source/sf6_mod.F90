@@ -168,7 +168,7 @@ contains
 ! !IROUTINE: sf6_init
 ! !INTERFACE:
 
- subroutine sf6_init(init_ts_file_fmt, read_restart_filename, &
+ subroutine sf6_init(sf6_ind_begin, init_ts_file_fmt, read_restart_filename, &
                      tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
@@ -193,6 +193,10 @@ contains
    use io_read_fallback_mod, only: io_read_fallback_register_tracer
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      sf6_ind_begin          ! starting index of sf6 tracers in global tracer array
+                             ! passed through to rest_read_tracer_block
 
    character (*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
@@ -421,7 +425,8 @@ contains
 
       endif
 
-      call rest_read_tracer_block(init_sf6_init_file_fmt, &
+      call rest_read_tracer_block(sf6_ind_begin,          &
+                                  init_sf6_init_file_fmt, &
                                   sf6_restart_filename,   &
                                   tracer_d_module,        &
                                   TRACER_MODULE)

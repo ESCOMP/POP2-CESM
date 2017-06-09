@@ -99,7 +99,8 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  subroutine ecosys_tracers_and_saved_state_init(ciso_on,                     &
+  subroutine ecosys_tracers_and_saved_state_init(ecosys_driver_ind_begin,     &
+                                                 ciso_on,                     &
                                                  init_ts_file_fmt,            &
                                                  read_restart_filename,       &
                                                  tracer_d_module,             &
@@ -139,6 +140,8 @@ Contains
 
     use marbl_namelist_mod, only : marbl_nl_buffer_size
 
+    integer (int_kind)      , intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
+                                                                       ! array, passed through to rest_read_tracer_block
     logical                 , intent(in)    :: ciso_on
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
@@ -353,7 +356,8 @@ Contains
               init_file_fmt = init_ts_file_fmt
            endif
 
-           call rest_read_tracer_block(init_file_fmt,        &
+           call rest_read_tracer_block(ecosys_driver_ind_begin+n-1, &
+                                       init_file_fmt,               &
                                        ecosys_restart_filename,     &
                                        tracer_d_module(n:n),        &
                                        TRACER_MODULE(:,:,:,n:n,:,:))

@@ -1,0 +1,43 @@
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 June 2017
+Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n01_cesm_pop_2_1_20170603
+Tag Summary: construct names of Robert filter restart file scalars from tracer name instead of from tracer index
+
+Also, reading of Robert filter restart file scalars for passive tracers is
+now done in subroutine rest_read_tracer_block of passive_tracer_tools.F90
+(because passive tracer names are not known when subroutine read_restart
+of restart.F90 is called). This subroutine needs to be able to compute
+indices of tracers in the global tracer array. This is accomplished
+by passing into each tracer module the initial index of that tracer
+module's tracers in the global tracer array and passing that through
+to rest_read_tracer_block.
+
+aux_pop_MARBL cheyenne/intel: (baseline comparison to rf_tracer_on_off_n00)
+   except for tests mentioned below, all tests pass
+      one MEMCOMP failure
+
+passed a by-hand test of turning tracers on and off across branch runs
+
+Files Modified:
+A       BranchChangeLog
+M       source/abio_dic_dic14_mod.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/iage_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/restart.F90
+M       source/sf6_mod.F90
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 June 2017
+Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n00_cesm_pop_2_1_20170603
+Tag Summary: Initial branch tag, identical to cesm_pop_2_1_20170603 trunk tag
+===============================================================================

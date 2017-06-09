@@ -31,6 +31,7 @@
    use grid, only: TAREA, RCALCT, area_t
    use global_reductions, only: global_sum
    use var_consistency_mod, only : var_consistency_check
+   use time_management, only : lrobert_filter, rf_S_prev, rf_Svol_prev
    use blocks
 
    implicit none
@@ -253,7 +254,7 @@
 ! !IROUTINE: rest_read_tracer_block
 ! !INTERFACE:
 
- subroutine rest_read_tracer_block(fmt, filename, tracer_d_module, &
+ subroutine rest_read_tracer_block(ind_begin, fmt, filename, tracer_d_module, &
     TRACER_MODULE)
 
 ! !DESCRIPTION:
@@ -263,6 +264,9 @@
 !  same as module
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      ind_begin              ! starting index of tracers in global tracer array
 
    character (*), intent(in) ::  &
       fmt,                 & ! format (bin or nc)
@@ -289,12 +293,32 @@
       n               ! tracer index
 
    character (char_len) ::  &
-      fieldname       ! tracer name temporaries
+      fieldname,    & ! tracer name temporaries
+      short_name      ! tracer name temporaries
+
+   type (datafile) :: &
+      file_desc       ! io file descriptor
 
 !-----------------------------------------------------------------------
 
    call document(subname, 'reading tracer block from ' /&
                        &/ trim(filename))
+
+   if (lrobert_filter) then
+      file_desc = construct_file(fmt, trim(filename), &
+                                 record_length=rec_type_dbl, &
+                                 recl_words=nx_global*ny_global)
+      do n=1,size(tracer_d_module)
+         short_name = 'rf_S_prev_' /&
+            &/ trim(tracer_d_module(n)%short_name)
+         call add_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1))
+
+         short_name = 'rf_Svol_prev_' /&
+            &/ trim(tracer_d_module(n)%short_name)
+         call add_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1))
+      end do
+      call data_set(file_desc, 'open_read')
+   endif
 
    do n=1,size(tracer_d_module)
 
@@ -310,7 +334,21 @@
 
       call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,oldtime,:))
 
+      if (lrobert_filter) then
+         short_name = 'rf_S_prev_' /&
+            &/ trim(tracer_d_module(n)%short_name)
+         call extract_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1))
+
+         short_name = 'rf_Svol_prev_' /&
+            &/ trim(tracer_d_module(n)%short_name)
+         call extract_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1))
+      endif
+
    end do
+
+   if (lrobert_filter) then
+      call destroy_file(file_desc)
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
