@@ -2,6 +2,25 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    10 June 2017
+Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n02_cesm_pop_2_1_20170603
+Tag Summary: add infrastructure to determine if file attribute values were read from a file
+
+Testing:
+(minimal because new infrastructure is not being utilized yet)
+verified that results were not changed in a cheyenne/gnu G T62_g16 case with
+   OCN_TRACER_MODULES: iage cfc sf6
+
+Files Modified:
+M       BranchChangeLog
+M       source/io_binary.F90
+M       source/io_netcdf.F90
+M       source/io_types.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    9 June 2017
 Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n01_cesm_pop_2_1_20170603
 Tag Summary: construct names of Robert filter restart file scalars from tracer name instead of from tracer index
@@ -15,6 +34,7 @@ by passing into each tracer module the initial index of that tracer
 module's tracers in the global tracer array and passing that through
 to rest_read_tracer_block.
 
+Testing:
 aux_pop_MARBL cheyenne/intel: (baseline comparison to rf_tracer_on_off_n00)
    except for tests mentioned below, all tests pass
       one MEMCOMP failure
