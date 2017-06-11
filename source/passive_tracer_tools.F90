@@ -31,7 +31,6 @@
    use grid, only: TAREA, RCALCT, area_t
    use global_reductions, only: global_sum
    use var_consistency_mod, only : var_consistency_check
-   use time_management, only : lrobert_filter, rf_S_prev, rf_Svol_prev
    use blocks
 
    implicit none
@@ -263,6 +262,12 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use registry, only        : registry_match
+   use time_management, only : lrobert_filter
+   use time_management, only : rf_S_prev, rf_Svol_prev
+   use time_management, only : rf_S_prev_valid, rf_Svol_prev_valid
+   use time_management, only : rf_S_prev_short_name_pref, rf_Svol_prev_short_name_pref
+
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
@@ -289,6 +294,9 @@
    character(*), parameter :: &
       subname = 'passive_tracer_tools:rest_read_tracer_block'
 
+   logical (log_kind) :: &
+      read_RF_scalars ! are RF scalars to be read from restart file
+
    integer (int_kind) :: &
       n               ! tracer index
 
@@ -304,16 +312,19 @@
    call document(subname, 'reading tracer block from ' /&
                        &/ trim(filename))
 
-   if (lrobert_filter) then
+   ! skip reading RF scalars on hybrid restarts
+   read_RF_scalars = lrobert_filter .and. .not. registry_match('ccsm_hybrid')
+
+   if (read_RF_scalars) then
       file_desc = construct_file(fmt, trim(filename), &
                                  record_length=rec_type_dbl, &
                                  recl_words=nx_global*ny_global)
       do n=1,size(tracer_d_module)
-         short_name = 'rf_S_prev_' /&
+         short_name = rf_S_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
          call add_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1))
 
-         short_name = 'rf_Svol_prev_' /&
+         short_name = rf_Svol_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
          call add_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1))
       end do
@@ -334,19 +345,21 @@
 
       call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,oldtime,:))
 
-      if (lrobert_filter) then
-         short_name = 'rf_S_prev_' /&
+      if (read_RF_scalars) then
+         short_name = rf_S_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
-         call extract_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1))
+         call extract_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1), &
+                                  from_file=rf_S_prev_valid(n+ind_begin-1))
 
-         short_name = 'rf_Svol_prev_' /&
+         short_name = rf_Svol_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
-         call extract_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1))
+         call extract_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1), &
+                                  from_file=rf_Svol_prev_valid(n+ind_begin-1))
       endif
 
    end do
 
-   if (lrobert_filter) then
+   if (read_RF_scalars) then
       call destroy_file(file_desc)
    endif
 

@@ -2,6 +2,32 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    11 June 2017
+Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n03_cesm_pop_2_1_20170603
+Tag Summary: only use Robert filter restart file scalars if they were read from restart file
+
+switch to single definition of attribute name prefix of Robert filter restart file scalars
+
+also do not read passive tracer Robert filter restart file scalars in hybrid runs,
+   to be consistent with active tracers
+
+Testing:
+aux_pop_MARBL cheyenne/intel: (baseline comparison to rf_tracer_on_off_n00)
+   all tests pass
+
+passed a by-hand test of turning tracers on and off across branch runs with cheyenne/gnu
+
+Files Modified:
+M       BranchChangeLog
+M       source/passive_tracer_tools.F90
+M       source/restart.F90
+M       source/step_mod.F90
+M       source/time_management.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    10 June 2017
 Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n02_cesm_pop_2_1_20170603
 Tag Summary: add infrastructure to determine if file attribute values were read from a file
@@ -39,7 +65,8 @@ aux_pop_MARBL cheyenne/intel: (baseline comparison to rf_tracer_on_off_n00)
    except for tests mentioned below, all tests pass
       one MEMCOMP failure
 
-passed a by-hand test of turning tracers on and off across branch runs
+passed a by-hand test of turning tracers on and off across branch runs with cheyenne/gnu
+   this test previously failed
 
 Files Modified:
 A       BranchChangeLog

@@ -377,14 +377,14 @@
    if (lrobert_filter) then
       !*** rf tracer conservation adjustment factor
       do n=1,2
-         short_name = 'rf_S_prev_' /&
+         short_name = rf_S_prev_short_name_pref /&
             &/ trim(tracer_d(n)%short_name)
          call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
       enddo
 
       !*** rf tracer*volume conservation adjustment factor
       do n=1,2
-         short_name = 'rf_Svol_prev_' /&
+         short_name = rf_Svol_prev_short_name_pref /&
             &/ trim(tracer_d(n)%short_name)
          call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
       enddo
@@ -499,16 +499,18 @@
       if (lrobert_filter) then
          !*** rf tracer conservation adjustment factor
          do n=1,2
-            short_name = 'rf_S_prev_' /&
+            short_name = rf_S_prev_short_name_pref /&
                &/ trim(tracer_d(n)%short_name)
-            call extract_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
+            call extract_attrib_file(restart_file, trim(short_name), rf_S_prev(n), &
+                                     from_file=rf_S_prev_valid(n))
          enddo 
 
          !*** rf tracer*volume conservation adjustment factor
          do n=1,2
-            short_name = 'rf_Svol_prev_' /&
+            short_name = rf_Svol_prev_short_name_pref /&
                &/ trim(tracer_d(n)%short_name)
-            call extract_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
+            call extract_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n), &
+                                     from_file=rf_Svol_prev_valid(n))
          enddo 
       endif
  
@@ -1321,14 +1323,14 @@
    if (lrobert_filter) then
       !*** rf tracer conservation adjustment factor
       do n=1,nt
-         short_name = 'rf_S_prev_' /&
+         short_name = rf_S_prev_short_name_pref /&
             &/ trim(tracer_d(n)%short_name)
          call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
       enddo 
 
       !*** rf tracer*volume conservation adjustment factor
       do n=1,nt
-         short_name = 'rf_Svol_prev_' /&
+         short_name = rf_Svol_prev_short_name_pref /&
             &/ trim(tracer_d(n)%short_name)
          call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
       enddo 
