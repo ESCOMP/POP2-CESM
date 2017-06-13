@@ -8,6 +8,8 @@ module ecosys_tracers_and_saved_state_mod
 
   use constants, only : c0, c1
 
+  use ecosys_constants_mod, only : marbl_tracer_cnt
+
   use kinds_mod, only : r8, int_kind, log_kind, char_len, char_len_long
 
   use io_types, only : stdout
@@ -45,13 +47,6 @@ module ecosys_tracers_and_saved_state_mod
   ! Transpose field_3d into this array before writing restart
   ! (nx_block, ny_block, km, max_blocks_clinic)
   real(r8), allocatable, target, dimension(:,:,:,:), public :: saved_state_field_3d
-
-  !-----------------------------------------------------------------------
-  ! public variables
-  !-----------------------------------------------------------------------
-
-  ! # of tracers expected from MARBL
-  integer(int_kind), parameter, public :: marbl_tracer_cnt = MARBL_NT
 
   ! Indices of tracers needed for virtual flux or river fluxes
   integer(int_kind), public :: dic_ind
@@ -137,14 +132,14 @@ Contains
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
 
-    use marbl_namelist_mod, only : marbl_nl_buffer_size
+    use ecosys_constants_mod, only : ecosys_nl_buffer_size
 
     logical                 , intent(in)    :: ciso_on
     character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
     character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
     type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
     character(*), dimension(:),  intent(in)    :: module_name
-    character(marbl_nl_buffer_size), intent(in)   :: tracer_nml
+    character(ecosys_nl_buffer_size), intent(in)   :: tracer_nml
     logical(log_kind) , dimension(:,:,:), intent(in) :: land_mask
     real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
     character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file

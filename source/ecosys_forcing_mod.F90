@@ -32,9 +32,10 @@ module ecosys_forcing_mod
   use timers, only : timer_stop
   use timers, only : get_timer
 
-  use strdata_interface_mod     , only : strdata_input_type
+  use strdata_interface_mod, only : strdata_input_type
 
-  use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+  use ecosys_constants_mod, only : marbl_tracer_cnt
+
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
@@ -310,7 +311,7 @@ contains
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
 
-    use marbl_namelist_mod, only : marbl_nl_buffer_size
+    use ecosys_constants_mod, only : ecosys_nl_buffer_size
     use marbl_interface_types, only : marbl_forcing_fields_type
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
@@ -319,14 +320,14 @@ contains
 
     use mcog, only : mcog_nbins
 
-    logical,                         intent(in)    :: ciso_on
-    logical,                         intent(in)    :: land_mask(:,:,:)
-    real(r8),                        intent(in)    :: fe_frac_dust
-    real(r8),                        intent(in)    :: fe_frac_bc
-    type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_forcing_fields(:)
-    type(marbl_forcing_fields_type), intent(in)    :: marbl_req_interior_forcing_fields(:)
-    character(marbl_nl_buffer_size), intent(in)    :: forcing_nml
-    logical                        , intent(out)   :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
+    logical,                          intent(in)    :: ciso_on
+    logical,                          intent(in)    :: land_mask(:,:,:)
+    real(r8),                         intent(in)    :: fe_frac_dust
+    real(r8),                         intent(in)    :: fe_frac_bc
+    type(marbl_forcing_fields_type),  intent(in)    :: marbl_req_surface_forcing_fields(:)
+    type(marbl_forcing_fields_type),  intent(in)    :: marbl_req_interior_forcing_fields(:)
+    character(ecosys_nl_buffer_size), intent(in)    :: forcing_nml
+    logical,                          intent(out)   :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
 
     !-----------------------------------------------------------------------
     !  local variables

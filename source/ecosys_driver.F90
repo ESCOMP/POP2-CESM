@@ -32,9 +32,6 @@ module ecosys_driver
 
   use marbl_interface           , only : marbl_interface_class
 
-  use marbl_namelist_mod        , only : marbl_nl_in_size
-  use marbl_namelist_mod        , only : marbl_nl_cnt
-  use marbl_namelist_mod        , only : marbl_nl_buffer_size
   use marbl_namelist_mod        , only : marbl_nl_split_string
   use marbl_namelist_mod        , only : marbl_namelist
 
@@ -59,11 +56,15 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
-  ! Provide marbl_tracer_cnt to passive_tracers.F90 (as ecosys_tracer_cnt)
-  use ecosys_tracers_and_saved_state_mod, only : ecosys_tracer_cnt => marbl_tracer_cnt
-  ! Provide ecosys_forcing_tracer_ref_val to passive_tracers.F90
-  ! (as ecosys_driver_tracer_ref_val)
-  use ecosys_forcing_mod, only : ecosys_driver_tracer_ref_val => ecosys_forcing_tracer_ref_val
+  use ecosys_constants_mod, only : sfo_cnt
+  use ecosys_constants_mod, only : flux_co2_id
+  use ecosys_constants_mod, only : totalChl_id
+
+  ! Provide marbl_tracer_cnt and ecosys_forcing_tracer_ref_val to
+  ! passive_tracers.F90 (as ecosys_tracer_cnt and ecosys_driver_tracer_ref_val,
+  ! respectively)
+  use ecosys_constants_mod, only : ecosys_tracer_cnt => marbl_tracer_cnt
+  use ecosys_forcing_mod,   only : ecosys_driver_tracer_ref_val => ecosys_forcing_tracer_ref_val
 
   implicit none
   private
@@ -119,10 +120,6 @@ module ecosys_driver
   logical   (log_kind)               :: ciso_on
   logical   (log_kind) , allocatable :: land_mask(:, :, :)
   real      (r8)       , allocatable :: surface_forcing_diags(:, :, :, :)
-
-  integer   (int_kind) , parameter   :: sfo_cnt = 2
-  integer   (int_kind)               :: flux_co2_id
-  integer   (int_kind)               :: totalChl_id
   real      (r8)                     :: surface_forcing_outputs(nx_block, ny_block, sfo_cnt, max_blocks_clinic)
 
 
@@ -183,6 +180,10 @@ contains
     use registry              , only : registry_match
     use named_field_mod       , only : named_field_register
     use running_mean_mod      , only : running_mean_get_var
+    use ecosys_constants_mod  , only : ecosys_nl_buffer_size
+    use ecosys_constants_mod  , only : ecosys_nl_in_size
+    use ecosys_constants_mod  , only : ecosys_nl_cnt
+
     use ecosys_forcing_mod    , only : ecosys_forcing_init
     use marbl_logging         , only : marbl_log_type
 
@@ -203,29 +204,29 @@ contains
     !              less error-prone (reading namelist on each task rather
     !              than relying on broadcasts to ensure every task has every
     !              namelist variable set correctly).
-    type(marbl_log_type)                :: ecosys_status_log
-    character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
-    character(char_len)                 :: log_message
-    integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
-    integer (int_kind)                  :: num_fields
-    integer (int_kind)                  :: nml_error                          ! error flag for nml read
-    integer (int_kind)                  :: iostat                             ! io status flag
-    character (char_len)                :: sname, lname, units, coordinates
-    character (4)                       :: grid_loc
-    character(len=marbl_nl_buffer_size) :: nl_buffer(marbl_nl_cnt)
-    character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
-    character(len=marbl_nl_in_size)     :: nl_str
-    character(char_len_long)            :: ioerror_msg
-    integer (int_kind)                  :: auto_ind                           ! autotroph functional group index
-    integer (int_kind)                  :: iblock                             ! index for looping over blocks
-    character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
-    character (char_len)                :: init_file_fmt                      ! file format for option 'file'
-    logical   (log_kind)                :: lmarginal_seas                     ! is ecosystem active in marginal seas?
-    integer(int_kind)                   :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
-    integer (int_kind)                  :: glo_avg_field_cnt
-    real (r8)                           :: rmean_val
-    real (r8)                           :: fe_frac_dust
-    real (r8)                           :: fe_frac_bc
+    type(marbl_log_type)                 :: ecosys_status_log
+    character(*), parameter              :: subname = 'ecosys_driver:ecosys_driver_init'
+    character(char_len)                  :: log_message
+    integer (int_kind)                   :: cumulative_nt, n, bid, k, i, j
+    integer (int_kind)                   :: num_fields
+    integer (int_kind)                   :: nml_error                          ! error flag for nml read
+    integer (int_kind)                   :: iostat                             ! io status flag
+    character (char_len)                 :: sname, lname, units, coordinates
+    character (4)                        :: grid_loc
+    character(len=ecosys_nl_buffer_size) :: nl_buffer(ecosys_nl_cnt)
+    character(len=ecosys_nl_buffer_size) :: tmp_nl_buffer
+    character(len=ecosys_nl_in_size)     :: nl_str
+    character(char_len_long)             :: ioerror_msg
+    integer (int_kind)                   :: auto_ind                           ! autotroph functional group index
+    integer (int_kind)                   :: iblock                             ! index for looping over blocks
+    character (char_len)                 :: ecosys_restart_filename            ! modified file name for restart file
+    character (char_len)                 :: init_file_fmt                      ! file format for option 'file'
+    logical   (log_kind)                 :: lmarginal_seas                     ! is ecosystem active in marginal seas?
+    integer(int_kind)                    :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
+    integer (int_kind)                   :: glo_avg_field_cnt
+    real (r8)                            :: rmean_val
+    real (r8)                            :: fe_frac_dust
+    real (r8)                            :: fe_frac_bc
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that

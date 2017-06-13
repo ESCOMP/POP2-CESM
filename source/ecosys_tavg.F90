@@ -66,8 +66,6 @@ contains
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
 
-    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
-
     implicit none
 
     type(marbl_interface_class)  , intent(in) :: marbl_instance
@@ -215,8 +213,7 @@ contains
 
     ! Accumulate diagnostics for surface fluxes
 
-    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
-    use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
+    use marbl_diagnostics_mod, only : ind => marbl_surface_forcing_diag_ind
 
     implicit none
 
