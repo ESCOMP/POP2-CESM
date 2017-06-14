@@ -137,27 +137,26 @@ Contains
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
 
-    use marbl_namelist_mod, only : marbl_nl_buffer_size
-
-    logical                 , intent(in)    :: ciso_on
-    character (*)           , intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
-    character (*)           , intent(in)    :: read_restart_filename   ! file name for restart file
-    type(tracer_field_type) , intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
-    character(*), dimension(:),  intent(in)    :: module_name
-    character(marbl_nl_buffer_size), intent(in)   :: tracer_nml
-    logical(log_kind) , dimension(:,:,:), intent(in) :: land_mask
-    real (r8)               , intent(inout) :: tracer_module(:,:,:,:,:,:)
-    character(char_len)     , intent(out)   :: ecosys_restart_filename ! modified file name for restart file
-    integer (int_kind)      , intent(out)   :: errorCode
+    logical,                              intent(in)    :: ciso_on
+    character(len=*),                     intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
+    character(len=*),                     intent(in)    :: read_restart_filename   ! file name for restart file
+    type(tracer_field_type),              intent(in)    :: tracer_d_module(:)      ! descriptors for each tracer
+    character(len=*),   dimension(:),     intent(in)    :: module_name
+    character(len=*),                     intent(in)    :: tracer_nml
+    logical(log_kind) , dimension(:,:,:), intent(in)    :: land_mask
+    real(r8),                             intent(inout) :: tracer_module(:,:,:,:,:,:)
+    character(len=*),                     intent(out)   :: ecosys_restart_filename ! modified file name for restart file
+    integer(int_kind),                    intent(out)   :: errorCode
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_tracers_and_saved_state_mod:ecosys_tracers_and_saved_state_init'
-    integer :: n, k, iblock
-    character(char_len) :: init_option, init_file_fmt
-    integer (int_kind)                  :: nml_error                          ! error flag for nml read
-    character(char_len_long)            :: ioerror_msg
+    character(len=*), parameter :: subname = 'ecosys_tracers_and_saved_state_mod:ecosys_tracers_and_saved_state_init'
+
+    integer                      :: n, k, iblock
+    character(len=char_len)      :: init_option, init_file_fmt
+    integer(int_kind)            :: nml_error                          ! error flag for nml read
+    character(len=char_len_long) :: ioerror_msg
     type(tracer_read), dimension(marbl_tracer_cnt) :: tracer_inputs   ! metadata about file to read
 
     !-----------------------------------------------------------------------
@@ -516,7 +515,7 @@ Contains
     type(ecosys_saved_state_type), allocatable, intent(out) :: state(:)
     type(marbl_saved_state_type),               intent(in)  :: marbl_state
 
-    character(*), parameter :: subname =                                      &
+    character(len=*), parameter :: subname =                                  &
                   'ecosys_tracers_and_saved_state_mod:ecosys_saved_state_setup'
     integer :: num_fields
     integer :: n
@@ -574,17 +573,18 @@ Contains
     implicit none
 
     type (datafile),                                     intent(inout) :: restart_file
-    character(*),                                        intent(in)    :: action
+    character(len=*),                                    intent(in)    :: action
     type(ecosys_saved_state_type), target, dimension(:), intent(in)    :: state
     type(io_field_desc),                   dimension(:), intent(inout) :: iodesc
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname='ecosys_tracers_and_saved_state_mod:ecosys_saved_state_write_restart'
-    character(len=char_len) :: log_message
-    integer (int_kind)         :: k, n
-    type (io_dim)              :: i_dim, j_dim ! dimension descriptors
-    type (io_dim)              :: k_dim        ! dimension descriptor for vertical levels
+    character(len=*), parameter :: subname='ecosys_tracers_and_saved_state_mod:ecosys_saved_state_write_restart'
+    character(len=char_len)     :: log_message
+
+    integer(int_kind) :: k, n
+    type(io_dim)      :: i_dim, j_dim ! dimension descriptors
+    type(io_dim)      :: k_dim        ! dimension descriptor for vertical levels
 
     if (trim(action) .eq. 'define') then
       i_dim = construct_io_dim('i', nx_global)

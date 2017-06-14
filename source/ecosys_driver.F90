@@ -32,9 +32,6 @@ module ecosys_driver
 
   use marbl_interface           , only : marbl_interface_class
 
-  use marbl_namelist_mod        , only : marbl_nl_in_size
-  use marbl_namelist_mod        , only : marbl_nl_cnt
-  use marbl_namelist_mod        , only : marbl_nl_buffer_size
   use marbl_namelist_mod        , only : marbl_nl_split_string
   use marbl_namelist_mod        , only : marbl_namelist
 
@@ -203,29 +200,33 @@ contains
     !              less error-prone (reading namelist on each task rather
     !              than relying on broadcasts to ensure every task has every
     !              namelist variable set correctly).
-    type(marbl_log_type)                :: ecosys_status_log
-    character(*), parameter             :: subname = 'ecosys_driver:ecosys_driver_init'
-    character(char_len)                 :: log_message
-    integer (int_kind)                  :: cumulative_nt, n, bid, k, i, j
-    integer (int_kind)                  :: num_fields
-    integer (int_kind)                  :: nml_error                          ! error flag for nml read
-    integer (int_kind)                  :: iostat                             ! io status flag
-    character (char_len)                :: sname, lname, units, coordinates
-    character (4)                       :: grid_loc
-    character(len=marbl_nl_buffer_size) :: nl_buffer(marbl_nl_cnt)
-    character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
-    character(len=marbl_nl_in_size)     :: nl_str
-    character(char_len_long)            :: ioerror_msg
-    integer (int_kind)                  :: auto_ind                           ! autotroph functional group index
-    integer (int_kind)                  :: iblock                             ! index for looping over blocks
-    character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
-    character (char_len)                :: init_file_fmt                      ! file format for option 'file'
-    logical   (log_kind)                :: lmarginal_seas                     ! is ecosystem active in marginal seas?
-    integer(int_kind)                   :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
-    integer (int_kind)                  :: glo_avg_field_cnt
-    real (r8)                           :: rmean_val
-    real (r8)                           :: fe_frac_dust
-    real (r8)                           :: fe_frac_bc
+    integer(int_kind), parameter :: pop_in_tot_len    = 262144
+    integer(int_kind), parameter :: pop_in_nl_max_len = 32768
+    integer(int_kind), parameter :: pop_in_nl_cnt     = 256
+
+    type(marbl_log_type)             :: ecosys_status_log
+    character(len=*), parameter      :: subname = 'ecosys_driver:ecosys_driver_init'
+    character(char_len)              :: log_message
+    integer (int_kind)               :: cumulative_nt, n, bid, k, i, j
+    integer (int_kind)               :: num_fields
+    integer (int_kind)               :: nml_error                          ! error flag for nml read
+    integer (int_kind)               :: iostat                             ! io status flag
+    character (char_len)             :: sname, lname, units, coordinates
+    character (4)                    :: grid_loc
+    character(len=pop_in_nl_max_len) :: nl_buffer(pop_in_nl_cnt)
+    character(len=pop_in_nl_max_len) :: tmp_nl_buffer
+    character(len=pop_in_tot_len)    :: nl_str
+    character(char_len_long)         :: ioerror_msg
+    integer (int_kind)               :: auto_ind                           ! autotroph functional group index
+    integer (int_kind)               :: iblock                             ! index for looping over blocks
+    character (char_len)             :: ecosys_restart_filename            ! modified file name for restart file
+    character (char_len)             :: init_file_fmt                      ! file format for option 'file'
+    logical   (log_kind)             :: lmarginal_seas                     ! is ecosystem active in marginal seas?
+    integer(int_kind)                :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
+    integer (int_kind)               :: glo_avg_field_cnt
+    real (r8)                        :: rmean_val
+    real (r8)                        :: fe_frac_dust
+    real (r8)                        :: fe_frac_bc
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -739,12 +740,13 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_interior'
-    character(len=char_len) :: log_message
-    integer (int_kind)      :: i   ! nx_block loop index
-    integer (int_kind)      :: c   ! ny_block / column loop index
-    integer (int_kind)      :: bid ! local block address for this block
-    integer (int_kind)      :: n, d, ncols
+    character(len=*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_interior'
+    character(len=char_len)     :: log_message
+
+    integer (int_kind) :: i   ! nx_block loop index
+    integer (int_kind) :: c   ! ny_block / column loop index
+    integer (int_kind) :: bid ! local block address for this block
+    integer (int_kind) :: n, d, ncols
     !-----------------------------------------------------------------------
 
     bid = this_block%local_id
@@ -913,8 +915,9 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_sflux'
-    character(char_len) :: log_message
+    character(len=*), parameter :: subname = 'ecosys_driver:ecosys_driver_set_sflux'
+    character(len=char_len)     :: log_message
+
     integer (int_kind) :: index_marbl  ! marbl index
     integer (int_kind) :: i, j, n      ! pop loop indices
     !-----------------------------------------------------------------------
@@ -1026,7 +1029,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_post_set_sflux'
+    character(len=*), parameter :: subname = 'ecosys_driver:ecosys_driver_post_set_sflux'
+
     integer (int_kind) :: iblock    ! block loop index
     integer (int_kind) :: errorCode ! halo update error code
     !-----------------------------------------------------------------------
@@ -1179,12 +1183,13 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname   = 'ecosys_driver:ecosys_driver_update_scalar_rmeans'
-    character(*), parameter :: fmt_str   = '(A,1X,A)'
-    character(*), parameter :: fmt_str_i = '(A,1X,A,1X,I0)'
-    character(*), parameter :: fmt_str_e = '(A,1X,A,1X,E23.16)'
-    real (r8)               :: rmean_val
-    integer (int_kind)      :: n, iblock
+    character(len=*), parameter :: subname   = 'ecosys_driver:ecosys_driver_update_scalar_rmeans'
+    character(len=*), parameter :: fmt_str   = '(A,1X,A)'
+    character(len=*), parameter :: fmt_str_i = '(A,1X,A,1X,I0)'
+    character(len=*), parameter :: fmt_str_e = '(A,1X,A,1X,E23.16)'
+
+    real (r8)          :: rmean_val
+    integer (int_kind) :: n, iblock
     !-----------------------------------------------------------------------
 
     if (trim(field_source) == 'interior') then
@@ -1265,8 +1270,8 @@ contains
     use io_types, only : io_field_desc
     use io      , only : datafile
 
-    character(*)                 , intent(in)    :: action
-    type (datafile)              , intent(inout) :: restart_file
+    character(len=*), intent(in)    :: action
+    type (datafile),  intent(inout) :: restart_file
 
     type (io_field_desc), dimension(:), allocatable, save :: surface_iodesc
     type (io_field_desc), dimension(:), allocatable, save :: interior_iodesc
@@ -1408,9 +1413,10 @@ contains
     use blocks,        only : get_block
     use domain,        only : blocks_clinic
 
-    character(*), parameter :: subname = 'ecosys_driver:gen_marbl_to_pop_index_mapping'
+    character(len=*), parameter :: subname = 'ecosys_driver:gen_marbl_to_pop_index_mapping'
+
     type(block) :: this_block
-    integer :: index_marbl, i, j, iblock
+    integer     :: index_marbl, i, j, iblock
 
     allocate(marbl_col_cnt(nblocks_clinic))
     do iblock = 1, nblocks_clinic
