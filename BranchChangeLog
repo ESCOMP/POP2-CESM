@@ -2,6 +2,30 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    14 June 2017
+Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n04_cesm_pop_2_1_20170603
+Tag Summary: inline read_field_3D into rest_read_tracer_block of passive_tracer_tools.F90
+
+inlining enables avoiding opening and closing the rest file for each tracer
+
+also move some module use statement from module level to subroutine level
+also add trim to an error message component in subroutine init_tavg to avoid too long of a string
+
+Testing:
+aux_pop_MARBL cheyenne/intel: (baseline comparison to rf_tracer_on_off_n00)
+   all tests pass
+
+passed a by-hand test of turning tracers on and off across branch runs with cheyenne/gnu
+
+Files Modified:
+M       BranchChangeLog
+M       source/passive_tracer_tools.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    11 June 2017
 Tag Name:    pop2/branch_tags/rf_tracer_on_off_tags/rf_tracer_on_off_n03_cesm_pop_2_1_20170603
 Tag Summary: only use Robert filter restart file scalars if they were read from restart file

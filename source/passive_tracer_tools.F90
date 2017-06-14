@@ -16,8 +16,8 @@
 
    use kinds_mod
    use constants, only: c0, c1, p5, char_blank, blank_fmt
-   use domain_size, only: nx_global, ny_global, max_blocks_clinic,nt
-   use domain, only: nblocks_clinic,distrb_clinic, blocks_clinic
+   use domain_size, only: nx_global, ny_global
+   use domain, only: nblocks_clinic, blocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
@@ -28,9 +28,6 @@
        destroy_file, destroy_io_field, stdout,add_attrib_file,&
        extract_attrib_file
    use prognostic, only: curtime, oldtime, tracer_field
-   use grid, only: TAREA, RCALCT, area_t
-   use global_reductions, only: global_sum
-   use var_consistency_mod, only : var_consistency_check
    use blocks
 
    implicit none
@@ -267,6 +264,7 @@
    use time_management, only : rf_S_prev, rf_Svol_prev
    use time_management, only : rf_S_prev_valid, rf_Svol_prev_valid
    use time_management, only : rf_S_prev_short_name_pref, rf_Svol_prev_short_name_pref
+   use domain_size, only     : km
 
 ! !INPUT PARAMETERS:
 
@@ -297,15 +295,21 @@
    logical (log_kind) :: &
       read_RF_scalars ! are RF scalars to be read from restart file
 
+   type (datafile) :: &
+      file_desc       ! io file descriptor
+
+   type (io_dim) :: &
+      i_dim, j_dim, k_dim  ! dimension descriptors
+
    integer (int_kind) :: &
       n               ! tracer index
 
    character (char_len) ::  &
-      fieldname,    & ! tracer name temporaries
-      short_name      ! tracer name temporaries
+      att_name,     & ! rest file atttribute name
+      fieldname       ! rest file field name
 
-   type (datafile) :: &
-      file_desc       ! io file descriptor
+   type (io_field_desc) :: &
+      field_desc           ! io field descriptors
 
 !-----------------------------------------------------------------------
 
@@ -315,53 +319,79 @@
    ! skip reading RF scalars on hybrid restarts
    read_RF_scalars = lrobert_filter .and. .not. registry_match('ccsm_hybrid')
 
-   if (read_RF_scalars) then
-      file_desc = construct_file(fmt, trim(filename), &
-                                 record_length=rec_type_dbl, &
-                                 recl_words=nx_global*ny_global)
-      do n=1,size(tracer_d_module)
-         short_name = rf_S_prev_short_name_pref /&
-            &/ trim(tracer_d_module(n)%short_name)
-         call add_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1))
+   file_desc = construct_file(fmt, trim(filename), &
+                              record_length=rec_type_dbl, &
+                              recl_words=nx_global*ny_global)
 
-         short_name = rf_Svol_prev_short_name_pref /&
+   ! add RF scalars to file descriptor datatype
+
+   if (read_RF_scalars) then
+      do n=1,size(tracer_d_module)
+         att_name = rf_S_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
-         call add_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1))
+         call add_attrib_file(file_desc, trim(att_name), rf_S_prev(n+ind_begin-1))
+
+         att_name = rf_Svol_prev_short_name_pref /&
+            &/ trim(tracer_d_module(n)%short_name)
+         call add_attrib_file(file_desc, trim(att_name), rf_Svol_prev(n+ind_begin-1))
       end do
-      call data_set(file_desc, 'open_read')
    endif
+
+   call data_set(file_desc, 'open_read')
+
+   i_dim = construct_io_dim('i', nx_global)
+   j_dim = construct_io_dim('j', ny_global)
+   k_dim = construct_io_dim('k', km)
 
    do n=1,size(tracer_d_module)
-
-      fieldname = char_blank
       fieldname = trim(tracer_d_module(n)%short_name) /&
                &/ '_CUR'
+      call document(subname, 'reading ' /&
+                          &/ trim(fieldname) /&
+                          &/ ' from ' /&
+                          &/ trim(filename))
+      field_desc =                                       &
+         construct_io_field(trim(fieldname),             &
+                            dim1=i_dim,                  &
+                            dim2=j_dim,                  &
+                            dim3=k_dim,                  &
+                            d3d_array = TRACER_MODULE(:,:,:,n,curtime,:))
+      call data_set (file_desc, 'define', field_desc)
+      call data_set (file_desc, 'read', field_desc)
+      call destroy_io_field (field_desc)
 
-      call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,curtime,:))
-
-      fieldname = char_blank
       fieldname = trim(tracer_d_module(n)%short_name) /&
                &/ '_OLD'
-
-      call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,oldtime,:))
+      call document(subname, 'reading ' /&
+                          &/ trim(fieldname) /&
+                          &/ ' from ' /&
+                          &/ trim(filename))
+      field_desc =                                       &
+         construct_io_field(trim(fieldname),             &
+                            dim1=i_dim,                  &
+                            dim2=j_dim,                  &
+                            dim3=k_dim,                  &
+                            d3d_array = TRACER_MODULE(:,:,:,n,oldtime,:))
+      call data_set (file_desc, 'define', field_desc)
+      call data_set (file_desc, 'read', field_desc)
+      call destroy_io_field (field_desc)
 
       if (read_RF_scalars) then
-         short_name = rf_S_prev_short_name_pref /&
+         att_name = rf_S_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
-         call extract_attrib_file(file_desc, trim(short_name), rf_S_prev(n+ind_begin-1), &
+         call extract_attrib_file(file_desc, trim(att_name), rf_S_prev(n+ind_begin-1), &
                                   from_file=rf_S_prev_valid(n+ind_begin-1))
 
-         short_name = rf_Svol_prev_short_name_pref /&
+         att_name = rf_Svol_prev_short_name_pref /&
             &/ trim(tracer_d_module(n)%short_name)
-         call extract_attrib_file(file_desc, trim(short_name), rf_Svol_prev(n+ind_begin-1), &
+         call extract_attrib_file(file_desc, trim(att_name), rf_Svol_prev(n+ind_begin-1), &
                                   from_file=rf_Svol_prev_valid(n+ind_begin-1))
       endif
-
    end do
 
-   if (read_RF_scalars) then
-      call destroy_file(file_desc)
-   endif
+   call data_set (file_desc, 'close')
+
+   call destroy_file (file_desc)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -863,9 +893,13 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use domain_size,       only: max_blocks_clinic
+   use domain,            only: distrb_clinic
+   use grid,              only: TAREA, RCALCT, area_t
+   use global_reductions, only: global_sum
 
 ! !INPUT PARAMETERS:
-!real (r8), dimension(nx_block,ny_block,tracer_cnt,max_blocks_clinic), &
+
    real (r8), dimension(:,:,:,:), &
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
 
@@ -962,6 +996,9 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+
+   use var_consistency_mod, only: var_consistency_check
+   use domain_size,         only: nt
 
 ! !INPUT PARAMETERS:
 
