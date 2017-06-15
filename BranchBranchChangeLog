@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    15 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n100_marbl_dev_n48_cesm_pop_2_1_20170601
+Tag Summary: Clean up bSi_form diag name in MARBL
+
+             Required update to tavg_contents on POP side
+
+Testing:     Built updated MARBL on cheyenne and hobart, ran some
+             stand-alone tests. Also ran aux_pop_MARBL on hobart, these
+             changes are bit-for-bit, except diatbSi_form in the baseline has
+             been renamed diat_bSi_form in new output => cprnc failures.
+
+Files Modified:
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    14 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n99_marbl_dev_n48_cesm_pop_2_1_20170601
 Tag Summary: Second attempt at removing some namelist parameters from MARBL
