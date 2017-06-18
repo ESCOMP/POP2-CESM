@@ -14,6 +14,16 @@ Testing:     Changes in MARBL are answer-changing, so baseline comparisons in
              aux_pop_MARBL fail. Namelist comparisons still pass; ran test
              suite on cheyenne, yellowstone, and hobart
 
+             *** Two PGI tests on hobart fail in the MODEL_BUILD phase:
+
+      SMS.T62_g37.C1850ECO.hobart_pgi.pop-ecosys_ladjust_bury_coeff
+      SMS.T62_g37.C1850ECO.hobart_pgi.pop-ecosys_read_fallback_gx3v7
+
+             The tests build fine individually, but fail as part of the test
+             suite. Maybe this is a CIME issue? (Something with the shared
+             build?) I'll talk to Jim Edwards about this, but don't think it
+             needs to hold up the tag.
+
 Files Modified:
  M      .
 M       SVN_EXTERNAL_DIRECTORIES
