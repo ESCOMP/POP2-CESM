@@ -227,7 +227,7 @@ endif
 1  sp_CaCO3_form_zint
 1  sp_CaCO3_form
 1  diat_SiO3_lim
-1  diatbSi_form
+1  diat_bSi_form
 1  diaz_Nfix
 1  CaCO3_form_zint
 1  bSi_form

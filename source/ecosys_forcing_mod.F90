@@ -310,7 +310,6 @@ contains
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
 
-    use marbl_namelist_mod, only : marbl_nl_buffer_size
     use marbl_interface_types, only : marbl_forcing_fields_type
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
@@ -325,14 +324,15 @@ contains
     real(r8),                        intent(in)    :: fe_frac_bc
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_forcing_fields(:)
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_interior_forcing_fields(:)
-    character(marbl_nl_buffer_size), intent(in)    :: forcing_nml
-    logical                        , intent(out)   :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
+    character(len=*),                intent(in)    :: forcing_nml
+    logical,                         intent(out)   :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter  :: subname = 'ecosys_forcing_mod:ecosys_forcing_init'
-    character(len=char_len)  :: err_msg
+    character(len=*), parameter  :: subname = 'ecosys_forcing_mod:ecosys_forcing_init'
+    character(len=char_len)      :: err_msg
+
     character(char_len)      :: marbl_varname, tracer_name, units
     integer (int_kind)       :: nml_error                  ! error flag for nml read
     character(char_len_long) :: ioerror_msg
@@ -1010,27 +1010,27 @@ contains
        lhas_riv_flux)
 
     logical          , intent(in)  :: ciso_on
-    character(*)     , intent(in)  :: riv_flux_shr_stream_file
+    character(len=*) , intent(in)  :: riv_flux_shr_stream_file
     integer(int_kind), intent(in)  :: riv_flux_shr_stream_year_first
     integer(int_kind), intent(in)  :: riv_flux_shr_stream_year_last
     integer(int_kind), intent(in)  :: riv_flux_shr_stream_year_align
-    character(*)     , intent(in)  :: riv_flux_din_file_varname
+    character(len=*) , intent(in)  :: riv_flux_din_file_varname
     real(r8)         , intent(in)  :: riv_flux_din_scale_factor
-    character(*)     , intent(in)  :: riv_flux_dip_file_varname
+    character(len=*) , intent(in)  :: riv_flux_dip_file_varname
     real(r8)         , intent(in)  :: riv_flux_dip_scale_factor
-    character(*)     , intent(in)  :: riv_flux_don_file_varname
+    character(len=*) , intent(in)  :: riv_flux_don_file_varname
     real(r8)         , intent(in)  :: riv_flux_don_scale_factor
-    character(*)     , intent(in)  :: riv_flux_dop_file_varname
+    character(len=*) , intent(in)  :: riv_flux_dop_file_varname
     real(r8)         , intent(in)  :: riv_flux_dop_scale_factor
-    character(*)     , intent(in)  :: riv_flux_dsi_file_varname
+    character(len=*) , intent(in)  :: riv_flux_dsi_file_varname
     real(r8)         , intent(in)  :: riv_flux_dsi_scale_factor
-    character(*)     , intent(in)  :: riv_flux_dfe_file_varname
+    character(len=*) , intent(in)  :: riv_flux_dfe_file_varname
     real(r8)         , intent(in)  :: riv_flux_dfe_scale_factor
-    character(*)     , intent(in)  :: riv_flux_dic_file_varname
+    character(len=*) , intent(in)  :: riv_flux_dic_file_varname
     real(r8)         , intent(in)  :: riv_flux_dic_scale_factor
-    character(*)     , intent(in)  :: riv_flux_alk_file_varname
+    character(len=*) , intent(in)  :: riv_flux_alk_file_varname
     real(r8)         , intent(in)  :: riv_flux_alk_scale_factor
-    character(*)     , intent(in)  :: riv_flux_doc_file_varname
+    character(len=*) , intent(in)  :: riv_flux_doc_file_varname
     real(r8)         , intent(in)  :: riv_flux_doc_scale_factor
     logical          , intent(out) :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
 
@@ -1965,7 +1965,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_forcing_mod:ecosys_forcing_comp_stf_riv'
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ecosys_forcing_comp_stf_riv'
+
     integer (int_kind) :: riv_flux_ind
     integer (int_kind) :: tracer_ind
     integer (int_kind) :: processed_field_cnt
@@ -2593,13 +2594,14 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_forcing_mod:ciso_read_atm_D13C_data'
-    integer (int_kind) ::    &
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_read_atm_D13C_data'
+
+    integer (int_kind) ::      &
          stat,                 &  ! i/o status code
          irec,                 &  ! counter for looping
          skiplines,            &  ! number of comment lines at beginning of ascii file
          il                       ! looping index
-    character (char_len) :: &
+    character (char_len) ::    &
          sglchr                   ! variable to read characters from file into
     !-----------------------------------------------------------------------
 
@@ -2693,22 +2695,19 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_forcing_mod:ciso_read_atm_D14C_data'
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_read_atm_D14C_data'
 
-    integer (int_kind) ::      &
+    integer(int_kind) ::         &
          stat,                   &  ! i/o status code
          irec,                   &  ! counter for looping
          skiplines,              &  ! number of comment lines at beginning of ascii file
          il                         ! looping index
 
-    character (char_len) ::  &
+    character(len=char_len) ::      &
          sglchr                     ! variable to read characters from file into
 
-    integer (int_kind) :: &
-         ciso_atm_d14c_data_nbval_tmp
-
-    logical (log_kind) :: &
-         nbval_mismatch
+    integer(int_kind) :: ciso_atm_d14c_data_nbval_tmp
+    logical(log_kind) :: nbval_mismatch
 
     !-----------------------------------------------------------------------
     !     ensure that three datafiles have same number of entries
@@ -2964,12 +2963,13 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:forcing_field_metadata_set'
+    character(len=char_len)     :: log_message
+
     character(len=char_len), dimension(7) :: valid_field_sources
     integer(kind=int_kind)  :: n
     logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
-    character(*), parameter :: subname = 'ecosys_forcing_mod:forcing_field_metadata_set'
-    character(len=char_len) :: log_message
     !-----------------------------------------------------------------------
 
     valid_field_sources(1) = 'const'
@@ -3147,8 +3147,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_forcing_mod:forcing_fields_add'
-    character(len=char_len) :: log_message
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:forcing_fields_add'
+    character(len=char_len)     :: log_message
     !-----------------------------------------------------------------------
 
     this%rank = rank
