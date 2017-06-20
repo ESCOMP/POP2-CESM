@@ -1187,7 +1187,7 @@
 
      rf_S(n) = rf_Svol(n)/rf_ocean_norm
 
-     if (nsteps_total == 1 .or. lrf_nonzero_newtime .or. lrf_conserveVT) then
+     if (.not. rf_S_prev_valid(n) .or. lrf_nonzero_newtime .or. lrf_conserveVT) then
        rf_conservation_factor = rf_S(n)
        !*** placeholder for lrf_nonzero_newtime; this is not correct
      else
@@ -1329,14 +1329,26 @@
      !*** figure out something later...
      rf_Svol_avg = rf_Svol
    else
-     !*** average rf_Svol and rf_Svol_prev for budget diagnostics
-     rf_Svol_avg = p5*(rf_Svol+rf_Svol_prev)
-     rf_S_avg    = p5*(rf_S+rf_S_prev)
-
-     !*** then update rf_S_prev and rf_Svol_prev
      do n=1,nt
-       rf_S_prev   (n) = rf_S(n)
-       rf_Svol_prev(n) = rf_Svol(n)
+       !*** average rf_Svol and rf_Svol_prev for budget diagnostics
+       if (rf_Svol_prev_valid(n)) then
+         rf_Svol_avg(n) = p5*(rf_Svol(n)+rf_Svol_prev(n))
+       else
+         rf_Svol_avg(n) = rf_Svol(n)
+       endif
+
+       !*** average rf_S and rf_S_prev for budget diagnostics
+       if (rf_S_prev_valid(n)) then
+         rf_S_avg(n)    = p5*(rf_S(n)+rf_S_prev(n))
+       else
+         rf_S_avg(n)    = rf_S(n)
+       endif
+
+       !*** then update rf_S_prev and rf_Svol_prev, marking _prev values as valid
+       rf_S_prev   (n)       = rf_S(n)
+       rf_Svol_prev(n)       = rf_Svol(n)
+       rf_S_prev_valid(n)    = .true.
+       rf_Svol_prev_valid(n) = .true.
      enddo
    endif
 
