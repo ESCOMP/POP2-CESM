@@ -1,6 +1,25 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    21 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n51_cesm_pop_2_1_20170601
+Tag Summary: Update MARBL from 0.19.1 to 0.19.2
+
+             Improved error message in one MARBL routine
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP tests all passed) on hobart
+             (intel, gnu, and pgi*), cheyenne (intel, gnu) and yellowstone (intel,
+             gnu).
+
+             * PGI is still being weird, and two tests don't build (failing in
+               marbl_parms) if you run create_test with --generate or --compare.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n50_cesm_pop_2_1_20170601
 Tag Summary: Update MARBL from 0.19.0 to 0.19.1
