@@ -1,6 +1,78 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    19 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n50_cesm_pop_2_1_20170601
+Tag Summary: Update MARBL from 0.19.0 to 0.19.1
+
+             Lots of small code-cleanup changes, but nothing that changes the
+             interface and nothing that changes answers.
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP tests all passed) on hobart
+             (intel, gnu, and pgi*), cheyenne (intel, gnu) and yellowstone (intel,
+             gnu).
+
+             * PGI is being weird, and two tests don't build (failing in marbl_parms)
+               if you run create_test with --generate or --compare. Weird.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    17 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n49_cesm_pop_2_1_20170601
+Tag Summary: merge latest marbl_dev_levy (n100) into marbl_dev
+
+             * Update to marbl0.19.0 relese
+             * Clean up MARBL namelist interface (MARBL no longer sets string
+               length or array size as build-time parameters)
+             * Correct diagnostic name from diatbSi_form to diat_bSi_form
+
+Testing:     Changes in MARBL are answer-changing, so baseline comparisons in
+             aux_pop_MARBL fail. Namelist comparisons still pass; ran test
+             suite on cheyenne, yellowstone, and hobart
+
+             *** Two PGI tests on hobart fail in the MODEL_BUILD phase:
+
+      SMS.T62_g37.C1850ECO.hobart_pgi.pop-ecosys_ladjust_bury_coeff
+      SMS.T62_g37.C1850ECO.hobart_pgi.pop-ecosys_read_fallback_gx3v7
+
+             The tests build fine individually, but fail as part of the test
+             suite. Maybe this is a CIME issue? (Something with the shared
+             build?) I'll talk to Jim Edwards about this, but don't think it
+             needs to hold up the tag.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    7 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n48_cesm_pop_2_1_20170601
+Tag Summary: merge latest marbl_dev_levy (n95) into marbl_dev
+
+             This code removes gcm_num_elements_interior_forcing from the MARBL
+             interface.
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP passed as well) when compared
+             to the June 1st POP trunk tag on cheyenne, yellowstone, and hobart
+             Note that I tested this from marbl_dev_levy and did not re-run tests
+             after the merge onto marbl_dev.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    1 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n47_cesm_pop_2_1_20170601
 Tag Summary: merge latest POP trunk onto marbl_dev
