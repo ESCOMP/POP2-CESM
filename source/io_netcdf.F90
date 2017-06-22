@@ -255,7 +255,7 @@
                                   &/ trim(path)
                endif
             endif
-            call add_attrib_file(data_file, trim(att_name), trim(work_line))
+            call add_attrib_file(data_file, trim(att_name), trim(work_line), from_file=.true.)
 
          case (PIO_INT)
             iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
@@ -271,20 +271,20 @@
                else
                   att_lval = .false.
                endif
-               call add_attrib_file(data_file, trim(att_name), att_lval)
+               call add_attrib_file(data_file, trim(att_name), att_lval, from_file=.true.)
             else
-               call add_attrib_file(data_file, trim(att_name), att_ival)
+               call add_attrib_file(data_file, trim(att_name), att_ival, from_file=.true.)
             endif
 
          case (PIO_REAL) 
             iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
                                   att_rval)
-            call add_attrib_file(data_file, trim(att_name), att_rval)
+            call add_attrib_file(data_file, trim(att_name), att_rval, from_file=.true.)
 
          case (PIO_DOUBLE) 
             iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
                                   att_dval)
-            call add_attrib_file(data_file, trim(att_name), att_dval)
+            call add_attrib_file(data_file, trim(att_name), att_dval, from_file=.true.)
 
          end select
 
@@ -885,12 +885,12 @@
                   else
                      att_lval = .false.
                   endif
-                  call add_attrib_file(data_file, trim(att_name), &
-                                                  att_lval)
+                  call add_attrib_io_field(io_field, trim(att_name), &
+                                                     att_lval)
 
                else
-                  call add_attrib_file(data_file, trim(att_name), &
-                                                  att_ival)
+                  call add_attrib_io_field(io_field, trim(att_name), &
+                                                     att_ival)
                endif
 
             case (PIO_REAL)
