@@ -264,7 +264,7 @@
    use time_management, only : rf_S_prev, rf_Svol_prev
    use time_management, only : rf_S_prev_valid, rf_Svol_prev_valid
    use time_management, only : rf_S_prev_short_name_pref, rf_Svol_prev_short_name_pref
-   use domain_size, only     : km
+   use domain_size, only     : km, max_blocks_clinic
 
 ! !INPUT PARAMETERS:
 
@@ -311,6 +311,8 @@
    type (io_field_desc) :: &
       field_desc           ! io field descriptors
 
+   real(r8), dimension(nx_block, ny_block, km, max_blocks_clinic), target :: FIELD  ! Read into this field
+
 !-----------------------------------------------------------------------
 
    call document(subname, 'reading tracer block from ' /&
@@ -355,10 +357,11 @@
                             dim1=i_dim,                  &
                             dim2=j_dim,                  &
                             dim3=k_dim,                  &
-                            d3d_array = TRACER_MODULE(:,:,:,n,curtime,:))
+                            d3d_array = FIELD)
       call data_set (file_desc, 'define', field_desc)
       call data_set (file_desc, 'read', field_desc)
       call destroy_io_field (field_desc)
+      TRACER_MODULE(:,:,:,n,curtime,:) = FIELD
 
       fieldname = trim(tracer_d_module(n)%short_name) /&
                &/ '_OLD'
@@ -371,10 +374,11 @@
                             dim1=i_dim,                  &
                             dim2=j_dim,                  &
                             dim3=k_dim,                  &
-                            d3d_array = TRACER_MODULE(:,:,:,n,oldtime,:))
+                            d3d_array = FIELD)
       call data_set (file_desc, 'define', field_desc)
       call data_set (file_desc, 'read', field_desc)
       call destroy_io_field (field_desc)
+      TRACER_MODULE(:,:,:,n,oldtime,:) = FIELD
 
       if (read_RF_scalars) then
          att_name = rf_S_prev_short_name_pref /&
