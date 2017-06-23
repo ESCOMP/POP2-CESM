@@ -452,7 +452,10 @@
    logical (log_kind) :: lrf_conserveVT          ! conserve <V*T> across RF.  
                                                  ! Unstable. Use as sanity check only.
 
-   real (r8), dimension(nt) :: rf_S_prev, rf_Svol_prev
+   real (r8), dimension(nt)          :: rf_S_prev, rf_Svol_prev
+   logical (log_kind), dimension(nt) :: rf_S_prev_valid, rf_Svol_prev_valid
+   character (len=*), parameter      :: rf_S_prev_short_name_pref = 'rf_S_prev_'
+   character (len=*), parameter      :: rf_Svol_prev_short_name_pref = 'rf_Svol_prev_'
 
    real (r8) :: &
       robert_alpha,         &! Robert filter coefficient, default = 0.53; Williams, 2009
@@ -620,8 +623,11 @@
 
    date_separator = ' '
 
-   rf_S_prev    = c0
-   rf_Svol_prev = c0
+   rf_S_prev(:)    = c0
+   rf_Svol_prev(:) = c0
+
+   rf_S_prev_valid(:)    = .false.
+   rf_Svol_prev_valid(:) = .false.
 
 !-----------------------------------------------------------------------
 !

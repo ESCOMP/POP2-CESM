@@ -149,7 +149,7 @@ contains
 ! !IROUTINE: cfc11_init
 ! !INTERFACE:
 
- subroutine cfc11_init(init_ts_file_fmt, read_restart_filename, &
+ subroutine cfc11_init(cfc11_ind_begin, init_ts_file_fmt, read_restart_filename, &
                        tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
@@ -171,6 +171,10 @@ contains
    use time_management, only: freq_opt_nyear, freq_opt_nmonth
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      cfc11_ind_begin        ! starting index of cfc11 tracers in global tracer array
+                             ! passed through to rest_read_tracer_block
 
    character (*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
@@ -382,7 +386,8 @@ contains
 
        end if
 
-       call rest_read_tracer_block(init_cfc11_init_file_fmt, &
+       call rest_read_tracer_block(cfc11_ind_begin,          &
+                                   init_cfc11_init_file_fmt, &
                                    cfc11_restart_filename,   &
                                    tracer_d_module,          &
                                    TRACER_MODULE)

@@ -149,6 +149,7 @@ contains
   !***********************************************************************
 
   subroutine ecosys_driver_init( &
+       ecosys_driver_ind_begin,  &
        ciso_active_flag,         &
        init_ts_file_fmt,         &
        read_restart_filename,    &
@@ -183,6 +184,9 @@ contains
     use ecosys_forcing_mod    , only : ecosys_forcing_init
     use marbl_logging         , only : marbl_log_type
 
+
+    integer (int_kind)       , intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
+                                                                        ! array, passed through to rest_read_tracer_block
     logical                  , intent(in)    :: ciso_active_flag      ! set ciso_on
     character (*)            , intent(in)    :: init_ts_file_fmt      ! format (bin or nc) for input file
     character (*)            , intent(in)    :: read_restart_filename ! file name for restart file
@@ -454,6 +458,7 @@ contains
     end if
 
     call ecosys_tracers_and_saved_state_init(                    &
+       ecosys_driver_ind_begin,                                  &
        ciso_on,                                                  &
        init_ts_file_fmt,                                         &
        read_restart_filename,                                    &

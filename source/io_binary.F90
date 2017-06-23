@@ -293,19 +293,19 @@
             select case (trim(data_type))
             case('char','CHAR')
                call add_attrib_file(data_file, trim(att_name), &
-                                               trim(work_line))
+                                               trim(work_line), from_file=.true.)
             case('log','LOG','logical','LOGICAL')
                read(work_line,*) att_lval 
-               call add_attrib_file(data_file, trim(att_name), att_lval)
+               call add_attrib_file(data_file, trim(att_name), att_lval, from_file=.true.)
             case('int','INT','i4','I4')
                read(work_line,*) att_ival 
-               call add_attrib_file(data_file, trim(att_name), att_ival)
+               call add_attrib_file(data_file, trim(att_name), att_ival, from_file=.true.)
             case('r4','R4','REAL','real','float','FLOAT')
                read(work_line,*) att_rval 
-               call add_attrib_file(data_file, trim(att_name), att_rval)
+               call add_attrib_file(data_file, trim(att_name), att_rval, from_file=.true.)
             case('r8','R8','dbl','DBL','double','DOUBLE')
                read(work_line,*) att_dval 
-               call add_attrib_file(data_file, trim(att_name), att_dval)
+               call add_attrib_file(data_file, trim(att_name), att_dval, from_file=.true.)
             end select
 
          end select

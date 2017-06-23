@@ -401,6 +401,7 @@
 
    if (ecosys_on) then
       call ecosys_driver_init(                                                           &
+           ecosys_driver_ind_begin,                                                      &
            ciso_on,                                                                      &
            init_ts_file_fmt,                                                             &
            read_restart_filename,                                                        &
@@ -426,7 +427,7 @@
 !-----------------------------------------------------------------------
 
    if (cfc_on) then
-      call cfc_init(init_ts_file_fmt, read_restart_filename, &
+      call cfc_init(cfc_ind_begin, init_ts_file_fmt, read_restart_filename, &
                     tracer_d(cfc_ind_begin:cfc_ind_end), &
                     TRACER(:,:,:,cfc_ind_begin:cfc_ind_end,:,:), &
                     errorCode)
@@ -444,7 +445,7 @@
 !-----------------------------------------------------------------------
 
    if (sf6_on) then
-      call sf6_init(init_ts_file_fmt, read_restart_filename, &
+      call sf6_init(sf6_ind_begin, init_ts_file_fmt, read_restart_filename, &
                     tracer_d(sf6_ind_begin:sf6_ind_end), &
                     TRACER(:,:,:,sf6_ind_begin:sf6_ind_end,:,:), &
                     errorCode)
@@ -462,7 +463,7 @@
 !-----------------------------------------------------------------------
 
    if (iage_on) then
-      call iage_init(init_ts_file_fmt, read_restart_filename, &
+      call iage_init(iage_ind_begin, init_ts_file_fmt, read_restart_filename, &
                      tracer_d(iage_ind_begin:iage_ind_end), &
                      TRACER(:,:,:,iage_ind_begin:iage_ind_end,:,:), &
                      errorCode)
@@ -480,7 +481,7 @@
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
-      call abio_dic_dic14_init(init_ts_file_fmt, read_restart_filename, &
+      call abio_dic_dic14_init(abio_dic_dic14_ind_begin, init_ts_file_fmt, read_restart_filename, &
                     tracer_d(abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end), &
                     TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,:,:), &
                     errorCode)

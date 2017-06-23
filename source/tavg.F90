@@ -1050,7 +1050,7 @@
            exit_string = 'WARNING: you have requested a stream number > n_tavg_streams in tavg_contents file'
            call document ('init_tavg', exit_string)
         else
-           write(exit_string,'(a,i2,2x,a,2x,a)') ' stream requested = ', ns, 'field requested = ', char_temp
+           write(exit_string,'(a,i2,2x,a,2x,a)') ' stream requested = ', ns, 'field requested = ', trim(char_temp)
            call document ('init_tavg', exit_string)
            exit_string = 'FATAL ERROR: you have requested a stream number > n_tavg_streams in tavg_contents file'
            call document ('init_tavg', exit_string)
