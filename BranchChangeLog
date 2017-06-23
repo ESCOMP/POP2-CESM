@@ -2,6 +2,18 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n53_cesm_pop_2_1_20170623
+Tag Summary: Merge POP trunk onto MARBL
+
+Testing:     aux_pop_MARBL testing on previous marbl_dev tag, aux_pop testing on
+             the 20170623 trunk tag (see ChangeLog for details)
+
+Files Modified:
+M       ChangeLog
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n52_cesm_pop_2_1_20170615
 Tag Summary: Merge POP trunk onto MARBL
 
