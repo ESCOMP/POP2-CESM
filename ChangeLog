@@ -1,4 +1,40 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    23 June 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170623
+Tag Summary: merge latest marbl_dev branch tag (n52) onto trunk
+
+             1. Several MARBL bug fixes / code clean-up
+                a. Answer-changing: consistent use of molw_Fe parameter
+             2. A few interface changes
+                a. gcm_num_elements_interior_forcing no longer in MARBL interface
+                b. MARBL no longer provides parameters dictating namelist size
+                c. diagnostic shortname diatbSi_form changed to diat_bSi_form
+
+             Also fixed a bug that nag DEBUG found in how passive tracers were
+             read from the restart (introduced in 20170615)
+
+Testing: since the MARBL update is answer-changing, ECO compsets will not be
+         bit-for-bit; but I ran aux_pop on cheyenne and yellowstone, compared to
+         the 20170615 trunk and verified non-ecosys tests are bit-for-bit (and
+         all tests pass NLCOMP). This is identical to a marbl_dev branch that was
+         tested on hobart (nag, intel, and pgi) as well as cheyenne and yellowstone
+         (intel and gnu on both)
+
+         It seems like something weird is going on with PGI (17.4 & 17.5), so two
+         aux_pop_MARBL tests fail to build; perhaps a combination of length of the
+         case name and a weird compiler issue?
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/passive_tracer_tools.F90
+===============================================================================
 Tag Creator: altuntas
 Developers:  klindsay
 Tag Date:    15 June 2017
