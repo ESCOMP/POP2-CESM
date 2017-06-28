@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+
+"""pop physics cycle postrun script
+"""
+
+import os, shutil, sys
+
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.utils import expect
+
+logger = logging.getLogger(__name__)
+
+###############################################################################
+def _phys_cycle_postrun(case):
+###############################################################################
+
+    # -------------------------------------------------------------------------
+    # Determine if model has run the length of POP physics run cycle length
+    # -------------------------------------------------------------------------
+
+    run_type    = case.get_value("RUN_TYPE")
+    stop_option = case.get_value("STOP_OPTION")
+    stop_n      = case.get_value("STOP_N")
+    caseroot    = case.get_value("CASEROOT")
+    rundir      = case.get_value("RUNDIR")
+
+    pop_phys_run_cur_mon        = case.get_value("POP_PHYS_RUN_CUR_MON")
+    pop_phys_run_cycle_len_year = case.get_value("POP_PHYS_RUN_CYCLE_LEN_YEAR")
+
+    if stop_option.find("nmonth") != -1:
+        pop_phys_run_cur_mon_new = pop_phys_run_cur_mon + stop_n
+    elif stop_option.find("nyear") != -1:
+        pop_phys_run_cur_mon_new = pop_phys_run_cur_mon + stop_n * 12
+    else:
+        expect(False,
+               "STOP_OPTION must be nmonths or nyears for pop_phys_cycle_postrun")
+
+    case.set_value("POP_PHYS_RUN_CUR_MON", pop_phys_run_cur_mon_new)
+    logger.info("pop_phys_run_cur_mon is now %s" %pop_phys_run_cur_mon_new)
+
+    pop_phys_run_cycle_len_mon = pop_phys_run_cycle_len_year * 12
+    if pop_phys_run_cur_mon_new < pop_phys_run_cycle_len_mon:
+        case.set_value("POP_RESTART_OVERRIDE", "default")
+        case.flush()
+        return
+
+    if pop_phys_run_cur_mon_new > pop_phys_run_cycle_len_mon:
+        logger.info()
+        expect(False,
+               "POP_PHYS_RUN_CUR_MON has overshot POP_PHYS_RUN_CYCLE_LEN_MON=%s"
+               %pop_phys_run_cycle_len_mon)
+
+    # -------------------------------------------------------------------------
+    # Model has run the length of POP physics run cycle length
+    # Reset model physics, keeping restart file for tracers to continue to evolve
+    # -------------------------------------------------------------------------
+
+    logger.info("echo resetting model physics")
+    case.set_value("CONTINUE_RUN","FALSE")
+    case.set_value("RESUBMIT_SETS_CONTINUE_RUN","FALSE")
+    case.set_value("POP_PHYS_RUN_CUR_MON",0)
+
+    with open(os.path.join(rundir, "rpointer.ocn.restart"),'r') as f:
+        pop_restart_override = rundir + '/' + f.readline()
+        case.set_value("POP_RESTART_OVERRIDE", pop_restart_override)
+
+    # -------------------------------------------------------------------------
+    # Compute new RUN_STARTDATE
+    # -------------------------------------------------------------------------
+
+    run_startdate = case.get_value("RUN_STARTDATE")
+    yyyy = int(run_startdate[:4])
+    yyyy = yyyy + pop_phys_run_cycle_len_year
+    mmdd = run_startdate[5:10]
+    run_startdate_new = str(yyyy) + '-' + mmdd
+    ilen = len(run_startdate_new)
+    if ilen == 9:
+        run_startdate_new = '0' + run_startdate_new
+    if ilen == 8:
+        run_startdate_new = '00' + run_startdate_new
+    if ilen == 7:
+        run_startdate_new = '000' + run_startdate_new
+    case.set_value("RUN_STARTDATE", run_startdate_new)
+
+    # -------------------------------------------------------------------------
+    # Compute new _CPLHIST_YR_ALIGN variables
+    # -------------------------------------------------------------------------
+
+    datm_cplhist_yr_align = case.get_value("DATM_CPLHIST_YR_ALIGN")
+    if datm_cplhist_yr_align:
+        datm_cplhist_yr_align_new = datm_cplhist_yr_align + pop_phys_run_cycle_len_year
+        case.set_value("DATM_CPLHIST_YR_ALIGN", datm_cplhist_yr_align_new)
+
+    drof_cplhist_yr_align = case.get_value("DROF_CPLHIST_YR_ALIGN")
+    if drof_cplhist_yr_align:
+        drof_cplhist_yr_align_new = drof_cplhist_yr_align + pop_phys_run_cycle_len_year
+        case.set_value("DROF_CPLHIST_YR_ALIGN", drof_cplhist_yr_align_new)
+
+    case.flush()
+
+    # -------------------------------------------------------------------------
+    # re-prestage POP rpointer files if necessary
+    # -------------------------------------------------------------------------
+
+    if run_type != "startup":
+        shutil.copy(os.path.join(caseroot,"Buildconf","popconf","rpointer.ocn.restart.orig"),
+                    os.path.join(rundir, "rpointer.ocn.restart"))
+        shutil.copy(os.path.join(caseroot,"Buildconf","popconf","rpointer.ocn.ovf.orig"),
+                    os.path.join(rundir, "rpointer.ocn.ovf"))
+                    
+###############################################################################
+def _main_func():
+###############################################################################
+    if len(sys.argv) == 1:
+        expect(False, "caseroot is a required input argument")
+
+    caseroot = sys.argv[1]
+    with Case(caseroot) as case:
+        pop_phys_run_cycle_len_year = case.get_value("POP_PHYS_RUN_CYCLE_LEN_YEAR")
+        if pop_phys_run_cycle_len_year:
+            if (pop_phys_run_cycle_len_year > 0):
+                _phys_cycle_postrun(case)
+
+if __name__ == "__main__":
+    _main_func()

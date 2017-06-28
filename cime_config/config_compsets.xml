@@ -81,6 +81,16 @@
     <lname>1850_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
   </compset>
 
+  <compset>
+    <alias>G1850ECO_CPLHIST</alias>
+    <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO_DROF%CPLHIST_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>G1850ECO_CPLHIST_PHYS_CYCLE</alias>
+    <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO%PHYS-CYCLE_DROF%CPLHIST_SGLC_WW3</lname>
+  </compset>
+
   <!-- Single Column POP -->
 
   <compset>
@@ -135,5 +145,25 @@
     <alias>GIAF_DWAV</alias>
     <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
   </compset>
+
+  <!-- ENTRIES -->
+
+  <entries>
+
+    <entry id="PRERUN_SCRIPT">
+      <values>
+	<value compset="POP2%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
+	<value compset="POP2%ECO%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
+      </values>
+    </entry>
+
+    <entry id="POSTRUN_SCRIPT">
+      <values>
+	<value compset="POP2%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
+	<value compset="POP2%ECO%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
+      </values>
+    </entry>
+
+  </entries>
 
 </compsets>

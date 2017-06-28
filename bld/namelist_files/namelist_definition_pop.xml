@@ -5475,14 +5475,6 @@ id="zooplankton_config%sname"
 type="dtype(1)%char*256" 
 category="ecosys"
 group="marbl_config_nml" >
-Default: (/'sp', diat', 'diaz'/)
-</entry>
-
-<entry 
-id="zooplankton_config%sname"
-type="dtype(1)%char*256" 
-category="ecosys"
-group="marbl_config_nml" >
 Default: (/'zoo'/)
 </entry>
 

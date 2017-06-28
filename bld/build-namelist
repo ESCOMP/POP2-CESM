@@ -352,6 +352,7 @@ my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
+my $POP_RESTART_OVERRIDE   = "$xmlvars{'POP_RESTART_OVERRIDE'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -1257,7 +1258,12 @@ add_default($nl, 'h_lower');
 my $iage_on = $cfg->get("use_iage");
 if ($iage_on eq "TRUE") {
     add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
-    add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
+    if ($POP_RESTART_OVERRIDE eq "default") {
+      add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
+    } else {
+      add_default($nl, 'init_iage_init_file', 'val'=>"$POP_RESTART_OVERRIDE", 'noprepend'=>1);
+    }
+    add_default($nl, 'init_iage_init_file_fmt');
 }
 
 ##########################################
@@ -1358,9 +1364,13 @@ if ($abio_on eq "TRUE") {
     add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
 	
     if ($RUN_TYPE eq "startup") {
-     add_default($nl, 'init_abio_dic_dic14_init_file');
+      add_default($nl, 'init_abio_dic_dic14_init_file');
     } else {
-     add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+      if ($POP_RESTART_OVERRIDE eq "default") {
+        add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+      } else {
+        add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"$POP_RESTART_OVERRIDE", 'noprepend'=>1);
+      }
     }
   
     add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
@@ -1414,6 +1424,7 @@ EOF
 
   # FIXME : replace following with ladjust_bury_coeff=.true. branch
   # when "restfile" is implemented for scalar saved state
+  add_default($nl, 'ladjust_bury_coeff');
   if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
     if ($RUN_TYPE eq "startup") {
       add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
@@ -1423,7 +1434,6 @@ EOF
   } else {
     add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
   }
-  add_default($nl, 'ladjust_bury_coeff');
 
   add_default($nl, 'autotrophs_config(1)%sname');
   add_default($nl, 'autotrophs_config(2)%sname');
@@ -1595,7 +1605,11 @@ if ($ecosys_on eq "TRUE") {
   if ($RUN_TYPE eq "startup") {
     add_default($nl, 'init_ecosys_init_file');
   } else {
-    add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    if ($POP_RESTART_OVERRIDE eq "default") {
+      add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    } else {
+      add_default($nl, 'init_ecosys_init_file', 'val'=>"$POP_RESTART_OVERRIDE", 'noprepend'=>1);
+    }
   }
   add_default($nl, 'init_ecosys_init_file_fmt');
 

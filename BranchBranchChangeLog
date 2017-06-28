@@ -2,6 +2,46 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    28 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n76_marbl_dev_n50_cesm_pop_2_1_20170601
+Tag Summary: merge phys_cycle branch
+
+iage, abio_dic_dic14, and ecosys utilize POP_RESTART_OVERRIDE if its value/='default'
+   add init_iage_init_file_fmt default value to make this work
+move add_default call for ladjust_bury_coeff prior to usage of ladjust_bury_coeff value
+remove bad defintion of zooplankton_config%sname in namelist_definition_pop.xml
+
+add new compsets: G1850ECO_CPLHIST, G1850ECO_CPLHIST_PHYS_CYCLE
+add new POP env_run vars: POP_PHYS_RUN_CYCLE_LEN_YEAR, POP_PHYS_RUN_CUR_MON, POP_RESTART_OVERRIDE
+add new cime_config scripts: phys_cycle_prerun, phys_cycle_postrun
+   these are used in G1850ECO_CPLHIST_PHYS_CYCLE compset
+
+Testing:
+MARBL commit a0cfb212f2190d67c0c5c9365f27d882da162bea master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n75)
+   except for tests mentioned below, all tests pass
+      nlcomp fails because of addition of init_iage_init_file_fmt default value
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+A  +    cime_config/phys_cycle_postrun
+A  +    cime_config/phys_cycle_prerun
+A  +    cime_config/phys_cycle_use_forcings
+ M      drivers/cpl
+ M      drivers/cpl_none
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    22 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n75_marbl_dev_n50_cesm_pop_2_1_20170601
 Tag Summary: merge marbl_dev_n50 tag to this branch

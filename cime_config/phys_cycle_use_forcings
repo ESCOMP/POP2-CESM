@@ -1,0 +1,141 @@
+#!/usr/bin/env python
+
+"""
+creates changes to caseroot to use forcings needed for phys_cycle run
+"""
+
+import os, shutil, sys
+
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.utils import expect
+
+logger = logging.getLogger(__name__)
+
+###############################################################################
+def parse_input(argv):
+###############################################################################
+
+    parser = argparse.ArgumentParser()
+
+    setup_standard_logging_options(parser)
+
+    parser.add_argument("caseroot", default=os.getcwd(),
+                        help="Case directory")
+
+    parser.add_argument("run_refcase",
+                        help="reference case name")
+
+    parser.add_argument("run_refdate",
+                        help="starting year of reference data in yyyy-mm-dd format")
+
+    parser.add_argument("cplhist_dir",
+                        help="full pathname of data directory where cplhist forcing data resides")
+                        
+    parser.add_argument("cplhist_yr_align",
+                        help="simulation year corresponding to starting year")
+
+    parser.add_argument("cplhist_yr_start",
+                        help="starting year of cplhist data")
+
+    parser.add_argument("cplhist_yr_end",
+                        help="ending year of cplhist data")
+
+    args = parser.parse_args()
+
+    handle_standard_logging_options(args)
+
+    return args.caseroot, args.run_refcase, args.run_refdate, \
+        args.cplhist_dir, args.cplhist_yr_align, args.cplhist_yr_start, args.cplhist_yr_end
+
+
+###############################################################################
+def set_forcings(case, run_refcase, run_refdate, cplhist_dir, 
+                 yr_align, yr_start, yr_end): 
+###############################################################################
+    
+    #in user_nl_datm set domainfile = 'null' (this will fixed in an upcoming cime tag)
+
+    case.set_value("RUN_TYPE", "hybrid")
+    case.set_value("RUN_REFCASE", run_refcase)
+    case.set_value("RUN_REFDATE", run_refdate)
+
+    case.set_value("DATM_CPLHIST_DIR", datm_cplhist_dir)
+    case.set_value("DATM_CPLHIST_CASE", run_refcase)
+    case.set_value("DATM_CPLHIST_YR_ALIGN", yr_align)
+    case.set_value("DATM_CPLHIST_YR_START", yr_start)
+    case.set_value("DATM_CPLHIST_YR_END", yr_end)
+
+    case.set_value("DROF_CPLHIST_DIR", drof_cplhist_dir)
+    case.set_value("DROF_CPLHIST_CASE", run_refcase)
+    case.set_value("DROF_CPLHIST_YR_ALIGN", yr_align)
+    case.set_value("DROF_CPLHIST_YR_START", yr_start)
+    case.set_value("DROF_CPLHIST_YR_END", yr_end)
+
+    # case.set_value("NTASKS_ATM",600)
+    # case.set_value("NTASKS_LND",1)
+    # case.set_value("NTASKS_ICE",240)
+    # case.set_value("NTASKS_OCN",90)
+    # case.set_value("NTASKS_CPL",600)
+    # case.set_value("NTASKS_GLC",1)
+    # case.set_value("NTASKS_ROF",360)
+    # case.set_value("NTASKS_WAV",120)
+    # case.set_value("NTASKS_ESP",1)
+    
+    # case.set_value("NTHRDS_ATM",2)
+    # case.set_value("NTHRDS_LND",2)
+    # case.set_value("NTHRDS_ICE",2)
+    # case.set_value("NTHRDS_OCN",2)
+    # case.set_value("NTHRDS_CPL",2)
+    # case.set_value("NTHRDS_GLC",1)
+    # case.set_value("NTHRDS_ROF",2)
+    # case.set_value("NTHRDS_WAV",2)
+    # case.set_value("NTHRDS_ESP",0)
+    
+    # case.set_value("ROOTPE_ATM",0)
+    # case.set_value("ROOTPE_LND",0)
+    # case.set_value("ROOTPE_ICE",360)
+    # case.set_value("ROOTPE_OCN",600)
+    # case.set_value("ROOTPE_CPL",0)
+    # case.set_value("ROOTPE_GLC",0)
+    # case.set_value("ROOTPE_ROF",0)
+    # case.set_value("ROOTPE_WAV",0)
+    # case.set_value("ROOTPE_ESP",0)
+
+    srcroot = case.get_value("SRCROOT")
+
+    files = os.path.join(srcroot,"components","pop","cime_config","prerun_script")
+    filed = os.path.join(caseroot, "pop_prerun_script")
+    shutil.copy(files, filed)
+    case.set_value("PRERUN_SCRIPT", os.path.join(caseroot,"pop_prerun_script"))
+
+    files = os.path.join(srcroot,"components","pop","cime_config","postrun_script")
+    filed = os.path.join(caseroot, "pop_postrun_script")
+    shutil.copy(files, filed)
+    case.set_value("POSTRUN_SCRIPT", os.path.join(caseroot,"pop_postrun_script"))
+
+    # copy the prerun and postrun pop scripts into the caseroot directory
+    # then have case.set_value point to these scripts in the xml variables
+
+    case.flush()
+
+###############################################################################
+def _main_func():
+###############################################################################
+    
+    caseroot, run_refcase, run_refdate, cplhist_dir, \
+        yr_align, yr_start, yr_end = parse_input(sys.argv)
+    
+    with Case(caseroot) as case:
+        set_forcings(case, run_refcase, run_refdate, cplhist_dir, 
+                     yr_align, yr_start, yr_end)
+
+###############################################################################
+
+if __name__ == "__main__":
+    _main_func()
