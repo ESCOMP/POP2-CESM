@@ -20,9 +20,6 @@ logger = logging.getLogger(__name__)
 def _phys_cycle_prerun(case):
 ###############################################################################
 
-    case.set_value("RESUBMIT_SETS_CONTINUE_RUN", "TRUE")
-    case.flush()
-
     # run_type cannot be branch
     run_type = case.get_value("RUN_TYPE")
     if (run_type == "branch"):

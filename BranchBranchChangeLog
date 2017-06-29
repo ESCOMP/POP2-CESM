@@ -2,6 +2,29 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    29 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n77_marbl_dev_n50_cesm_pop_2_1_20170601
+Tag Summary: rework how CONTINUE_RUN is set when phys_cycle is operating
+
+set RESUBMIT_SETS_CONTINUE_RUN=FALSE in phys_cycle compsets,
+   not in phys_cycle_{pre,post}run scripts
+always set CONTINUE_RUN in phys_cycle_postrun
+
+Testing:
+MARBL commit a0cfb212f2190d67c0c5c9365f27d882da162bea master branch
+
+ran separate cplhist phys_cycle test run on cheyenne/intel
+
+Files Modified:
+M       BranchBranchChangeLog
+M       cime_config/config_compsets.xml
+M       cime_config/phys_cycle_postrun
+M       cime_config/phys_cycle_prerun
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    28 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n76_marbl_dev_n50_cesm_pop_2_1_20170601
 Tag Summary: merge phys_cycle branch

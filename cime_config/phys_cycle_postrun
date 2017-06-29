@@ -46,6 +46,7 @@ def _phys_cycle_postrun(case):
 
     pop_phys_run_cycle_len_mon = pop_phys_run_cycle_len_year * 12
     if pop_phys_run_cur_mon_new < pop_phys_run_cycle_len_mon:
+        case.set_value("CONTINUE_RUN", "TRUE")
         case.set_value("POP_RESTART_OVERRIDE", "default")
         case.flush()
         return
@@ -63,7 +64,6 @@ def _phys_cycle_postrun(case):
 
     logger.info("echo resetting model physics")
     case.set_value("CONTINUE_RUN","FALSE")
-    case.set_value("RESUBMIT_SETS_CONTINUE_RUN","FALSE")
     case.set_value("POP_PHYS_RUN_CUR_MON",0)
 
     with open(os.path.join(rundir, "rpointer.ocn.restart"),'r') as f:

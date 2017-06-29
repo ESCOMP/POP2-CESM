@@ -164,6 +164,13 @@
       </values>
     </entry>
 
+    <entry id="RESUBMIT_SETS_CONTINUE_RUN">
+      <values>
+	<value compset="POP2%PHYS-CYCLE">FALSE</value>
+	<value compset="POP2%ECO%PHYS-CYCLE">FALSE</value>
+      </values>
+    </entry>
+
   </entries>
 
 </compsets>
