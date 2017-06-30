@@ -1,6 +1,18 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    30 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n104_marbl_dev_n53_cesm_pop_2_1_20170623
+Tag Summary: switch gx1v6 -> gx1v7 on aux_pop_MARBL test list
+
+Testing:     Re-ran aux_pop_MARBL out of cesm2_0_beta06 sandbox (with this
+             pop tag swapped in for the trunk tag)
+
+Files Modified:
+M       cime_config/testdefs/testlist_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    23 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n103_marbl_dev_n53_cesm_pop_2_1_20170623
 Tag Summary: Merge marbl_dev_n53 back to marbl_dev_levy
