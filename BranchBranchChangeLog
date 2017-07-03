@@ -1,6 +1,17 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    3 July 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n105_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: merge marbl_dev back to marbl_dev_levy
+
+Testing:     none, identical to n104 except for BranchChangeLog
+
+Files Modified:
+M       BranchChangeLog
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    30 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n104_marbl_dev_n53_cesm_pop_2_1_20170623
 Tag Summary: switch gx1v6 -> gx1v7 on aux_pop_MARBL test list
