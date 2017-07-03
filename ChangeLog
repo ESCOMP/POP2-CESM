@@ -14,8 +14,6 @@ M       cime_config/buildlib
 !       drivers/cpl/ocn_comp_esmf.F90
 ===============================================================================
 Tag Creator: mlevy
-===============================================================================
-Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    23 June 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170623
