@@ -358,23 +358,6 @@ contains
     !--------------------------------------------------------------------
 
     !--------------------------------------------------------------------
-    !  Configure marbl
-    !--------------------------------------------------------------------
-
-    do iblock=1, nblocks_clinic
-
-       call marbl_instances(iblock)%config(lgcm_has_global_ops = .true.,      &
-                                           gcm_nl_buffer = nl_buffer)
-       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%config()"
-         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
-       end if
-       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
-       call marbl_instances(iblock)%StatusLog%erase()
-
-    end do
-
-    !--------------------------------------------------------------------
     !  Initialize marbl
     !--------------------------------------------------------------------
 
@@ -384,14 +367,15 @@ contains
     do iblock=1, nblocks_clinic
 
        call marbl_instances(iblock)%init(                                     &
+            gcm_nl_buffer = nl_buffer,                                        &
             gcm_num_levels = km,                                              &
             gcm_num_PAR_subcols = mcog_nbins,                                 &
             gcm_num_elements_surface_forcing = marbl_col_cnt(iblock),         &
             gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
-            gcm_nl_buffer = nl_buffer,                                        &
-            marbl_tracer_cnt = marbl_actual_tracer_cnt)
+            marbl_tracer_cnt = marbl_actual_tracer_cnt,                       &
+            lgcm_has_global_ops = .true.)
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
@@ -408,22 +392,6 @@ contains
          call document(subname, log_message)
          call exit_POP(sigAbort, 'Stopping in ' // subname)
        end if
-
-    end do
-
-    !--------------------------------------------------------------------
-    !  Complete marbl setup
-    !--------------------------------------------------------------------
-
-    do iblock=1, nblocks_clinic
-
-       call marbl_instances(iblock)%complete_config_and_init()
-       if (marbl_instances(iblock)%StatusLog%labort_marbl) then
-         write(log_message,"(A,I0,A)") "marbl(", iblock, ")%complete_init_and_config()"
-         call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
-       end if
-       call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
-       call marbl_instances(iblock)%StatusLog%erase()
 
     end do
 
