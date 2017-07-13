@@ -18,9 +18,6 @@ module ecosys_tracers_and_saved_state_mod
 
   use passive_tracer_tools, only : tracer_read
 
-  use marbl_sizes, only : ecosys_base_tracer_cnt
-  use marbl_sizes, only : ciso_tracer_cnt
-
   use communicate, only : my_task, master_task
 
   implicit none
@@ -80,12 +77,12 @@ module ecosys_tracers_and_saved_state_mod
   character(char_len), target :: init_ecosys_option           ! namelist option for initialization of bgc
   character(char_len), target :: init_ecosys_init_file        ! filename for option 'file'
   character(char_len), target :: init_ecosys_init_file_fmt    ! file format for option 'file'
-  type(tracer_read),   target :: tracer_init_ext(ecosys_base_tracer_cnt) ! namelist variable for initializing tracers
+  type(tracer_read),   target :: tracer_init_ext(ECOSYS_BASE_NT) ! namelist variable for initializing tracers
 
   character(char_len), target :: ciso_init_ecosys_option        ! option for initialization of bgc
   character(char_len), target :: ciso_init_ecosys_init_file     ! filename for option 'file'
   character(char_len), target :: ciso_init_ecosys_init_file_fmt ! file format for option 'file'
-  type(tracer_read),   target :: ciso_tracer_init_ext(ciso_tracer_cnt) ! namelist variable for initializing tracers
+  type(tracer_read),   target :: ciso_tracer_init_ext(CISO_NT) ! namelist variable for initializing tracers
 
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: ecosys_tracers_and_saved_state_init
@@ -173,11 +170,11 @@ Contains
     !  Set defaults for &ecosys_tracer_init_nml
     !-----------------------------------------------------------------------
 
-    do n = 1, ecosys_base_tracer_cnt
+    do n = 1, size(tracer_init_ext)
        call set_defaults_tracer_read(tracer_init_ext(n))
     end do
     if (ciso_on) then
-      do n = 1,ciso_tracer_cnt
+      do n = 1, size(ciso_tracer_init_ext)
          call set_defaults_tracer_read(ciso_tracer_init_ext(n))
       end do
     end if

@@ -45,6 +45,7 @@ def determine_tracer_count(case, decomp_cppdefs):
 ###############################################################################
 
     ECOSYS_BASE_NT  = 32
+    CISO_NT         = 14
     lvariable_PtoC  = "TRUE"
     ZOOPLANKTON_CNT = 1
     AUTOTROPH_CNT   = 3
@@ -129,7 +130,7 @@ def determine_tracer_count(case, decomp_cppdefs):
                 NT = NT + 2
             elif module == "ciso":
                 use_ciso = "TRUE"
-                MARBL_NT = MARBL_NT + 14
+                MARBL_NT = MARBL_NT + CISO_NT
             elif module == "ecosys":
                 use_ecosys = "TRUE"
                 MARBL_NT = MARBL_NT + ECOSYS_BASE_NT
@@ -154,8 +155,8 @@ def determine_tracer_count(case, decomp_cppdefs):
     # Determine tracer cppdefs and update pop_cppdefs
     #----------------------------------------------------
 
-    tracer_cppdefs = " -DNT=%d -DECOSYS_BASE_NT=%d -DMARBL_NT=%d -DZOOPLANKTON_CNT=%d -DAUTOTROPH_CNT=%d -DGRAZER_PREY_CNT=%d -DIRF_NT=%d " \
-                     %(NT, ECOSYS_BASE_NT, MARBL_NT, ZOOPLANKTON_CNT, AUTOTROPH_CNT, GRAZER_PREY_CNT, IRF_NT)
+    tracer_cppdefs = " -DNT=%d -DECOSYS_BASE_NT=%d -DCISO_NT=%d -DMARBL_NT=%d -DZOOPLANKTON_CNT=%d -DAUTOTROPH_CNT=%d -DGRAZER_PREY_CNT=%d -DIRF_NT=%d " \
+                     %(NT, ECOSYS_BASE_NT, CISO_NT, MARBL_NT, ZOOPLANKTON_CNT, AUTOTROPH_CNT, GRAZER_PREY_CNT, IRF_NT)
 
     other_cppdefs = ""
     if "tx0.1" in case.get_value("OCN_GRID"): 
