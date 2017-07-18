@@ -2,6 +2,19 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    13 July 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n108_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: Updated interface to init to reflect re-ordered arguments
+             Requires marbl commit 66c7bfb or later (currently on my
+             enhancements/runtime_PFT_count branch)
+
+Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n104
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 July 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n107_marbl_dev_n54_cesm_pop_2_1_20170623
 Tag Summary: MARBL no longer requires ECOSYS_BASE_NT at build time, and no
              longer provides ecosys_base_tracer_cnt or ciso_tracer_cnt... so

@@ -367,15 +367,15 @@ contains
     do iblock=1, nblocks_clinic
 
        call marbl_instances(iblock)%init(                                     &
-            gcm_nl_buffer = nl_buffer,                                        &
             gcm_num_levels = km,                                              &
             gcm_num_PAR_subcols = mcog_nbins,                                 &
             gcm_num_elements_surface_forcing = marbl_col_cnt(iblock),         &
             gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
-            marbl_tracer_cnt = marbl_actual_tracer_cnt,                       &
-            lgcm_has_global_ops = .true.)
+            gcm_nl_buffer = nl_buffer,                                        &
+            lgcm_has_global_ops = .true.,                                     &
+            marbl_tracer_cnt = marbl_actual_tracer_cnt)
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
