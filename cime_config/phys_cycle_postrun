@@ -67,7 +67,7 @@ def _phys_cycle_postrun(case):
     case.set_value("POP_PHYS_RUN_CUR_MON",0)
 
     with open(os.path.join(rundir, "rpointer.ocn.restart"),'r') as f:
-        pop_restart_override = rundir + '/' + f.readline()
+        pop_restart_override = os.path.join(rundir, f.readline())
         case.set_value("POP_RESTART_OVERRIDE", pop_restart_override)
 
     # -------------------------------------------------------------------------
