@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<compsets>
+<compsets version="2.0">
 
   <help>
     =========================================
@@ -31,7 +31,6 @@
     Each compset node is associated with the following elements
     - lname      
     - alias        
-    - support  (optional description of the support level for this compset)
     Each compset node can also have the following attributes
     - grid  (optional regular expression match for grid to work with the compset)
   </help>
@@ -56,7 +55,6 @@
   <compset>
     <alias>CMPAS</alias> 
     <lname>2000_DATM%NYF_SLND_DICE%SSMI_MPAS_SROF%NYF_SGLC_SWAV</lname>
-    <support>Experimental, under development</support> 
   </compset>
 
   <!-- G compsets -->

@@ -1,4 +1,60 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  klindsay
+Tag Date:    15 June 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170615
+Tag Summary: improve implementation of Robert filter restart file scalars
+
+enables tracer modules to be turned on or off across model restarts without changing
+  results of other tracer modules
+apply Robert filtering appropriately when tracer modules are added across model restart
+  i.e., when restart file scalars are not present in the restart file
+
+merged from rf_tracer_on_off branch
+Branch Tag Summaries
+n01: construct names of Robert filter restart file scalars from tracer name instead of from tracer index
+n02: add infrastructure to determine if file attribute values were read from a file
+n03: only use Robert filter restart file scalars if they were read from restart file
+n04: inline read_field_3D into rest_read_tracer_block of passive_tracer_tools.F90
+
+Testing:
+aux_pop_MARBL cheyenne/intel: (baseline comparison to rf_tracer_on_off_n00)
+   all tests pass
+
+rf_tracer_on_off branch passed a by-hand test of turning tracers on and off across branch runs with cheyenne/gnu
+
+Files Modified:
+M       ChangeLog
+M       source/abio_dic_dic14_mod.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/iage_mod.F90
+M       source/io_binary.F90
+M       source/io_netcdf.F90
+M       source/io_types.F90
+M       source/passive_tracers.F90
+M       source/passive_tracer_tools.F90
+M       source/restart.F90
+M       source/sf6_mod.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    3 June 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170603
+Tag Summary: Minor changes in pop config_compsets.xml
+	     Added compsets version specifier and removed a couple of comments as requested by jedwards 
+
+Testing: aux_pop on cheyenne. compared to cesm_pop_2_1_20170601 baselines; bit-for-bit. no answer changing mods.
+	 test root: /glade/scratch/altuntas/cesm.tests/cheyenne/aux_pop/cime5.3.0-alpha.21-cice5_20170516-pop_2_1_20170601  
+
+	M       ChangeLog
+	M       cime_config/config_compsets.xml
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    1 June 2017

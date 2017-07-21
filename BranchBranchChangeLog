@@ -2,6 +2,47 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    21 July 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n79_marbl_dev_n52_cesm_pop_2_1_20170615
+Tag Summary: merge marbl_dev_n52 tag to this branch
+
+improve implementation of Robert filter restart file scalars
+
+Testing:
+MARBL commit 93431840a3cdc79c87af8be8916d97c129e53cef enhancement/partial_derivs branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n76)
+   except for tests mentioned below, all tests pass
+      some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       cime_config/config_compsets.xml
+M       source/abio_dic_dic14_mod.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/iage_mod.F90
+M       source/io_binary.F90
+M       source/io_netcdf.F90
+M       source/io_types.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/restart.F90
+M       source/sf6_mod.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    20 July 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n78_marbl_dev_n50_cesm_pop_2_1_20170601
 Tag Summary: add some diagnostics needed for the preconditioner for the Newton-Krylov solver for ecosys tracers

@@ -244,7 +244,7 @@ contains
 ! !INTERFACE:
 
 
- subroutine abio_dic_dic14_init(init_ts_file_fmt, read_restart_filename, &
+ subroutine abio_dic_dic14_init(abio_dic_dic14_ind_begin, init_ts_file_fmt, read_restart_filename, &
                      tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
@@ -263,6 +263,10 @@ contains
 
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      abio_dic_dic14_ind_begin ! starting index of abio_dic_dic14 tracers in global tracer array
+                               ! passed through to rest_read_tracer_block
 
    character (*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
@@ -518,7 +522,8 @@ contains
 
       endif
 
-      call rest_read_tracer_block(init_abio_dic_dic14_init_file_fmt, &
+      call rest_read_tracer_block(abio_dic_dic14_ind_begin,          &
+                                  init_abio_dic_dic14_init_file_fmt, &
                                   abio_dic_dic14_restart_filename,   &
                                   tracer_d_module,        &
                                   TRACER_MODULE)

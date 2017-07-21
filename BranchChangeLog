@@ -1,6 +1,55 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    22 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n52_cesm_pop_2_1_20170615
+Tag Summary: Merge POP trunk onto MARBL
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP tests all passed) on hobart
+             (intel, gnu, and pgi*), cheyenne (intel, gnu) and yellowstone (intel,
+             gnu). [compared to marbl_dev_n49]
+
+Files Modified:
+M       ChangeLog
+M       cime_config/config_compsets.xml
+M       source/abio_dic_dic14_mod.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/iage_mod.F90
+M       source/io_binary.F90
+M       source/io_netcdf.F90
+M       source/io_types.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/restart.F90
+M       source/sf6_mod.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    21 June 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n51_cesm_pop_2_1_20170601
+Tag Summary: Update MARBL from 0.19.1 to 0.19.2
+
+             Improved error message in one MARBL routine
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP tests all passed) on hobart
+             (intel, gnu, and pgi*), cheyenne (intel, gnu) and yellowstone (intel,
+             gnu).
+
+             * PGI is still being weird, and two tests don't build (failing in
+               marbl_parms) if you run create_test with --generate or --compare.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 June 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n50_cesm_pop_2_1_20170601
 Tag Summary: Update MARBL from 0.19.0 to 0.19.1

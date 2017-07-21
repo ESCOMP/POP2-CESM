@@ -173,7 +173,7 @@ contains
 ! !IROUTINE: cfc_init
 ! !INTERFACE:
 
- subroutine cfc_init(init_ts_file_fmt, read_restart_filename, &
+ subroutine cfc_init(cfc_ind_begin, init_ts_file_fmt, read_restart_filename, &
                      tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
@@ -196,6 +196,10 @@ contains
     use io_read_fallback_mod, only: io_read_fallback_register_tracer
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      cfc_ind_begin          ! starting index of cfc tracers in global tracer array
+                             ! passed through to rest_read_tracer_block
 
    character (*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
@@ -426,7 +430,8 @@ contains
 
       endif
 
-      call rest_read_tracer_block(init_cfc_init_file_fmt, &
+      call rest_read_tracer_block(cfc_ind_begin, &
+                                  init_cfc_init_file_fmt, &
                                   cfc_restart_filename,   &
                                   tracer_d_module,        &
                                   TRACER_MODULE)

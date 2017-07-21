@@ -80,7 +80,7 @@ contains
 ! !IROUTINE: iage_init
 ! !INTERFACE:
 
- subroutine iage_init(init_ts_file_fmt, read_restart_filename, &
+ subroutine iage_init(iage_ind_begin, init_ts_file_fmt, read_restart_filename, &
                       tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
@@ -97,6 +97,10 @@ contains
    use grid, only: KMT, n_topo_smooth, fill_points
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      iage_ind_begin         ! starting index of iage tracers in global tracer array
+                             ! passed through to rest_read_tracer_block
 
    character (*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
@@ -251,7 +255,8 @@ contains
 
       endif
 
-      call rest_read_tracer_block(init_iage_init_file_fmt, &
+      call rest_read_tracer_block(iage_ind_begin,          &
+                                  init_iage_init_file_fmt, &
                                   iage_restart_filename,   &
                                   tracer_d_module,         &
                                   TRACER_MODULE)

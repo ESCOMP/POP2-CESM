@@ -375,20 +375,19 @@
    call add_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
    if (lrobert_filter) then
-    !*** rf tracer conservation adjustment factor
-    short_name = char_blank
-    do n=1,nt
-      write(short_name,'(a,i3.3)') 'rf_S_prev',n
-       call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
-    enddo
+      !*** rf tracer conservation adjustment factor
+      do n=1,2
+         short_name = rf_S_prev_short_name_pref /&
+            &/ trim(tracer_d(n)%short_name)
+         call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
+      enddo
 
-    !*** rf tracer*volume conservation adjustment factor
-    short_name = char_blank
-    do n=1,nt
-      write(short_name,'(a,i3.3)') 'rf_Svol_prev',n
-       call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
-    enddo
-
+      !*** rf tracer*volume conservation adjustment factor
+      do n=1,2
+         short_name = rf_Svol_prev_short_name_pref /&
+            &/ trim(tracer_d(n)%short_name)
+         call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
+      enddo
    endif
 
    short_name = char_blank
@@ -498,20 +497,21 @@
       call extract_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
       if (lrobert_filter) then
-       !*** rf tracer conservation adjustment factor
-       short_name = char_blank
-       do n=1,nt
-        write(short_name,'(a,i3.3)') 'rf_S_prev',n
-        call extract_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
-       enddo 
+         !*** rf tracer conservation adjustment factor
+         do n=1,2
+            short_name = rf_S_prev_short_name_pref /&
+               &/ trim(tracer_d(n)%short_name)
+            call extract_attrib_file(restart_file, trim(short_name), rf_S_prev(n), &
+                                     from_file=rf_S_prev_valid(n))
+         enddo 
 
-       !*** rf tracer*volume conservation adjustment factor
-       short_name = char_blank
-       do n=1,nt
-        write(short_name,'(a,i3.3)') 'rf_Svol_prev',n
-        call extract_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
-       enddo 
-
+         !*** rf tracer*volume conservation adjustment factor
+         do n=1,2
+            short_name = rf_Svol_prev_short_name_pref /&
+               &/ trim(tracer_d(n)%short_name)
+            call extract_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n), &
+                                     from_file=rf_Svol_prev_valid(n))
+         enddo 
       endif
  
       short_name = char_blank
@@ -1032,15 +1032,27 @@
    endif
 
    if (ldocument_read_restart) then
-     !*** document restart values
-     do k = 1,km
-      write(restart_string,'(a,i3,a)') 'sal_initial(',k,')'
-      call document ('read_restart', trim(restart_string), sal_initial(k))
-     enddo
+      !*** document restart values
+      do k = 1,km
+         write(restart_string,'(a,i3,a)') 'sal_initial(',k,')'
+         call document ('read_restart', trim(restart_string), sal_initial(k))
+      enddo
 
-     call document ('read_restart', 'ssh_initial', ssh_initial)
-     call document ('read_restart', 'precip_fact', precip_fact)
-     call document ('read_restart', 'sum_precip', sum_precip)
+      call document ('read_restart', 'ssh_initial', ssh_initial)
+      call document ('read_restart', 'precip_fact', precip_fact)
+      call document ('read_restart', 'sum_precip', sum_precip)
+
+      if (lrobert_filter) then
+         do n = 1,2
+            write(restart_string,'(a,i3.3,a)') 'rf_S_prev(',n,')'
+            call document ('read_restart', trim(restart_string), rf_S_prev(n))
+         enddo
+
+         do n = 1,2
+            write(restart_string,'(a,i3.3,a)') 'rf_Svol_prev(',n,')'
+            call document ('read_restart', trim(restart_string), rf_Svol_prev(n))
+         enddo
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -1309,21 +1321,19 @@
    call add_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
    if (lrobert_filter) then
-     !*** rf tracer conservation adjustment factor
-     short_name = char_blank
-     do n=1,nt
-     write(short_name,'(a,i3.3)') 'rf_S_prev',n
-     call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
-     enddo 
+      !*** rf tracer conservation adjustment factor
+      do n=1,nt
+         short_name = rf_S_prev_short_name_pref /&
+            &/ trim(tracer_d(n)%short_name)
+         call add_attrib_file(restart_file, trim(short_name), rf_S_prev(n))
+      enddo 
 
-     !*** rf tracer*volume conservation adjustment factor
-     short_name = char_blank
-     do n=1,nt
-     write(short_name,'(a,i3.3)') 'rf_Svol_prev',n
-     call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
-     enddo 
-
-
+      !*** rf tracer*volume conservation adjustment factor
+      do n=1,nt
+         short_name = rf_Svol_prev_short_name_pref /&
+            &/ trim(tracer_d(n)%short_name)
+         call add_attrib_file(restart_file, trim(short_name), rf_Svol_prev(n))
+      enddo 
    endif
 
    short_name = char_blank
@@ -1632,26 +1642,26 @@
 
    !*** document 
    if (ldocument_write_restart) then
-     do k = 1,km
-      write(restart_string,'(a,i3,a)') 'sal_initial(',k,')'
-      call document ('write_restart', trim(restart_string), sal_initial(k))
-     enddo
+      do k = 1,km
+         write(restart_string,'(a,i3,a)') 'sal_initial(',k,')'
+         call document ('write_restart', trim(restart_string), sal_initial(k))
+      enddo
 
       call document ('write_restart', 'ssh_initial', ssh_initial)
       call document ('write_restart', 'precip_fact', precip_fact)
       call document ('write_restart', 'sum_precip', sum_precip)
 
-     if (lrobert_filter) then
-      do n = 1,nt
-       write(restart_string,'(a,i3.3,a)') 'rf_S_prev(',n,')'
-       call document ('write_restart', trim(restart_string), rf_S_prev(n))
-      enddo
+      if (lrobert_filter) then
+         do n = 1,nt
+            write(restart_string,'(a,i3.3,a)') 'rf_S_prev(',n,')'
+            call document ('write_restart', trim(restart_string), rf_S_prev(n))
+         enddo
 
-      do n = 1,nt
-       write(restart_string,'(a,i3.3,a)') 'rf_Svol_prev(',n,')'
-       call document ('write_restart', trim(restart_string), rf_Svol_prev(n))
-      enddo
-     endif
+         do n = 1,nt
+            write(restart_string,'(a,i3.3,a)') 'rf_Svol_prev(',n,')'
+            call document ('write_restart', trim(restart_string), rf_Svol_prev(n))
+         enddo
+      endif
    endif
 
 !-----------------------------------------------------------------------
