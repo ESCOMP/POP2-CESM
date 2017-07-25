@@ -1177,13 +1177,20 @@
 ! !IROUTINE: write_field_netcdf
 ! !INTERFACE:
 
- subroutine write_field_netcdf(data_file, io_field)
+ subroutine write_field_netcdf(data_file, io_field, &
+                               fill_value_i, fill_value_r, fill_value_d)
 
 ! !DESCRIPTION:
 !  This routine writes a field to a netCDF data file.
 !
 ! !REVISION HISTORY:
 !  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in), optional :: fill_value_i
+   real (r4), intent(in), optional :: fill_value_r
+   real (r8), intent(in), optional :: fill_value_d
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1286,11 +1293,11 @@
    if (associated(io_field%field_r_3d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_r_3d, iostat)
+                            io_field%field_r_3d, iostat, fillval=fill_value_r)
 
    else if (associated(io_field%field_r_2d)) then
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_r_2d, iostat)
+                            io_field%field_r_2d, iostat, fillval=fill_value_r)
    else if (associated(io_field%field_r_1d)) then
 
       ! 1d vectors are not distributed to blocks
@@ -1313,12 +1320,12 @@
    else if (associated(io_field%field_d_3d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_d_3d, iostat)
+                            io_field%field_d_3d, iostat, fillval=fill_value_d)
 
    else if (associated(io_field%field_d_2d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_d_2d, iostat)
+                            io_field%field_d_2d, iostat, fillval=fill_value_d)
 
    else if (associated(io_field%field_d_1d)) then
 
@@ -1342,12 +1349,12 @@
    else if (associated(io_field%field_i_3d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_i_3d, iostat)
+                            io_field%field_i_3d, iostat, fillval=fill_value_i)
 
    else if (associated(io_field%field_i_2d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_i_2d, iostat)
+                            io_field%field_i_2d, iostat, fillval=fill_value_i)
 
    else if (associated(io_field%field_i_1d)) then
 

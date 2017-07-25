@@ -1,5 +1,19 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  klindsay
+Tag Date:    25 July 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170725
+Tag Summary: Added mods for getting _FillValue where land block elimination occurs
+
+Testing:     aux_pop on cheyenne, run successfully
+             bit-for-bit 
+
+Files Modified:
+M       source/io.F90
+M       source/io_netcdf.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    10 July 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170710
