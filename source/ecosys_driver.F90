@@ -26,8 +26,6 @@ module ecosys_driver
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use communicate               , only : my_task, master_task
 
-  use marbl_config_mod          , only : lflux_gas_co2
-
   use marbl_logging             , only : marbl_log_type
 
   use marbl_interface           , only : marbl_interface_class
@@ -470,18 +468,16 @@ contains
     do14c_ind = marbl_instances(1)%get_tracer_index('DO14C')
 
     ! forcing module requires two MARBL parameter values (set during init)
-    call marbl_instances(1)%parameters%get('iron_frac_in_dust', fe_frac_dust, &
-                                           ecosys_status_log)
-    if (ecosys_status_log%labort_marbl) then
-      call ecosys_status_log%log_error_trace('parameters%get(iron_frac_in_dust)', subname)
-      call print_marbl_log(ecosys_status_log, 1)
+    call marbl_instances(1)%get('iron_frac_in_dust', fe_frac_dust)
+    if (marbl_instances(1)%StatusLog%labort_marbl) then
+      call marbl_instances(1)%StatusLog%log_error_trace('settings%get(iron_frac_in_dust)', subname)
+      call print_marbl_log(marbl_instances(1)%StatusLog, 1)
     end if
 
-    call marbl_instances(1)%parameters%get('iron_frac_in_bc', fe_frac_bc,     &
-                                           ecosys_status_log)
-    if (ecosys_status_log%labort_marbl) then
-      call ecosys_status_log%log_error_trace('parameters%get(iron_frac_in_bc)', subname)
-      call print_marbl_log(ecosys_status_log, 1)
+    call marbl_instances(1)%get('iron_frac_in_bc', fe_frac_bc)
+    if (marbl_instances(1)%StatusLog%labort_marbl) then
+      call marbl_instances(1)%StatusLog%log_error_trace('settings%get(iron_frac_in_bc)', subname)
+      call print_marbl_log(marbl_instances(1)%StatusLog, 1)
     end if
 
     ! pass ecosys_forcing_data_nml
@@ -998,6 +994,8 @@ contains
     use POP_ErrorMod         , only : POP_Success
     use domain               , only : POP_haloClinic
     use named_field_mod      , only : named_field_set
+    use marbl_parms          , only : lflux_gas_co2
+
 
     !-----------------------------------------------------------------------
     !  local variables
