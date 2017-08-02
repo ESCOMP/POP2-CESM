@@ -2162,6 +2162,9 @@ my @groups = qw(domain_nml
                 passive_tracers_on_nml
                 estuary_nml);
 
+my @marbl_groups = qw(marbl_config_nml
+                     marbl_parms_nml);
+
 if ($iage_on eq "TRUE") {
     push @groups, qw(iage_nml);
 }    
@@ -2174,9 +2177,7 @@ if ($sf6_on eq "TRUE" ) {
 if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_driver_nml
                      ecosys_forcing_data_nml
-                     ecosys_tracer_init_nml
-                     marbl_config_nml
-                     marbl_parms_nml);
+                     ecosys_tracer_init_nml);
 }    
 if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
@@ -2199,6 +2200,11 @@ if (pop_consistency_check($nl, $OCN_ONEDIM)) { exit 1; }
 my $outfile = "./pop_in";
 $nl->write($outfile, 'groups'=>\@groups);
 if ($print>=2) { print "Writing pop ocean component namelist to $outfile $eol"; }
+
+# if ecosys_on, also write marbl_in
+my $outfile = "./marbl_in";
+$nl->write($outfile, 'groups'=>\@marbl_groups);
+if ($print>=2) { print "Writing marbl component namelist to $outfile $eol"; }
 
 # Write  input dataset list.
 check_input_files($nl, $DIN_LOC_ROOT, "../pop.input_data_list");

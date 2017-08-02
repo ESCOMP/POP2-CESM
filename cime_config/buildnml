@@ -193,11 +193,21 @@ def buildnml(case, caseroot, compname):
 
         # copy pop namelist files from confdir to rundir
         if os.path.isdir(rundir):
+            # pop_in
             file_src  = os.path.join(confdir, "pop_in")
             file_dest = os.path.join(rundir, "pop_in")
             if inst_string:
                 file_dest += inst_string
             shutil.copy(file_src, file_dest)
+
+            # marbl_in
+            file_src  = os.path.join(confdir, "marbl_in")
+            file_dest = os.path.join(rundir, "marbl_in")
+            if inst_string:
+                file_dest += inst_string
+            shutil.copy(file_src, file_dest)
+
+            # tavg_contents file
             file_src = os.path.join(confdir, ocn_grid + "_tavg_contents")
             file_dest = os.path.join(rundir, ocn_grid + "_tavg_contents")
             shutil.copy(file_src, file_dest)
