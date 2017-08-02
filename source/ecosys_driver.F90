@@ -468,15 +468,15 @@ contains
     do14c_ind = marbl_instances(1)%get_tracer_index('DO14C')
 
     ! forcing module requires two MARBL parameter values (set during init)
-    call marbl_instances(1)%get('iron_frac_in_dust', fe_frac_dust)
+    call marbl_instances(1)%get_setting('iron_frac_in_dust', fe_frac_dust)
     if (marbl_instances(1)%StatusLog%labort_marbl) then
-      call marbl_instances(1)%StatusLog%log_error_trace('settings%get(iron_frac_in_dust)', subname)
+      call marbl_instances(1)%StatusLog%log_error_trace('get_setting(iron_frac_in_dust)', subname)
       call print_marbl_log(marbl_instances(1)%StatusLog, 1)
     end if
 
-    call marbl_instances(1)%get('iron_frac_in_bc', fe_frac_bc)
+    call marbl_instances(1)%get_setting('iron_frac_in_bc', fe_frac_bc)
     if (marbl_instances(1)%StatusLog%labort_marbl) then
-      call marbl_instances(1)%StatusLog%log_error_trace('settings%get(iron_frac_in_bc)', subname)
+      call marbl_instances(1)%StatusLog%log_error_trace('get_setting(iron_frac_in_bc)', subname)
       call print_marbl_log(marbl_instances(1)%StatusLog, 1)
     end if
 
