@@ -1726,8 +1726,14 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'autotrophs(3)%kNH4');
   add_default($nl, 'autotrophs(3)%kSiO3');
 
-  add_default($nl, 'grazing(1,1)%auto_ind');
-  add_default($nl, 'grazing(1,1)%zoo_ind');
+  my $tot_ind = $nl->get_value('grazing_config(1,1)%auto_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(1,1)%auto_ind($ind)");
+  }
+  my $tot_ind = $nl->get_value('grazing_config(1,1)%zoo_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(1,1)%zoo_ind($ind)");
+  }
   add_default($nl, 'grazing(1,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(1,1)%z_grz');
   add_default($nl, 'grazing(1,1)%graze_zoo');
@@ -1736,8 +1742,14 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'grazing(1,1)%f_zoo_detr');
   add_default($nl, 'grazing(1,1)%grazing_function');
 
-  add_default($nl, 'grazing(2,1)%auto_ind');
-  add_default($nl, 'grazing(2,1)%zoo_ind');
+  my $tot_ind = $nl->get_value('grazing_config(2,1)%auto_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(2,1)%auto_ind($ind)");
+  }
+  my $tot_ind = $nl->get_value('grazing_config(2,1)%zoo_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(2,1)%zoo_ind($ind)");
+  }
   add_default($nl, 'grazing(2,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(2,1)%z_grz');
   add_default($nl, 'grazing(2,1)%graze_zoo');
@@ -1746,8 +1758,14 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'grazing(2,1)%f_zoo_detr');
   add_default($nl, 'grazing(2,1)%grazing_function');
 
-  add_default($nl, 'grazing(3,1)%auto_ind');
-  add_default($nl, 'grazing(3,1)%zoo_ind');
+  my $tot_ind = $nl->get_value('grazing_config(3,1)%auto_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(3,1)%auto_ind($ind)");
+  }
+  my $tot_ind = $nl->get_value('grazing_config(3,1)%zoo_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(3,1)%zoo_ind($ind)");
+  }
   add_default($nl, 'grazing(3,1)%z_umax_0_per_day');
   add_default($nl, 'grazing(3,1)%z_grz');
   add_default($nl, 'grazing(3,1)%graze_zoo');

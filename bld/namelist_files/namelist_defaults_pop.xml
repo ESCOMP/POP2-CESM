@@ -1462,7 +1462,7 @@
 <autotrophs(3)%kNH4 >0.2     </autotrophs(3)%kNH4>
 <autotrophs(3)%kSiO3>0.0     </autotrophs(3)%kSiO3>
 
-<grazing(1,1)%auto_ind        >1   </grazing(1,1)%auto_ind> 
+<grazing(1,1)%auto_ind(1)     >1   </grazing(1,1)%auto_ind(1)> 
 <grazing(1,1)%zoo_ind         >-1  </grazing(1,1)%zoo_ind> 
 <grazing(1,1)%z_umax_0_per_day>3.3 </grazing(1,1)%z_umax_0_per_day> 
 <grazing(1,1)%z_grz           >1.2 </grazing(1,1)%z_grz> 
@@ -1472,7 +1472,7 @@
 <grazing(1,1)%f_zoo_detr      >0.12</grazing(1,1)%f_zoo_detr> 
 <grazing(1,1)%grazing_function>1   </grazing(1,1)%grazing_function> 
 
-<grazing(2,1)%auto_ind        >2   </grazing(2,1)%auto_ind> 
+<grazing(2,1)%auto_ind(1)     >2   </grazing(2,1)%auto_ind(1)> 
 <grazing(2,1)%zoo_ind         >-1  </grazing(2,1)%zoo_ind> 
 <grazing(2,1)%z_umax_0_per_day>3.05</grazing(2,1)%z_umax_0_per_day>
 <grazing(2,1)%z_grz           >1.2 </grazing(2,1)%z_grz> 
@@ -1482,7 +1482,7 @@
 <grazing(2,1)%f_zoo_detr      >0.24</grazing(2,1)%f_zoo_detr> 
 <grazing(2,1)%grazing_function>1   </grazing(2,1)%grazing_function> 
 
-<grazing(3,1)%auto_ind        >3   </grazing(3,1)%auto_ind> 
+<grazing(3,1)%auto_ind(1)     >3   </grazing(3,1)%auto_ind(1)> 
 <grazing(3,1)%zoo_ind         >-1  </grazing(3,1)%zoo_ind> 
 <grazing(3,1)%z_umax_0_per_day>3.1 </grazing(3,1)%z_umax_0_per_day>
 <grazing(3,1)%z_grz           >1.2 </grazing(3,1)%z_grz> 
