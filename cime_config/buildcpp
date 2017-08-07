@@ -31,10 +31,13 @@ _config_cache_template = """
 <entry id="ocn_grid" value="{ocn_grid}" list="" valid_values="">Ocean grid used for POP</entry>
 <entry id="use_abio" value="{use_abio}" list="" valid_values="FALSE,TRUE">Use abio tracer module</entry>
 <entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
-<entry id="use_ciso" value="{use_ciso}" list="" valid_values="FALSE,TRUE">Use ciso tracer module</entry>
 <entry id="use_ecosys" value="{use_ecosys}" list="" valid_values="FALSE,TRUE">Use ecosys tracer module</entry>
+<entry id="autotroph_cnt" value="{autotroph_cnt}" list="" valid_values="">Number of autotroph classes for MARBL</entry>
+<entry id="zooplankton_cnt" value="{zooplankton_cnt}" list="" valid_values="">Number of zooplankton classes for MARBL</entry>
+<entry id="grazer_prey_cnt" value="{grazer_prey_cnt}" list="" valid_values="">Number of grazer prey classes for MARBL</entry>
 <entry id="lvariable_PtoC" value="{lvariable_PtoC}" list="" valid_values="FALSE,TRUE">control if PtoC ratios in autotrophs vary</entry>
 <entry id="use_iage" value="{use_iage}" list="" valid_values="FALSE,TRUE">Use ideal age tracer module</entry>
+<entry id="use_ciso" value="{use_ciso}" list="" valid_values="FALSE,TRUE">Use ciso tracer module</entry>
 <entry id="use_irf" value="{use_irf}" list="" valid_values="FALSE,TRUE">Use IRF tracer module</entry>
 <entry id="use_sf6" value="{use_sf6}" list="" valid_values="FALSE,TRUE">Use sf6 tracer module</entry>
 </config_definition>
@@ -180,9 +183,12 @@ def determine_tracer_count(case, decomp_cppdefs):
         ocn_grid=case.get_value("OCN_GRID"),
         use_abio=use_abio,
         use_cfc=use_cfc,
-        use_ciso=use_ciso,
         use_ecosys=use_ecosys,
+        autotroph_cnt=AUTOTROPH_CNT,
+        zooplankton_cnt=ZOOPLANKTON_CNT,
+        grazer_prey_cnt=GRAZER_PREY_CNT,
         lvariable_PtoC=lvariable_PtoC,
+        use_ciso=use_ciso,
         use_iage=use_iage,
         use_irf=use_irf,
         use_sf6=use_sf6)
