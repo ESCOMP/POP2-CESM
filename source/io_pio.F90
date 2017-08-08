@@ -3,12 +3,12 @@
 module io_pio
 
 !BOP
-! !MODULE: io_pio 
+! !MODULE: io_pio
 ! !DESCRIPTION:
 !  Interfaces for pio initialization
 !
 ! !REVISION HISTORY:
-! SVN:$ID: 
+! SVN:$ID:
 !
 
 ! !USES:
@@ -20,7 +20,7 @@ module io_pio
   use POP_IOUnitsMod
   use io_types
   use pio
-  use shr_pio_mod,       only: shr_pio_getiosys, shr_pio_getiotype
+  use shr_pio_mod,       only: shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 
   implicit none
   private
@@ -29,7 +29,7 @@ module io_pio
 !PUBLIC MEMBER FUNCTIONS:
 
   public ::  io_pio_init
-  public ::  io_pio_initdecomp  
+  public ::  io_pio_initdecomp
 
 !PUBLIC DATA MEMBERS
 
@@ -60,13 +60,13 @@ module io_pio
   type (ptr_ioDesc_double_type), dimension(:), allocatable :: ptr_ioDesc_d
 
   integer(i4), parameter :: iunset = -999
-  integer(i4), dimension(nmax) :: nsize3d_i = iunset	
-  integer(i4), dimension(nmax) :: nsize3d_r = iunset	
-  integer(i4), dimension(nmax) :: nsize3d_d = iunset	
+  integer(i4), dimension(nmax) :: nsize3d_i = iunset
+  integer(i4), dimension(nmax) :: nsize3d_r = iunset
+  integer(i4), dimension(nmax) :: nsize3d_d = iunset
 
-  integer(i4), dimension(nmax) :: ksize3d_i = iunset	
-  integer(i4), dimension(nmax) :: ksize3d_r = iunset	
-  integer(i4), dimension(nmax) :: ksize3d_d = iunset	
+  integer(i4), dimension(nmax) :: ksize3d_i = iunset
+  integer(i4), dimension(nmax) :: ksize3d_r = iunset
+  integer(i4), dimension(nmax) :: ksize3d_d = iunset
 
 !EOC
 !***********************************************************************
@@ -76,7 +76,7 @@ module io_pio
 !***********************************************************************
 !EOP
 ! !IROUTINE: io_pio_init - initialize io for input or output
-! !INTERFACE: 
+! !INTERFACE:
    subroutine io_pio_init(mode, filename, File, clobber, cdf64)
      use pio
 !
@@ -106,10 +106,9 @@ module io_pio
    type(iosystem_desc_t), pointer :: io_pio_subsystem
    logical :: exists
    logical :: lclobber
-   logical :: lcdf64
    integer :: status
    integer :: nmode
-   integer :: pio_iotype
+   integer :: pio_iotype, pio_netcdf_format
    character(*),parameter :: subName = '(io_pio_init) '
 
 
@@ -121,13 +120,11 @@ module io_pio
 
    io_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+   pio_netcdf_format = shr_pio_getioformat(inst_name)
 
    if (trim(mode) == 'write') then
       lclobber = .false.
       if (present(clobber)) lclobber=clobber
-   
-      lcdf64 = .false.
-      if (present(cdf64)) lcdf64=cdf64
 
       if (.not. pio_file_is_open(file)) then
          ! filename not open
@@ -139,7 +136,12 @@ module io_pio
          if (exists) then
             if (lclobber) then
                nmode = pio_clobber
-               if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+               if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
+                  nmode = ior(nmode,pio_netcdf_format)
+               endif
+               if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
+                  nmode = ior(nmode,pio_netcdf_format)
+               endif
                status = pio_createfile(io_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                if (my_task == master_task) then
                   write(stdout,*) subname,' create file ',trim(filename)
@@ -152,7 +154,9 @@ module io_pio
             endif
          else
             nmode = pio_noclobber
-            if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+            if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
+               nmode = ior(nmode,pio_netcdf_format)
+            endif
             status = pio_createfile(io_pio_subsystem, File, pio_iotype, trim(filename), nmode)
             if (my_task == master_task) then
                write(stdout,*) subname,' create file ',trim(filename)
@@ -177,7 +181,7 @@ module io_pio
          call exit_POP(sigAbort, 'aborting in io_pio_ropen with invalid file')
       endif
    end if
-      
+
    if (my_task==master_task) then
       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    end if
@@ -190,7 +194,7 @@ module io_pio
 
       use blocks, only : block, nx_block, ny_block, get_block
       use domain, only : nblocks_clinic, blocks_clinic
-      use POP_DomainSizeMod, only : POP_nxGlobal, POP_nyGlobal  
+      use POP_DomainSizeMod, only : POP_nxGlobal, POP_nyGlobal
 
       integer (i4)          , intent(in) :: basetype
       integer(kind=int_kind), intent(in) :: ndim3     ! extent of var's 3rd dimension in file
@@ -199,9 +203,9 @@ module io_pio
 
       integer (kind=int_kind) :: &
           iblk,ib,ie,jb,je,lon,lat,i,j,n,k,index
-      
+
       type(iosystem_desc_t), pointer :: io_pio_subsystem
-      type(block) :: this_block 
+      type(block) :: this_block
 
       integer(kind=pio_offset_kind), pointer :: dof3d(:)
 
@@ -220,7 +224,7 @@ module io_pio
          end do
          first_time = .false.
       end if
-      
+
       if (basetype == PIO_INT) then
          do i = 1,nmax
             if (nsize3d_i(i) == ndim3 .and. ksize3d_i(i) == kdim3) then
@@ -229,7 +233,7 @@ module io_pio
                exit
             else if (nsize3d_i(i) == iunset .and. ksize3d_i(i) == iunset) then
                index = i
-               nsize3d_i(index) = ndim3 
+               nsize3d_i(index) = ndim3
 	       ksize3d_i(index) = kdim3
                set_ioDesc = .true.
                exit
@@ -243,21 +247,21 @@ module io_pio
                exit
             else if (nsize3d_r(i) == iunset .and. ksize3d_r(i) == iunset) then
                index = i
-               nsize3d_r(index) = ndim3 
+               nsize3d_r(index) = ndim3
 	       ksize3d_r(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
          end do
       else if (basetype == PIO_DOUBLE) then
-         do i = 1,nmax  
+         do i = 1,nmax
             if (nsize3d_d(i) == ndim3 .and. ksize3d_d(i) == kdim3) then
                index = i
                set_ioDesc = .false.
                exit
             else if (nsize3d_d(i) == iunset .and. ksize3d_d(i) == iunset) then
                index = i
-               nsize3d_d(index) = ndim3 
+               nsize3d_d(index) = ndim3
 	       ksize3d_d(index) = kdim3
                set_ioDesc = .true.
                exit
@@ -279,14 +283,14 @@ module io_pio
             allocate(dof3d(nx_block*ny_block*nblocks_clinic))
             n=0
             do iblk = 1, nblocks_clinic
-               this_block = get_block(blocks_clinic(iblk),iblk)         
+               this_block = get_block(blocks_clinic(iblk),iblk)
                ib = this_block%ib
                ie = this_block%ie
                jb = this_block%jb
                je = this_block%je
-               
+
                do j=1,ny_block
-               do i=1,nx_block  
+               do i=1,nx_block
                   n = n+1
                   if (j < jb .or. j>je) then
                      dof3d(n)=0
@@ -304,15 +308,15 @@ module io_pio
             allocate(dof3d(nx_block*ny_block*nblocks_clinic*kdim3))
             n=0
             do iblk = 1, nblocks_clinic
-               this_block = get_block(blocks_clinic(iblk),iblk)         
+               this_block = get_block(blocks_clinic(iblk),iblk)
                ib = this_block%ib
                ie = this_block%ie
                jb = this_block%jb
                je = this_block%je
-               
+
                do k=1,kdim3
                do j=1,ny_block
-               do i=1,nx_block  
+               do i=1,nx_block
                   n = n+1
                   if (j < jb .or. j>je) then
                      dof3d(n)=0
@@ -324,7 +328,7 @@ module io_pio
                      else
                         lon = this_block%i_glob(i)
                         lat = this_block%j_glob(j)
-                        dof3d(n) = ((lat-1)*POP_nxGlobal + lon) + (k-1)*POP_nxGlobal*POP_nyGlobal 
+                        dof3d(n) = ((lat-1)*POP_nxGlobal + lon) + (k-1)*POP_nxGlobal*POP_nyGlobal
                      end if
                   endif
                enddo !i
@@ -376,4 +380,4 @@ module io_pio
 
 !================================================================================
 
-end module io_pio      
+end module io_pio
