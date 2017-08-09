@@ -1787,20 +1787,6 @@ EOF
   }
   add_default($nl, 'ladjust_bury_coeff');
 
-  add_default($nl, 'autotrophs_config(1)%sname');
-  add_default($nl, 'autotrophs_config(2)%sname');
-  add_default($nl, 'autotrophs_config(3)%sname');
-  add_default($nl, 'zooplankton_config(1)%sname');
-  add_default($nl, 'grazing_config(1,1)%sname');
-  add_default($nl, 'grazing_config(1,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(1,1)%zoo_ind_cnt');
-  add_default($nl, 'grazing_config(2,1)%sname');
-  add_default($nl, 'grazing_config(2,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(2,1)%zoo_ind_cnt');
-  add_default($nl, 'grazing_config(3,1)%sname');
-  add_default($nl, 'grazing_config(3,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(3,1)%zoo_ind_cnt');
-
   if ($ciso_on eq "TRUE") {
     add_default($nl, 'ciso_lsource_sink');
     add_default($nl, 'ciso_lecovars_full_depth_tavg');
@@ -1830,10 +1816,12 @@ EOF
   add_default($nl, 'parm_scalelen_z');
   add_default($nl, 'parm_scalelen_vals');
 
+  add_default($nl, 'zooplankton(1)%sname');
   add_default($nl, 'zooplankton(1)%z_mort_0_per_day');
   add_default($nl, 'zooplankton(1)%z_mort2_0_per_day');
   add_default($nl, 'zooplankton(1)%loss_thres');
 
+  add_default($nl, 'autotrophs(1)%sname');
   add_default($nl, 'autotrophs(1)%kFe');
   add_default($nl, 'autotrophs(1)%kPO4');
   add_default($nl, 'autotrophs(1)%kDOP');
@@ -1841,6 +1829,7 @@ EOF
   add_default($nl, 'autotrophs(1)%kNH4');
   add_default($nl, 'autotrophs(1)%kSiO3');
 
+  add_default($nl, 'autotrophs(2)%sname');
   add_default($nl, 'autotrophs(2)%kFe');
   add_default($nl, 'autotrophs(2)%kPO4');
   add_default($nl, 'autotrophs(2)%kDOP');
@@ -1848,6 +1837,7 @@ EOF
   add_default($nl, 'autotrophs(2)%kNH4');
   add_default($nl, 'autotrophs(2)%kSiO3');
 
+  add_default($nl, 'autotrophs(3)%sname');
   add_default($nl, 'autotrophs(3)%kFe');
   add_default($nl, 'autotrophs(3)%kPO4');
   add_default($nl, 'autotrophs(3)%kDOP');
@@ -1855,11 +1845,14 @@ EOF
   add_default($nl, 'autotrophs(3)%kNH4');
   add_default($nl, 'autotrophs(3)%kSiO3');
 
-  my $tot_ind = $nl->get_value('grazing_config(1,1)%auto_ind_cnt');
+  add_default($nl, 'grazing(1,1)%sname');
+  add_default($nl, 'grazing(1,1)%auto_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(1,1)%auto_ind_cnt');
   for (my $ind=1;$ind <= $tot_ind; $ind++) {
     add_default($nl, "grazing(1,1)%auto_ind($ind)");
   }
-  my $tot_ind = $nl->get_value('grazing_config(1,1)%zoo_ind_cnt');
+  add_default($nl, 'grazing(1,1)%zoo_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(1,1)%zoo_ind_cnt');
   for (my $ind=1;$ind <= $tot_ind; $ind++) {
     add_default($nl, "grazing(1,1)%zoo_ind($ind)");
   }
@@ -1871,11 +1864,14 @@ EOF
   add_default($nl, 'grazing(1,1)%f_zoo_detr');
   add_default($nl, 'grazing(1,1)%grazing_function');
 
-  my $tot_ind = $nl->get_value('grazing_config(2,1)%auto_ind_cnt');
+  add_default($nl, 'grazing(2,1)%sname');
+  add_default($nl, 'grazing(2,1)%auto_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(2,1)%auto_ind_cnt');
   for (my $ind=1;$ind <= $tot_ind; $ind++) {
     add_default($nl, "grazing(2,1)%auto_ind($ind)");
   }
-  my $tot_ind = $nl->get_value('grazing_config(2,1)%zoo_ind_cnt');
+  add_default($nl, 'grazing(2,1)%zoo_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(2,1)%zoo_ind_cnt');
   for (my $ind=1;$ind <= $tot_ind; $ind++) {
     add_default($nl, "grazing(2,1)%zoo_ind($ind)");
   }
@@ -1887,11 +1883,14 @@ EOF
   add_default($nl, 'grazing(2,1)%f_zoo_detr');
   add_default($nl, 'grazing(2,1)%grazing_function');
 
-  my $tot_ind = $nl->get_value('grazing_config(3,1)%auto_ind_cnt');
+  add_default($nl, 'grazing(3,1)%sname');
+  add_default($nl, 'grazing(3,1)%auto_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(3,1)%auto_ind_cnt');
   for (my $ind=1;$ind <= $tot_ind; $ind++) {
     add_default($nl, "grazing(3,1)%auto_ind($ind)");
   }
-  my $tot_ind = $nl->get_value('grazing_config(3,1)%zoo_ind_cnt');
+  add_default($nl, 'grazing(3,1)%zoo_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(3,1)%zoo_ind_cnt');
   for (my $ind=1;$ind <= $tot_ind; $ind++) {
     add_default($nl, "grazing(3,1)%zoo_ind($ind)");
   }

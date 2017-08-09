@@ -1526,22 +1526,6 @@
 
 <ladjust_bury_coeff>.false.</ladjust_bury_coeff>
 
-<autotrophs_config(1)%sname>sp</autotrophs_config(1)%sname>
-<autotrophs_config(2)%sname>diat</autotrophs_config(2)%sname>
-<autotrophs_config(3)%sname>diaz</autotrophs_config(3)%sname>
-
-<zooplankton_config(1)%sname>zoo</zooplankton_config(1)%sname>
-
-<grazing_config(1,1)%sname       > grz_sp_zoo </grazing_config(1,1)%sname>
-<grazing_config(1,1)%auto_ind_cnt>1           </grazing_config(1,1)%auto_ind_cnt>
-<grazing_config(1,1)%zoo_ind_cnt >0           </grazing_config(1,1)%zoo_ind_cnt>
-<grazing_config(2,1)%sname       > grz_diat_zoo </grazing_config(2,1)%sname>
-<grazing_config(2,1)%auto_ind_cnt>1            </grazing_config(2,1)%auto_ind_cnt>
-<grazing_config(2,1)%zoo_ind_cnt >0            </grazing_config(2,1)%zoo_ind_cnt>
-<grazing_config(3,1)%sname       > grz_diaz_zoo </grazing_config(3,1)%sname>
-<grazing_config(3,1)%auto_ind_cnt>1            </grazing_config(3,1)%auto_ind_cnt>
-<grazing_config(3,1)%zoo_ind_cnt >0            </grazing_config(3,1)%zoo_ind_cnt>
-
 <parm_Fe_bioavail>            1.0   </parm_Fe_bioavail>
 <parm_o2_min>                 5.0   </parm_o2_min>
 <parm_o2_min_delta>           5.0   </parm_o2_min_delta>
@@ -1580,11 +1564,12 @@
 <parm_scalelen_vals ocn_grid="gx3v7">    1.0,     3.3,     4.2,      4.4</parm_scalelen_vals>
 <parm_scalelen_vals                 >    1.0,     2.2,     4.0,      5.0</parm_scalelen_vals>
 
-
+<zooplankton(1)%sname>zoo</zooplankton(1)%sname>
 <zooplankton(1)%z_mort_0_per_day>  0.1   </zooplankton(1)%z_mort_0_per_day>
 <zooplankton(1)%z_mort2_0_per_day> 0.4   </zooplankton(1)%z_mort2_0_per_day>
 <zooplankton(1)%loss_thres>        0.075 </zooplankton(1)%loss_thres>
 
+<autotrophs(1)%sname>sp</autotrophs(1)%sname>
 <autotrophs(1)%kFe  >0.03e-3 </autotrophs(1)%kFe>
 <autotrophs(1)%kPO4 >0.01    </autotrophs(1)%kPO4>
 <autotrophs(1)%kDOP >0.3     </autotrophs(1)%kDOP>
@@ -1592,6 +1577,7 @@
 <autotrophs(1)%kNH4 >0.01    </autotrophs(1)%kNH4>
 <autotrophs(1)%kSiO3>0.0     </autotrophs(1)%kSiO3>
 
+<autotrophs(2)%sname>diat</autotrophs(2)%sname>
 <autotrophs(2)%kFe  >0.06e-3 </autotrophs(2)%kFe>
 <autotrophs(2)%kPO4 >0.05    </autotrophs(2)%kPO4>
 <autotrophs(2)%kDOP >0.5     </autotrophs(2)%kDOP>
@@ -1599,6 +1585,7 @@
 <autotrophs(2)%kNH4 >0.05    </autotrophs(2)%kNH4>
 <autotrophs(2)%kSiO3>0.7     </autotrophs(2)%kSiO3>
 
+<autotrophs(3)%sname>diaz</autotrophs(3)%sname>
 <autotrophs(3)%kFe  >0.045e-3</autotrophs(3)%kFe>
 <autotrophs(3)%kPO4 >0.015   </autotrophs(3)%kPO4>
 <autotrophs(3)%kDOP >0.075   </autotrophs(3)%kDOP>
@@ -1606,6 +1593,9 @@
 <autotrophs(3)%kNH4 >0.2     </autotrophs(3)%kNH4>
 <autotrophs(3)%kSiO3>0.0     </autotrophs(3)%kSiO3>
 
+<grazing(1,1)%sname       > grz_sp_zoo </grazing(1,1)%sname>
+<grazing(1,1)%auto_ind_cnt>1           </grazing(1,1)%auto_ind_cnt>
+<grazing(1,1)%zoo_ind_cnt >0           </grazing(1,1)%zoo_ind_cnt>
 <grazing(1,1)%auto_ind(1)     >1   </grazing(1,1)%auto_ind(1)> 
 <grazing(1,1)%zoo_ind         >-1  </grazing(1,1)%zoo_ind> 
 <grazing(1,1)%z_umax_0_per_day>3.3 </grazing(1,1)%z_umax_0_per_day> 
@@ -1616,6 +1606,9 @@
 <grazing(1,1)%f_zoo_detr      >0.12</grazing(1,1)%f_zoo_detr> 
 <grazing(1,1)%grazing_function>1   </grazing(1,1)%grazing_function> 
 
+<grazing(2,1)%sname       > grz_diat_zoo </grazing(2,1)%sname>
+<grazing(2,1)%auto_ind_cnt>1            </grazing(2,1)%auto_ind_cnt>
+<grazing(2,1)%zoo_ind_cnt >0            </grazing(2,1)%zoo_ind_cnt>
 <grazing(2,1)%auto_ind(1)     >2   </grazing(2,1)%auto_ind(1)> 
 <grazing(2,1)%zoo_ind         >-1  </grazing(2,1)%zoo_ind> 
 <grazing(2,1)%z_umax_0_per_day>3.05</grazing(2,1)%z_umax_0_per_day>
@@ -1626,6 +1619,9 @@
 <grazing(2,1)%f_zoo_detr      >0.24</grazing(2,1)%f_zoo_detr> 
 <grazing(2,1)%grazing_function>1   </grazing(2,1)%grazing_function> 
 
+<grazing(3,1)%sname       > grz_diaz_zoo </grazing(3,1)%sname>
+<grazing(3,1)%auto_ind_cnt>1            </grazing(3,1)%auto_ind_cnt>
+<grazing(3,1)%zoo_ind_cnt >0            </grazing(3,1)%zoo_ind_cnt>
 <grazing(3,1)%auto_ind(1)     >3   </grazing(3,1)%auto_ind(1)> 
 <grazing(3,1)%zoo_ind         >-1  </grazing(3,1)%zoo_ind> 
 <grazing(3,1)%z_umax_0_per_day>3.1 </grazing(3,1)%z_umax_0_per_day>

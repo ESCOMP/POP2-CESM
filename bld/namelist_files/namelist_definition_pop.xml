@@ -6688,62 +6688,6 @@ Default: .false.
 </entry>
 
 <entry 
-id="autotrophs_config%sname"
-type="dtype(3)%char*256" 
-category="marbl"
-group="marbl_nml" >
-Default: (/'sp', diat', 'diaz'/)
-</entry>
-
-<entry 
-id="zooplankton_config%sname"
-type="dtype(1)%char*256" 
-category="marbl"
-group="marbl_nml" >
-Default: (/'sp', diat', 'diaz'/)
-</entry>
-
-<entry 
-id="zooplankton_config%sname"
-type="dtype(1)%char*256" 
-category="marbl"
-group="marbl_nml" >
-Default: (/'zoo'/)
-</entry>
-
-<entry 
-id="grazing_config%lname"
-type="dtype(3,1)%char*256" 
-category="marbl"
-group="marbl_nml" >
-Default: (/'Grazing of sp by zoo','Grazing of diat by zoo','Grazing of diaz by zoo'/)
-</entry>
-
-<entry 
-id="grazing_config%sname"
-type="dtype(3,1)%char*256" 
-category="marbl"
-group="marbl_nml" >
-Default: (/'grz_sp_zoo','grz_diat_zoo','grz_diaz_zoo'/)
-</entry>
-
-<entry 
-id="grazing_config%auto_ind_cnt"
-type="dtype(3,1)%real" 
-category="marbl"
-group="marbl_nml" >
-Default: (/1,1,1/)
-</entry>
-
-<entry 
-id="grazing_config%zoo_ind_cnt"
-type="dtype(3,1)%real" 
-category="marbl"
-group="marbl_nml" >
-Default: (/0,0,0/)
-</entry>
-
-<entry 
 id="parm_Fe_bioavail"
 type="real" 
 category="marbl"
@@ -6920,6 +6864,21 @@ Default: (/ 1.0, 3.3, 4.2, 4.4 /) for gx3v7, (/ 1.0, 2.2, 4.0, 5.0 /) otherwise
 </entry>
 
 <entry 
+id="zooplankton%sname"
+type="dtype(1)%char*256" 
+category="marbl"
+group="marbl_nml" >
+Default: (/'zoo'/)
+</entry>
+
+<entry 
+id="zooplankton%lname"
+type="dtype(1)%char*256" 
+category="marbl"
+group="marbl_nml" >
+</entry>
+
+<entry 
 id="zooplankton%z_mort_0_per_day"
 type="dtype(1)%real" 
 category="marbl"
@@ -6941,6 +6900,21 @@ type="dtype(1)%real"
 category="marbl"
 group="marbl_nml" >
 Default: (/0.075/)
+</entry>
+
+<entry 
+id="autotrophs%sname"
+type="dtype(3)%char*256" 
+category="marbl"
+group="marbl_nml" >
+Default: (/'sp', diat', 'diaz'/)
+</entry>
+
+<entry 
+id="autotrophs%lname"
+type="dtype(3)%char*256" 
+category="marbl"
+group="marbl_nml" >
 </entry>
 
 <entry 
@@ -6989,6 +6963,38 @@ type="dtype(3)%real"
 category="marbl"
 group="marbl_nml" >
 Default: (/0.0, 0.7, 0.0/)
+</entry>
+
+<entry 
+id="grazing%sname"
+type="dtype(3,1)%char*256" 
+category="marbl"
+group="marbl_nml" >
+Default: (/'grz_sp_zoo','grz_diat_zoo','grz_diaz_zoo'/)
+</entry>
+
+<entry 
+id="grazing%lname"
+type="dtype(3,1)%char*256" 
+category="marbl"
+group="marbl_nml" >
+Default: (/'Grazing of sp by zoo','Grazing of diat by zoo','Grazing of diaz by zoo'/)
+</entry>
+
+<entry 
+id="grazing%auto_ind_cnt"
+type="dtype(3,1)%real" 
+category="marbl"
+group="marbl_nml" >
+Default: (/1,1,1/)
+</entry>
+
+<entry 
+id="grazing%zoo_ind_cnt"
+type="dtype(3,1)%real" 
+category="marbl"
+group="marbl_nml" >
+Default: (/0,0,0/)
 </entry>
 
 <entry 

@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    9 Aug 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n114_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: MARBL recombined autotrophs_config_type and autotrophs_parm_type
+             (same for zooplankton and grazing), so build-namelist needed to
+             be updated.
+             Requires marbl commit 93bfdeb or later (currently on my
+             enhancements/runtime_PFT_count branch)
+
+Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n113
+             namelist compares failed due to variable name changes.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    7 Aug 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n113_marbl_dev_n54_cesm_pop_2_1_20170623
 Tag Summary: MARBL gets autotroph_cnt, zooplankton_cnt, and grazer_prey_cnt
