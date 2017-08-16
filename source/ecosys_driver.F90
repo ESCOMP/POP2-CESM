@@ -426,14 +426,7 @@ contains
 
        ! call marbl_instance%put line by line
        do n=1,size(marbl_nl_buffer)
-         call marbl_instances(iblock)%parse_inputfile_line(marbl_nl_buffer(n), &
-                                                           marbl_var,          &
-                                                           marbl_type,         &
-                                                           marbl_val)
-         if (len_trim(marbl_var).ne.0) &
-           call marbl_instances(iblock)%put_setting((/marbl_var/),  &
-                                                    (/marbl_type/), &
-                                                    (/marbl_val/))
+         call marbl_instances(iblock)%put_setting(marbl_nl_buffer(n))
        end do
 
        call marbl_instances(iblock)%init(                                     &
