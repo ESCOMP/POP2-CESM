@@ -1,6 +1,19 @@
 ===============================================================================
 Tag Creator: jedwards
 Developers:  jedwards
+Tag Date:    17 Aug 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170817
+Tag Summary: update config_component.xml to version 3.0 format
+	removed unused optional cdf64 variable in io_pio.F90
+Testing:     aux_pop on cheyenne run successfully
+
+M          cime_config/config_component.xml
+M          source/io_pio.F90
+
+
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
 Tag Date:    8 Aug 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170808
 Tag Summary: Change DICE%SIAF to DICE%IAF in config_compsets.xml

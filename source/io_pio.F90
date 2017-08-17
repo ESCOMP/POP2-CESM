@@ -77,7 +77,7 @@ module io_pio
 !EOP
 ! !IROUTINE: io_pio_init - initialize io for input or output
 ! !INTERFACE:
-   subroutine io_pio_init(mode, filename, File, clobber, cdf64)
+   subroutine io_pio_init(mode, filename, File, clobber)
      use pio
 !
 ! !DESCRIPTION:
@@ -93,7 +93,6 @@ module io_pio
    character(len=*)     , intent(in)    :: filename
    type(file_desc_t)    , intent(inout) :: File
    logical,optional     , intent(in)    :: clobber
-   logical,optional     , intent(in)    :: cdf64
 !
 !EOP
 !BOC
