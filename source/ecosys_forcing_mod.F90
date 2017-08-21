@@ -2088,8 +2088,8 @@ contains
 
   subroutine adjust_surface_time_varying_data()
 
-    use time_management, only : imonth
-    use marbl_parms    , only : parm_Fe_bioavail
+    use time_management,    only : imonth
+    use marbl_settings_mod, only : parm_Fe_bioavail
 
     integer :: index, iblock
 

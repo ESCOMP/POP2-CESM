@@ -1048,7 +1048,7 @@ contains
     use POP_ErrorMod         , only : POP_Success
     use domain               , only : POP_haloClinic
     use named_field_mod      , only : named_field_set
-    use marbl_parms          , only : lflux_gas_co2
+    use marbl_settings_mod   , only : lflux_gas_co2
 
 
     !-----------------------------------------------------------------------

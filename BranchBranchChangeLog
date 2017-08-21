@@ -1,7 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    9 Aug 2017
+Tag Date:    21 Aug 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n116_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: Update to MARBL interface -- renamed marbl_parms
+             marbl_settings_mod
+             Requires marbl commit 46c9470 or later (currently on my
+             enhancements/runtime_PFT_count branch); tested with 6702c30)
+
+Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n115
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Aug 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n115_marbl_dev_n54_cesm_pop_2_1_20170623
 Tag Summary: Update to MARBL interface -- rolled parse_inputfile_line into
              put_setting()
