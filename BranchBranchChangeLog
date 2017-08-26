@@ -2,6 +2,33 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    26 August 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n80_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: merge marbl_dev_n54 tag to this branch
+
+This updates aux_pop_MARBL tests to use gx1v7 instead of gx1v6
+
+Testing:
+MARBL commit 93431840a3cdc79c87af8be8916d97c129e53cef enhancement/partial_derivs branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n79)
+   except for tests mentioned below, all tests pass
+      g17 baseline comparisons fail because baseline doesn't exist
+      some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       cime_config/testdefs/testlist_pop.xml
+ M      drivers/cpl
+ M      drivers/cpl_none
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    21 July 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n79_marbl_dev_n52_cesm_pop_2_1_20170615
 Tag Summary: merge marbl_dev_n52 tag to this branch
