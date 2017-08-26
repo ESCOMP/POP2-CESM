@@ -114,7 +114,7 @@ def _copy_files_to_blddir(case):
         POP_FOUND_d_s = 1
 
     if os.path.isfile(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid)):
-        shutilmove(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid),
+        shutil.move(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid),
                    os.path.join(objpath,"POP_DomainSizeMod.F90"))
         POP_FOUND_DSM = 1
 
