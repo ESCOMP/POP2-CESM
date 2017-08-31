@@ -507,10 +507,10 @@ Contains
 
   subroutine ecosys_saved_state_setup(state, marbl_state)
 
-    use blocks               , only : nx_block, ny_block
-    use domain_size          , only : km, max_blocks_clinic
-    use marbl_interface_types, only : marbl_saved_state_type
-    use io_tools             , only : document
+    use blocks, only : nx_block, ny_block
+    use domain_size, only : km, max_blocks_clinic
+    use marbl_interface_public_types, only : marbl_saved_state_type
+    use io_tools, only : document
 
     type(ecosys_saved_state_type), allocatable, intent(out) :: state(:)
     type(marbl_saved_state_type),               intent(in)  :: marbl_state

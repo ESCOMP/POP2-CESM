@@ -310,7 +310,7 @@ contains
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
 
-    use marbl_interface_types, only : marbl_forcing_fields_type
+    use marbl_interface_public_types, only : marbl_forcing_fields_type
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
 

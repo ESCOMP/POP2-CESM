@@ -684,9 +684,9 @@ contains
 
   subroutine ecosys_driver_init_rmean_var(marbl_running_mean_var, ecosys_restart_filename, rmean_ind)
 
-    use marbl_interface_types, only : marbl_running_mean_0d_type
-    use running_mean_mod     , only : running_mean_define_var
-    use running_mean_mod     , only : running_mean_init_var
+    use marbl_interface_public_types, only : marbl_running_mean_0d_type
+    use running_mean_mod, only : running_mean_define_var
+    use running_mean_mod, only : running_mean_init_var
 
     type(marbl_running_mean_0d_type), intent(in)  :: marbl_running_mean_var(:)
     character(char_len)             , intent(in)  :: ecosys_restart_filename

@@ -34,7 +34,7 @@ _config_cache_template = """
 <entry id="use_ecosys" value="{use_ecosys}" list="" valid_values="FALSE,TRUE">Use ecosys tracer module</entry>
 <entry id="autotroph_cnt" value="{autotroph_cnt}" list="" valid_values="">Number of autotroph classes for MARBL</entry>
 <entry id="zooplankton_cnt" value="{zooplankton_cnt}" list="" valid_values="">Number of zooplankton classes for MARBL</entry>
-<entry id="grazer_prey_cnt" value="{grazer_prey_cnt}" list="" valid_values="">Number of grazer prey classes for MARBL</entry>
+<entry id="max_grazer_prey_cnt" value="{max_grazer_prey_cnt}" list="" valid_values="">Number of grazer prey classes for MARBL</entry>
 <entry id="lvariable_PtoC" value="{lvariable_PtoC}" list="" valid_values="FALSE,TRUE">control if PtoC ratios in autotrophs vary</entry>
 <entry id="use_iage" value="{use_iage}" list="" valid_values="FALSE,TRUE">Use ideal age tracer module</entry>
 <entry id="use_ciso" value="{use_ciso}" list="" valid_values="FALSE,TRUE">Use ciso tracer module</entry>
@@ -47,14 +47,14 @@ _config_cache_template = """
 def determine_tracer_count(case, decomp_cppdefs):
 ###############################################################################
 
-    ECOSYS_BASE_NT  = 32
-    CISO_NT         = 14
-    lvariable_PtoC  = "TRUE"
-    ZOOPLANKTON_CNT = 1
-    AUTOTROPH_CNT   = 3
-    GRAZER_PREY_CNT = 3
-    IRF_NT          = 0
-    IRF_MODE        = "NK_precond"
+    ECOSYS_BASE_NT      = 32
+    CISO_NT             = 14
+    lvariable_PtoC      = "TRUE"
+    ZOOPLANKTON_CNT     = 1
+    AUTOTROPH_CNT       = 3
+    MAX_GRAZER_PREY_CNT = 3
+    IRF_NT              = 0
+    IRF_MODE            = "NK_precond"
 
     #----------------------------------------------------
     # Parse OCN_TRACER_MODULES_OPT
@@ -79,8 +79,8 @@ def determine_tracer_count(case, decomp_cppdefs):
                 ZOOPLANKTON_CNT = int(value)
             elif varname == "AUTOTROPH_CNT":
                 AUTOTROPH_CNT = int(value)
-            elif varname == "GRAZER_PREY_CNT":
-                GRAZER_PREY_CNT = int(value)
+            elif varname == "MAX_GRAZER_PREY_CNT":
+                MAX_GRAZER_PREY_CNT = int(value)
             elif varname == "IRF_NT":
                 IRF_NT = int(value)
             elif varname == "IRF_MODE":
@@ -158,8 +158,8 @@ def determine_tracer_count(case, decomp_cppdefs):
     # Determine tracer cppdefs and update pop_cppdefs
     #----------------------------------------------------
 
-    tracer_cppdefs = " -DNT=%d -DECOSYS_BASE_NT=%d -DCISO_NT=%d -DMARBL_NT=%d -DZOOPLANKTON_CNT=%d -DAUTOTROPH_CNT=%d -DGRAZER_PREY_CNT=%d -DIRF_NT=%d " \
-                     %(NT, ECOSYS_BASE_NT, CISO_NT, MARBL_NT, ZOOPLANKTON_CNT, AUTOTROPH_CNT, GRAZER_PREY_CNT, IRF_NT)
+    tracer_cppdefs = " -DNT=%d -DECOSYS_BASE_NT=%d -DCISO_NT=%d -DMARBL_NT=%d -DZOOPLANKTON_CNT=%d -DAUTOTROPH_CNT=%d -DMAX_GRAZER_PREY_CNT=%d -DIRF_NT=%d " \
+                     %(NT, ECOSYS_BASE_NT, CISO_NT, MARBL_NT, ZOOPLANKTON_CNT, AUTOTROPH_CNT, MAX_GRAZER_PREY_CNT, IRF_NT)
 
     other_cppdefs = ""
     if "tx0.1" in case.get_value("OCN_GRID"): 
@@ -186,7 +186,7 @@ def determine_tracer_count(case, decomp_cppdefs):
         use_ecosys=use_ecosys,
         autotroph_cnt=AUTOTROPH_CNT,
         zooplankton_cnt=ZOOPLANKTON_CNT,
-        grazer_prey_cnt=GRAZER_PREY_CNT,
+        max_grazer_prey_cnt=MAX_GRAZER_PREY_CNT,
         lvariable_PtoC=lvariable_PtoC,
         use_ciso=use_ciso,
         use_iage=use_iage,

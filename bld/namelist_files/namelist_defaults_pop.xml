@@ -1509,6 +1509,8 @@
 <!--     marbl_nml   -->
 <!--------------------->
 
+<pft_defaults>CESM2</pft_defaults>
+
 <lsource_sink>.true.</lsource_sink>
 
 <ciso_lsource_sink>.true.</ciso_lsource_sink>

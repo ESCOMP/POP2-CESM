@@ -6571,6 +6571,15 @@ Default: none
 <!-- - - - - - - - - - - -->
 
 <entry
+id="pft_defaults"
+type="char*256"
+category="marbl"
+group="marbl_nml"
+valid_values="CESM2" >
+Default: 'CESM2'
+</entry>
+
+<entry
 id="autotroph_cnt"
 type="integer"
 category="marbl"
@@ -6587,7 +6596,7 @@ Default: 1
 </entry>
 
 <entry
-id="grazer_prey_cnt"
+id="max_grazer_prey_cnt"
 type="integer"
 category="marbl"
 group="marbl_nml" >

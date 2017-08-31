@@ -1,12 +1,33 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    31 Aug 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n117_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: Update to MARBL interface
+             -- introduced PFT_defaults parameter
+             -- renamed marbl_interface_types -> marbl_interface_public_types
+             -- renamed grazer_prey_cnt -> max_grazer_prey_cnt
+             Requires marbl commit b7369a6 or later (currently on my
+             enhancements/runtime_PFT_count branch)
+
+Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n115
+             NLCOMP failures because of grazer_prey_cnt rename (and also
+             addition of PFT_defaults) --
+                  Differences in namelist 'marbl_nml':
+                    missing variable: 'grazer_prey_cnt'
+                    found extra variable: 'max_grazer_prey_cnt'
+                    found extra variable: 'pft_defaults'
+
+Files Modified:
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    21 Aug 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n116_marbl_dev_n54_cesm_pop_2_1_20170623
 Tag Summary: Update to MARBL interface -- renamed marbl_parms
              marbl_settings_mod
              Requires marbl commit 46c9470 or later (currently on my
-             enhancements/runtime_PFT_count branch); tested with 6702c30)
+             enhancements/runtime_PFT_count branch; tested with 6702c30)
 
 Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n115
 
