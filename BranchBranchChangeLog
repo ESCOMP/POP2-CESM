@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    7 Sept 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n118_marbl_dev_n54_cesm_pop_2_1_20170623
+Tag Summary: Clean up following code review
+             -- no PFT_CNT vars in buildcpp, config_cache.xml, etc
+                (defaults hard-coded into build-namelist)
+             -- remove erroneous comment re: 3-stage init
+             Requires marbl commit b7369a6 or later (currently on my
+             enhancements/runtime_PFT_count branch)
+
+Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n117
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildcpp
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/shell_commands
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    31 Aug 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n117_marbl_dev_n54_cesm_pop_2_1_20170623
 Tag Summary: Update to MARBL interface
@@ -19,6 +39,14 @@ Testing:     aux_pop_MARBL (cheyenne and hobart) was bit-for-bit with n115
                     found extra variable: 'pft_defaults'
 
 Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/prognostic.F90
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy

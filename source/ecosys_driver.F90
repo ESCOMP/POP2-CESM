@@ -405,17 +405,6 @@ contains
     endif
 
     !--------------------------------------------------------------------
-    !  MARBL setup is 3 steps:
-    !  1) Configure (set variables that affect tracer count / other parms)
-    !  2) Initialize ("lock" config vars so the aren't changed during init
-    !     or in the time loop; write config vars to log; set parameters)
-    !  3) Complete setup ("lock" parmameters so they aren't changed during
-    !     time loop; write parameters to log)
-    !
-    !  POP can set up saved state, tracers, and forcing fields after (3)
-    !--------------------------------------------------------------------
-
-    !--------------------------------------------------------------------
     !  Initialize marbl
     !--------------------------------------------------------------------
 

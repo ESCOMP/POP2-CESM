@@ -1511,6 +1511,10 @@
 
 <pft_defaults>CESM2</pft_defaults>
 
+<autotroph_cnt       pft_defaults="CESM2">3</autotroph_cnt>
+<zooplankton_cnt     pft_defaults="CESM2">1</zooplankton_cnt>
+<max_grazer_prey_cnt pft_defaults="CESM2">3</max_grazer_prey_cnt>
+
 <lsource_sink>.true.</lsource_sink>
 
 <ciso_lsource_sink>.true.</ciso_lsource_sink>

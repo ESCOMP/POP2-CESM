@@ -1753,9 +1753,13 @@ if ($OCN_GRID =~ /^gx*/) {
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'pft_defaults');
-  add_default($nl, 'autotroph_cnt', val=>$cfg->get("autotroph_cnt"));
-  add_default($nl, 'zooplankton_cnt', val=>$cfg->get("zooplankton_cnt"));
-  add_default($nl, 'max_grazer_prey_cnt', val=>$cfg->get("max_grazer_prey_cnt"));
+
+  my $pft_defaults = $nl->get_value('pft_defaults');
+  # strip quotes
+  $pft_defaults =~ s/[\'\"]//g;
+  add_default($nl, 'autotroph_cnt', 'pft_defaults'=>"$pft_defaults");
+  add_default($nl, 'zooplankton_cnt', 'pft_defaults'=>"$pft_defaults");
+  add_default($nl, 'max_grazer_prey_cnt', 'pft_defaults'=>"$pft_defaults");
 
   my $ciso_loc = $nl->get_value('ciso_on');
   add_default($nl, 'ciso_on&marbl_nml', val=>"$ciso_loc");
