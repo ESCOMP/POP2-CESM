@@ -1,5 +1,37 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 July 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170703
+Tag Summary: Merge latest marbl_dev branch tag (n55) onto trunk
+
+             Moved aux_pop_MARBL g16 tests -> g17
+             Also removed ocn_comp_esmf.F90 from repository (previous trunk
+             tag had only removed it locally)
+
+Testing:     aux_pop_MARBL on hobart, cheyenne, and yellowstone all run successfully
+             bit-for-bit except for tests with no previous baselines (the new gx1v7
+             tests), no namelist changes.
+
+Files Modified:
+M       cime_config/testdefs/testlist_pop.xml
+D       drivers/cpl/ocn_comp_esmf.F90
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    2 July 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170702
+Tag Summary: Fixed a typo in cime_config/buildlib (shutilmove changed as shutil.move in line 117)
+             Removed ocn_comp_esmf.F90 (no longer used)
+
+Testing: aux_pop on cheyenne. compared to cesm_pop_2_1_20170623 baselines; bit-for-bit.
+        test root: /glade/scratch/altuntas/cesm.tests/cheyenne/aux_pop/cime5.3.0-alpha.29-pop_2_1_20170623
+
+Files Modified:
+M       cime_config/buildlib
+!       drivers/cpl/ocn_comp_esmf.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    23 June 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170623
