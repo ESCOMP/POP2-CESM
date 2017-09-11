@@ -1,1 +1,2 @@
 ./xmlchange --append OCN_TRACER_MODULES_OPT="lvariable_PtoC=FALSE"
+./xmlchange --append OCN_TRACER_MODULES_OPT="ECOSYS_BASE_NT=29"

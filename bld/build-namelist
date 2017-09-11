@@ -1387,62 +1387,16 @@ if ($abio_on eq "TRUE") {
  }
 
 ##########################################
-# namelist group: marbl_config_nml       #
+# namelist group: ecosys_driver_nml      #
 ##########################################
 
 my $ecosys_on = $cfg->get("use_ecosys");
 my $ciso_on = $cfg->get("use_ciso");
 
 if ($ecosys_on eq "TRUE") {
-  my $ciso_loc = $nl->get_value('ciso_on');
-  add_default($nl, 'ciso_on&marbl_config_nml', val=>"$ciso_loc");
-  my $ciso_marbl_loc = $nl->get_value('ciso_on&marbl_config_nml');
-  if ("$ciso_loc" ne "$ciso_marbl_loc") {
-    die << "EOF";
-** MARBL is running with ciso_on = $ciso_marbl_loc
-   POP is expecting ciso_on = $ciso_loc
-EOF
-  }
-
-  add_default($nl, 'lsource_sink');
-  add_default($nl, 'lecovars_full_depth_tavg');
-  add_default($nl, 'lflux_gas_o2');
-  add_default($nl, 'lflux_gas_co2');
-  add_default($nl, 'lcompute_nhx_surface_emis');
-
-  add_default($nl, 'lvariable_PtoC');
-
-  # FIXME : replace following with ladjust_bury_coeff=.true. branch
-  # when "restfile" is implemented for scalar saved state
-  if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-    } else {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
-    }
-  } else {
-    add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-  }
-  add_default($nl, 'ladjust_bury_coeff');
-
-  add_default($nl, 'autotrophs_config(1)%sname');
-  add_default($nl, 'autotrophs_config(2)%sname');
-  add_default($nl, 'autotrophs_config(3)%sname');
-  add_default($nl, 'zooplankton_config(1)%sname');
-  add_default($nl, 'grazing_config(1,1)%sname');
-  add_default($nl, 'grazing_config(1,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(1,1)%zoo_ind_cnt');
-  add_default($nl, 'grazing_config(2,1)%sname');
-  add_default($nl, 'grazing_config(2,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(2,1)%zoo_ind_cnt');
-  add_default($nl, 'grazing_config(3,1)%sname');
-  add_default($nl, 'grazing_config(3,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(3,1)%zoo_ind_cnt');
-
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_lsource_sink');
-    add_default($nl, 'ciso_lecovars_full_depth_tavg');
-  }
+    add_default($nl, 'lmarginal_seas');
+    add_default($nl, 'ecosys_tadvect_ctype');
+    add_default($nl, 'ecosys_qsw_distrb_const');
 }
 
 ############################################
@@ -1673,113 +1627,6 @@ if ($ecosys_on eq "TRUE") {
 }
 
 ##########################################
-# namelist group: marbl_parms_nml        #
-##########################################
-
-if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'parm_Fe_bioavail');
-  add_default($nl, 'parm_o2_min');
-  add_default($nl, 'parm_o2_min_delta');
-  add_default($nl, 'parm_kappa_nitrif_per_day');
-  add_default($nl, 'parm_nitrif_par_lim');
-  add_default($nl, 'parm_labile_ratio');
-  add_default($nl, 'parm_init_POC_bury_coeff');
-  add_default($nl, 'parm_init_POP_bury_coeff');
-  add_default($nl, 'parm_init_bSi_bury_coeff');
-  add_default($nl, 'parm_Fe_scavenge_rate0');
-  add_default($nl, 'parm_Lig_scavenge_rate0');
-  add_default($nl, 'parm_FeLig_scavenge_rate0');
-  add_default($nl, 'parm_Lig_degrade_rate0');
-  add_default($nl, 'parm_Fe_desorption_rate0');
-  add_default($nl, 'parm_f_prod_sp_CaCO3');
-  add_default($nl, 'parm_POC_diss');
-  add_default($nl, 'parm_SiO2_diss');
-  add_default($nl, 'parm_CaCO3_diss');
-  add_default($nl, 'parm_sed_denitrif_coeff');
-  add_default($nl, 'bury_coeff_rmean_timescale_years');
-
-  add_default($nl, 'parm_scalelen_z');
-  add_default($nl, 'parm_scalelen_vals');
-
-  add_default($nl, 'zooplankton(1)%z_mort_0_per_day');
-  add_default($nl, 'zooplankton(1)%z_mort2_0_per_day');
-  add_default($nl, 'zooplankton(1)%loss_thres');
-
-  add_default($nl, 'autotrophs(1)%kFe');
-  add_default($nl, 'autotrophs(1)%kPO4');
-  add_default($nl, 'autotrophs(1)%kDOP');
-  add_default($nl, 'autotrophs(1)%kNO3');
-  add_default($nl, 'autotrophs(1)%kNH4');
-  add_default($nl, 'autotrophs(1)%kSiO3');
-
-  add_default($nl, 'autotrophs(2)%kFe');
-  add_default($nl, 'autotrophs(2)%kPO4');
-  add_default($nl, 'autotrophs(2)%kDOP');
-  add_default($nl, 'autotrophs(2)%kNO3');
-  add_default($nl, 'autotrophs(2)%kNH4');
-  add_default($nl, 'autotrophs(2)%kSiO3');
-
-  add_default($nl, 'autotrophs(3)%kFe');
-  add_default($nl, 'autotrophs(3)%kPO4');
-  add_default($nl, 'autotrophs(3)%kDOP');
-  add_default($nl, 'autotrophs(3)%kNO3');
-  add_default($nl, 'autotrophs(3)%kNH4');
-  add_default($nl, 'autotrophs(3)%kSiO3');
-
-  add_default($nl, 'grazing(1,1)%auto_ind');
-  add_default($nl, 'grazing(1,1)%zoo_ind');
-  add_default($nl, 'grazing(1,1)%z_umax_0_per_day');
-  add_default($nl, 'grazing(1,1)%z_grz');
-  add_default($nl, 'grazing(1,1)%graze_zoo');
-  add_default($nl, 'grazing(1,1)%graze_poc');
-  add_default($nl, 'grazing(1,1)%graze_doc');
-  add_default($nl, 'grazing(1,1)%f_zoo_detr');
-  add_default($nl, 'grazing(1,1)%grazing_function');
-
-  add_default($nl, 'grazing(2,1)%auto_ind');
-  add_default($nl, 'grazing(2,1)%zoo_ind');
-  add_default($nl, 'grazing(2,1)%z_umax_0_per_day');
-  add_default($nl, 'grazing(2,1)%z_grz');
-  add_default($nl, 'grazing(2,1)%graze_zoo');
-  add_default($nl, 'grazing(2,1)%graze_poc');
-  add_default($nl, 'grazing(2,1)%graze_doc');
-  add_default($nl, 'grazing(2,1)%f_zoo_detr');
-  add_default($nl, 'grazing(2,1)%grazing_function');
-
-  add_default($nl, 'grazing(3,1)%auto_ind');
-  add_default($nl, 'grazing(3,1)%zoo_ind');
-  add_default($nl, 'grazing(3,1)%z_umax_0_per_day');
-  add_default($nl, 'grazing(3,1)%z_grz');
-  add_default($nl, 'grazing(3,1)%graze_zoo');
-  add_default($nl, 'grazing(3,1)%graze_poc');
-  add_default($nl, 'grazing(3,1)%graze_doc');
-  add_default($nl, 'grazing(3,1)%f_zoo_detr');
-  add_default($nl, 'grazing(3,1)%grazing_function');
-
-  add_default($nl, 'iron_frac_in_dust');
-  add_default($nl, 'iron_frac_in_bc');
-  add_default($nl, 'caco3_bury_thres_opt');
-  add_default($nl, 'caco3_bury_thres_depth');
-  add_default($nl, 'pon_bury_coeff');
-
-  add_default($nl, 'tracer_restore_vars');
-
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_fract_factors');
-  }
-}
-
-##########################################
-# namelist group: ecosys_driver_nml      #
-##########################################
-
-if ($ecosys_on eq "TRUE") {
-    add_default($nl, 'lmarginal_seas');
-    add_default($nl, 'ecosys_tadvect_ctype');
-    add_default($nl, 'ecosys_qsw_distrb_const');
-}
-
-##########################################
 # namelist group: ecosys derived vars    #
 ##########################################
 
@@ -1898,6 +1745,179 @@ if ($OCN_GRID =~ /^gx*/) {
 } elsif ($OCN_GRID =~ /^tx*/) {
     $ltavg_streams_index_present  = ".true.";
     $ltavg_nino_diags_requested   = ".false.";
+}
+
+###################################
+# namelist group: marbl_nml       #
+###################################
+
+if ($ecosys_on eq "TRUE") {
+  add_default($nl, 'pft_defaults');
+
+  my $pft_defaults = $nl->get_value('pft_defaults');
+  # strip quotes
+  $pft_defaults =~ s/[\'\"]//g;
+  add_default($nl, 'autotroph_cnt', 'pft_defaults'=>"$pft_defaults");
+  add_default($nl, 'zooplankton_cnt', 'pft_defaults'=>"$pft_defaults");
+  add_default($nl, 'max_grazer_prey_cnt', 'pft_defaults'=>"$pft_defaults");
+
+  my $ciso_loc = $nl->get_value('ciso_on');
+  add_default($nl, 'ciso_on&marbl_nml', val=>"$ciso_loc");
+  my $ciso_marbl_loc = $nl->get_value('ciso_on&marbl_nml');
+  if ("$ciso_loc" ne "$ciso_marbl_loc") {
+    die << "EOF";
+** MARBL is running with ciso_on = $ciso_marbl_loc
+   POP is expecting ciso_on = $ciso_loc
+EOF
+  }
+
+  add_default($nl, 'lsource_sink');
+  add_default($nl, 'lecovars_full_depth_tavg');
+  add_default($nl, 'lflux_gas_o2');
+  add_default($nl, 'lflux_gas_co2');
+  add_default($nl, 'lcompute_nhx_surface_emis');
+
+  add_default($nl, 'lvariable_PtoC');
+
+  # FIXME : replace following with ladjust_bury_coeff=.true. branch
+  # when "restfile" is implemented for scalar saved state
+  if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
+    if ($RUN_TYPE eq "startup") {
+      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
+    } else {
+      add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
+    }
+  } else {
+    add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
+  }
+  add_default($nl, 'ladjust_bury_coeff');
+
+  if ($ciso_on eq "TRUE") {
+    add_default($nl, 'ciso_lsource_sink');
+    add_default($nl, 'ciso_lecovars_full_depth_tavg');
+  }
+
+  add_default($nl, 'parm_Fe_bioavail');
+  add_default($nl, 'parm_o2_min');
+  add_default($nl, 'parm_o2_min_delta');
+  add_default($nl, 'parm_kappa_nitrif_per_day');
+  add_default($nl, 'parm_nitrif_par_lim');
+  add_default($nl, 'parm_labile_ratio');
+  add_default($nl, 'parm_init_POC_bury_coeff');
+  add_default($nl, 'parm_init_POP_bury_coeff');
+  add_default($nl, 'parm_init_bSi_bury_coeff');
+  add_default($nl, 'parm_Fe_scavenge_rate0');
+  add_default($nl, 'parm_Lig_scavenge_rate0');
+  add_default($nl, 'parm_FeLig_scavenge_rate0');
+  add_default($nl, 'parm_Lig_degrade_rate0');
+  add_default($nl, 'parm_Fe_desorption_rate0');
+  add_default($nl, 'parm_f_prod_sp_CaCO3');
+  add_default($nl, 'parm_POC_diss');
+  add_default($nl, 'parm_SiO2_diss');
+  add_default($nl, 'parm_CaCO3_diss');
+  add_default($nl, 'parm_sed_denitrif_coeff');
+  add_default($nl, 'bury_coeff_rmean_timescale_years');
+
+  add_default($nl, 'parm_scalelen_z');
+  add_default($nl, 'parm_scalelen_vals');
+
+  add_default($nl, 'zooplankton(1)%sname');
+  add_default($nl, 'zooplankton(1)%z_mort_0_per_day');
+  add_default($nl, 'zooplankton(1)%z_mort2_0_per_day');
+  add_default($nl, 'zooplankton(1)%loss_thres');
+
+  add_default($nl, 'autotrophs(1)%sname');
+  add_default($nl, 'autotrophs(1)%kFe');
+  add_default($nl, 'autotrophs(1)%kPO4');
+  add_default($nl, 'autotrophs(1)%kDOP');
+  add_default($nl, 'autotrophs(1)%kNO3');
+  add_default($nl, 'autotrophs(1)%kNH4');
+  add_default($nl, 'autotrophs(1)%kSiO3');
+
+  add_default($nl, 'autotrophs(2)%sname');
+  add_default($nl, 'autotrophs(2)%kFe');
+  add_default($nl, 'autotrophs(2)%kPO4');
+  add_default($nl, 'autotrophs(2)%kDOP');
+  add_default($nl, 'autotrophs(2)%kNO3');
+  add_default($nl, 'autotrophs(2)%kNH4');
+  add_default($nl, 'autotrophs(2)%kSiO3');
+
+  add_default($nl, 'autotrophs(3)%sname');
+  add_default($nl, 'autotrophs(3)%kFe');
+  add_default($nl, 'autotrophs(3)%kPO4');
+  add_default($nl, 'autotrophs(3)%kDOP');
+  add_default($nl, 'autotrophs(3)%kNO3');
+  add_default($nl, 'autotrophs(3)%kNH4');
+  add_default($nl, 'autotrophs(3)%kSiO3');
+
+  add_default($nl, 'grazing(1,1)%sname');
+  add_default($nl, 'grazing(1,1)%auto_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(1,1)%auto_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(1,1)%auto_ind($ind)");
+  }
+  add_default($nl, 'grazing(1,1)%zoo_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(1,1)%zoo_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(1,1)%zoo_ind($ind)");
+  }
+  add_default($nl, 'grazing(1,1)%z_umax_0_per_day');
+  add_default($nl, 'grazing(1,1)%z_grz');
+  add_default($nl, 'grazing(1,1)%graze_zoo');
+  add_default($nl, 'grazing(1,1)%graze_poc');
+  add_default($nl, 'grazing(1,1)%graze_doc');
+  add_default($nl, 'grazing(1,1)%f_zoo_detr');
+  add_default($nl, 'grazing(1,1)%grazing_function');
+
+  add_default($nl, 'grazing(2,1)%sname');
+  add_default($nl, 'grazing(2,1)%auto_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(2,1)%auto_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(2,1)%auto_ind($ind)");
+  }
+  add_default($nl, 'grazing(2,1)%zoo_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(2,1)%zoo_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(2,1)%zoo_ind($ind)");
+  }
+  add_default($nl, 'grazing(2,1)%z_umax_0_per_day');
+  add_default($nl, 'grazing(2,1)%z_grz');
+  add_default($nl, 'grazing(2,1)%graze_zoo');
+  add_default($nl, 'grazing(2,1)%graze_poc');
+  add_default($nl, 'grazing(2,1)%graze_doc');
+  add_default($nl, 'grazing(2,1)%f_zoo_detr');
+  add_default($nl, 'grazing(2,1)%grazing_function');
+
+  add_default($nl, 'grazing(3,1)%sname');
+  add_default($nl, 'grazing(3,1)%auto_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(3,1)%auto_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(3,1)%auto_ind($ind)");
+  }
+  add_default($nl, 'grazing(3,1)%zoo_ind_cnt');
+  my $tot_ind = $nl->get_value('grazing(3,1)%zoo_ind_cnt');
+  for (my $ind=1;$ind <= $tot_ind; $ind++) {
+    add_default($nl, "grazing(3,1)%zoo_ind($ind)");
+  }
+  add_default($nl, 'grazing(3,1)%z_umax_0_per_day');
+  add_default($nl, 'grazing(3,1)%z_grz');
+  add_default($nl, 'grazing(3,1)%graze_zoo');
+  add_default($nl, 'grazing(3,1)%graze_poc');
+  add_default($nl, 'grazing(3,1)%graze_doc');
+  add_default($nl, 'grazing(3,1)%f_zoo_detr');
+  add_default($nl, 'grazing(3,1)%grazing_function');
+
+  add_default($nl, 'iron_frac_in_dust');
+  add_default($nl, 'iron_frac_in_bc');
+  add_default($nl, 'caco3_bury_thres_opt');
+  add_default($nl, 'caco3_bury_thres_depth');
+  add_default($nl, 'pon_bury_coeff');
+
+  add_default($nl, 'tracer_restore_vars');
+
+  if ($ciso_on eq "TRUE") {
+    add_default($nl, 'ciso_fract_factors');
+  }
 }
 
 ##########################################
@@ -2174,9 +2194,7 @@ if ($sf6_on eq "TRUE" ) {
 if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_driver_nml
                      ecosys_forcing_data_nml
-                     ecosys_tracer_init_nml
-                     marbl_config_nml
-                     marbl_parms_nml);
+                     ecosys_tracer_init_nml);
 }    
 if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
@@ -2184,6 +2202,8 @@ if ($abio_on eq "TRUE" ) {
 if ($IRF_on eq "TRUE" ) {
     push @groups, qw(irf_nml);
 }
+
+my @marbl_groups = qw(marbl_nml);
 
 # Check for variables in the "derived" group, add them to appropriate group
 for my $var ($nl->get_variable_names('derived')) {
@@ -2199,6 +2219,11 @@ if (pop_consistency_check($nl, $OCN_ONEDIM)) { exit 1; }
 my $outfile = "./pop_in";
 $nl->write($outfile, 'groups'=>\@groups);
 if ($print>=2) { print "Writing pop ocean component namelist to $outfile $eol"; }
+
+# if ecosys_on, also write marbl_in
+my $outfile = "./marbl_in";
+$nl->write($outfile, 'groups'=>\@marbl_groups);
+if ($print>=2) { print "Writing marbl component namelist to $outfile $eol"; }
 
 # Write  input dataset list.
 check_input_files($nl, $DIN_LOC_ROOT, "../pop.input_data_list");
