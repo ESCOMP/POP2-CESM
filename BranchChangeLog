@@ -1,6 +1,37 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    11 Sept 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n57_cesm_pop_2_1_20170703
+Tag Summary: Merge latest marbl_dev_levy (n119) into marbl_dev
+
+             This brings MARBL up to 0.20.0 (this version of MARBL improves
+             the initialization process in MARBL)
+
+Testing:     aux_pop and aux_pop_MARBL on cheyenne and yellowstone;
+             aux_pop_MARBL on hobart. This tag is bit-for-bit with
+             marbl_dev_n57 but all NLCOMP tests fail due to changes in how
+             MARBL is initialized (introduces marbl_in to handle all MARBL
+             parameters, and also adds some parameters that previously were
+             not available via namelist)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/shell_commands
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+A  +    source/namelist_from_str_mod.F90
+M       source/prognostic.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    3 July 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n56_cesm_pop_2_1_20170703
 Tag Summary: Merge POP trunk onto MARBL
