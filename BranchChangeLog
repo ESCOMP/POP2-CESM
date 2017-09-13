@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    13 Sept 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: Merge latest marbl_dev_levy (n121) into marbl_dev
+
+             This adds more MARBL variables to marbl_in (only via user_nl_pop,
+             there are no new default values for them)
+
+Testing:     Verified that preview_namelists still runs, and then when setting
+             these PFT variables to the defaults set in the fortran code then
+             POP is bit-for-bit. I don't think running the test suite is
+             necessary to verify these changes work as expected.
+
+Files Modified:
+M       bld/namelist_files/namelist_definition_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    11 Sept 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n57_cesm_pop_2_1_20170703
 Tag Summary: Merge latest marbl_dev_levy (n119) into marbl_dev
