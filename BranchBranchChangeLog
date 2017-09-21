@@ -1,6 +1,17 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    21 Sept 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n122_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: Merge marbl_dev (n58) onto marbl_dev_levy
+
+Testing:     None (no changes to source or bld)
+
+Files Modified:
+M       BranchChangeLog
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 Sept 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n121_marbl_dev_n57_cesm_pop_2_1_20170703
 Tag Summary: Make sure all MARBL PFT variables are in namelist definitions and
