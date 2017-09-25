@@ -1,4 +1,16 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    25 Sep 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170925
+Tag Summary: add NTASKS_PER_INST_OCN and MAX_MPITASKS_PER_NODE
+
+Testing:     aux_pop on cheyenne run successfully
+
+M       cime_config/buildnml
+M       cime_config/config_pes.xml
+
+===============================================================================
 Tag Creator: jedwards
 Developers:  jedwards
 Tag Date:    17 Aug 2017
