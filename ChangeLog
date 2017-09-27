@@ -1,5 +1,17 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  mlevy
+Tag Date:    27 Sep 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170927
+Tag Summary: eliminated the case where smoothed boundary layer is above the
+             center of top layer.
+
+Testing:     aux_pop on cheyenne. bit for bit
+
+M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    25 Sep 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170925
