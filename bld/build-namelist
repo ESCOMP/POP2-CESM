@@ -1799,7 +1799,6 @@ if ($ecosys_on eq "TRUE") {
 
 if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lecosys_tavg_all');
-    add_default($nl, 'lecosys_tavg_NK_precond_terms');
 
     # Set lecosys_tavg_alt_co2=.true. unless
     # atm_co2 and atm_alt_co2 forcing options are equivalent
@@ -2676,7 +2675,6 @@ sub module_tavg_script_args() {
   my $cfg    = shift;
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
-            $nl->get_value('lecosys_tavg_NK_precond_terms'),
             $nl->get_value('lecosys_tavg_alt_co2'),
             $nl->get_value('ladjust_bury_coeff'),
             $nl->get_value('lvariable_PtoC'),

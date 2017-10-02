@@ -19,11 +19,10 @@ endif
 @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
 set lecosys_tavg_all     = $2
-set lecosys_tavg_NK_precond_terms = $3
-set lecosys_tavg_alt_co2          = $4
-set ladjust_bury_coeff            = $5
-set lvariable_PtoC                = $6
-set tracer_restore_vars           = $7
+set lecosys_tavg_alt_co2 = $3
+set ladjust_bury_coeff   = $4
+set lvariable_PtoC       = $5
+set tracer_restore_vars  = $6
 
 if ($lecosys_tavg_all == ".false.") then
 
@@ -89,19 +88,13 @@ if ($lecosys_tavg_all == ".true.") then
 1  photoC_TOT
 1  photoC_NO3_TOT
 1  DOC_prod
-1  DOC_remin_rate
 1  DOC_remin
-1  DOCr_remin_rate
 1  DOCr_remin
 1  DON_prod
-1  DON_remin_rate
 1  DON_remin
-1  DONr_remin_rate
 1  DONr_remin
 1  DOP_prod
-1  DOP_remin_rate
 1  DOP_remin
-1  DOPr_remin_rate
 1  DOPr_remin
 1  Fe_scavenge
 1  Fe_scavenge_rate
@@ -156,12 +149,6 @@ if ($lecosys_tavg_all == ".true.") then
 1  PV_CO2
 1  SCHMIDT_CO2
 1  FG_CO2
-1  d_SF_DIC_d_DIC
-1  d_SF_DIC_d_ALK
-1  d_bottom_J_DIC_d_DIC
-1  d_bottom_J_DIC_d_ALK
-1  d_bottom_J_ALK_d_DIC
-1  d_bottom_J_ALK_d_ALK
 1  PH
 1  ATM_CO2
 1  CO2STAR_ALT_CO2
@@ -456,23 +443,6 @@ $s3  HDIFE_Fe
 $s3  HDIFN_Fe
 $s3  HDIFB_Fe
 EOF
-
-  if ($lecosys_tavg_NK_precond_terms == ".true.") then
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
-$s1  d_SF_DIC_d_DIC
-$s1  d_SF_DIC_d_ALK
-$s1  DOC_remin_rate
-$s1  DOCr_remin_rate
-$s1  DON_remin_rate
-$s1  DONr_remin_rate
-$s1  DOP_remin_rate
-$s1  DOPr_remin_rate
-$s1  d_bottom_J_DIC_d_DIC
-$s1  d_bottom_J_DIC_d_ALK
-$s1  d_bottom_J_ALK_d_DIC
-$s1  d_bottom_J_ALK_d_ALK
-EOF
-  endif
 
   if ($ladjust_bury_coeff == ".true.") then
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF

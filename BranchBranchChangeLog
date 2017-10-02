@@ -2,6 +2,29 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    1 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n82_marbl_dev_n56_cesm_pop_2_1_20170703
+Tag Summary: remove diagnostics that were added in marbl_dev_klindsay_n78
+
+Testing:
+MARBL commit a0cfb212f2190d67c0c5c9365f27d882da162bea master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n81)
+   except for tests mentioned below, all tests pass
+      some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    26 August 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n81_marbl_dev_n56_cesm_pop_2_1_20170703
 Tag Summary: merge marbl_dev_n56 tag to this branch

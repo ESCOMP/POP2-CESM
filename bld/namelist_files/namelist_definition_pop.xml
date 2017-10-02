@@ -5358,14 +5358,6 @@ When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
 
 <entry
-id="lecosys_tavg_NK_precond_terms"
-type="logical"
-category="ecosys"
-group="derived">
-When turned on, ocn.ecosys.tavg.csh will output terms that are only needed for the preconditioner for the Newton-Krylov solver
-</entry>
-
-<entry
 id="lecosys_tavg_alt_co2"
 type="logical"
 category="ecosys"
