@@ -310,7 +310,7 @@ contains
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
 
-    use marbl_interface_types, only : marbl_forcing_fields_type
+    use marbl_interface_public_types, only : marbl_forcing_fields_type
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
 
@@ -2088,8 +2088,8 @@ contains
 
   subroutine adjust_surface_time_varying_data()
 
-    use time_management, only : imonth
-    use marbl_parms    , only : parm_Fe_bioavail
+    use time_management,    only : imonth
+    use marbl_settings_mod, only : parm_Fe_bioavail
 
     integer :: index, iblock
 

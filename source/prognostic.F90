@@ -70,8 +70,6 @@
    logical (log_kind) :: &
       ldebug             ! T ==> various internal consistency checks are enabled
 
-    public :: tracer_field ! used from marbl_interface_types
-
 !EOP
 !BOC
 !EOC

@@ -2,6 +2,41 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    4 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n83_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: merge marbl_dev_n58 tag to this branch
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n82)
+   except for tests mentioned below, all tests pass
+      all NLCOMP tests fail because of rerrangement of marbl related namelists
+      some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/shell_commands
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+A  +    source/namelist_from_str_mod.F90
+M       source/prognostic.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    1 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n82_marbl_dev_n56_cesm_pop_2_1_20170703
 Tag Summary: remove diagnostics that were added in marbl_dev_klindsay_n78
