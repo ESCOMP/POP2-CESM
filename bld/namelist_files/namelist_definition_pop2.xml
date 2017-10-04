@@ -1145,10 +1145,10 @@ id="solverChoice"
 type="char*256"
 category="solvers"
 group="solvers"
-valid_values="pcg,ChronGear" >
+valid_values="pcg,ChronGear,PCSI" >
 Solver to use for elliptic system for surface pressure in barotropic mode.
 
-Valid Values: 'pcg', 'ChronGear'
+Valid Values: 'pcg', 'ChronGear,PCSI'
 Default: 'ChronGear'
 </entry>
 
@@ -1183,14 +1183,24 @@ Default: 10
 </entry>
 
 <entry 
+id="convergenceCheckStart"
+type="integer"
+category="solvers"
+group="solvers" >
+Start number of steps in which to check check for convergence.
+
+Default: 60
+</entry>
+
+<entry 
 id="preconditionerChoice"
 type="char*256"
 category="solvers"
 group="solvers"
-valid_values="diagonal,file" >
+valid_values="diagonal,evp,file" >
 Preconditioner choice.
 
-Valid Values: 'diagonal', 'file'
+Valid Values: 'diagonal', 'evp','file'
 Default: 'diagonal'
 </entry>
 
@@ -1204,7 +1214,25 @@ File containing the preconditioner (if preconditionerChoice='file').
 Default: 'unknownPrecondFile'
 </entry>
 
+<entry 
+id="LanczosconvergenceCriterion"
+type="real"
+category="solvers"
+group="solvers" >
+Convergence error criterion for lanczos step.
 
+Default:  0.15
+</entry>
+
+<entry 
+id="maxLanczosStep"
+type="integer"
+category="solvers"
+group="solvers" >
+Maximum Lanczos Steps
+
+Default: 100
+</entry>
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: vertical_mix_nml         - -->
 <!-- - - - - - - - - - - - - - - - - - -->
