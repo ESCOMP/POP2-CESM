@@ -50,7 +50,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  other operator and preconditioner weights for barotropic operator
+!  other operator and preconditioning weights for barotropic operator
 !
 !-----------------------------------------------------------------------
 
@@ -68,17 +68,17 @@
 !-----------------------------------------------------------------------
 !
 !  EVP preconditioner influence matrix and block coefficient matrix,
-!  Saved in EVP sub-block format. Dimension transform :
+!  Saved in EVP sub-block format. Dimension switched:
 !  (X,Y,block_ID) ==> (subblock_X, subblock_Y, subblock_ID, block_ID) 
 !
 !-----------------------------------------------------------------------
 
    real (POP_r8), dimension (:,:,:,:), allocatable, public :: & 
-      EvpRinv               ! EVP influence matrix, (dimname )
+      EvpRinv               ! EVP influence matrix
 
    real (POP_r8), dimension (:,:,:,:), allocatable, public :: & 
-      EvpCenterWgt,        &! reshape coefficients into block 
-      InvEvpCenterWgt,     &! save inverse for computation efficiency
+      EvpCenterWgt,        &! reshape coefficients into blocks 
+      InvEvpCenterWgt,     &! save inverse for computational efficiency
       EvpNeWgt,            &! 
       InvEvpNeWgt          
 
@@ -87,7 +87,7 @@
 
 !EOP
 !BOC
-   !*** preconditioner operator coefficients (ninept operator)
+   !*** preconditioning operator coefficients (ninept operator)
 
    real (POP_r8), dimension (:,:,:), allocatable :: & 
       precondCenter,              &
@@ -150,8 +150,8 @@
       rmsResidual            ! residual (also a diagnostic)
 
    real (POP_r8), save ::          & 
-      PcsiMaxEigs,         &! eigenvalues for PCSI method
-      PcsiMinEigs           ! smallest eigenvalue
+      PcsiMaxEigs,         &! Largest eigenvalues for PCSI method
+      PcsiMinEigs           ! smallest eigenvalues for PCSI method
 
    integer(POP_i4), parameter  :: &
       EvpXbs  = 8,        &! EVP block size along longitude
@@ -174,7 +174,7 @@
  contains
 !***********************************************************************
 !BOP
-! !IROUTINE: POP_SolversPrep
+! !SUBROUTINE: POP_SolversPrep
 ! !INTERFACE:
 
  subroutine POP_SolversPrep(errorCode)
@@ -182,10 +182,10 @@
 ! !DESCRIPTION:
 ! solver preprocessing : 
 ! 1. compute eigenvalues if PCSI is used 
-! 2. Preprocessing EVP efficient matrix if EVP preconditioning is used 
+! 2. Preprocessing EVP influence matrix if EVP preconditioning is used 
 !
 ! !REVISION HISTORY:
-!  this routine implemented by Yong Hu, et al., Tsinghua University
+!  this routine implemented by Yong Hu et al., Tsinghua University
 !BOP
 ! !INPUT PARAMETERS:
 
@@ -197,6 +197,8 @@
 
    integer (POP_i4), intent(out) :: &
       errorCode         ! returned error code
+   integer (POP_i4) :: &
+      numProcs           ! number of processors in barotropic distrib
 
 !EOP
 !BOC
@@ -211,17 +213,38 @@
       bid,                &! local counters
       nx1,ny1             ! POP_nxBlock -1
 
-   logical (POP_logical), save ::    &
-      PreInitialFlag = .false. ! flag for initializing 
-
 
    errorCode = POP_Success
+   if (POP_myTask == POP_masterTask) then
+      write(POP_stdout,POP_blankFormat)
+      write(POP_stdout,POP_delimFormat)
+      write(POP_stdout,'(a42)') ' Solver Preprocessing (barotropic solver)'
+      write(POP_stdout,POP_delimFormat)
+      write(POP_stdout,POP_blankFormat)
+   endif
 
    call POP_DistributionGet(POP_distrbTropic, errorCode, &
-                            numLocalBlocks = numBlocks)
-  
+                            numProcs = numProcs)
 
-   if (.not. PreInitialFlag) then
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_SolversRun: error getting num procs')
+      return
+   endif
+
+   call POP_RedistributeBlocks(btropWgtCenter,  POP_distrbTropic, &
+                               centerWgtClinic, POP_distrbClinic, errorCode)
+
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_SolversRun: error redistributing center operator weight')
+      return
+   endif
+
+   if (POP_myTask < numProcs) then
+      call POP_DistributionGet(POP_distrbTropic, errorCode, &
+                               numLocalBlocks = numBlocks)
 
 !-----------------------------------------------------------------------
 !
@@ -288,10 +311,7 @@
          return
       endif
 
-      PreInitialFlag = .true.
-
    endif
-
 
 !-----------------------------------------------------------------------
 !EOC
@@ -414,13 +434,9 @@
 
 !-----------------------------------------------------------------------
 !
-!  solver preprocessing if PCSI or EVP preconditioner are used 
+!  solver preprocessing if PCSI or EVP preconditioner is used 
 !
 !-----------------------------------------------------------------------
-      call POP_SolversPrep(errorCode)
-
-      
-     
 
       select case(trim(solverChoice))
       case (solverChoicePCG)
@@ -487,7 +503,7 @@
 ! !DESCRIPTION:
 !  This routine initializes choice of solver, calculates the 
 !  coefficients of the 9-point stencils for the barotropic operator and
-!  reads in a preconditioner if requested.
+!  reads in a preconditioning matrix if requested.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -1494,9 +1510,9 @@
 
 ! !DESCRIPTION:
 !  This routine implements the Preconditioned Classical Stiefel Iteration 
-!  (PCSI)  solver with preconditioner for solving the linear system $Ax=b$.
-!  It utilizes the two extreme eigenvalues of $A$ instead of the norm of
-!  residual. Thus it eliminates global reductions in each iteration.
+!  (PCSI)  solver for solving the linear system $Ax=b$.
+!  It uses the two extreme eigenvalues of $A$ instead of the norm of
+!  residual. Thus, PCSI eliminates global reductions in each iteration.
 !  The eigenvalues are estimated by routine PcsiLanczos.
 !  PCSI supports all kinds of preconditioners supported by PCG/ChronGear, 
 !  including diagonal and EVP preconditioning.
@@ -1510,7 +1526,7 @@
 !        In Euro-Par 2013  Parallel Processing (pp. 739-750) Springer Berlin Heidelberg.
 !
 ! !REVISION HISTORY:
-!  this routine implemented by Yong Hu, et al., Tsinghua University
+!  this routine implemented by Yong Hu et al., Tsinghua University
 
 ! !INPUT PARAMETERS:
 
@@ -1538,9 +1554,9 @@
 
    integer (POP_i4) :: &
       i,j,m,           &! local iteration counter
-      nx, ny,          &! horizontal extents
+      nx, ny,          &! horizontal dimensions
       numBlocks,       &! number of local blocks
-      iblock            ! local block     counter
+      iblock            ! local block counter
 
 
    real (POP_r8) ::          &
@@ -2263,7 +2279,7 @@
 !  stencil operator.
 !
 ! !REVISION HISTORY:
-!  add EVP preconditioning interface by Yong Hu , Tsinghua University
+!  add EVP preconditioning interface by Yong Hu et al., Tsinghua University
 
 ! !INPUT PARAMETERS:
 
@@ -2481,7 +2497,7 @@
 !  This routine implements the preprocessing of explicit EVP method for
 !  solve a nine point elliptic equation on sub blocks.
 !  Four coefficients related to north, south, east and west are small compared 
-!  with the rest five coefficients, thus ignored here to reduce computation.
+!  with the other five coefficients, ignored here to reduce computation.
 !
 !  References:
 !     Roache, P. J. (1995). Elliptic marching methods and domain
@@ -2511,7 +2527,7 @@
    nm = n +m -5
    y(:,:) = 0.0_POP_r8
 
-   ! five points marching from left initial error vectors 
+   ! five points marching from initial error vectors (west)
    do ii = 1,m-2
      y(2,m-ii) = 1.0_POP_r8
      do j = 2, m-1
@@ -2535,7 +2551,7 @@
      y(2,m-ii) = 0.0_POP_r8
    end do 
    
-   ! five points marching from bottom inital error vectors
+   ! five points marching from inital error vectors (south)
    do ii = 1,n-3
      y(ii+2,2) = 1.0_POP_r8
      do j = 2, m-1
@@ -2588,7 +2604,7 @@
 
   subroutine ExplicitEvp(cc,ne,ine,rinv,tu,f,n,m)
 ! !DESCRIPTION:
-!  This routine implements the EVP method to explicitly solve a 
+!  This routine implements the EVP method to explicitly solve 
 !  a nine point elliptic equation on sub blocks.
 !  Four coefficients related to north, south, east and west are 
 !  small compared with the rest five coefficients, thus ignored 
@@ -2624,7 +2640,7 @@
    y(:,:) = 0.0_POP_r8
    y(2:n-1,2:m-1) = tu(:,:) 
    
-   ! marching from left and bottom intial error vectors 
+   ! marching from intial error vectors (west and south)
    do j = 2, m-1
      do i = 2, n-1
          y(i+1,j+1)  = (f(i,j)- cc(i,j)     * y(i,j )     & 
@@ -2634,7 +2650,7 @@
      end do
    end do
  
-   ! get right and top final error vectors
+   ! get final error vectors (east and north)
    r(1:n-2) = y(3:n,m)
    r(n-1:n+m-5) = y(n,m-1:3:-1) 
  
@@ -2726,7 +2742,7 @@
         csc                     ! vector magnitude  ||r0||_A
 
    real (POP_r8) :: & 
-        MINEIG   
+        mineig   
 
  
    errorCode = POP_Success
@@ -2962,10 +2978,10 @@
 
  subroutine EvpBlockPartition(m,mm,mb,mdi,errorCode)
 ! !DESCRIPTION:
-!  This routine implements the stratege to devide the local bartropic block 
+!  This routine implements the strategy to divide the local barotropic block 
 !  into smaller blocks in one direction.
-!  EVP can not handle block larger than [12x12], while small block size has
-!  negative effect on the convergence rate.
+!  EVP can not handle block larger than [12x12] while a small block size has
+!  an adverse effect on the convergence rate.
 !
 !
 ! !REVISION HISTORY:

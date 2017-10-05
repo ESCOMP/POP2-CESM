@@ -212,12 +212,14 @@
 <!-- solvers -->
 <!---------------------------->
 
-<solverChoice>'ChronGear'</solverChoice>
+<solverChoice>'PCSI'</solverChoice>
+<solverChoice ocn_grid="gx3v7">'ChronGear'</solverChoice>
 <convergenceCriterion>1.0e-13</convergenceCriterion>
 <maxIterations>1000</maxIterations>
 <convergenceCheckFreq>10</convergenceCheckFreq>
 <convergenceCheckStart>60</convergenceCheckStart>
-<preconditionerChoice>'diagonal'</preconditionerChoice>
+<preconditionerChoice>'evp'</preconditionerChoice>
+<preconditionerChoice ocn_grid="gx3v7">'diagonal'</preconditionerChoice>
 <preconditionerFile>'unknownPrecondFile'</preconditionerFile>
 <LanczosconvergenceCriterion>0.15</LanczosconvergenceCriterion>
 <maxLanczosStep>100</maxLanczosStep>
