@@ -214,10 +214,9 @@ def buildcpp(case):
     # reflect changes in the configuration this will trigger 
     pop_auto_decomp = case.get_value("POP_AUTO_DECOMP")
     if pop_auto_decomp:
-        ntasks_ocn = case.get_value("NTASKS_OCN")
         nthrds_ocn = case.get_value("NTHRDS_OCN")
         ninst_ocn = case.get_value("NINST_OCN")
-        ntasks = int(ntasks_ocn / ninst_ocn)
+        ntasks = case.get_value("NTASKS_PER_INST_OCN")
         ocn_grid = case.get_value("OCN_GRID")
         srcroot = case.get_value("SRCROOT")
 
