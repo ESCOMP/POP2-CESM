@@ -3,18 +3,26 @@ SVN $URL$
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
-Tag Date:    4 Oct 2017
+Tag Date:    10 Oct 2017
 Tag Name:    pop2/branches/sehires_pop_2_1_20171004/
-Tag Summary: Incorporating the new barotropic solver
-              Applied the changes in pop2/trunk_tags/cesm_pop_2_1_20150421a:
-              Add optional new preconditioner and solver for barotropic
-              equations (but use old solver by default)
+Tag Summary: Applied the new barotropic solver changes in:
+              pop2/trunk_tags/cesm_pop_2_1_20150813a
+              pop2/trunk_tags/cesm_pop_2_1_20150630
+              pop2/trunk_tags/cesm_pop_2_1_20150520
+              pop2/trunk_tags/cesm_pop_2_1_20150515
+              pop2/trunk_tags/cesm_pop_2_1_20150506
+              pop2/trunk_tags/cesm_pop_2_1_20150421a 
+               
 
 Files Modified:
-M       bld/build-namelist
-M       bld/namelist_files/namelist_defaults_pop2.xml
-M       bld/namelist_files/namelist_definition_pop2.xml
-M       source/POP_SolversMod.F90
+M    bld/namelist_files/namelist_definition_pop2.xml
+M    ChangeLog
+M    source/time_management.F90
+M    source/initial.F90
+M    source/barotropic.F90
+M    bld/namelist_files/namelist_defaults_pop2.xml
+M    source/POP_SolversMod.F90
+M    bld/build-namelist
 
 ===============================================================================
 Tag Creator: mlevy
