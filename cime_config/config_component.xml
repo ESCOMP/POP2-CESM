@@ -249,31 +249,31 @@
     <desc>POP cpp definitions (for diagnostic use only, setup automatically, overwritten by configure_pop.py - DO NOT EDIT)</desc>
   </entry>
 
-  <entry id="POP_PHYS_RUN_CYCLE_LEN_YEAR">
+  <entry id="POP_PHYS_CYCLE_YEARS_IN_CYCLE">
     <type>integer</type>
     <default_value>0</default_value>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
     <desc>number of years to run before cycling POP physics
-    POP physics cycling only occurs if POP_PHYS_RUN_CYCLE_LEN_YEAR>0
+    POP physics cycling only occurs if POP_PHYS_CYCLE_YEARS_IN_CYCLE>0
     and pre- and post-run scripts are specified in env vars
     PRERUN_SCRIPT and POSTRUN_SCRIPT</desc>
   </entry>
     
-  <entry id="POP_PHYS_RUN_CUR_MON">
+  <entry id="POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE">
     <type>integer</type>
     <default_value>0</default_value>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
-    <desc>number of months run since most recent POP physics cycling</desc>
+    <desc>number of months run since most recent cycling of POP physics</desc>
   </entry>
 
-  <entry id="POP_RESTART_OVERRIDE">
+  <entry id="POP_PASSIVE_TRACER_RESTART_OVERRIDE">
     <type>char</type>
-    <default_value>default</default_value>
+    <default_value>none</default_value>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
-    <desc>filename for ocean override restart file</desc>
+    <desc>if not equal to none, then passive tracers modules use this as their restart file</desc>
   </entry>
 
   <description>

@@ -30,45 +30,41 @@ def _phys_cycle_postrun(case):
     caseroot    = case.get_value("CASEROOT")
     rundir      = case.get_value("RUNDIR")
 
-    pop_phys_run_cur_mon        = case.get_value("POP_PHYS_RUN_CUR_MON")
-    pop_phys_run_cycle_len_year = case.get_value("POP_PHYS_RUN_CYCLE_LEN_YEAR")
+    pop_phys_cycle_months_run_since_cycle = case.get_value("POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE")
+    pop_phys_cycle_years_in_cycle         = case.get_value("POP_PHYS_CYCLE_YEARS_IN_CYCLE")
 
-    if stop_option.find("nmonth") != -1:
-        pop_phys_run_cur_mon_new = pop_phys_run_cur_mon + stop_n
-    elif stop_option.find("nyear") != -1:
-        pop_phys_run_cur_mon_new = pop_phys_run_cur_mon + stop_n * 12
-    else:
-        expect(False,
-               "STOP_OPTION must be nmonths or nyears for pop_phys_cycle_postrun")
+    # we know from phys_cycle_prerun that stop_option is either "nmonth*" or "nyear*"
 
-    case.set_value("POP_PHYS_RUN_CUR_MON", pop_phys_run_cur_mon_new)
-    logger.info("pop_phys_run_cur_mon is now %s" %pop_phys_run_cur_mon_new)
+    if stop_option.find("nmonth") == 0:
+        pop_phys_cycle_months_run_since_cycle_new = pop_phys_cycle_months_run_since_cycle + stop_n
+    if stop_option.find("nyear") == 0:
+        pop_phys_cycle_months_run_since_cycle_new = pop_phys_cycle_months_run_since_cycle + stop_n * 12
 
-    pop_phys_run_cycle_len_mon = pop_phys_run_cycle_len_year * 12
-    if pop_phys_run_cur_mon_new < pop_phys_run_cycle_len_mon:
+    case.set_value("POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE", pop_phys_cycle_months_run_since_cycle_new)
+    logger.info("pop_phys_cycle_months_run_since_cycle is now %d" % pop_phys_cycle_months_run_since_cycle_new)
+
+    pop_phys_cycle_months_in_cycle = pop_phys_cycle_years_in_cycle * 12
+    if pop_phys_cycle_months_run_since_cycle_new < pop_phys_cycle_months_in_cycle:
         case.set_value("CONTINUE_RUN", "TRUE")
-        case.set_value("POP_RESTART_OVERRIDE", "default")
+        case.set_value("POP_PASSIVE_TRACER_RESTART_OVERRIDE", "none")
         case.flush()
         return
 
-    if pop_phys_run_cur_mon_new > pop_phys_run_cycle_len_mon:
-        logger.info()
-        expect(False,
-               "POP_PHYS_RUN_CUR_MON has overshot POP_PHYS_RUN_CYCLE_LEN_MON=%s"
-               %pop_phys_run_cycle_len_mon)
+    expect(pop_phys_cycle_months_run_since_cycle_new <= pop_phys_cycle_months_in_cycle,
+           "POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE has overshot POP_PHYS_CYCLE_MONTHS_IN_CYCLE=%d"
+           % pop_phys_cycle_months_in_cycle)
 
     # -------------------------------------------------------------------------
     # Model has run the length of POP physics run cycle length
     # Reset model physics, keeping restart file for tracers to continue to evolve
     # -------------------------------------------------------------------------
 
-    logger.info("echo resetting model physics")
-    case.set_value("CONTINUE_RUN","FALSE")
-    case.set_value("POP_PHYS_RUN_CUR_MON",0)
+    logger.info("resetting model physics")
+    case.set_value("CONTINUE_RUN", "FALSE")
+    case.set_value("POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE", 0)
 
     with open(os.path.join(rundir, "rpointer.ocn.restart"),'r') as f:
-        pop_restart_override = os.path.join(rundir, f.readline())
-        case.set_value("POP_RESTART_OVERRIDE", pop_restart_override)
+        case.set_value("POP_PASSIVE_TRACER_RESTART_OVERRIDE", os.path.join(rundir, f.readline()))
 
     # -------------------------------------------------------------------------
     # Compute new RUN_STARTDATE
@@ -76,31 +72,19 @@ def _phys_cycle_postrun(case):
 
     run_startdate = case.get_value("RUN_STARTDATE")
     yyyy = int(run_startdate[:4])
-    yyyy = yyyy + pop_phys_run_cycle_len_year
-    mmdd = run_startdate[5:10]
-    run_startdate_new = str(yyyy) + '-' + mmdd
-    ilen = len(run_startdate_new)
-    if ilen == 9:
-        run_startdate_new = '0' + run_startdate_new
-    if ilen == 8:
-        run_startdate_new = '00' + run_startdate_new
-    if ilen == 7:
-        run_startdate_new = '000' + run_startdate_new
-    case.set_value("RUN_STARTDATE", run_startdate_new)
+    yyyy = yyyy + pop_phys_cycle_years_in_cycle
+    run_startdate = "%04d" % yyyy + run_startdate[4:]
+    case.set_value("RUN_STARTDATE", run_startdate)
 
     # -------------------------------------------------------------------------
     # Compute new _CPLHIST_YR_ALIGN variables
     # -------------------------------------------------------------------------
 
-    datm_cplhist_yr_align = case.get_value("DATM_CPLHIST_YR_ALIGN")
-    if datm_cplhist_yr_align:
-        datm_cplhist_yr_align_new = datm_cplhist_yr_align + pop_phys_run_cycle_len_year
-        case.set_value("DATM_CPLHIST_YR_ALIGN", datm_cplhist_yr_align_new)
-
-    drof_cplhist_yr_align = case.get_value("DROF_CPLHIST_YR_ALIGN")
-    if drof_cplhist_yr_align:
-        drof_cplhist_yr_align_new = drof_cplhist_yr_align + pop_phys_run_cycle_len_year
-        case.set_value("DROF_CPLHIST_YR_ALIGN", drof_cplhist_yr_align_new)
+    for align_varname in [ "DATM_CPLHIST_YR_ALIGN", "DROF_CPLHIST_YR_ALIGN" ]:
+        align_val = case.get_value(align_varname)
+        if align_val is not None:
+            align_val = align_val + pop_phys_cycle_years_in_cycle
+            case.set_value(align_varname, align_val)
 
     case.flush()
 
@@ -109,23 +93,24 @@ def _phys_cycle_postrun(case):
     # -------------------------------------------------------------------------
 
     if run_type != "startup":
-        shutil.copy(os.path.join(caseroot,"Buildconf","popconf","rpointer.ocn.restart.orig"),
-                    os.path.join(rundir, "rpointer.ocn.restart"))
-        shutil.copy(os.path.join(caseroot,"Buildconf","popconf","rpointer.ocn.ovf.orig"),
-                    os.path.join(rundir, "rpointer.ocn.ovf"))
+        for rpointer_filename in [ "rpointer.ocn.restart", "rpointer.ocn.ovf" ]:
+            sfile = os.path.join(caseroot, "Buildconf", "popconf", rpointer_filename+".orig")
+            dfile = os.path.join(rundir, rpointer_filename)
+            expect(os.path.isfile(sfile), "required pop file %s is missing" % sfile)
+            shutil.copy(sfile, dfile)
                     
 ###############################################################################
 def _main_func():
 ###############################################################################
-    if len(sys.argv) == 1:
-        expect(False, "caseroot is a required input argument")
+    expect(len(sys.argv) == 2, "caseroot is a required input argument")
 
     caseroot = sys.argv[1]
     with Case(caseroot) as case:
-        pop_phys_run_cycle_len_year = case.get_value("POP_PHYS_RUN_CYCLE_LEN_YEAR")
-        if pop_phys_run_cycle_len_year:
-            if (pop_phys_run_cycle_len_year > 0):
-                _phys_cycle_postrun(case)
+        pop_phys_cycle_years_in_cycle = case.get_value("POP_PHYS_CYCLE_YEARS_IN_CYCLE")
+        expect(pop_phys_cycle_years_in_cycle is not None,
+               "POP_PHYS_CYCLE_YEARS_IN_CYCLE should be defined when %s is called" % sys.argv[0])
+        if (pop_phys_cycle_years_in_cycle > 0):
+            _phys_cycle_postrun(case)
 
 if __name__ == "__main__":
     _main_func()

@@ -352,7 +352,7 @@ my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
-my $POP_RESTART_OVERRIDE   = "$xmlvars{'POP_RESTART_OVERRIDE'}";
+my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -1257,13 +1257,14 @@ add_default($nl, 'h_lower');
 
 my $iage_on = $cfg->get("use_iage");
 if ($iage_on eq "TRUE") {
-    add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
-    if ($POP_RESTART_OVERRIDE eq "default") {
-    add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
+    if ($POP_PASSIVE_TRACER_RESTART_OVERRIDE eq "none") {
+      add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
+      add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
     } else {
-      add_default($nl, 'init_iage_init_file', 'val'=>"$POP_RESTART_OVERRIDE", 'noprepend'=>1);
+      add_default($nl, 'init_iage_option',    'val'=>"ccsm_hybrid");
+      add_default($nl, 'init_iage_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
+      add_default($nl, 'init_iage_init_file_fmt', 'val'=>'nc');
     }
-    add_default($nl, 'init_iage_init_file_fmt');
 }
 
 ##########################################
@@ -1360,20 +1361,21 @@ if ($sf6_on eq "TRUE") {
 
 my $abio_on = $cfg->get("use_abio");
 if ($abio_on eq "TRUE") {
-	
-    add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
-	
-    if ($RUN_TYPE eq "startup") {
-     add_default($nl, 'init_abio_dic_dic14_init_file');
-    } else {
-      if ($POP_RESTART_OVERRIDE eq "default") {
-     add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+
+    if ($POP_PASSIVE_TRACER_RESTART_OVERRIDE eq "none") {
+      add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
+      if ($RUN_TYPE eq "startup") {
+        add_default($nl, 'init_abio_dic_dic14_init_file');
       } else {
-        add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"$POP_RESTART_OVERRIDE", 'noprepend'=>1);
+        add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
       }
+      add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
+    } else {
+      add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_hybrid");
+      add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
+      add_default($nl, 'init_abio_dic_dic14_init_file_fmt', 'val'=>'nc');
     }
-  
-    add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
+
     add_default($nl, 'abio_tracer_init_ext(1)%mod_varname');
     add_default($nl, 'abio_tracer_init_ext(1)%file_varname');
     add_default($nl, 'abio_tracer_init_ext(1)%scale_factor');
@@ -1555,30 +1557,33 @@ if ($ecosys_on eq "TRUE") {
 ##########################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
-  if ($RUN_TYPE eq "startup") {
-    add_default($nl, 'init_ecosys_init_file');
-  } else {
-    if ($POP_RESTART_OVERRIDE eq "default") {
-    add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+  if ($POP_PASSIVE_TRACER_RESTART_OVERRIDE eq "none") {
+    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+    if ($RUN_TYPE eq "startup") {
+      add_default($nl, 'init_ecosys_init_file');
     } else {
-      add_default($nl, 'init_ecosys_init_file', 'val'=>"$POP_RESTART_OVERRIDE", 'noprepend'=>1);
+      add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }
+    add_default($nl, 'init_ecosys_init_file_fmt');
+  } else {
+    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_hybrid");
+    add_default($nl, 'init_ecosys_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
+    add_default($nl, 'init_ecosys_init_file_fmt', 'val'=>'nc');
   }
-  add_default($nl, 'init_ecosys_init_file_fmt');
 
 # init_ecosys_init_file is set
   # (1) query init_ecosys_init_file
   # (2) add_default('ciso_init_ecosys_init_file', 'val' => '$init_ecosys_init_file')
 
   if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
-
-    # By default, we use the same initial condition file for the base
+    # By default, we use the same initial condition settings for the base
     # ecosystem module and the CISO module, but users have the option of
     # specifying different files if desired.
+    my $init_ecosys_option = $nl->get_value("init_ecosys_option");
     my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
     my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
+
+    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"$init_ecosys_option");
     add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
     add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
 

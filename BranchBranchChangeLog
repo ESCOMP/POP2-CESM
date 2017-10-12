@@ -2,6 +2,31 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    12 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n84_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: revisions from code review of phys_cycle mods
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n83)
+   except for tests mentioned below, all tests pass
+      all NLCOMP tests fail because of removal of init_iage_init_file_fmt default value
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/phys_cycle_postrun
+M       cime_config/phys_cycle_prerun
+D       cime_config/phys_cycle_use_forcings
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    4 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n83_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: merge marbl_dev_n58 tag to this branch
