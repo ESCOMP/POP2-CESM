@@ -2181,7 +2181,12 @@
            end do
            call timer_stop(timer_write_transpose)
          end if
-         call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter))
+         call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter), &
+#ifdef TAVG_R8
+                        fill_value_d=avail_tavg_fields(nfield)%fill_value)
+#else
+                        fill_value_r=avail_tavg_fields(nfield)%fill_value)
+#endif
          if (time_to_close) call destroy_io_field(tavg_streams(ns)%tavg_fields(field_counter))
         endif ! tavg_in_this_stream
       endif ! tavg_requested
@@ -6322,7 +6327,18 @@
       n, ndims             ! local index
 
    do n=1,nvars
-      call data_set (tavg_file_desc, 'write', ccsm_vars(n))
+      if (associated(ccsm_vars(n)%field_r_2d) .or. &
+          associated(ccsm_vars(n)%field_r_3d)) then
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n), fill_value_r=undefined_nf_r4)
+      else if (associated(ccsm_vars(n)%field_d_2d) .or. &
+               associated(ccsm_vars(n)%field_d_3d)) then
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n), fill_value_d=undefined_nf_r8)
+      else if (associated(ccsm_vars(n)%field_i_2d) .or. &
+               associated(ccsm_vars(n)%field_i_3d)) then
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n), fill_value_i=undefined_nf_int)
+      else
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n))
+      endif
    enddo
 
 !-----------------------------------------------------------------------

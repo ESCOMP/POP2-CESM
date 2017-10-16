@@ -46,7 +46,8 @@ contains
 ! !IROUTINE: data_set
 ! !INTERFACE:
 
- subroutine data_set (data_file, operation, io_field, fieldname, field_exists)
+ subroutine data_set (data_file, operation, io_field, fieldname, field_exists, &
+                      fill_value_i, fill_value_r, fill_value_d)
 
 ! !DESCRIPTION:
 !  This routine is the main interface for array and file io functions,
@@ -63,6 +64,9 @@ contains
 
    character (*), intent (in)   :: operation
    character (*), intent (in), optional :: fieldname
+   integer (int_kind), intent(in), optional :: fill_value_i
+   real (r4), intent(in), optional :: fill_value_r
+   real (r8), intent(in), optional :: fill_value_d
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -216,7 +220,7 @@ contains
       if (data_file%data_format=='bin') then
          call write_field_binary(data_file,io_field)
       else if (data_file%data_format=='nc') then
-         call write_field_netcdf(data_file,io_field)
+         call write_field_netcdf(data_file,io_field,fill_value_i,fill_value_r,fill_value_d)
       endif
 
 !-----------------------------------------------------------------------

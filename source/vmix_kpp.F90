@@ -3674,7 +3674,7 @@
 
    if ( overwrite_hblt  .and.  .not.use_hmxl ) then
 
-     HBLT = WORK2
+     HBLT = max(WORK2, -zgrid(1))
 
      do k=1,km
        do j=2,ny_block-1
@@ -3689,7 +3689,7 @@
 
            if ( KMT(i,j,bid) /= 0            .and.  &
                 ( HBLT(i,j) >  -zgrid(k-1) ) .and.  &
-                ( HBLT(i,j) <= ztmp        ) ) KBL(i,j) = k
+                ( HBLT(i,j) <= ztmp        ) ) KBL(i,j) = max(k,2)
      
          enddo
        enddo

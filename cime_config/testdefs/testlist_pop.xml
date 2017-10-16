@@ -3,8 +3,6 @@
   <compset name="C">
     <grid name="T62_g16">
       <test name="ERS">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/cfc_sf6">cheyenne</machine>
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">cheyenne</machine>
         <machine compiler="intel" testtype="aux_science" testmods="pop/default">cheyenne</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/default">cheyenne</machine>
@@ -13,11 +11,19 @@
         <machine compiler="pgi" testtype="aux_rasm" testmods="pop/default">olympus</machine>
       </test>
       <test name="ERS_Lm3">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">edison</machine>
       </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">cheyenne</machine>
+      </test>
+    </grid>
+    <grid name="T62_g17">
+      <test name="ERS">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cfc_sf6">cheyenne</machine>
+      </test>
+      <test name="ERS_Lm3">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
       </test>
       <test name="SMS">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
@@ -50,7 +56,6 @@
   <compset name="C1850ECO">
     <grid name="T62_g16">
       <test name="ERI">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/ecosys">cheyenne</machine>
       </test>
       <test name="ERS">
@@ -80,6 +85,7 @@
     </grid>
     <grid name="T62_g17">
       <test name="ERI">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso">cheyenne</machine>
       </test>
       <test name="ERS_Ld5_D">
@@ -133,7 +139,6 @@
   <compset name="CIAF">
     <grid name="T62_g16">
       <test name="ERS_IOP">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/default">cheyenne</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/default">cheyenne</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">cheyenne</machine>
@@ -148,15 +153,17 @@
         <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">cheyenne</machine>
       </test>
     </grid>
+    <grid name="T62_g17">
+      <test name="ERS_IOP">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
+      </test>
+    </grid>
   </compset>
   <compset name="G">
     <grid name="T62_g16">
       <test name="ERS">
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">hobart</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
-      </test>
-      <test name="ERS_Ld5">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_tavg">cheyenne</machine>
       </test>
       <test name="ICP">
         <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">cheyenne</machine>
@@ -171,6 +178,11 @@
       </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">cheyenne</machine>
+      </test>
+    </grid>
+    <grid name="T62_g17">
+      <test name="ERS_Ld5">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_tavg">cheyenne</machine>
       </test>
       <test name="SMS_Ld20">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/performance_eval">cheyenne</machine>
@@ -237,9 +249,6 @@
       <test name="ERS">
         <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">cheyenne</machine>
       </test>
-      <test name="ERS_Ld5">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_5day_tavg">cheyenne</machine>
-      </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">cheyenne</machine>
       </test>
@@ -248,13 +257,15 @@
       </test>
     </grid>
     <grid name="T62_g17">
+      <test name="ERS_Ld5">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_5day_tavg">cheyenne</machine>
+      </test>
       <test name="SMS">
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_daily_r4_tavg">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_dust_flux_driver">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys_ladjust_bury_coeff">cheyenne</machine>

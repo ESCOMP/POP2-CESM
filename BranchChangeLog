@@ -1,6 +1,35 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n59_cesm_pop_2_1_20171008
+Tag Summary: Merge latest pop trunk into marbl_dev
+
+Testing:     aux_pop_MARBL is bit-for-bit with the Oct 8 trunk tag, though
+             namelist comparisons fail because of namelist changes on this
+             branch.
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/baroclinic.F90
+M       source/io.F90
+M       source/io_netcdf.F90
+M       source/io_pio.F90
+M       source/io_types.F90
+M       source/tavg.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 Sept 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: Merge latest marbl_dev_levy (n121) into marbl_dev

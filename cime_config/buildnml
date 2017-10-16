@@ -49,8 +49,7 @@ def buildnml(case, caseroot, compname):
     run_refdate = case.get_value("RUN_REFDATE")
     rundir = case.get_value("RUNDIR")
     testcase = case.get_value("TESTCASE")
-    ntasks_ocn = case.get_value("NTASKS_OCN")
-    ntasks = ntasks_ocn / ninst
+    ntasks = case.get_value("NTASKS_PER_INST_OCN")
 
     # Obtain correct pop rpointer files
     if testcase != 'SBN':
