@@ -805,6 +805,16 @@ Valid Values: 'bin', 'nc'
 Default: 'nc'
 </entry>
 
+<entry 
+id="init_ts_perturb"
+type="real"
+category="init_ts"
+group="init_ts_nml">
+init_ts_perturb perturbation for ts. 
+
+Default: 1.0e-3
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: diagnostics_nml          - -->
 <!-- - - - - - - - - - - - - - - - - - -->

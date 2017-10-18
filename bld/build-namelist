@@ -613,6 +613,7 @@ if ($OCN_ONEDIM eq 'TRUE' && $RUN_TYPE eq 'startup') {
 add_default($nl, 'init_ts_outfile'     , 'val'=>"${output_h}.ts_ic");
 add_default($nl, 'init_ts_outfile_fmt');
 add_default($nl, 'init_ts_suboption');
+add_default($nl, 'init_ts_perturb');
 
 ##########################################
 # namelist group: diagnostics_nml        #

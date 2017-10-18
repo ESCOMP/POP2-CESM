@@ -1,6 +1,21 @@
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
+Tag Date:    17 Oct 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171017
+Tag Summary: Added namelist parameters to specify perturbation and then to do
+             the perturbation (initial.F90). 
+
+Testing:     aux_pop on cheyenne. bit for bit
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/initial.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
 Tag Date:    08 Oct 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171008
 Tag Summary: add NTASKS_PER_INST_OCN to buildcpp

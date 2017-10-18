@@ -160,6 +160,7 @@
 
 <init_ts_outfile_fmt>'nc'</init_ts_outfile_fmt>
 <init_ts_outfile_fmt ocn_grid="tx0.1v2">'bin'</init_ts_outfile_fmt>
+<init_ts_perturb>0.0e-3</init_ts_perturb>
 
 <!---------------------------->
 <!-- diagnostics_nml -->
