@@ -481,6 +481,8 @@ contains
     surf_avg_dic_const   = 1944.0_r8
     surf_avg_di13c_const = 1944.0_r8
     surf_avg_di14c_const = 1944.0_r8
+    iron_frac_in_dust    = 0.035_r8 * 0.01_r8
+    iron_frac_in_bc      = 0.06_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
