@@ -6256,6 +6256,26 @@ group="ecosys_forcing_data_nml">
 Default: 1944.0
 </entry>
 
+<entry
+id="iron_frac_in_dust"
+type="real"
+category="marbl"
+group="ecosys_forcing_data_nml">
+fraction, by weight, of iron in dust
+
+Default: 0.00035
+</entry>
+
+<entry
+id="iron_frac_in_bc"
+type="real"
+category="marbl"
+group="ecosys_forcing_data_nml">
+fraction, by weight, of iron in black carbon
+
+Default: 0.06
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_tracer_init_nml - -->
@@ -7191,27 +7211,6 @@ type="dtype(3,1)%real"
 category="marbl"
 group="marbl_nml" >
 Default: (/ 1, 1, 1 /)
-</entry>
-
-
-<entry
-id="iron_frac_in_dust"
-type="real"
-category="marbl"
-group="marbl_nml" >
-fraction, by weight, of iron in dust
-
-Default: 0.00035
-</entry>
-
-<entry
-id="iron_frac_in_bc"
-type="real"
-category="marbl"
-group="marbl_nml" >
-fraction, by weight, of iron in black carbon
-
-Default: 0.06
 </entry>
 
 <entry

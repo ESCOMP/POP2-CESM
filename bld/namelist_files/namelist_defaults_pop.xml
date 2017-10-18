@@ -1288,6 +1288,10 @@
 <surf_avg_di13c_const>1944.0</surf_avg_di13c_const>
 <surf_avg_di14c_const>1944.0</surf_avg_di14c_const>
 
+<iron_frac_in_dust>0.00035</iron_frac_in_dust>
+
+<iron_frac_in_bc>0.06</iron_frac_in_bc>
+
 <!----------------------------->
 <!-- ecosys_tracer_init_nml  -->
 <!----------------------------->
@@ -1636,10 +1640,6 @@
 <grazing(3,1)%graze_doc       >0.06</grazing(3,1)%graze_doc>
 <grazing(3,1)%f_zoo_detr      >0.12</grazing(3,1)%f_zoo_detr>
 <grazing(3,1)%grazing_function>1   </grazing(3,1)%grazing_function>
-
-<iron_frac_in_dust>0.00035</iron_frac_in_dust>
-
-<iron_frac_in_bc>0.06</iron_frac_in_bc>
 
 <caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>
 

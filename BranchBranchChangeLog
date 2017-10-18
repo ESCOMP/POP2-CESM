@@ -2,6 +2,22 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    18 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n124_marbl_dev_n59_cesm_pop_2_1_20171008
+Tag Summary: Move iron_frac_in_{dust,bc} from MARBL to POP
+
+Testing:     aux_pop_MARBL on cheyenne and hobart; requires MARBL commit
+             114a61f, currently on enhancement/iron_frac_to_GCM branch
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n123_marbl_dev_n59_cesm_pop_2_1_20171008
 Tag Summary: Merge marbl_dev (n59) onto marbl_dev_levy
 
