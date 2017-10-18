@@ -1537,6 +1537,10 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'surf_avg_alk_const');
   add_default($nl, 'surf_avg_di13c_const');
   add_default($nl, 'surf_avg_di14c_const');
+
+  add_default($nl, 'iron_frac_in_dust');
+  add_default($nl, 'iron_frac_in_bc');
+
 }
 
 ##########################################
@@ -1906,8 +1910,6 @@ EOF
   add_default($nl, 'grazing(3,1)%f_zoo_detr');
   add_default($nl, 'grazing(3,1)%grazing_function');
 
-  add_default($nl, 'iron_frac_in_dust');
-  add_default($nl, 'iron_frac_in_bc');
   add_default($nl, 'caco3_bury_thres_opt');
   add_default($nl, 'caco3_bury_thres_depth');
   add_default($nl, 'pon_bury_coeff');

@@ -221,8 +221,6 @@ contains
     integer(int_kind)                :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
     integer (int_kind)               :: glo_avg_field_cnt
     real (r8)                        :: rmean_val
-    real (r8)                        :: fe_frac_dust
-    real (r8)                        :: fe_frac_bc
     ! Variables for processing namelists
     character(len=*), parameter      :: marbl_nml_filename='marbl_in'
     character(len=pop_in_nl_max_len) :: nl_buffer(pop_in_nl_cnt)
@@ -515,19 +513,6 @@ contains
     do13c_ind = marbl_instances(1)%get_tracer_index('DO13C')
     do14c_ind = marbl_instances(1)%get_tracer_index('DO14C')
 
-    ! forcing module requires two MARBL parameter values (set during init)
-    call marbl_instances(1)%get_setting('iron_frac_in_dust', fe_frac_dust)
-    if (marbl_instances(1)%StatusLog%labort_marbl) then
-      call marbl_instances(1)%StatusLog%log_error_trace('get_setting(iron_frac_in_dust)', subname)
-      call print_marbl_log(marbl_instances(1)%StatusLog, 1)
-    end if
-
-    call marbl_instances(1)%get_setting('iron_frac_in_bc', fe_frac_bc)
-    if (marbl_instances(1)%StatusLog%labort_marbl) then
-      call marbl_instances(1)%StatusLog%log_error_trace('get_setting(iron_frac_in_bc)', subname)
-      call print_marbl_log(marbl_instances(1)%StatusLog, 1)
-    end if
-
     ! pass ecosys_forcing_data_nml
     ! to ecosys_forcing_init()
     ! Also pass marbl_instance%surface_forcing_metadata
@@ -535,8 +520,6 @@ contains
 
     call ecosys_forcing_init(ciso_on,                                         &
                              land_mask,                                       &
-                             fe_frac_dust,                                    &
-                             fe_frac_bc,                                      &
                              marbl_instances(1)%surface_input_forcings,       &
                              marbl_instances(1)%interior_input_forcings,      &
                              tmp_nl_buffer,                                   &
