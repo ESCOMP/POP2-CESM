@@ -1110,12 +1110,13 @@
 
 <abio_atm_co2_filename>ocn/pop/res_indpt/forcing/splco2_20140912.dat</abio_atm_co2_filename>
 
-<abio_atm_co2_d14c_opt>'const'</abio_atm_co2_d14c_opt>
+<abio_atm_co2_opt>'const'</abio_atm_co2_opt>
+<abio_atm_d14c_opt>'const'</abio_atm_d14c_opt>
 
 <abio_atm_d14c_const>0.0</abio_atm_d14c_const>
 
-<abio_dic_dic14_model_year>1</abio_dic_dic14_model_year>
-<abio_dic_dic14_data_year>1</abio_dic_dic14_data_year>
+<abio_atm_model_year>1</abio_atm_model_year>
+<abio_atm_data_year>1</abio_atm_data_year>
 
 <!---------------------------->
 <!-- ecosys derived vars    -->

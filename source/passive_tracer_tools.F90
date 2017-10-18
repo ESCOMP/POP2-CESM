@@ -857,7 +857,7 @@
    do n = 1, tracer_cnt
       if (vflux_flag(n)) then
          short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
+                   &/ trim(ind_name_table(n)%name)
          call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
       endif
    end do
@@ -867,7 +867,7 @@
    do n = 1, tracer_cnt
       if (vflux_flag(n)) then
          short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
+                   &/ trim(ind_name_table(n)%name)
          call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
       endif
    end do

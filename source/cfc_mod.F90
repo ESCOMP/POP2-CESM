@@ -224,7 +224,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'cfc_mod:cfc_init'
+   character(*), parameter :: subname = 'cfc_mod:cfc_init'
 
    character(char_len) :: &
       init_cfc_option,        & ! option for initialization of bgc
@@ -334,9 +334,9 @@ contains
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call document(sub_name, 'cfc_nml not found')
+      call document(subname, 'cfc_nml not found')
       call exit_POP(sigAbort, 'stopping in ' /&
-                           &/ sub_name)
+                           &/ subname)
    endif
 
 !-----------------------------------------------------------------------
@@ -417,9 +417,9 @@ contains
 
       if (init_cfc_init_file == 'same_as_TS') then
          if (read_restart_filename == 'undefined') then
-            call document(sub_name, 'no restart file to read CFCs from')
+            call document(subname, 'no restart file to read CFCs from')
             call exit_POP(sigAbort, 'stopping in ' /&
-                                 &/ sub_name)
+                                 &/ subname)
          endif
          cfc_restart_filename = read_restart_filename
          init_cfc_init_file_fmt = init_ts_file_fmt
@@ -438,7 +438,7 @@ contains
 
    case ('file')
 
-      call document(sub_name, 'CFCs being read from separate file')
+      call document(subname, 'CFCs being read from separate file')
 
       call file_read_tracer_block(init_cfc_init_file_fmt, &
                                   init_cfc_init_file,     &
@@ -463,7 +463,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'init_cfc_option', init_cfc_option)
+      call document(subname, 'init_cfc_option', init_cfc_option)
       call exit_POP(sigAbort, 'unknown init_cfc_option')
 
    end select
@@ -628,7 +628,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'cfc_mod:cfc_init_sflux'
+   character(*), parameter :: subname = 'cfc_mod:cfc_init_sflux'
 
    integer (int_kind) :: &
       n,                 & ! index for looping over tracers
@@ -749,7 +749,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'cfc_formulation', cfc_formulation)
+      call document(subname, 'cfc_formulation', cfc_formulation)
 
       call exit_POP(sigAbort, &
                     'cfc_init_sflux: Unknown value for cfc_formulation')
@@ -788,7 +788,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'cfc_mod:read_pcfc_data'
+   character(*), parameter :: subname = 'cfc_mod:read_pcfc_data'
 
    character (len=char_len) :: &
       varname           ! name of variable being processed
@@ -851,7 +851,7 @@ contains
          go to 99
       endif
 
-      call document(sub_name, 'pcfc_data_len', pcfc_data_len)
+      call document(subname, 'pcfc_data_len', pcfc_data_len)
 
       allocate(pcfc_date(pcfc_data_len))
       allocate(pcfc11_nh(pcfc_data_len))
@@ -882,18 +882,18 @@ contains
          go to 99
       endif
 
-      call document(sub_name, 'pcfc_data_len', pcfc_data_len)
-      call document(sub_name, 'pcfc_date(end)', pcfc_date(pcfc_data_len))
-      call document(sub_name, 'pcfc11_nh(end)', pcfc11_nh(pcfc_data_len))
-      call document(sub_name, 'pcfc11_sh(end)', pcfc11_sh(pcfc_data_len))
-      call document(sub_name, 'pcfc12_nh(end)', pcfc12_nh(pcfc_data_len))
-      call document(sub_name, 'pcfc12_sh(end)', pcfc12_sh(pcfc_data_len))
+      call document(subname, 'pcfc_data_len', pcfc_data_len)
+      call document(subname, 'pcfc_date(end)', pcfc_date(pcfc_data_len))
+      call document(subname, 'pcfc11_nh(end)', pcfc11_nh(pcfc_data_len))
+      call document(subname, 'pcfc11_sh(end)', pcfc11_sh(pcfc_data_len))
+      call document(subname, 'pcfc12_nh(end)', pcfc12_nh(pcfc_data_len))
+      call document(subname, 'pcfc12_sh(end)', pcfc12_sh(pcfc_data_len))
 
    endif ! my_task == master_task
 
 99 call broadcast_scalar(stat, master_task)
    if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
-                                                          &/ sub_name)
+                                                          &/ subname)
 
    call broadcast_scalar(pcfc_data_len, master_task)
 

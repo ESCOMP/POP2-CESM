@@ -221,7 +221,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'sf6_mod:sf6_init'
+   character(*), parameter :: subname = 'sf6_mod:sf6_init'
 
    character(char_len) :: &
       init_sf6_option,        & ! option for initialization of bgc
@@ -331,9 +331,9 @@ contains
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call document(sub_name, 'sf6_nml not found')
+      call document(subname, 'sf6_nml not found')
       call exit_POP(sigAbort, 'stopping in ' /&
-                           &/ sub_name)
+                           &/ subname)
    endif
 
 !-----------------------------------------------------------------------
@@ -412,9 +412,9 @@ contains
 
       if (init_sf6_init_file == 'same_as_TS') then
          if (read_restart_filename == 'undefined') then
-            call document(sub_name, 'no restart file to read SF6s from')
+            call document(subname, 'no restart file to read SF6s from')
             call exit_POP(sigAbort, 'stopping in ' /&
-                                 &/ sub_name)
+                                 &/ subname)
          endif
          sf6_restart_filename = read_restart_filename
          init_sf6_init_file_fmt = init_ts_file_fmt
@@ -433,7 +433,7 @@ contains
 
    case ('file')
 
-      call document(sub_name, 'SF6s being read from separate file')
+      call document(subname, 'SF6s being read from separate file')
 
       call file_read_tracer_block(init_sf6_init_file_fmt, &
                                   init_sf6_init_file,     &
@@ -458,7 +458,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'init_sf6_option', init_sf6_option)
+      call document(subname, 'init_sf6_option', init_sf6_option)
       call exit_POP(sigAbort, 'unknown init_sf6_option')
 
    end select
@@ -599,7 +599,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'sf6_mod:sf6_init_sflux'
+   character(*), parameter :: subname = 'sf6_mod:sf6_init_sflux'
 
    integer (int_kind) :: &
       n,                 & ! index for looping over tracers
@@ -720,7 +720,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'sf6_formulation', sf6_formulation)
+      call document(subname, 'sf6_formulation', sf6_formulation)
 
       call exit_POP(sigAbort, &
                     'sf6_init_sflux: Unknown value for sf6_formulation')
@@ -759,7 +759,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'sf6_mod:read_psf6_data'
+   character(*), parameter :: subname = 'sf6_mod:read_psf6_data'
 
    character (len=char_len) :: &
       varname           ! name of variable being processed
@@ -822,7 +822,7 @@ contains
          go to 99
       endif
 
-      call document(sub_name, 'psf6_data_len', psf6_data_len)
+      call document(subname, 'psf6_data_len', psf6_data_len)
 
       allocate(psf6_date(psf6_data_len))
       allocate(psf6_nh(psf6_data_len))
@@ -847,16 +847,16 @@ contains
          go to 99
       endif
 
-      call document(sub_name, 'psf6_data_len', psf6_data_len)
-      call document(sub_name, 'psf6_date(end)', psf6_date(psf6_data_len))
-      call document(sub_name, 'psf6_nh(end)', psf6_nh(psf6_data_len))
-      call document(sub_name, 'psf6_sh(end)', psf6_sh(psf6_data_len))
+      call document(subname, 'psf6_data_len', psf6_data_len)
+      call document(subname, 'psf6_date(end)', psf6_date(psf6_data_len))
+      call document(subname, 'psf6_nh(end)', psf6_nh(psf6_data_len))
+      call document(subname, 'psf6_sh(end)', psf6_sh(psf6_data_len))
 
    endif ! my_task == master_task
 
 99 call broadcast_scalar(stat, master_task)
    if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
-                                                          &/ sub_name)
+                                                          &/ subname)
 
    call broadcast_scalar(psf6_data_len, master_task)
 

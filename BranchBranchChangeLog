@@ -2,6 +2,44 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    18 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n85_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: refactor code setting atm D14C in abio and ecosys modules
+
+move atm D14C reading code from abio_dic_dic14_mod.F90 and ecosys_forcing_mod.F90 to c14_atm_forcing_mod.F90
+nlvar abio_atm_co2_d14c_opt split into abio_atm_co2_opt and abio_atm_d14c_opt
+add test case for ciso_transient_abio_dic_dic14_transient
+rename sub_name -> subname for consistency in various modules
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n84)
+   except for tests mentioned below, all tests pass
+      NLCOMP and BASELINE failed for new test
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/ciso_transient_abio_dic_dic14_transient
+A       cime_config/testdefs/testmods_dirs/pop/ciso_transient_abio_dic_dic14_transient/include_user_mods
+M       source/abio_dic_dic14_mod.F90
+A       source/c14_atm_forcing_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_forcing_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/sf6_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    12 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n84_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: revisions from code review of phys_cycle mods

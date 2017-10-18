@@ -168,11 +168,8 @@ module ecosys_forcing_mod
   integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
   integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
   integer(int_kind)   :: ciso_atm_d13c_data_nbval       ! number of values in ciso_atm_d13c_filename
-  integer(int_kind)   :: ciso_atm_d14c_data_nbval       ! number of values in ciso_atm_d14c_filename
   real(r8), allocatable :: ciso_atm_d13c_data(:)          ! atmospheric D13C values in datafile
   real(r8), allocatable :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric D13C values in datafile
-  real(r8), allocatable :: ciso_atm_d14c_data(:,:)        ! atmospheric D14C values in datafile (sh, eq, nh, in permil)
-  real(r8), allocatable :: ciso_atm_d14c_data_yr(:,:)     ! date of atmospheric D14C values in datafile (sh, eq, nh)
   real(r8)            :: ciso_atm_d13c_const            ! atmospheric D13C constant [permil]
   real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
   character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and D13C varying or constant forcing
@@ -2161,11 +2158,12 @@ contains
 
     ! Updates module variables D13C and D14C (for atmospheric ratios)
 
-    use grid              , only : TAREA
-    use domain            , only : blocks_clinic
-    use domain            , only : distrb_clinic
-    use blocks            , only : get_block
-    use global_reductions , only : global_sum
+    use grid                , only : TAREA
+    use domain              , only : blocks_clinic
+    use domain              , only : distrb_clinic
+    use blocks              , only : get_block
+    use global_reductions   , only : global_sum
+    use c14_atm_forcing_mod , only : c14_atm_forcing_get_data
 
     implicit none
 
@@ -2222,18 +2220,10 @@ contains
        end select
 
        !-----------------------------------------------------------------------
-       !  Set D14C (constant or from files read in _init) and put on global grid
+       !  Set D14C
        !-----------------------------------------------------------------------
 
-       select case (trim(ciso_atm_d14c_opt))
-       case ('const')
-          D14C(:,:,:) = ciso_atm_d14c_const
-       case ('file')
-          call ciso_comp_varying_D14C(iblock, ciso_data_ind_d14c(iblock), D14C(:,:,iblock))
-       case default
-          call document(subname, 'unknown ciso_atm_d14c_opt in ecosys_ciso_set_sflux')
-          call exit_POP(sigAbort, 'Stopping in ' // subname)
-       end select
+       call c14_atm_forcing_get_data(iblock, D14C(:,:,iblock))
 
        !-----------------------------------------------------------------------
        ! Save local D14C field for making global mean after end of iblock loop
@@ -2374,133 +2364,6 @@ contains
 
   !***********************************************************************
 
-  subroutine ciso_comp_varying_D14C(iblock, ciso_data_ind_d14c, D14C)
-
-    !-----------------------------------------------------------------------
-    ! !DESCRIPTION:
-    !  Compute atmospheric mole fractions of CO2 when temporarily
-    !  varying data is read from files
-    !  1. Linearly interpolate hemispheric values to current time step
-    !  2. Make global field of D14C, determined by:
-    !   -Northern Hemisphere value is used for 20N - 90 N
-    !   -Southern Hemisphere value is used for 20 S - 90 S
-    !   -Equator value is used for 20 S- 20 N
-
-    use time_management, only : days_in_year
-    use time_management, only : frac_day
-    use time_management, only : iday_of_year
-    use time_management, only : iyear
-    use grid           , only : TLATD
-
-    implicit none
-
-    !  note that data_ind is always strictly less than the length of D14C data
-    !  and is initialized to -1 before the first call
-
-    integer (int_kind) , intent(in)  :: iblock                  ! block index
-    integer (int_kind) , intent(out) :: ciso_data_ind_d14c      ! data_ind_d14c is the index into data for current timestep,
-    real (r8)          , intent(out) :: D14C(nx_block,ny_block) ! atmospheric delta C14 in permil on global grid
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_comp_varying_D14C'
-    integer (int_kind) :: &
-         i, j, il        ! loop indices
-
-    real (r8) :: &
-         model_date,      & ! date of current model timestep
-         mapped_date,     & ! model_date mapped to data timeline
-         weight,          & ! weighting for temporal interpolation
-         d14c_curr_sh,    & ! current atmospheric D14C value for SH (interpolated from data to model date)
-         d14c_curr_nh,    & ! current atmospheric D14C value for NH (interpolated from data to model date)
-         d14c_curr_eq       ! current atmospheric D14C value for EQ (interpolated from data to model date)
-    !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    !  Generate mapped_date and check to see if it is too large.
-    !-----------------------------------------------------------------------
-
-    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
-    mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
-    do il=1,3
-       if (mapped_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval,il)) then
-          call document(subname, 'ciso: model date maps to date after end of D14C data in files.')
-          call exit_POP(sigAbort, 'Stopping in ' // subname)
-       endif
-    enddo
-
-    !--------------------------------------------------------------------------------------------------------------
-    !  Set atmospheric D14C concentrations to zero before D14C record begins
-    !--------------------------------------------------------------------------------------------------------------
-
-    if (mapped_date < ciso_atm_d14c_data_yr(1,1)) then
-       D14C = c0
-       ciso_data_ind_d14c = 1
-       if(my_task == master_task) then
-          write(stdout,*)'ciso: Model date less than start of D14C data --> D14C=0'
-       endif
-       return
-    endif
-
-    !-----------------------------------------------------------------------
-    !  On first time step, perform linear search to find data_ind_d14c.
-    !-----------------------------------------------------------------------
-
-    if (ciso_data_ind_d14c == -1) then
-       do ciso_data_ind_d14c = ciso_atm_d14c_data_nbval-1,1,-1
-          if (mapped_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) exit
-       end do
-    endif
-
-    !-----------------------------------------------------------------------
-    !  See if data_ind_d14c need to be updated,
-    !  but do not set it to atm_co2_data_nbval.
-    !-----------------------------------------------------------------------
-
-    if (ciso_data_ind_d14c < ciso_atm_d14c_data_nbval-1) then
-       if (mapped_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1))  then
-          ciso_data_ind_d14c = ciso_data_ind_d14c + 1
-       endif
-    endif
-    !
-    !-----------------------------------------------------------------------
-    !  Generate hemisphere values for current time step.
-    !-----------------------------------------------------------------------
-
-    weight = (mapped_date - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) &
-         / (ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1) - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1))
-
-    d14c_curr_sh = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,1) + &
-              (c1-weight) * ciso_atm_d14c_data(ciso_data_ind_d14c,1)
-    d14c_curr_eq = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,2) + &
-              (c1-weight) * ciso_atm_d14c_data(ciso_data_ind_d14c,2)
-    d14c_curr_nh = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,3) + &
-              (c1-weight) * ciso_atm_d14c_data(ciso_data_ind_d14c,3)
-
-    !-----------------------------------------------------------------------
-    !  Merge hemisphere values for D14C
-    !      -Northern Hemisphere value is used for >20N - 90 N
-    !      -Southern Hemisphere value is used for >20 S - 90 S
-    !      -Equatorial value is used for 20 S to 20 N
-    !-----------------------------------------------------------------------
-
-    do j = 1, ny_block
-       do i = 1, nx_block
-          if (TLATD(i,j,iblock) < -20.0_r8) then
-             D14C(i,j) = d14c_curr_sh
-          else if (TLATD(i,j,iblock) > 20.0_r8) then
-             D14C(i,j) = d14c_curr_nh
-          else
-             D14C(i,j) = d14c_curr_eq
-          endif
-       end do
-    end do
-
-  end subroutine ciso_comp_varying_D14C
-
-  !*****************************************************************************
-
   subroutine ciso_init_atm_D13_D14
 
     !---------------------------------------------------------------------
@@ -2509,10 +2372,11 @@ contains
     !  Includes reading CO2 and D13C and D14C data from file if option file is used
     !---------------------------------------------------------------------
 
-    use io_types        , only : stdout
-    use constants       , only : blank_fmt
-    use constants       , only : delim_fmt
-    use constants       , only : ndelim_fmt
+    use io_types            , only : stdout
+    use constants           , only : blank_fmt
+    use constants           , only : delim_fmt
+    use constants           , only : ndelim_fmt
+    use c14_atm_forcing_mod , only : c14_atm_forcing_init
 
     implicit none
 
@@ -2544,23 +2408,9 @@ contains
     !     Set D14C data source
     !-------------------------------------------------------------------------
 
-    select case (trim(ciso_atm_d14c_opt))
-    case ('const')
-       if (my_task == master_task) then
-          write(stdout,blank_fmt)
-          write(stdout,ndelim_fmt)
-          write(stdout,blank_fmt)
-          write(stdout,*)'ciso: Using constant D14C values of ',ciso_atm_d14c_const
-          write(stdout,blank_fmt)
-          write(stdout,ndelim_fmt)
-          write(stdout,blank_fmt)
-       endif
-    case('file')
-       call ciso_read_atm_D14C_data ! READ in D14C data from files
-    case default
-       call document(subname, 'unknown ciso_atm_d14c_opt in ecosys_ciso_init_atm_d13_d14')
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
-    end select
+    call c14_atm_forcing_init('ecosys_forcing', ciso_atm_d14c_opt, &
+        ciso_atm_d14c_const, ciso_atm_d14c_filename, &
+        ciso_atm_model_year, ciso_atm_data_year)
 
   end subroutine ciso_init_atm_D13_D14
 
@@ -2664,136 +2514,6 @@ contains
     call broadcast_array(ciso_atm_d13c_data_yr, master_task)
 
   end subroutine ciso_read_atm_D13C_data
-
-  !*****************************************************************************
-
-  subroutine ciso_read_atm_D14C_data
-
-    !-----------------------------------------------------------------------
-    ! !DESCRIPTION:
-    !  Read atmospheric D14C data from file
-    !
-    !  Have the master_task do the following :
-    !     1) get length of data
-    !     2) allocate memory for data
-    !     3) read in data, checking for consistent lengths
-    !  Then, outside master_task conditional
-    !     1) broadcast length of data
-    !     2) have non-mastertasks allocate memory for data
-    !     3) broadcast data
-    !-----------------------------------------------------------------------
-
-    use broadcast       , only : broadcast_array
-    use broadcast       , only : broadcast_scalar
-    use constants       , only : blank_fmt
-    use constants       , only : delim_fmt
-    use constants       , only : ndelim_fmt
-    use io_types        , only : nml_in
-
-    implicit none
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_read_atm_D14C_data'
-
-    integer(int_kind) ::         &
-         stat,                   &  ! i/o status code
-         irec,                   &  ! counter for looping
-         skiplines,              &  ! number of comment lines at beginning of ascii file
-         il                         ! looping index
-
-    character(len=char_len) ::      &
-         sglchr                     ! variable to read characters from file into
-
-    integer(int_kind) :: ciso_atm_d14c_data_nbval_tmp
-    logical(log_kind) :: nbval_mismatch
-
-    !-----------------------------------------------------------------------
-    !     ensure that three datafiles have same number of entries
-    !-----------------------------------------------------------------------
-
-    if (my_task == master_task) then
-       write(stdout,*)'ciso DIC14 calculation: Using varying C14 values from files'
-       do il=1,3
-          write(stdout,*) trim(ciso_atm_d14c_filename(il))
-       enddo
-       nbval_mismatch = .false.
-       do il=1,3
-          open (nml_in,file=ciso_atm_d14c_filename(il),status='old',iostat=stat)
-          if (stat /= 0) then
-             write(stdout,*) 'open failed for ', trim(ciso_atm_d14c_filename(il))
-             go to 99
-          endif
-          read(nml_in,FMT=*,iostat=stat) skiplines,ciso_atm_d14c_data_nbval_tmp
-          if (stat /= 0) then
-             write(stdout,*) '1st line read failed for ', trim(ciso_atm_d14c_filename(il))
-             go to 99
-          endif
-          close(nml_in)
-          if (il == 1) then
-             ciso_atm_d14c_data_nbval = ciso_atm_d14c_data_nbval_tmp
-          else
-             if (ciso_atm_d14c_data_nbval /= ciso_atm_d14c_data_nbval_tmp) nbval_mismatch = .true.
-          endif
-       enddo
-    endif
-
-    call broadcast_scalar(nbval_mismatch, master_task)
-    if (nbval_mismatch) then
-       call document(subname, 'D14C data files must all have the same number of values')
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
-    endif
-
-    call broadcast_scalar(ciso_atm_d14c_data_nbval, master_task)
-    allocate(ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval,3))
-    allocate(ciso_atm_d14c_data   (ciso_atm_d14c_data_nbval,3))
-
-    !-----------------------------------------------------------------------
-    !     READ in C14 data from files - three files, for SH, EQ, NH
-    !-----------------------------------------------------------------------
-
-    if (my_task == master_task) then
-       do il=1,3
-          open (nml_in,file=ciso_atm_d14c_filename(il),status='old',iostat=stat)
-          if (stat /= 0) then
-             write(stdout,*) 'open failed for ', trim(ciso_atm_d14c_filename(il))
-             go to 99
-          endif
-          read(nml_in,FMT=*,iostat=stat) skiplines,ciso_atm_d14c_data_nbval_tmp
-          if (stat /= 0) then
-             write(stdout,*) '1st line read failed for ', trim(ciso_atm_d14c_filename(il))
-             go to 99
-          endif
-          do irec=1,skiplines
-             read(nml_in,FMT=*,iostat=stat) sglchr
-             if (stat /= 0) then
-                write(stdout,fmt=*) 'skipline read failed for ', trim(ciso_atm_d14c_filename(il))
-                go to 99
-             endif
-          enddo
-          do irec=1,ciso_atm_d14c_data_nbval
-             read(nml_in,FMT=*,iostat=stat) ciso_atm_d14c_data_yr(irec,il), ciso_atm_d14c_data(irec,il)
-             if (stat /= 0) then
-                write(stdout,fmt=*) 'data read failed for ', trim(ciso_atm_d14c_filename(il))
-                go to 99
-             endif
-          enddo
-          close(nml_in)
-       enddo
-    endif
-
-99  call broadcast_scalar(stat, master_task)
-    if (stat /= 0) call exit_POP(sigAbort, 'Stopping in ' // subname)
-
-    !---------------------------------------------------------------------
-    ! Broadcast the variables to other tasks beside master_task
-    !---------------------------------------------------------------------
-
-    call broadcast_array(ciso_atm_d14c_data   , master_task)
-    call broadcast_array(ciso_atm_d14c_data_yr, master_task)
-
-  end subroutine ciso_read_atm_D14C_data
 
   !*****************************************************************************
 

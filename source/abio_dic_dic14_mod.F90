@@ -107,32 +107,34 @@ module abio_dic_dic14_mod
 !  forcing related variables
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::     &
-      abio_dic_dic14_model_year,& !  arbitrary model year
-      abio_dic_dic14_data_year, & !  year in data that corresponds to abio_dic_dic14_model_year
-      atm_co2_data_nbval,    &    !  number of values in abio_atm_co2_filename
-      atm_d14c_data_nbval         !  number of values in abio_atm_d14c_filename
-
-
-   real (r8), dimension(:), allocatable :: &
-      atm_co2_data_ppm,      &    !  atmospheric pCO2 values in datafile [ppm]
-      atm_co2_data_yr             !  date of atmospheric pCO2 values in datafile
-
-   real (r8), dimension(:,:) , allocatable :: &
-      atm_d14c_data,         &    !  atmospheric Delta C14 values in datafile (sh, eq, nh, in permil)
-      atm_d14c_data_yr            !  date of atmospheric DC14 values in datafile (sh, eq, nh)
+   character(char_len) ::    &
+      abio_atm_co2_opt              ! option for CO2 varying or constant forcing
 
    real (r8) :: &
-      abio_atm_co2_const,    &    !  atmospheric CO2 constant [ppm]
-      abio_atm_d14c_const         !  atmospheric 14CO2 constant [permil]
+      abio_atm_co2_const            !  atmospheric CO2 constant [ppm]
 
    character(char_len) ::    &
-      abio_atm_co2_d14c_opt, &    ! option for CO2 and D14C varying or constant forcing
-      abio_atm_co2_filename       ! filename for varying atm CO2 data
+      abio_atm_co2_filename         ! filename for varying atm CO2 data
 
+   integer (int_kind) :: &
+      abio_atm_co2_data_nbval       !  number of values in abio_atm_co2_filename
 
-   character (char_len), dimension(3) :: &
-      abio_atm_d14c_filename      ! filenames for varying atm D14C (one each for NH, SH, EQ)
+   real (r8), dimension(:), allocatable :: &
+      abio_atm_co2_data_ppm,      & !  atmospheric pCO2 values in datafile [ppm]
+      abio_atm_co2_data_yr          !  date of atmospheric pCO2 values in datafile
+
+   character(char_len) :: &
+      abio_atm_d14c_opt             ! option for D14C varying or constant forcing
+
+   real (r8) :: &
+      abio_atm_d14c_const           !  atmospheric 14CO2 constant [permil]
+
+   character(char_len), dimension(3) :: &
+      abio_atm_d14c_filename        ! filenames for varying atm D14C (one each for NH, SH, EQ)
+
+   integer (int_kind) :: &
+      abio_atm_model_year,        & !  arbitrary model year
+      abio_atm_data_year            !  year in data that corresponds to abio_atm_model_year
 
 !-------------------------------------------------------------------------
 !  named field indices
@@ -184,16 +186,13 @@ module abio_dic_dic14_mod
       tavg_ABIO_D14Cocn           ! tavg id for (DIC14/DIC -1 )* 1000
 
 !-----------------------------------------------------------------------
-!  data_ind_co2/data_ind_d14c is the index for the CO2/D14C data for the
-!  current timestep
-!  Note that data_ind_co2/data_ind_d14c is always less than atm_co2_data_nbval
-!  /atm_d14c_data_nbval.
+!  data_ind_co2 is the index for the CO2 data for the current timestep
+!  Note that data_ind_co2 is always less than abio_atm_co2_data_nbval
 !  To enable OpenMP parallelism, duplicating data_ind for each block
 !-----------------------------------------------------------------------
 
    integer (int_kind), dimension(:), allocatable :: &
-     data_ind_co2,   &            ! data index for CO2 data
-     data_ind_d14c                ! data index for D14C data
+     data_ind_co2                 ! data index for CO2 data
 
 !-----------------------------------------------------------------------
 !  timers
@@ -291,7 +290,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'abio_dic_dic14_mod:abio_dic_dic14_init'
+   character(*), parameter :: subname = 'abio_dic_dic14_mod:abio_dic_dic14_init'
 
    character(char_len) :: &
       init_abio_dic_dic14_option,        &  ! option for initialization of abio dic/dic14
@@ -301,9 +300,9 @@ contains
       abio_dic_dic14_restart_filename       ! modified file name for restart file
 
    integer (int_kind) :: &
-      n,                      &             ! index for looping over tracers
-      k,                      &             ! index for looping over depth levels
-      iblock,                 &             ! index for looping over blocks
+      n,                                  & ! index for looping over tracers
+      k,                                  & ! index for looping over depth levels
+      iblock,                             & ! index for looping over blocks
       nml_error                             ! namelist i/o error flag
 
    type(tracer_read), dimension(abio_dic_dic14_tracer_cnt) :: &
@@ -311,12 +310,11 @@ contains
 
 
    integer (int_kind) :: &
-      freq_opt, freq,         &             ! args for init_time_flag
-      abio_comp_surf_avg_freq_iopt,&        ! choice for freq of comp_surf_avg
+      abio_comp_surf_avg_freq_iopt,       & ! choice for freq of comp_surf_avg
       abio_comp_surf_avg_freq               ! choice for freq of comp_surf_avg
 
    real (r8) :: &
-      abio_surf_avg_dic_const,   &          ! Constant surface DIC
+      abio_surf_avg_dic_const,            & ! Constant surface DIC
       abio_surf_avg_dic14_const             ! Constant surface DIC14
 
    logical (log_kind) :: &
@@ -327,9 +325,9 @@ contains
       init_abio_dic_dic14_option, init_abio_dic_dic14_init_file, abio_tracer_init_ext, &
       init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
       abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
-      abio_atm_co2_d14c_opt, abio_atm_co2_filename, abio_atm_co2_const, abio_atm_d14c_const, &
-      abio_atm_d14c_filename, abio_dic_dic14_model_year, abio_dic_dic14_data_year
-
+      abio_atm_co2_opt, abio_atm_co2_const, abio_atm_co2_filename, &
+      abio_atm_d14c_opt, abio_atm_d14c_const, abio_atm_d14c_filename, &
+      abio_atm_model_year, abio_atm_data_year
 
 !-----------------------------------------------------------------------
 !  initialize tracer_d values
@@ -369,16 +367,18 @@ contains
    abio_comp_surf_avg_freq_opt       = 'never'
    abio_comp_surf_avg_freq           = 1
 
-   abio_atm_co2_d14c_opt             = 'const'
+   abio_atm_co2_opt                  = 'const'
    abio_atm_co2_const                = 280.0_r8
    abio_atm_co2_filename             = 'unknown'
+
+   abio_atm_d14c_opt                 = 'const'
    abio_atm_d14c_const               = c0
    abio_atm_d14c_filename(1)         = 'unknown'
    abio_atm_d14c_filename(2)         = 'unknown'
    abio_atm_d14c_filename(3)         = 'unknown'
 
-   abio_dic_dic14_model_year         = 1
-   abio_dic_dic14_data_year          = 1
+   abio_atm_model_year               = 1
+   abio_atm_data_year                = 1
 
 !-----------------------------------------------------------------------
 !  read namelist settings from namelist
@@ -399,9 +399,9 @@ contains
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call document(sub_name, 'abio_dic_dic14_nml not found')
+      call document(subname, 'abio_dic_dic14_nml not found')
       call exit_POP(sigAbort, 'stopping in ' /&
-                           &/ sub_name)
+                           &/ subname)
    endif
 
    if (my_task == master_task) then
@@ -421,13 +421,6 @@ contains
 !  broadcast all namelist variables
 !-----------------------------------------------------------------------
 
-   call broadcast_scalar(abio_atm_co2_d14c_opt, master_task)
-   call broadcast_scalar(abio_atm_d14c_const, master_task)
-   call broadcast_scalar(abio_atm_d14c_filename(1), master_task)
-   call broadcast_scalar(abio_atm_d14c_filename(2), master_task)
-   call broadcast_scalar(abio_atm_d14c_filename(3), master_task)
-   call broadcast_scalar(abio_atm_co2_const, master_task)
-   call broadcast_scalar(abio_atm_co2_filename, master_task)
    call broadcast_scalar(init_abio_dic_dic14_option, master_task)
    call broadcast_scalar(init_abio_dic_dic14_init_file, master_task)
    call broadcast_scalar(init_abio_dic_dic14_init_file_fmt, master_task)
@@ -447,9 +440,18 @@ contains
    call broadcast_scalar(abio_comp_surf_avg_freq_opt, master_task)
    call broadcast_scalar(abio_comp_surf_avg_freq, master_task)
 
-   call broadcast_scalar(abio_dic_dic14_model_year, master_task)
-   call broadcast_scalar(abio_dic_dic14_data_year, master_task)
+   call broadcast_scalar(abio_atm_co2_opt, master_task)
+   call broadcast_scalar(abio_atm_co2_const, master_task)
 
+   call broadcast_scalar(abio_atm_co2_filename, master_task)
+   call broadcast_scalar(abio_atm_d14c_opt, master_task)
+   call broadcast_scalar(abio_atm_d14c_const, master_task)
+   call broadcast_scalar(abio_atm_d14c_filename(1), master_task)
+   call broadcast_scalar(abio_atm_d14c_filename(2), master_task)
+   call broadcast_scalar(abio_atm_d14c_filename(3), master_task)
+
+   call broadcast_scalar(abio_atm_model_year, master_task)
+   call broadcast_scalar(abio_atm_data_year, master_task)
 
 !-----------------------------------------------------------------------
 !  set variables immediately dependent on namelist variables
@@ -463,7 +465,7 @@ contains
    case ('nmonth')
       abio_comp_surf_avg_freq_iopt = freq_opt_nmonth
    case default
-      call document(sub_name, 'abio_comp_surf_avg_freq_opt', abio_comp_surf_avg_freq_opt)
+      call document(subname, 'abio_comp_surf_avg_freq_opt', abio_comp_surf_avg_freq_opt)
       call exit_POP(sigAbort, 'unknown abio_comp_surf_avg_freq_opt')
    end select
 
@@ -476,8 +478,8 @@ contains
 !-----------------------------------------------------------------------
 
    if (abio_use_nml_surf_vals .and. abio_comp_surf_avg_freq_iopt /= freq_opt_never) then
-      call document(sub_name, 'abio_use_nml_surf_vals', abio_use_nml_surf_vals)
-      call document(sub_name, 'abio_comp_surf_avg_freq_opt', abio_comp_surf_avg_freq_opt)
+      call document(subname, 'abio_use_nml_surf_vals', abio_use_nml_surf_vals)
+      call document(subname, 'abio_comp_surf_avg_freq_opt', abio_comp_surf_avg_freq_opt)
       call exit_POP(sigAbort, 'abio_use_nml_surf_vals can only be .true. if ' /&
                            &/ ' abio_comp_surf_avg_freq_opt is never')
    endif
@@ -509,9 +511,9 @@ contains
 
       if (init_abio_dic_dic14_init_file == 'same_as_TS') then
          if (read_restart_filename == 'undefined') then
-            call document(sub_name, 'no restart file to read Abiotic DIC & DIC14 from')
+            call document(subname, 'no restart file to read Abiotic DIC & DIC14 from')
             call exit_POP(sigAbort, 'stopping in ' /&
-                                 &/ sub_name)
+                                 &/ subname)
          endif
          abio_dic_dic14_restart_filename = read_restart_filename
          init_abio_dic_dic14_init_file_fmt = init_ts_file_fmt
@@ -555,7 +557,7 @@ contains
 
    case ('file', 'ccsm_startup', 'zero', 'ccsm_startup_spunup')
 
-      call document(sub_name, 'Abiotic DIC and DIC14 being read from separate file')
+      call document(subname, 'Abiotic DIC and DIC14 being read from separate file')
 
       call file_read_tracer_block(init_abio_dic_dic14_init_file_fmt, &
                                   init_abio_dic_dic14_init_file,     &
@@ -600,7 +602,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'init_abio_dic_dic14_option', init_abio_dic_dic14_option)
+      call document(subname, 'init_abio_dic_dic14_option', init_abio_dic_dic14_option)
       call exit_POP(sigAbort, 'unknown init_abio_dic_dic14_option')
 
    end select
@@ -803,7 +805,7 @@ contains
 ! !USES:
    use named_field_mod, only: named_field_get_index
    use registry, only: registry_match
-
+   use c14_atm_forcing_mod, only: c14_atm_forcing_init
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for the abio_dic_dic14 tracer module.
@@ -817,17 +819,16 @@ contains
 !-----------------------------------------------------------------------
 
 !-------------------------------------------------------------------------
-!     READ in CO2 and D14C data from files for option file or get
-!     CO2 from coupler for option coupler and D14C from file
+!     READ in CO2 data from files for option file or get
+!     CO2 from coupler for option coupler
 !-------------------------------------------------------------------------
 
-   select case (abio_atm_co2_d14c_opt)
+   select case (abio_atm_co2_opt)
 
    case ('const')
       if (my_task == master_task) then
-         write(stdout,*)'Abiotic DIC/DIC14 calculation: Using constant CO2',  &
-                        ' and D14C values of ',abio_atm_co2_const,' & ',      &
-                        abio_atm_d14c_const
+         write(stdout,*)'Abiotic DIC calculation: Using constant CO2',  &
+                        ' value of ',abio_atm_co2_const
       endif
 
    case ('coupler')
@@ -840,7 +841,7 @@ contains
 !-----------------------------------------------------------------------
       if (.not. registry_match('lcoupled')) then
          write(message, *) 'abio_dic_dic14_init: abio_dic_dic14 module requires ', &
-                           ' the flux coupler when abio_atm_co2_d14c_opt=coupler'
+                           ' the flux coupler when abio_atm_co2_opt=coupler'
          call exit_POP(sigAbort, message)
       endif
 !-----------------------------------------------------------------------
@@ -858,12 +859,6 @@ contains
          call exit_POP(sigAbort, message)
       endif
 
-!-----------------------------------------------------------------------
-!     READ in D14C data from files
-!-----------------------------------------------------------------------
-
-      call read_atm_D14C_data
-
 
    case('file')
 !-----------------------------------------------------------------------
@@ -872,17 +867,16 @@ contains
 
       call read_atm_CO2_data
 
-!-----------------------------------------------------------------------
-!     READ in D14C data from files
-!-----------------------------------------------------------------------
-
-      call read_atm_D14C_data
-
-
   case default
-      call exit_POP(sigAbort, 'unknown abio_atm_co2_d14c_opt in abio_dic_dic14_init_sflux')
+      call exit_POP(sigAbort, 'unknown abio_atm_co2_opt in abio_dic_dic14_init_sflux')
 
   end select
+
+!-------------------------------------------------------------------------
+
+  call c14_atm_forcing_init('abio_dic_dic14', abio_atm_d14c_opt, &
+      abio_atm_d14c_const, abio_atm_d14c_filename, &
+      abio_atm_model_year, abio_atm_data_year)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -911,6 +905,7 @@ contains
    use timers, only: timer_start, timer_stop
    use named_field_mod, only: named_field_get
    use grid, only: REGION_MASK
+   use c14_atm_forcing_mod, only: c14_atm_forcing_get_data
 
 ! !INPUT PARAMETERS:
 
@@ -937,7 +932,7 @@ contains
 
    integer (int_kind) :: &
       iblock,            & ! block index
-      i, j                 ! looping index
+      j                    ! looping index
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       IFRAC_USED,        & ! used ice fraction (non-dimensional)
@@ -950,13 +945,10 @@ contains
       pCO2,               & ! atmospheric CO2 mole fraction (pmol/mol)
       D14C,               & ! atmospheric Delta C14 in permil
       CO2_SCHMIDT_USED,   & ! CO2 Schmidt number
-      CO2_SOL_0,          & ! solubility of CO2 at 1 atm (mol/l/atm)
       XKW_ICE,            & ! common portion of piston vel., (1-fice)*xkw (cm/s)
       PV,                 & ! piston velocity (cm/s)
       SiO2,               & ! Silicate (constant), in mol/m3 =mmol/cm3
       PO4,                & ! Phosphate (constant), in mol/m3 =mmol/cm3
-      DIC_surf,           & ! DIC surface aqueous CO2 concentration [mol/m3], computed from the surface DIC, T, S, and Alk
-      DIC14_surf,         & ! DIC14 surface ocean 14CO2 concentration [mol/m3] =mmol/cm3
       R14C_ocn,           & ! Rocn=DIC14/DIC
       R14C_atm,           & ! Ratm = 1+ D14C/1000
       GAS_FLUX_ABIO_DIC,  & ! Surface gas flux of DIC
@@ -975,10 +967,6 @@ contains
       ALK_ROW,          & ! Alkalinty in nano eq/cm3
       CO3_ROW             ! CO3 at the surface
 
-   logical (log_kind), save :: &
-      first = .true.      ! Logical for first iteration test
-
-
 !-----------------------------------------------------------------------
 !  local parameters
 !-----------------------------------------------------------------------
@@ -992,14 +980,6 @@ contains
    if (check_time_flag(comp_surf_avg_flag))  &
       call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,abio_dic_dic14_tracer_cnt, &
                             vflux_flag,surf_avg)
-
-   if (first) then
-      allocate( data_ind_co2(max_blocks_clinic) )
-      allocate( data_ind_d14c(max_blocks_clinic) )
-      data_ind_co2 = -1
-      data_ind_d14c = -1
-      first = .false.
-   endif
 
 ! Initilize fields to zero
 !$OMP PARALLEL DO PRIVATE(iblock)
@@ -1076,29 +1056,28 @@ contains
    PO4   = 0.5_r8 * rho_sw      ! Phosphate (constant), in mmol/m3 = nmol/cm3 (orignal value is 0.5 micromol/kg)
 
 !-----------------------------------------------------------------------
-! Assign CO2 and D14C data to variables
+! Assign CO2 data to variables
 !-----------------------------------------------------------------------
-      select case (abio_atm_co2_d14c_opt)
+      select case (abio_atm_co2_opt)
 
       case ('const')
             pCO2 = abio_atm_co2_const
-            D14C = abio_atm_d14c_const
 
       case ('coupler')
 
          call named_field_get(atm_co2_nf_ind,iblock, pCO2)
-         call comp_varying_D14C(iblock, data_ind_d14c(iblock),D14C)
-
 
       case('file')
-         call comp_varying_CO2(iblock, data_ind_co2(iblock),pCO2)
-         call comp_varying_D14C(iblock, data_ind_d14c(iblock),D14C)
-
+         call comp_varying_CO2(data_ind_co2(iblock),pCO2)
 
       case default
-         call exit_POP(sigAbort, 'unknown abio_atm_co2_d14c_opt in abio_dic_dic14_set_sflux')
+         call exit_POP(sigAbort, 'unknown abio_atm_co2_opt in abio_dic_dic14_set_sflux')
 
       end select
+
+!-----------------------------------------------------------------------
+
+      call c14_atm_forcing_get_data(iblock, D14C)
 
 !-----------------------------------------------------------------------
 ! Make filtered Surface DIC and DIC14 variables
@@ -1109,6 +1088,7 @@ contains
 
       SURF_VALS_DIC14 = p5*(SURF_VALS_OLD(:,:,abio_dic14_ind,iblock) + &
                             SURF_VALS_CUR(:,:,abio_dic14_ind,iblock))
+
 !-----------------------------------------------------------------------
 ! Calculate R14C_ocn and R14C_atm
 !-----------------------------------------------------------------------
@@ -1412,13 +1392,12 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
-   character(*), parameter :: sub_name = 'abio_dic_dci14_mod:read_atm_CO2_data'
+   character(*), parameter :: subname = 'abio_dic_dci14_mod:read_atm_CO2_data'
 
    integer (int_kind) ::    &
       stat,                 &  ! i/o status code
       irec,                 &  ! counter for looping
-      skiplines,            &  ! number of comment lines at beginning of ascii file
-      il                       ! looping index
+      skiplines                ! number of comment lines at beginning of ascii file
 
    character (char_len) ::  &
       sglchr                   ! variable to read characters from file into
@@ -1434,13 +1413,13 @@ end subroutine abio_dic_dic14_tavg_forcing
          write(stdout,fmt=*) 'open failed'
          go to 99
       endif
-      read(nml_in,FMT=*,iostat=stat) skiplines,atm_co2_data_nbval
+      read(nml_in,FMT=*,iostat=stat) skiplines,abio_atm_co2_data_nbval
       if (stat /= 0) then
          write(stdout,fmt=*) '1st line read failed'
          go to 99
       endif
-      allocate(atm_co2_data_yr(atm_co2_data_nbval))
-      allocate(atm_co2_data_ppm(atm_co2_data_nbval))
+      allocate(abio_atm_co2_data_yr(abio_atm_co2_data_nbval))
+      allocate(abio_atm_co2_data_ppm(abio_atm_co2_data_nbval))
       do irec=1,skiplines
          read(nml_in,FMT=*,iostat=stat) sglchr
          if (stat /= 0) then
@@ -1448,8 +1427,8 @@ end subroutine abio_dic_dic14_tavg_forcing
             go to 99
          endif
       enddo
-      do irec=1,atm_co2_data_nbval
-         read(nml_in,FMT=*,iostat=stat) atm_co2_data_yr(irec), atm_co2_data_ppm(irec)
+      do irec=1,abio_atm_co2_data_nbval
+         read(nml_in,FMT=*,iostat=stat) abio_atm_co2_data_yr(irec), abio_atm_co2_data_ppm(irec)
          if (stat /= 0) then
             write(stdout,fmt=*) 'data read failed'
             go to 99
@@ -1460,170 +1439,35 @@ end subroutine abio_dic_dic14_tavg_forcing
 
 99 call broadcast_scalar(stat, master_task)
    if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
-                                                          &/ sub_name)
+                                                          &/ subname)
 
 !---------------------------------------------------------------------
 ! Need to allocate and broadcast the variables to other tasks beside master_task
 !---------------------------------------------------------------------
 
-   call broadcast_scalar(atm_co2_data_nbval,master_task)
+   call broadcast_scalar(abio_atm_co2_data_nbval,master_task)
 
    if (my_task /= master_task) then
-      allocate(atm_co2_data_yr(atm_co2_data_nbval))
-      allocate(atm_co2_data_ppm(atm_co2_data_nbval))
+      allocate(abio_atm_co2_data_yr(abio_atm_co2_data_nbval))
+      allocate(abio_atm_co2_data_ppm(abio_atm_co2_data_nbval))
    endif
 
-   call broadcast_array(atm_co2_data_ppm, master_task)
-   call broadcast_array(atm_co2_data_yr, master_task)
+   call broadcast_array(abio_atm_co2_data_ppm, master_task)
+   call broadcast_array(abio_atm_co2_data_yr, master_task)
+
+   allocate( data_ind_co2(nblocks_clinic) )
+   data_ind_co2 = -1
 
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine read_atm_CO2_data
 
-
-!***********************************************************************
-! !IROUTINE: read_atm_D14C_data
-! !INTERFACE:
-
- subroutine read_atm_D14C_data
-
-! !DESCRIPTION:
-!  Read atmospheric D14C data from file
-!
-!  Have the master_task do the following :
-!     1) get length of data
-!     2) allocate memory for data
-!     3) read in data, checking for consistent lengths
-!  Then, outside master_task conditional
-!     1) broadcast length of data
-!     2) have non-mastertasks allocate memory for data
-!     3) broadcast data
-!
-! !REVISION HISTORY:
-!  same as module
-!
-! !USES:
-!
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-   character(*), parameter :: sub_name = 'abio_dic_dci14_mod:read_atm_D14C_data'
-
-   integer (int_kind) ::      &
-      stat,                   &  ! i/o status code
-      irec,                   &  ! counter for looping
-      skiplines,              &  ! number of comment lines at beginning of ascii file
-      il                         ! looping index
-
-   character (char_len) ::  &
-      sglchr                     ! variable to read characters from file into
-
-   integer (int_kind) :: &
-      atm_d14c_data_nbval_tmp
-
-   logical (log_kind) :: &
-      nbval_mismatch
-
-!-----------------------------------------------------------------------
-!     ensure that three datafiles have same number of entries
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from files'
-      do il=1,3
-         write(stdout,*) trim(abio_atm_d14c_filename(il))
-      enddo
-      nbval_mismatch = .false.
-      do il=1,3
-         open (nml_in,file=abio_atm_d14c_filename(il),status='old',iostat=stat)
-         if (stat /= 0) then
-            write(stdout,*) 'open failed for ', trim(abio_atm_d14c_filename(il))
-            go to 99
-         endif
-         read(nml_in,FMT=*,iostat=stat) skiplines,atm_d14c_data_nbval_tmp
-         if (stat /= 0) then
-            write(stdout,*) '1st line read failed for ', trim(abio_atm_d14c_filename(il))
-            go to 99
-         endif
-         close(nml_in)
-         if (il == 1) then
-            atm_d14c_data_nbval = atm_d14c_data_nbval_tmp
-         else
-            if (atm_d14c_data_nbval /= atm_d14c_data_nbval_tmp) nbval_mismatch = .true.
-         endif
-      enddo
-   endif
-
-   call broadcast_scalar(nbval_mismatch, master_task)
-   if (nbval_mismatch) then
-      call document(sub_name, 'D14C data files must all have the same number of values')
-      call exit_POP(sigAbort, 'stopping in ' /&
-                             &/ sub_name)
-   endif
-
-   call broadcast_scalar(atm_d14c_data_nbval, master_task)
-   allocate(atm_d14c_data_yr(atm_d14c_data_nbval,3))
-   allocate(atm_d14c_data(atm_d14c_data_nbval,3))
-
-!-----------------------------------------------------------------------
-!     READ in C14 data from files - three files, for SH, EQ, NH
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      do il=1,3
-         open (nml_in,file=abio_atm_d14c_filename(il),status='old',iostat=stat)
-         if (stat /= 0) then
-            write(stdout,*) 'open failed for ', trim(abio_atm_d14c_filename(il))
-            go to 99
-         endif
-         read(nml_in,FMT=*,iostat=stat) skiplines,atm_d14c_data_nbval_tmp
-         if (stat /= 0) then
-            write(stdout,*) '1st line read failed for ', trim(abio_atm_d14c_filename(il))
-            go to 99
-         endif
-         do irec=1,skiplines
-            read(nml_in,FMT=*,iostat=stat) sglchr
-            if (stat /= 0) then
-               write(stdout,fmt=*) 'skipline read failed for ', trim(abio_atm_d14c_filename(il))
-               go to 99
-            endif
-         enddo
-         do irec=1,atm_d14c_data_nbval
-            read(nml_in,FMT=*,iostat=stat) atm_d14c_data_yr(irec,il), atm_d14c_data(irec,il)
-            if (stat /= 0) then
-               write(stdout,fmt=*) 'data read failed for ', trim(abio_atm_d14c_filename(il))
-               go to 99
-            endif
-         enddo
-         close(nml_in)
-      enddo
-   endif
-
-99 call broadcast_scalar(stat, master_task)
-   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
-                                                          &/ sub_name)
-
-!---------------------------------------------------------------------
-! Broadcast the variables to other tasks beside master_task
-!---------------------------------------------------------------------
-
-   call broadcast_array(atm_d14c_data, master_task)
-   call broadcast_array(atm_d14c_data_yr, master_task)
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine read_atm_D14C_data
-
-
 !***********************************************************************
 ! !IROUTINE: comp_varying_CO2
 ! !INTERFACE:
 
- subroutine comp_varying_CO2(iblock, data_ind_co2, pCO2)
+ subroutine comp_varying_CO2(data_ind_co2, pCO2)
 
 ! !DESCRIPTION:
 !  Compute atmospheric mole fractions of CO2 when temporarily
@@ -1640,12 +1484,9 @@ end subroutine abio_dic_dic14_tavg_forcing
 ! !INPUT PARAMETERS:
 
    integer (int_kind) :: &
-      iblock           ! block index
-
-   integer (int_kind) :: &
       data_ind_co2     ! data_ind_co2 is the index for the data for current timestep,
                        ! note that data_ind_co2 is always strictly less than the length
-                       ! of the data and is initialized to -1 before the first call
+                       ! of the data and is initialized to -1 during init
 
 ! !OUTPUT PARAMETERS:
 
@@ -1658,9 +1499,6 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  local variables
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-      i, j              ! loop indices
-
    real (r8) :: &
       model_date,     & ! date of current model timestep
       mapped_date,    & ! model_date mapped to data timeline
@@ -1671,9 +1509,9 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
-   mapped_date = model_date - abio_dic_dic14_model_year + abio_dic_dic14_data_year
+   mapped_date = model_date - abio_atm_model_year + abio_atm_data_year
 
-   if (mapped_date >= atm_co2_data_yr(atm_co2_data_nbval)) then
+   if (mapped_date >= abio_atm_co2_data_yr(abio_atm_co2_data_nbval)) then
       call exit_POP(sigAbort, 'model date maps to date after end of CO2 data in file')
    endif
 
@@ -1681,8 +1519,8 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  Set atmospheric CO2 to first value in record for years before record begins
 !--------------------------------------------------------------------------------------------------------------
 
-   if (mapped_date < atm_co2_data_yr(1)) then
-      pCO2 = atm_co2_data_ppm(1)
+   if (mapped_date < abio_atm_co2_data_yr(1)) then
+      pCO2 = abio_atm_co2_data_ppm(1)
       data_ind_co2 = 1
       if(my_task == master_task) then
          write(stdout,*)'Mapped date less than start of CO2 data --> using first value in CO2 data file'
@@ -1695,18 +1533,18 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 
    if (data_ind_co2 == -1) then
-      do data_ind_co2 = atm_co2_data_nbval-1,1,-1
-         if (mapped_date >= atm_co2_data_yr(data_ind_co2)) exit
+      do data_ind_co2 = abio_atm_co2_data_nbval-1,1,-1
+         if (mapped_date >= abio_atm_co2_data_yr(data_ind_co2)) exit
       end do
    endif
 
 !-----------------------------------------------------------------------
 !  See if data_ind_co2 needs to be updated,
-!  but do not set it to atm_co2_data_nbval.
+!  but do not set it to abio_atm_co2_data_nbval.
 !-----------------------------------------------------------------------
 
-  if (data_ind_co2 < atm_co2_data_nbval-1) then
-      if (mapped_date >= atm_co2_data_yr(data_ind_co2+1)) data_ind_co2 = data_ind_co2 + 1
+  if (data_ind_co2 < abio_atm_co2_data_nbval-1) then
+      if (mapped_date >= abio_atm_co2_data_yr(data_ind_co2+1)) data_ind_co2 = data_ind_co2 + 1
   endif
 
 
@@ -1714,150 +1552,15 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  Generate hemisphere values for current time step.
 !-----------------------------------------------------------------------
 
-   weight = (mapped_date - atm_co2_data_yr(data_ind_co2)) &
-            / (atm_co2_data_yr(data_ind_co2+1) - atm_co2_data_yr(data_ind_co2))
+   weight = (mapped_date - abio_atm_co2_data_yr(data_ind_co2)) &
+            / (abio_atm_co2_data_yr(data_ind_co2+1) - abio_atm_co2_data_yr(data_ind_co2))
 
-   pCO2 = weight * atm_co2_data_ppm(data_ind_co2+1) + (c1-weight) * atm_co2_data_ppm(data_ind_co2)
+   pCO2 = weight * abio_atm_co2_data_ppm(data_ind_co2+1) + (c1-weight) * abio_atm_co2_data_ppm(data_ind_co2)
 
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine comp_varying_CO2
-
-!***********************************************************************
-! !IROUTINE: comp_varying_D14C
-! !INTERFACE:
-
- subroutine comp_varying_D14C(iblock, data_ind_d14c, D14C)
-
-! !DESCRIPTION:
-!  Compute atmospheric mole fractions of CO2 when temporarily
-!  varying data is read from files
-!  1. Linearly interpolate hemispheric values to current time step
-!  2. Make global field of D14C, determined by:
-!   -Northern Hemisphere value is used for 20N - 90 N
-!   -Southern Hemisphere value is used for 20 S - 90 S
-!   -Equator value is used for 20 S- 20 N
-!
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !USES:
-
-   use grid, only : TLATD
-
-! !INPUT PARAMETERS:
-
-   integer (int_kind) :: &
-      iblock          ! block index
-
-   integer (int_kind) :: &
-      data_ind_d14c   ! data_ind_d14c is the index into data for current timestep,
-                      !  note that data_ind is always strictly less than the length of D14C data
-                      !  and is initialized to -1 before the first call
-
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
-      D14C            ! atmospheric delta C14 in permil on global grid
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      i, j, il        ! loop indices
-
-   real (r8) :: &
-      model_date,   & ! date of current model timestep
-      mapped_date,  & ! model_date mapped to data timeline
-      weight,       & ! weighting for temporal interpolation
-      d14c_curr_sh, & ! current atmospheric D14C value for SH (interpolated from data to model date)
-      d14c_curr_nh, & ! current atmospheric D14C value for NH (interpolated from data to model date)
-      d14c_curr_eq    ! current atmospheric D14C value for EQ (interpolated from data to model date)
-
-!-----------------------------------------------------------------------
-!  Generate mapped_date and check to see if it is too large.
-!-----------------------------------------------------------------------
-
-   model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
-   mapped_date = model_date - abio_dic_dic14_model_year + abio_dic_dic14_data_year
-   do il=1,3
-   if (mapped_date >= atm_d14c_data_yr(atm_d14c_data_nbval,il)) then
-      call exit_POP(sigAbort, 'model date maps to date after end of D14C data in files.')
-   endif
-   enddo
-
-!--------------------------------------------------------------------------------------------------------------
-!  Set atmospheric D14C concentrations to zero before D14C record begins
-!--------------------------------------------------------------------------------------------------------------
-
-   if (mapped_date < atm_d14c_data_yr(1,1)) then
-      D14C = c0
-      data_ind_d14c = 1
-      if(my_task == master_task) then
-         write(stdout,*)'Model date less than start of D14C data --> D14C=0'
-      endif
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!  On first time step, perform linear search to find data_ind_d14c.
-!-----------------------------------------------------------------------
-
-   if (data_ind_d14c == -1) then
-      do data_ind_d14c = atm_d14c_data_nbval-1,1,-1
-         if (mapped_date >= atm_d14c_data_yr(data_ind_d14c,1)) exit
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!  See if data_ind_d14c need to be updated,
-!  but do not set it to atm_co2_data_nbval.
-!-----------------------------------------------------------------------
-
-  if (data_ind_d14c < atm_d14c_data_nbval-1) then
-      if (mapped_date >= atm_d14c_data_yr(data_ind_d14c+1,1)) data_ind_d14c = data_ind_d14c + 1
-  endif
-!
-!-----------------------------------------------------------------------
-!  Generate hemisphere values for current time step.
-!-----------------------------------------------------------------------
-
-   weight = (mapped_date - atm_d14c_data_yr(data_ind_d14c,1)) &
-            / (atm_d14c_data_yr(data_ind_d14c+1,1) - atm_d14c_data_yr(data_ind_d14c,1))
-
-   d14c_curr_sh = weight * atm_d14c_data(data_ind_d14c+1,1) + (c1-weight) * atm_d14c_data(data_ind_d14c,1)
-   d14c_curr_eq = weight * atm_d14c_data(data_ind_d14c+1,2) + (c1-weight) * atm_d14c_data(data_ind_d14c,2)
-   d14c_curr_nh = weight * atm_d14c_data(data_ind_d14c+1,3) + (c1-weight) * atm_d14c_data(data_ind_d14c,3)
-
-!-----------------------------------------------------------------------
-!  Merge hemisphere values for D14C
-!      -Northern Hemisphere value is used for >20N - 90 N
-!      -Southern Hemisphere value is used for >20 S - 90 S
-!      -Equatorial value is used for 20 S to 20 N
-!-----------------------------------------------------------------------
-
-   do j = 1, ny_block
-      do i = 1, nx_block
-         if (TLATD(i,j,iblock) < -20.0_r8) then
-            D14C(i,j) = d14c_curr_sh
-         else if (TLATD(i,j,iblock) > 20.0_r8) then
-            D14C(i,j) = d14c_curr_nh
-         else
-            D14C(i,j) = d14c_curr_eq
-          endif
-      end do
-   end do
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine comp_varying_D14C
-
 
 !*****************************************************************************
 !BOP
@@ -1904,7 +1607,7 @@ end subroutine abio_dic_dic14_tavg_forcing
       do n=1,abio_dic_dic14_tracer_cnt
          if (vflux_flag(n)) then
             short_name = 'surf_avg_' /&
-                      &/ ind_name_table(n)%name
+                      &/ trim(ind_name_table(n)%name)
             call add_attrib_file(restart_file,trim(short_name),surf_avg(n))
          endif
       end do
