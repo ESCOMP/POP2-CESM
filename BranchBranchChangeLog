@@ -2,6 +2,42 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    21 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n86_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: convert code reading atm D14C and d13C timeseries to read netCDF
+
+created forcing_timeseries_mod.F90, to read in 1D and 2D netCDF timeseries
+  (could be used for cfc_mod and sf6_mod)
+atm D14C is now in one file instead of three
+created netCDF versions of existing atm D14C and d13C files
+  changed namelist defaults to these
+dimensions of c14_atm_forcing_data swapped from (time,3) to (3,time)
+  this is more natural for netCDF data
+replaced D13C with d13C in varnames
+remove various unused local vars
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n85)
+   except for tests mentioned below, all tests pass
+      NLCOMP failed for ciso_transient and abio_transient cases because of forcing file name changes
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/abio_dic_dic14_mod.F90
+M       source/c14_atm_forcing_mod.F90
+M       source/ecosys_forcing_mod.F90
+A       source/forcing_timeseries_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    18 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n85_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: refactor code setting atm D14C in abio and ecosys modules

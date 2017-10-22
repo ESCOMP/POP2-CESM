@@ -129,7 +129,7 @@ module abio_dic_dic14_mod
    real (r8) :: &
       abio_atm_d14c_const           !  atmospheric 14CO2 constant [permil]
 
-   character(char_len), dimension(3) :: &
+   character(char_len) :: &
       abio_atm_d14c_filename        ! filenames for varying atm D14C (one each for NH, SH, EQ)
 
    integer (int_kind) :: &
@@ -373,9 +373,7 @@ contains
 
    abio_atm_d14c_opt                 = 'const'
    abio_atm_d14c_const               = c0
-   abio_atm_d14c_filename(1)         = 'unknown'
-   abio_atm_d14c_filename(2)         = 'unknown'
-   abio_atm_d14c_filename(3)         = 'unknown'
+   abio_atm_d14c_filename            = 'unknown'
 
    abio_atm_model_year               = 1
    abio_atm_data_year                = 1
@@ -446,9 +444,7 @@ contains
    call broadcast_scalar(abio_atm_co2_filename, master_task)
    call broadcast_scalar(abio_atm_d14c_opt, master_task)
    call broadcast_scalar(abio_atm_d14c_const, master_task)
-   call broadcast_scalar(abio_atm_d14c_filename(1), master_task)
-   call broadcast_scalar(abio_atm_d14c_filename(2), master_task)
-   call broadcast_scalar(abio_atm_d14c_filename(3), master_task)
+   call broadcast_scalar(abio_atm_d14c_filename, master_task)
 
    call broadcast_scalar(abio_atm_model_year, master_task)
    call broadcast_scalar(abio_atm_data_year, master_task)

@@ -5278,7 +5278,7 @@ Default: '1'
 
 <entry 
 id="abio_atm_d14c_filename"
-type="char*256(3)" 
+type="char*256" 
 category="passive_tracers"
 group="abio_dic_dic14_nml"
 input_pathname="abs" >
@@ -6128,7 +6128,7 @@ Default:
 
 <entry 
 id="ciso_atm_d14c_filename"
-type="char*256(3)" 
+type="char*256" 
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >

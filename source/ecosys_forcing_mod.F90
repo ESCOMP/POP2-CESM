@@ -168,14 +168,14 @@ module ecosys_forcing_mod
   integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
   integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
   integer(int_kind)   :: ciso_atm_d13c_data_nbval       ! number of values in ciso_atm_d13c_filename
-  real(r8), allocatable :: ciso_atm_d13c_data(:)          ! atmospheric D13C values in datafile
-  real(r8), allocatable :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric D13C values in datafile
-  real(r8)            :: ciso_atm_d13c_const            ! atmospheric D13C constant [permil]
+  real(r8), allocatable :: ciso_atm_d13c_data(:)          ! atmospheric d13C values in datafile
+  real(r8), allocatable :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric d13C values in datafile
+  real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
   real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
-  character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and D13C varying or constant forcing
-  character(char_len) :: ciso_atm_d13c_filename         ! filenames for varying atm D13C
-  character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and D13C varying or constant forcing
-  character(char_len) :: ciso_atm_d14c_filename(3)      ! filenames for varying atm D14C (one each for NH, SH, EQ)
+  character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and d13C varying or constant forcing
+  character(char_len) :: ciso_atm_d13c_filename         ! filenames for varying atm d13C
+  character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and d13C varying or constant forcing
+  character(char_len) :: ciso_atm_d14c_filename         ! filenames for varying atm D14C (one each for NH, SH, EQ)
 
   !-----------------------------------------------------------------------
   !  tracer restoring related variables
@@ -231,12 +231,11 @@ module ecosys_forcing_mod
   real(r8), allocatable, target :: iron_patch_flux(:,:,:)
   real(r8)                      :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
-  !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
-  !  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
+  !  ciso_atm_d13c_data_ind is the index for the d13C data for the current timestep
+  !  Note that ciso_atm_d13c_data_ind is always less than ciso_atm_d13c_data_nbval.
   !  To enable OpenMP parallelism, duplicating data_ind for each block
 
-  integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d13c = -1 ! data index for D13C data
-  integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d14c = -1 ! data index for D14C data
+  integer (int_kind), dimension(:), allocatable :: ciso_atm_d13c_data_ind ! data index for d13C data
 
   integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_riv_flux_strdata_create_timer
@@ -309,7 +308,7 @@ contains
 
     use marbl_interface_public_types, only : marbl_forcing_fields_type
 
-    use constants, only : delim_fmt, char_blank, ndelim_fmt
+    use constants, only : delim_fmt, ndelim_fmt
 
     use domain, only : distrb_clinic
 
@@ -464,9 +463,7 @@ contains
     ciso_atm_d13c_filename                  = 'unknown'
     ciso_atm_d14c_opt                       = 'const'
     ciso_atm_d14c_const                     = 0.0_r8
-    ciso_atm_d14c_filename(1)               = 'unknown'
-    ciso_atm_d14c_filename(2)               = 'unknown'
-    ciso_atm_d14c_filename(3)               = 'unknown'
+    ciso_atm_d14c_filename                  = 'unknown'
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
 
@@ -613,7 +610,7 @@ contains
           d13c_ind = n
           call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
                                marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='D13C', rank=2, id=n)
+                               driver_varname='d13C', rank=2, id=n)
 
         case ('d14c')
           d14c_ind = n
@@ -1485,12 +1482,6 @@ contains
     integer(int_kind)        :: stream_index                ! index into interior_strdata_inputlist_ptr array
     integer(int_kind)        :: var_ind                     ! var index in interior_strdata_inputlist_ptr entry
     type(block)              :: this_block                  ! block info for the current block
-    integer(int_kind)        :: errorCode                   ! errorCode from HaloUpdate call
-    integer(int_kind)        :: tracer_bndy_loc(1)          ! location   for ghost tracer_bndy_type cell updates
-    integer(int_kind)        :: tracer_bndy_type(1)         ! field type for ghost tracer_bndy_type cell updates
-
-    character(char_len)      :: marbl_varname, tracer_name
-    integer                  :: m
 
     !-----------------------------------------------------------------------
     ! Initialize interior_strdata_inputlist_ptr entries (only once)
@@ -1657,7 +1648,6 @@ contains
     type(forcing_monthly_every_ts), pointer :: file
     integer   (int_kind)          :: stream_index                                           ! index into surface_strdata_inputlist_ptr array
     integer   (int_kind)          :: var_ind                                                ! var index in surface_strdata_inputlist_ptr entry
-    integer   (int_kind)          :: nf_ind
     !-----------------------------------------------------------------------
 
     call timer_start(ecosys_pre_sflux_timer)
@@ -1667,7 +1657,7 @@ contains
     !-----------------------------------------------------------------------
 
     if (ciso_on) then
-       call ciso_update_atm_D13C_D14C(land_mask, d13c, d14c)
+       call ciso_update_atm_d13C_D14C(land_mask, d13c, d14c)
     end if
 
     !-----------------------------------------------------------------------
@@ -1965,7 +1955,6 @@ contains
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:ecosys_forcing_comp_stf_riv'
 
     integer (int_kind) :: riv_flux_ind
-    integer (int_kind) :: tracer_ind
     integer (int_kind) :: processed_field_cnt
     real (r8)          :: conv_factor
 
@@ -1980,10 +1969,10 @@ contains
     ! globally, even though data shows it should vary from river to river.
     !
     ! Using constant delta values of
-    ! D13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
+    ! d13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
     ! D14C= atmos_D14C - 50 permil for DIC (based on very few data points and
     !       discussion with N. Gruber)
-    ! D13C=-27.6 permil for DOC (Raymond et al 2004)
+    ! d13C=-27.6 permil for DOC (Raymond et al 2004)
     ! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
     !-------------------------------------------------------------------------
 
@@ -2154,9 +2143,9 @@ contains
 
   !***********************************************************************
 
-  subroutine ciso_update_atm_D13C_D14C (land_mask, D13C, D14C)
+  subroutine ciso_update_atm_d13C_D14C (land_mask, d13C, D14C)
 
-    ! Updates module variables D13C and D14C (for atmospheric ratios)
+    ! Updates module variables d13C and D14C (for atmospheric ratios)
 
     use grid                , only : TAREA
     use domain              , only : blocks_clinic
@@ -2168,13 +2157,13 @@ contains
     implicit none
 
     logical,   intent(in)  :: land_mask(nx_block, ny_block, max_blocks_clinic)
-    real (r8), intent(out) :: D13C(nx_block, ny_block, max_blocks_clinic)  ! atm 13co2 value
+    real (r8), intent(out) :: d13C(nx_block, ny_block, max_blocks_clinic)  ! atm 13co2 value
     real (r8), intent(out) :: D14C(nx_block, ny_block, max_blocks_clinic)  ! atm 14co2 value
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_update_atm_D13C_D14C'
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_update_atm_d13C_D14C'
     type (block) :: &
          this_block      ! block info for the current block
 
@@ -2206,16 +2195,16 @@ contains
     do iblock = 1, nblocks_clinic
 
        !-----------------------------------------------------------------------
-       !  Set D13C (constant or from files read in _init) and put on global grid
+       !  Set d13C (constant or from files read in _init) and put on global grid
        !-----------------------------------------------------------------------
 
        select case (trim(ciso_atm_d13c_opt))
        case ('const')
-          D13C(:,:,:) = ciso_atm_d13c_const
+          d13C(:,:,:) = ciso_atm_d13c_const
        case ('file')
-          call ciso_comp_varying_D13C(iblock, ciso_data_ind_d13c(iblock), D13C(:,:,iblock))
+          call ciso_comp_varying_d13C(iblock, ciso_atm_d13c_data_ind(iblock), d13C(:,:,iblock))
        case default
-          call document(subname, 'unknown ciso_atm_d13c_opt in ecosys_ciso_set_sflux')
+          call document(subname, 'unknown ciso_atm_d13c_opt')
           call exit_POP(sigAbort, 'Stopping in ' // subname)
        end select
 
@@ -2256,18 +2245,18 @@ contains
 
     d14c_glo_avg  = global_sum(d14c_sum_tmp ,distrb_clinic) / global_sum(tarea_sum_tmp,distrb_clinic)
 
-  end subroutine ciso_update_atm_D13C_D14C
+  end subroutine ciso_update_atm_d13C_D14C
 
   !***********************************************************************
 
-  subroutine ciso_comp_varying_D13C(iblock, ciso_data_ind_d13c, D13C)
+  subroutine ciso_comp_varying_d13C(iblock, ciso_atm_d13c_data_ind, d13C)
 
     !-----------------------------------------------------------------------
     ! !DESCRIPTION:
     !  Compute atmospheric mole fractions of d13c when temporarily
     !  varying data is read from files
     !  1. Linearly interpolate data values to current model time step
-    !  2. Spatial patern of D13Cis the same everywhere (90 S - 90 N)
+    !  2. Spatial patern of d13Cis the same everywhere (90 S - 90 N)
     !-----------------------------------------------------------------------
 
     use time_management , only : days_in_year
@@ -2280,20 +2269,17 @@ contains
 
     implicit none
 
-    ! note that ciso_data_ind_d13c is always strictly less than the length
+    ! note that ciso_atm_d13c_data_ind is always strictly less than the length
     ! of the data and is initialized to -1 before the first call
 
     integer (int_kind) , intent(in)  :: iblock                  ! block index
-    integer (int_kind) , intent(out) :: ciso_data_ind_d13c      ! inex for the data for current timestep,
-    real (r8)          , intent(out) :: D13C(nx_block,ny_block) ! atmospheric D13C (permil)
+    integer (int_kind) , intent(out) :: ciso_atm_d13c_data_ind  ! index for the data for current timestep,
+    real (r8)          , intent(out) :: d13C(nx_block,ny_block) ! atmospheric d13C (permil)
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_comp_varying_D13C'
-
-    integer (int_kind) :: &
-         i, j              ! loop indices
+    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_comp_varying_d13C'
 
     real (r8) :: &
          model_date,     & ! date of current model timestep
@@ -2309,22 +2295,22 @@ contains
     mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
 
     if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval)) then
-       call document(subname, 'ciso: Model date maps to date after end of D13C data in file.')
+       call document(subname, 'ciso: Model date maps to date after end of d13C data in file.')
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
     !--------------------------------------------------------------------------------------------------------------
-    !  Set atmospheric D13C to first value in record for years before record begins
+    !  Set atmospheric d13C to first value in record for years before record begins
     !--------------------------------------------------------------------------------------------------------------
 
     if (mapped_date < ciso_atm_d13c_data_yr(1)) then
-       D13C = ciso_atm_d13c_data(1)
-       ciso_data_ind_d13c = 1
+       d13C = ciso_atm_d13c_data(1)
+       ciso_atm_d13c_data_ind = 1
        if(my_task == master_task) then
           write(stdout,blank_fmt)
           write(stdout,ndelim_fmt)
           write(stdout,blank_fmt)
-          write(stdout,*)'ciso: Mapped date less than start of D13C data --> using first value in D13C data file'
+          write(stdout,*)'ciso: Mapped date less than start of d13C data --> using first value in d13C data file'
           write(stdout,blank_fmt)
           write(stdout,ndelim_fmt)
           write(stdout,blank_fmt)
@@ -2336,31 +2322,31 @@ contains
     !  On first time step, perform linear search to find data_ind_d13c
     !-----------------------------------------------------------------------
 
-    if (ciso_data_ind_d13c == -1) then
-       do ciso_data_ind_d13c = ciso_atm_d13c_data_nbval-1,1,-1
-          if (mapped_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) exit
+    if (ciso_atm_d13c_data_ind == -1) then
+       do ciso_atm_d13c_data_ind = ciso_atm_d13c_data_nbval-1,1,-1
+          if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind)) exit
        end do
     endif
 
     !-----------------------------------------------------------------------
-    !  See if ciso_data_ind_d13c needs to be updated,
+    !  See if ciso_atm_d13c_data_ind needs to be updated,
     !  but do not set it to atm_d13c_data_nbval.
     !-----------------------------------------------------------------------
 
-    if (ciso_data_ind_d13c < ciso_atm_d13c_data_nbval-1) then
-       if (mapped_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1)) ciso_data_ind_d13c = ciso_data_ind_d13c + 1
+    if (ciso_atm_d13c_data_ind < ciso_atm_d13c_data_nbval-1) then
+       if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind+1)) ciso_atm_d13c_data_ind = ciso_atm_d13c_data_ind + 1
     endif
 
     !-----------------------------------------------------------------------
     !  Generate hemisphere values for current time step.
     !-----------------------------------------------------------------------
 
-    weight = (mapped_date - ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) &
-         / (ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1) - ciso_atm_d13c_data_yr(ciso_data_ind_d13c))
+    weight = (mapped_date - ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind)) &
+         / (ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind+1) - ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind))
 
-    D13C = weight * ciso_atm_d13c_data(ciso_data_ind_d13c+1) + (c1-weight) * ciso_atm_d13c_data(ciso_data_ind_d13c)
+    d13C = weight * ciso_atm_d13c_data(ciso_atm_d13c_data_ind+1) + (c1-weight) * ciso_atm_d13c_data(ciso_atm_d13c_data_ind)
 
-  end subroutine ciso_comp_varying_D13C
+  end subroutine ciso_comp_varying_d13C
 
   !***********************************************************************
 
@@ -2369,39 +2355,38 @@ contains
     !---------------------------------------------------------------------
     ! !DESCRIPTION:
     !  Initialize surface flux computations for the ecosys_ciso tracer module.
-    !  Includes reading CO2 and D13C and D14C data from file if option file is used
+    !  Includes reading CO2 and d13C and D14C data from file if option file is used
     !---------------------------------------------------------------------
 
-    use io_types            , only : stdout
-    use constants           , only : blank_fmt
-    use constants           , only : delim_fmt
-    use constants           , only : ndelim_fmt
-    use c14_atm_forcing_mod , only : c14_atm_forcing_init
-
-    implicit none
+    use forcing_timeseries_mod, only : forcing_timeseries_read_file
+    use c14_atm_forcing_mod, only : c14_atm_forcing_init
 
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_init_atm_D13_D14'
 
     !-------------------------------------------------------------------------
-    !     Set D13C data source
+    !     Set d13C data source
     !-------------------------------------------------------------------------
 
+    call document(subname, 'ciso_atm_d13c_opt', ciso_atm_d13c_opt)
+
     select case (trim(ciso_atm_d13c_opt))
+
     case ('const')
-       if (my_task == master_task) then
-          write(stdout,blank_fmt)
-          write(stdout,ndelim_fmt)
-          write(stdout,blank_fmt)
-          write(stdout,*)'ciso: Using constant D13C values of ',ciso_atm_d13c_const
-          write(stdout,blank_fmt)
-          write(stdout,ndelim_fmt)
-          write(stdout,blank_fmt)
-       endif
-    case('file')
-       call ciso_read_atm_D13C_data ! READ in D13C data from file
+
+       call document(subname, 'ciso_atm_d13c_const', ciso_atm_d13c_const)
+
+    case ('file')
+
+       call forcing_timeseries_read_file(ciso_atm_d13c_filename, 'delta13co2_in_air', &
+          ciso_atm_d13c_data_nbval, ciso_atm_d13c_data_yr, data_1d=ciso_atm_d13c_data)
+
+       allocate(ciso_atm_d13c_data_ind(nblocks_clinic))
+       ciso_atm_d13c_data_ind(:) = -1
+
     case default
-       call document(subname, 'unknown ciso_atm_d13c_opt in ecosys_ciso_init_atm_d13_d14')
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
+
+       call exit_POP(sigAbort, 'unknown ciso_atm_d13c_opt')
+
     end select
 
     !-------------------------------------------------------------------------
@@ -2413,107 +2398,6 @@ contains
         ciso_atm_model_year, ciso_atm_data_year)
 
   end subroutine ciso_init_atm_D13_D14
-
-  !*****************************************************************************
-
-  subroutine ciso_read_atm_D13C_data()
-
-    !-----------------------------------------------------------------------
-    ! !DESCRIPTION:
-    !  Read atmospheric D13C [permil] data from file
-    !
-    !  Have the master_task do the following :
-    !     1) get length of data
-    !     2) allocate memory for data
-    !     3) read in data, checking for consistent lengths
-    !  Then, outside master_task conditional
-    !     1) broadcast length of data
-    !     2) have non-mastertasks allocate memory for data
-    !     3) broadcast data
-    !-----------------------------------------------------------------------
-
-    use broadcast       , only : broadcast_array
-    use broadcast       , only : broadcast_scalar
-    use constants       , only : blank_fmt
-    use constants       , only : delim_fmt
-    use constants       , only : ndelim_fmt
-    use io_types        , only : nml_in
-
-    implicit none
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_read_atm_D13C_data'
-
-    integer (int_kind) ::      &
-         stat,                 &  ! i/o status code
-         irec,                 &  ! counter for looping
-         skiplines,            &  ! number of comment lines at beginning of ascii file
-         il                       ! looping index
-    character (char_len) ::    &
-         sglchr                   ! variable to read characters from file into
-    !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    !     READ in D13C data from file
-    !-----------------------------------------------------------------------
-
-    if (my_task == master_task) then
-       write(stdout,blank_fmt)
-       write(stdout,ndelim_fmt)
-       write(stdout,blank_fmt)
-       write(stdout,*)'ciso: Using varying D13C values from file ',trim(ciso_atm_d13c_filename)
-       write(stdout,blank_fmt)
-       write(stdout,ndelim_fmt)
-       write(stdout,blank_fmt)
-       open (nml_in, file=ciso_atm_d13c_filename, status='old',iostat=stat)
-       if (stat /= 0) then
-          write(stdout,fmt=*) 'open failed'
-          go to 99
-       endif
-       read(nml_in,FMT=*,iostat=stat) skiplines,ciso_atm_d13c_data_nbval
-       if (stat /= 0) then
-          write(stdout,fmt=*) '1st line read failed'
-          go to 99
-       endif
-       allocate(ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval))
-       allocate(ciso_atm_d13c_data   (ciso_atm_d13c_data_nbval))
-       do irec=1,skiplines
-          read(nml_in,FMT=*,iostat=stat) sglchr
-          if (stat /= 0) then
-             write(stdout,fmt=*) 'skipline read failed'
-             go to 99
-          endif
-       enddo
-       do irec=1,ciso_atm_d13c_data_nbval
-          read(nml_in,FMT=*,iostat=stat) ciso_atm_d13c_data_yr(irec), ciso_atm_d13c_data(irec)
-          if (stat /= 0) then
-             write(stdout,fmt=*) 'data read failed'
-             go to 99
-          endif
-       enddo
-       close(nml_in)
-    endif
-
-99  call broadcast_scalar(stat, master_task)
-    if (stat /= 0) call exit_POP(sigAbort, 'Stopping in ' // subname)
-
-    !---------------------------------------------------------------------
-    !     Need to allocate and broadcast the variables to other tasks beside master-task
-    !---------------------------------------------------------------------
-
-    call broadcast_scalar(ciso_atm_d13c_data_nbval,master_task)
-
-    if (my_task /= master_task) then
-       allocate(ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval))
-       allocate(ciso_atm_d13c_data(ciso_atm_d13c_data_nbval))
-    endif
-
-    call broadcast_array(ciso_atm_d13c_data   , master_task)
-    call broadcast_array(ciso_atm_d13c_data_yr, master_task)
-
-  end subroutine ciso_read_atm_D13C_data
 
   !*****************************************************************************
 
@@ -2868,7 +2752,6 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:forcing_fields_add'
-    character(len=char_len)     :: log_message
     !-----------------------------------------------------------------------
 
     this%rank = rank
