@@ -223,9 +223,9 @@ contains
 !  varying data is read from files
 !  1. Linearly interpolate hemispheric values to current time step
 !  2. Make global field of D14C, determined by:
-!   -Northern Hemisphere value is used for 20N - 90 N
-!   -Southern Hemisphere value is used for 20 S - 90 S
-!   -Equator value is used for 20 S- 20 N
+!   -Northern Hemisphere value is used for 30N - 90 N
+!   -Southern Hemisphere value is used for 30 S - 90 S
+!   -Equator value is used for 30 S- 30 N
 
 ! !USES:
 
@@ -317,16 +317,16 @@ contains
 
     !-----------------------------------------------------------------------
     !  Merge hemisphere values for D14C
-    !      -Northern Hemisphere value is used for >20N - 90 N
-    !      -Southern Hemisphere value is used for >20 S - 90 S
-    !      -Equatorial value is used for 20 S to 20 N
+    !      -Northern Hemisphere value is used for >30N - 90 N
+    !      -Southern Hemisphere value is used for >30 S - 90 S
+    !      -Equatorial value is used for 30 S to 30 N
     !-----------------------------------------------------------------------
 
     do j = 1, ny_block
       do i = 1, nx_block
-        if (TLATD(i,j,iblock) < -20.0_r8) then
+        if (TLATD(i,j,iblock) < -30.0_r8) then
           D14C(i,j) = d14c_curr_sh
-        else if (TLATD(i,j,iblock) > 20.0_r8) then
+        else if (TLATD(i,j,iblock) > 30.0_r8) then
           D14C(i,j) = d14c_curr_nh
         else
           D14C(i,j) = d14c_curr_eq

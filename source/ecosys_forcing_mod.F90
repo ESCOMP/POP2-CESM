@@ -459,7 +459,7 @@ contains
     atm_alt_co2_opt   = 'const'
     atm_alt_co2_const = 280.0_r8
     ciso_atm_d13c_opt                       = 'const'
-    ciso_atm_d13c_const                     = -6.379_r8
+    ciso_atm_d13c_const                     = -6.610_r8
     ciso_atm_d13c_filename                  = 'unknown'
     ciso_atm_d14c_opt                       = 'const'
     ciso_atm_d14c_const                     = 0.0_r8

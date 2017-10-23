@@ -2,6 +2,33 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    23 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n87_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: switch to preliminary CMIP6 atm D14C and d13C 20C timeseries and 1850 values
+
+20C timeseries files reside in $DIN_LOC_ROOT/lnd/clm2/isotopes,
+  to ensure consistency between CESM's lnd and ocn models
+latitude band boundaries of D14C timeseries changed from +/- 20 deg to +/- 30 deg
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n86)
+   except for tests mentioned below, all tests pass
+      NLCOMP and BASELINE tests failed for ciso and abio cases because of forcing changes
+         only ciso and abio vars are affected
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/c14_atm_forcing_mod.F90
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    21 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n86_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: convert code reading atm D14C and d13C timeseries to read netCDF
