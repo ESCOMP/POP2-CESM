@@ -39,9 +39,8 @@ module sf6_mod
 
    use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair
    use passive_tracer_tools, only : read_field, tracer_read
-
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset
    use broadcast
-   use netcdf
 
    implicit none
    save
@@ -107,14 +106,8 @@ module sf6_mod
       psf6_data_len,          & ! length of atmospheric psf6 record
       psf6_first_nonzero_year   ! first year of non-zero values in psf6_file
 
-   real (r8), parameter :: &
-      max_psf6_extension = 2.0_r8
-      ! maximum number of years that psf6 record will be extrapolated
-
-   real (r8), dimension(:), allocatable :: &
-      psf6_date,           & ! date for atmospheric psf6 record (years)
-      psf6_nh,             & ! psf6 data for northern hemisphere (pmol/mol)
-      psf6_sh                ! psf6 data for southern hemisphere (pmol/mol)
+   type (forcing_timeseries_dataset) :: &
+      psf6_atm_forcing_dataset  ! data structure for atm psf6 timeseries
 
    real (r8), dimension(:,:,:,:), allocatable :: &
       INTERP_WORK            ! temp array for interpolate_forcing output
@@ -139,18 +132,6 @@ module sf6_mod
       tavg_SF6_SCHMIDT,   & ! tavg id for sf6 Schmidt number
       tavg_SF6_PV,        & ! tavg id for sf6 piston velocity
       tavg_SF6_surf_sat    ! tavg id for sf6 surface saturation
-
-!-----------------------------------------------------------------------
-!  data_ind is the index into data for current timestep, i.e
-!  data_ind is largest integer less than psf6_data_len s.t.
-!  psf6_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
-!                  - model_year + data_year
-!  Note that data_ind is always strictly less than psf6_data_len.
-!  To enable OpenMP parallelism, duplicating data_ind for each block
-!-----------------------------------------------------------------------
-
-   integer (int_kind), dimension(:), allocatable :: &
-      data_ind
 
 !-----------------------------------------------------------------------
 !  timers
@@ -587,6 +568,10 @@ contains
 ! !USES:
 
    use forcing_tools, only: find_forcing_times
+   use forcing_timeseries_mod, only: forcing_timeseries_init_dataset
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset_var_size
+   use forcing_timeseries_mod, only: forcing_timeseries_taxmode_endpoint
+   use forcing_timeseries_mod, only: forcing_timeseries_taxmode_extrapolate
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for sf6 tracer module.
@@ -612,7 +597,13 @@ contains
 
 !-----------------------------------------------------------------------
 
-   call read_psf6_data
+   call forcing_timeseries_init_dataset(psf6_file, &
+      varnames      = (/ 'SF6NH', 'SF6SH' /), &
+      model_year    = model_year, &
+      data_year     = data_year, &
+      taxmode_start = forcing_timeseries_taxmode_endpoint, &
+      taxmode_end   = forcing_timeseries_taxmode_extrapolate, &
+      dataset       = psf6_atm_forcing_dataset)
 
 !-----------------------------------------------------------------------
 !  read gas flux forcing (if required)
@@ -734,235 +725,6 @@ contains
 
 !***********************************************************************
 !BOP
-! !IROUTINE: read_psf6_data
-! !INTERFACE:
-
- subroutine read_psf6_data
-
-! !DESCRIPTION:
-!  subroutine to read in atmospheric psf6 data
-!
-!  Have the master_task do the following :
-!     1) get length of data
-!     2) allocate memory for data
-!     3) read in data, checking for consistent lengths
-!  Then, outside master_task conditional
-!     1) broadcast length of data
-!     2) have non-mastertasks allocate memory for data
-!     3) broadcast data
-
-! !USES:
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   character(*), parameter :: subname = 'sf6_mod:read_psf6_data'
-
-   character (len=char_len) :: &
-      varname           ! name of variable being processed
-
-   integer (int_kind) :: &
-      stat,           & ! status of netCDF call
-      ncid,           & ! netCDF file id
-      varid,          & ! netCDF variable id
-      ndims             ! number of dimensions for varid
-
-   integer (int_kind), dimension(1) :: &
-      data_dimid        ! netCDF dimension id that all data should have
-
-!-----------------------------------------------------------------------
-!  perform netCDF I/O on master_task
-!  jump out of master_task conditional if an error is encountered
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-
-      stat = nf90_open(psf6_file, 0, ncid)
-      if (stat /= 0) then
-         write(stdout,*) 'error from nf_open: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-!-----------------------------------------------------------------------
-!  get length of data by examining psf6_nh
-!  keep track of dimid for later comparison when reading in data
-!-----------------------------------------------------------------------
-
-      varname = 'SF6NH'
-
-      stat = nf90_inq_varid(ncid, varname, varid)
-
-      if (stat /= 0) then
-         write(stdout,*) 'error from nf_inq_varid for SF6NH: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      stat = nf90_inquire_variable(ncid, varid, ndims=ndims)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_varndims for SF6NH: ', nf90_strerror(stat)
-         go to 99
-      endif
-      if (ndims /= 1) then
-         write(stdout,*) 'ndims /= 1 for SF6NH'
-         go to 99
-      endif
-
-      stat = nf90_inquire_variable(ncid, varid, dimids=data_dimid)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_vardimid for SF6NH: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      stat = nf90_inquire_dimension(ncid, data_dimid(1), len=psf6_data_len)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_dimlen for SF6NH: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      call document(subname, 'psf6_data_len', psf6_data_len)
-
-      allocate(psf6_date(psf6_data_len))
-      allocate(psf6_nh(psf6_data_len))
-      allocate(psf6_sh(psf6_data_len))
-
-      stat = nf90_inquire_dimension(ncid, data_dimid(1), name=varname)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_dimname for dim of SF6NH: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      call read_1dvar_cdf(ncid, data_dimid, varname,     psf6_date, stat)
-      if (stat /= 0) go to 99
-      call read_1dvar_cdf(ncid, data_dimid, 'SF6NH', psf6_nh, stat)
-      if (stat /= 0) go to 99
-      call read_1dvar_cdf(ncid, data_dimid, 'SF6SH', psf6_sh, stat)
-      if (stat /= 0) go to 99
-
-      stat = nf90_close(ncid)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_close: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      call document(subname, 'psf6_data_len', psf6_data_len)
-      call document(subname, 'psf6_date(end)', psf6_date(psf6_data_len))
-      call document(subname, 'psf6_nh(end)', psf6_nh(psf6_data_len))
-      call document(subname, 'psf6_sh(end)', psf6_sh(psf6_data_len))
-
-   endif ! my_task == master_task
-
-99 call broadcast_scalar(stat, master_task)
-   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
-                                                          &/ subname)
-
-   call broadcast_scalar(psf6_data_len, master_task)
-
-   if (my_task /= master_task) then
-      allocate(psf6_date(psf6_data_len))
-      allocate(psf6_nh(psf6_data_len))
-      allocate(psf6_sh(psf6_data_len))
-   endif
-
-   call broadcast_array(psf6_date, master_task)
-   call broadcast_array(psf6_nh, master_task)
-   call broadcast_array(psf6_sh, master_task)
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine read_psf6_data
-
-!***********************************************************************
-!BOP
-! !IROUTINE: read_1dvar_cdf
-! !INTERFACE:
-
- subroutine read_1dvar_cdf(ncid, data_dimid, varname, data, stat)
-
-! !DESCRIPTION:
-!  Subroutine to read in a single 1D variable from a netCDF file
-!  that is supposed to be on a particular dimension
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !USES:
-
-! !INPUT PARAMETERS:
-
-   integer (int_kind), intent(in) :: &
-      ncid              ! netCDF file id
-
-   integer (int_kind), dimension(1), intent(in) :: &
-      data_dimid        ! netCDF dimension id that all data should have
-
-   character (len=*), intent(in) :: &
-      varname           ! name of variable being read
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(:), intent(out) :: &
-      data              ! where data is going
-
-   integer (int_kind), intent(out) :: &
-      stat              ! status of netCDF call
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      varid,          & ! netCDF variable id
-      ndims             ! number of dimensions for varid
-
-   integer (int_kind), dimension(1) :: &
-      dimid             ! netCDF dimension id
-
-!-----------------------------------------------------------------------
-
-   stat = nf90_inq_varid(ncid, varname, varid)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_inq_varid for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-
-   stat = nf90_inquire_variable(ncid, varid, ndims=ndims)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_inq_varndims for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-   if (ndims /= 1) then
-      write(stdout,*) 'ndims /= 1 for ', trim(varname)
-      return
-   endif
-
-   stat = nf90_inquire_variable(ncid, varid, dimids=dimid)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_inq_vardimid for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-   if (dimid(1) /= data_dimid(1)) then
-      write(stdout,*) 'dimid mismatch for ', trim(varname)
-      return
-   endif
-
-   stat = nf90_get_var(ncid, varid, data)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_get_var_double for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine read_1dvar_cdf
-
-!***********************************************************************
-!BOP
 ! !IROUTINE: sf6_set_sflux
 ! !INTERFACE:
 
@@ -982,6 +744,7 @@ contains
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset_update_data
 
 ! !INPUT PARAMETERS:
 
@@ -1035,18 +798,9 @@ contains
       tracer_bndy_loc,          &! location and field type for ghost
       tracer_bndy_type           !    cell updates
 
-   logical (log_kind), save :: &
-      first = .true.
-
 !-----------------------------------------------------------------------
 
    call timer_start(sf6_sflux_timer)
-
-   if (first) then
-      allocate( data_ind(max_blocks_clinic) )
-      data_ind = -1
-      first = .false.
-   endif
 
    do iblock = 1, nblocks_clinic
       IFRAC_USED(:,:,iblock) = c0
@@ -1057,6 +811,8 @@ contains
 !-----------------------------------------------------------------------
 !  Interpolate gas flux forcing data if necessary
 !-----------------------------------------------------------------------
+
+   call forcing_timeseries_dataset_update_data(psf6_atm_forcing_dataset)
 
    if (sf6_formulation == 'ocmip') then
        if (thour00 >= fice_file%data_update) then
@@ -1162,8 +918,7 @@ contains
 
       AP_USED(:,:,iblock) = AP_USED(:,:,iblock) * (c1 / 1013.25e+3_r8)
 
-      call comp_psf6(iblock, LAND_MASK(:,:,iblock), data_ind(iblock), &
-                     pSF6)
+      call comp_psf6(iblock, LAND_MASK(:,:,iblock), pSF6)
 
       call comp_sf6_schmidt(LAND_MASK(:,:,iblock), SST(:,:,iblock), &
                             SF6_SCHMIDT)
@@ -1208,7 +963,7 @@ contains
 ! !IROUTINE: comp_psf6
 ! !INTERFACE:
 
- subroutine comp_psf6(iblock, LAND_MASK, data_ind, pSF6)
+ subroutine comp_psf6(iblock, LAND_MASK, pSF6)
 
 ! !DESCRIPTION:
 !  Compute atmospheric mole fractions of SF6s
@@ -1225,6 +980,7 @@ contains
 
    use grid, only : TLATD
    use constants, only : c10
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset_get_var
 
 ! !INPUT PARAMETERS:
 
@@ -1233,16 +989,6 @@ contains
 
    integer (int_kind) :: &
       iblock          ! block index
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer (int_kind) :: &
-      data_ind  ! data_ind is the index into data for current timestep, 
-                ! i.e data_ind is largest integer less than psf6_data_len s.t.
-                !  psf6_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
-                !                  - model_year + data_year
-                !  note that data_ind is always strictly less than psf6_data_len
-                !  and is initialized to -1 before the first call
 
 ! !OUTPUT PARAMETERS:
 
@@ -1259,65 +1005,15 @@ contains
       i, j              ! loop indices
 
    real (r8) :: &
-      mapped_date,    & ! date of current model timestep mapped to data timeline
-      weight,         & ! weighting for temporal interpolation
       psf6_nh_curr,   & ! psf6_nh for current time step (pmol/mol)
       psf6_sh_curr      ! psf6_sh for current time step (pmol/mol)
-
-!-----------------------------------------------------------------------
-!  Generate mapped_date and check to see if it is too large.
-!  The check for mapped_date being too small only needs to be done
-!  on the first time step.
-!-----------------------------------------------------------------------
-
-
-   mapped_date = iyear + (iday_of_year-1+frac_day)/days_in_year &
-                 - model_year + data_year
-
-   if (mapped_date >= psf6_date(psf6_data_len) + max_psf6_extension) &
-      call exit_POP(sigAbort, 'model date maps too far beyond psf6_date(end)')
-
-!-----------------------------------------------------------------------
-!  Assume atmospheric concentrations are zero before record.
-!-----------------------------------------------------------------------
-
-   if (mapped_date < psf6_date(1)) then
-      pSF6 = c0
-      data_ind = 1
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!  On first time step, perform linear search to find data_ind.
-!-----------------------------------------------------------------------
-
-   if (data_ind == -1) then
-      do data_ind = psf6_data_len-1,1,-1
-         if (mapped_date >= psf6_date(data_ind)) exit
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!  See if data_ind need to be updated,
-!  but do not set it to psf6_data_len.
-!-----------------------------------------------------------------------
-
-   if (data_ind < psf6_data_len-1) then
-      if (mapped_date >= psf6_date(data_ind+1)) data_ind = data_ind + 1
-   endif
 
 !-----------------------------------------------------------------------
 !  Generate hemisphere values for current time step.
 !-----------------------------------------------------------------------
 
-   weight = (mapped_date - psf6_date(data_ind)) &
-            / (psf6_date(data_ind+1) - psf6_date(data_ind))
-
-   psf6_nh_curr = &
-      weight * psf6_nh(data_ind+1) + (c1-weight) * psf6_nh(data_ind)
-
-   psf6_sh_curr = &
-      weight * psf6_sh(data_ind+1) + (c1-weight) * psf6_sh(data_ind)
+   call forcing_timeseries_dataset_get_var(psf6_atm_forcing_dataset, varind=1, data_1d=psf6_nh_curr)
+   call forcing_timeseries_dataset_get_var(psf6_atm_forcing_dataset, varind=2, data_1d=psf6_sh_curr)
 
 !-----------------------------------------------------------------------
 !     Merge hemisphere values.

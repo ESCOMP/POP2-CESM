@@ -3,6 +3,30 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    24 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n89_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: utilize forcing_timeseries_mod in cfc_mod.F90 and sf6_mod.F90
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+ran the following cfc_sf6 tests on cheyenne:
+ERS_D.T62_g17.GIAF.cheyenne_intel.pop-cfc_sf6
+ERS_D.T62_g17.GIAF.cheyenne_gnu.pop-cfc_sf6
+ERS.T62_g17.GIAF.cheyenne_intel.pop-cfc_sf6
+ERS_D.T62_g37.GIAF.cheyenne_gnu.pop-cfc_sf6
+
+tests passed, but BASELINE failed because of roundoff differences in time interpolation formula
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/cfc_mod.F90
+M       source/sf6_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    24 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n88_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: move D14C and d13C time interpolation into forcing_timeseries_mod.F90
 
