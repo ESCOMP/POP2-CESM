@@ -4,15 +4,17 @@ module c14_atm_forcing_mod
   !  This module provides an interface for providing atmospheric boundary
   !  conditions for c14.
 
-  use kinds_mod, only: char_len, r8, int_kind
-  use blocks, only: nx_block, ny_block
-  use io_tools, only: document
-  use exit_mod, only: sigAbort, exit_POP
+  use kinds_mod,              only: char_len, r8, int_kind
+  use blocks,                 only: nx_block, ny_block
+  use io_tools,               only: document
+  use exit_mod,               only: sigAbort, exit_POP
+  use forcing_timeseries_mod, only: forcing_timeseries_dataset
 
   implicit none
   private
 
   public :: c14_atm_forcing_init
+  public :: c14_atm_forcing_update_data
   public :: c14_atm_forcing_get_data
 
   !-----------------------------------------------------------------------
@@ -23,24 +25,17 @@ module c14_atm_forcing_mod
     c14_atm_forcing_opt             ! option for D14C varying or constant forcing
 
   real (r8) :: &
-    c14_atm_forcing_const           !  atmospheric 14CO2 constant [permil]
+    c14_atm_forcing_const           ! atmospheric 14CO2 constant [permil]
 
   character (char_len) :: &
     c14_atm_forcing_filename        ! filenames for varying atm D14C (one each for NH, SH, EQ)
 
   integer (int_kind) :: &
-    c14_atm_forcing_model_year,   & !  arbitrary model year
-    c14_atm_forcing_data_year,    & !  year in data that corresponds to c14_atm_forcing_model_year
-    c14_atm_forcing_data_nbval      !  number of values in c14_atm_forcing_filename
+    c14_atm_forcing_model_year,   & ! arbitrary model year
+    c14_atm_forcing_data_year       ! year in data that corresponds to c14_atm_forcing_model_year
 
-  real (r8), dimension(:), allocatable :: &
-    c14_atm_forcing_data_yr         !  date of atmospheric DC14 values in datafile (sh, eq, nh)
-
-  real (r8), dimension(:,:), allocatable :: &
-    c14_atm_forcing_data            !  atmospheric DC14 values in datafile (sh, eq, nh, in permil)
-
-  integer (int_kind), dimension(:), allocatable :: &
-    c14_atm_forcing_data_ind        ! data index for D14C data
+  type (forcing_timeseries_dataset) :: &
+    c14_atm_forcing_dataset         ! data structure for atm 14C timeseries
 
   !*****************************************************************************
 
@@ -52,23 +47,25 @@ contains
       c14_atm_forcing_const_in, c14_atm_forcing_filename_in, &
       c14_atm_forcing_model_year_in, c14_atm_forcing_data_year_in)
 
-    use kinds_mod, only: log_kind
-    use forcing_timeseries_mod, only: forcing_timeseries_read_file
-    use domain, only : nblocks_clinic
+    use kinds_mod,              only: log_kind
+    use forcing_timeseries_mod, only: forcing_timeseries_init_dataset
+    use forcing_timeseries_mod, only: forcing_timeseries_dataset_var_size
+    use forcing_timeseries_mod, only: forcing_timeseries_taxmode_endpoint
+    use forcing_timeseries_mod, only: forcing_timeseries_taxmode_extrapolate
 
     character(*), intent(in) :: &
       caller,                          & ! name of module calling c14_atm_forcing_init
       c14_atm_forcing_opt_in             ! option for D14C varying or constant forcing
 
     real (r8), intent(in) :: &
-      c14_atm_forcing_const_in           !  atmospheric 14CO2 constant [permil]
+      c14_atm_forcing_const_in           ! atmospheric 14CO2 constant [permil]
 
     character (*), intent(in) :: &
       c14_atm_forcing_filename_in        ! filenames for varying atm D14C (one each for NH, SH, EQ)
 
     integer (int_kind), intent(in) :: &
-      c14_atm_forcing_model_year_in,   & !  arbitrary model year
-      c14_atm_forcing_data_year_in       !  year in data that corresponds to c14_atm_forcing_model_year_in
+      c14_atm_forcing_model_year_in,   & ! arbitrary model year
+      c14_atm_forcing_data_year_in       ! year in data that corresponds to c14_atm_forcing_model_year_in
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -96,7 +93,7 @@ contains
         call document(subname, 'c14_atm_forcing_opt_in', c14_atm_forcing_opt_in)
         val_mismatch = .true.
       end if
-      select case (c14_atm_forcing_opt)
+      select case (trim(c14_atm_forcing_opt))
       case ('const')
         if (c14_atm_forcing_const /= c14_atm_forcing_const_in) then
           call document(subname, 'c14_atm_forcing_const', c14_atm_forcing_const)
@@ -140,7 +137,7 @@ contains
 
     call document(subname, 'c14_atm_forcing_opt', c14_atm_forcing_opt)
 
-    select case (c14_atm_forcing_opt)
+    select case (trim(c14_atm_forcing_opt))
 
     case ('const')
 
@@ -153,19 +150,22 @@ contains
       !  ensure that read in data has dimlen=3 in 1st dimension
       !-----------------------------------------------------------------------
 
-      call forcing_timeseries_read_file(c14_atm_forcing_filename, 'Delta14co2_in_air', &
-        c14_atm_forcing_data_nbval, c14_atm_forcing_data_yr, data_2d=c14_atm_forcing_data)
+      call forcing_timeseries_init_dataset(c14_atm_forcing_filename, &
+        varnames      = (/ 'Delta14co2_in_air' /), &
+        model_year    = c14_atm_forcing_model_year, &
+        data_year     = c14_atm_forcing_data_year, &
+        taxmode_start = forcing_timeseries_taxmode_endpoint, &
+        taxmode_end   = forcing_timeseries_taxmode_extrapolate, &
+        dataset       = c14_atm_forcing_dataset)
 
-      if (size(c14_atm_forcing_data, dim=1) /= 3) then
-        call document(subname, 'size(c14_atm_forcing_data, dim=1)', size(c14_atm_forcing_data, dim=1))
+      if (forcing_timeseries_dataset_var_size(c14_atm_forcing_dataset, varind=1, dim=1) /= 3) then
+        call document(subname, 'size(c14_atm_forcing_data, dim=1)', &
+          forcing_timeseries_dataset_var_size(c14_atm_forcing_dataset, varind=1, dim=1))
         call exit_POP(sigAbort, 'size(c14_atm_forcing_data, dim=1) /= 3')
       end if
 
       call document(subname, 'c14_atm_forcing_model_year', c14_atm_forcing_model_year)
       call document(subname, 'c14_atm_forcing_data_year', c14_atm_forcing_data_year)
-
-      allocate(c14_atm_forcing_data_ind(nblocks_clinic))
-      c14_atm_forcing_data_ind(:) = -1
 
     case default
 
@@ -178,6 +178,17 @@ contains
     !-----------------------------------------------------------------------
 
   end subroutine c14_atm_forcing_init
+
+  !*****************************************************************************
+
+  subroutine c14_atm_forcing_update_data
+
+    use forcing_timeseries_mod, only: forcing_timeseries_dataset_update_data
+
+    if (trim(c14_atm_forcing_opt) == 'file') &
+      call forcing_timeseries_dataset_update_data(c14_atm_forcing_dataset)
+
+  end subroutine c14_atm_forcing_update_data
 
   !*****************************************************************************
 
@@ -195,7 +206,7 @@ contains
 
     !-----------------------------------------------------------------------
 
-    select case (c14_atm_forcing_opt)
+    select case (trim(c14_atm_forcing_opt))
 
     case ('const')
 
@@ -204,11 +215,6 @@ contains
     case ('file')
 
       call c14_atm_forcing_comp_varying_D14C(iblock, D14C)
-
-    case default
-
-      call document(subname, 'c14_atm_forcing_opt', c14_atm_forcing_opt)
-      call exit_POP(sigAbort, 'unknown c14_atm_forcing_opt')
 
     end select
 
@@ -219,8 +225,7 @@ contains
   subroutine c14_atm_forcing_comp_varying_D14C(iblock, D14C)
 
 ! !DESCRIPTION:
-!  Compute atmospheric mole fractions of CO2 when temporarily
-!  varying data is read from files
+!  Compute atmospheric D14C when temporarily varying data is read from files
 !  1. Linearly interpolate hemispheric values to current time step
 !  2. Make global field of D14C, determined by:
 !   -Northern Hemisphere value is used for 30N - 90 N
@@ -229,9 +234,8 @@ contains
 
 ! !USES:
 
-    use grid, only: TLATD
-    use constants, only: c0, c1
-    use time_management, only: iyear, iday_of_year, frac_day, days_in_year
+    use forcing_timeseries_mod, only: forcing_timeseries_dataset_get_var
+    use grid,                   only: TLATD
 
     integer (int_kind), intent(in) :: iblock
 
@@ -243,77 +247,15 @@ contains
 
     character(*), parameter :: subname = 'c14_atm_forcing_mod:c14_atm_forcing_comp_varying_D14C'
 
-    integer (int_kind) :: &
-      data_ind,     & ! c14_atm_forcing_data_ind for this block
-      i, j            ! loop indices
+    integer (int_kind) :: i, j
 
-    real (r8) :: &
-      model_date,   & ! date of current model timestep
-      mapped_date,  & ! model_date mapped to data timeline
-      weight,       & ! weighting for temporal interpolation
-      D14c_curr_sh, & ! current atmospheric D14C value for SH (interpolated from data to model date)
-      D14c_curr_nh, & ! current atmospheric D14C value for NH (interpolated from data to model date)
-      D14c_curr_eq    ! current atmospheric D14C value for EQ (interpolated from data to model date)
-
-
-    !-----------------------------------------------------------------------
-    !  Generate mapped_date and check to see if it is too large.
-    !-----------------------------------------------------------------------
-
-    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
-    mapped_date = model_date - c14_atm_forcing_model_year + c14_atm_forcing_data_year
-    if (mapped_date >= c14_atm_forcing_data_yr(c14_atm_forcing_data_nbval)) then
-      call exit_POP(sigAbort, 'model date maps to date after end of D14C data in files.')
-    end if
-
-    !-----------------------------------------------------------------------
-    !  Set atmospheric D14C concentrations to zero before D14C record begins
-    !-----------------------------------------------------------------------
-
-    if (mapped_date < c14_atm_forcing_data_yr(1)) then
-      D14C(:,:) = c0
-      c14_atm_forcing_data_ind(iblock) = 1
-      call document(subname, 'Model date less than start of D14C data --> D14C=0')
-      return
-    end if
-
-    !-----------------------------------------------------------------------
-    !  On first time step, perform linear search to find data_ind.
-    !-----------------------------------------------------------------------
-
-    if (c14_atm_forcing_data_ind(iblock) == -1) then
-      do data_ind = c14_atm_forcing_data_nbval-1,1,-1
-        if (mapped_date >= c14_atm_forcing_data_yr(data_ind)) exit
-      end do
-      c14_atm_forcing_data_ind(iblock) = data_ind
-    end if
-
-    !-----------------------------------------------------------------------
-    !  See if c14_atm_forcing_data_ind need to be updated,
-    !  but do not set it to c14_atm_forcing_data_nbval.
-    !-----------------------------------------------------------------------
-
-    data_ind = c14_atm_forcing_data_ind(iblock)
-    if (data_ind < c14_atm_forcing_data_nbval-1) then
-      if (mapped_date >= c14_atm_forcing_data_yr(data_ind+1)) then
-        data_ind = data_ind + 1
-        c14_atm_forcing_data_ind(iblock) = data_ind
-      end if
-    end if
+    real (r8) :: D14C_curr(3)
 
     !-----------------------------------------------------------------------
     !  Generate hemisphere values for current time step.
     !-----------------------------------------------------------------------
 
-    weight = (mapped_date - c14_atm_forcing_data_yr(data_ind)) &
-      / (c14_atm_forcing_data_yr(data_ind+1) - c14_atm_forcing_data_yr(data_ind))
-
-    d14c_curr_nh = weight * c14_atm_forcing_data(1,data_ind+1) \
-      + (c1-weight) * c14_atm_forcing_data(1,data_ind)
-    d14c_curr_eq = weight * c14_atm_forcing_data(2,data_ind+1) \
-      + (c1-weight) * c14_atm_forcing_data(2,data_ind)
-    d14c_curr_sh = weight * c14_atm_forcing_data(3,data_ind+1) \
-      + (c1-weight) * c14_atm_forcing_data(3,data_ind)
+    call forcing_timeseries_dataset_get_var(c14_atm_forcing_dataset, varind=1, data_2d=D14C_curr)
 
     !-----------------------------------------------------------------------
     !  Merge hemisphere values for D14C
@@ -325,11 +267,11 @@ contains
     do j = 1, ny_block
       do i = 1, nx_block
         if (TLATD(i,j,iblock) < -30.0_r8) then
-          D14C(i,j) = d14c_curr_sh
+          D14C(i,j) = D14C_curr(3)
         else if (TLATD(i,j,iblock) > 30.0_r8) then
-          D14C(i,j) = d14c_curr_nh
+          D14C(i,j) = D14C_curr(1)
         else
-          D14C(i,j) = d14c_curr_eq
+          D14C(i,j) = D14C_curr(2)
         end if
       end do
     end do

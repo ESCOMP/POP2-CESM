@@ -2,6 +2,32 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    24 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n88_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: move D14C and d13C time interpolation into forcing_timeseries_mod.F90
+
+also generalize forcing_timeseries_mod.F90 to work more efficiently with multiple vars in a file
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n87)
+   except for tests mentioned below, all tests pass
+      BASELINE failed for ciso_transient and abio_transient cases
+         because of roundoff differences in time interpolation formula
+         only ciso and abio vars are affected
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/abio_dic_dic14_mod.F90
+M       source/c14_atm_forcing_mod.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_timeseries_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    23 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n87_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: switch to preliminary CMIP6 atm D14C and d13C 20C timeseries and 1850 values

@@ -897,11 +897,11 @@ contains
 
 ! !USES:
 
-   use constants, only: ocn_ref_salinity, rho_sw
-   use timers, only: timer_start, timer_stop
-   use named_field_mod, only: named_field_get
-   use grid, only: REGION_MASK
-   use c14_atm_forcing_mod, only: c14_atm_forcing_get_data
+   use constants,           only: ocn_ref_salinity, rho_sw
+   use timers,              only: timer_start, timer_stop
+   use named_field_mod,     only: named_field_get
+   use grid,                only: REGION_MASK
+   use c14_atm_forcing_mod, only: c14_atm_forcing_update_data, c14_atm_forcing_get_data
 
 ! !INPUT PARAMETERS:
 
@@ -976,6 +976,12 @@ contains
    if (check_time_flag(comp_surf_avg_flag))  &
       call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,abio_dic_dic14_tracer_cnt, &
                             vflux_flag,surf_avg)
+
+!-----------------------------------------------------------------------
+
+   call c14_atm_forcing_update_data
+
+!-----------------------------------------------------------------------
 
 ! Initilize fields to zero
 !$OMP PARALLEL DO PRIVATE(iblock)

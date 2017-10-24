@@ -40,6 +40,8 @@ module ecosys_forcing_mod
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
+  use forcing_timeseries_mod, only : forcing_timeseries_dataset
+
   implicit none
   private
 
@@ -167,7 +169,6 @@ module ecosys_forcing_mod
   integer(int_kind)   :: iron_patch_month             ! integer month to add patch flux
   integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
   integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-  integer(int_kind)   :: ciso_atm_d13c_data_nbval       ! number of values in ciso_atm_d13c_filename
   real(r8), allocatable :: ciso_atm_d13c_data(:)          ! atmospheric d13C values in datafile
   real(r8), allocatable :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric d13C values in datafile
   real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
@@ -176,6 +177,9 @@ module ecosys_forcing_mod
   character(char_len) :: ciso_atm_d13c_filename         ! filenames for varying atm d13C
   character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and d13C varying or constant forcing
   character(char_len) :: ciso_atm_d14c_filename         ! filenames for varying atm D14C (one each for NH, SH, EQ)
+
+  type (forcing_timeseries_dataset) :: &
+    ciso_atm_d13c_forcing_dataset                       ! data structure for atm d13C timeseries
 
   !-----------------------------------------------------------------------
   !  tracer restoring related variables
@@ -230,12 +234,6 @@ module ecosys_forcing_mod
   ! Surface and interior forcing fields
   real(r8), allocatable, target :: iron_patch_flux(:,:,:)
   real(r8)                      :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
-
-  !  ciso_atm_d13c_data_ind is the index for the d13C data for the current timestep
-  !  Note that ciso_atm_d13c_data_ind is always less than ciso_atm_d13c_data_nbval.
-  !  To enable OpenMP parallelism, duplicating data_ind for each block
-
-  integer (int_kind), dimension(:), allocatable :: ciso_atm_d13c_data_ind ! data index for d13C data
 
   integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_riv_flux_strdata_create_timer
@@ -2147,12 +2145,14 @@ contains
 
     ! Updates module variables d13C and D14C (for atmospheric ratios)
 
-    use grid                , only : TAREA
-    use domain              , only : blocks_clinic
-    use domain              , only : distrb_clinic
-    use blocks              , only : get_block
-    use global_reductions   , only : global_sum
-    use c14_atm_forcing_mod , only : c14_atm_forcing_get_data
+    use grid,                   only : TAREA
+    use domain,                 only : blocks_clinic
+    use domain,                 only : distrb_clinic
+    use blocks,                 only : get_block
+    use global_reductions,      only : global_sum
+    use forcing_timeseries_mod, only : forcing_timeseries_dataset_update_data
+    use forcing_timeseries_mod, only : forcing_timeseries_dataset_get_var
+    use c14_atm_forcing_mod,    only : c14_atm_forcing_update_data, c14_atm_forcing_get_data
 
     implicit none
 
@@ -2180,13 +2180,20 @@ contains
          tarea_local_sums   ! array for holding block sums of TAREA when calculating global D14C
 
     real (r8) :: &
+         atm_d13C_curr, & ! current value of atm d13C (for file option)
          d14c_sum_tmp,  & ! temp for local sum of D14C
          tarea_sum_tmp    ! temp for local sum of TAREA
+
     !-----------------------------------------------------------------------
 
     work1(:,:) = c0
     d14c_local_sums(:)  = c0
     tarea_local_sums(:) = c0
+
+    if (trim(ciso_atm_d13c_opt) == 'file') &
+      call forcing_timeseries_dataset_update_data(ciso_atm_d13c_forcing_dataset)
+
+    call c14_atm_forcing_update_data
 
     !-----------------------------------------------------------------------
     ! Loop over blocks
@@ -2202,7 +2209,9 @@ contains
        case ('const')
           d13C(:,:,:) = ciso_atm_d13c_const
        case ('file')
-          call ciso_comp_varying_d13C(iblock, ciso_atm_d13c_data_ind(iblock), d13C(:,:,iblock))
+          call forcing_timeseries_dataset_get_var(ciso_atm_d13c_forcing_dataset, &
+            varind=1, data_1d=atm_d13C_curr)
+          d13C(:,:,iblock) = atm_d13C_curr
        case default
           call document(subname, 'unknown ciso_atm_d13c_opt')
           call exit_POP(sigAbort, 'Stopping in ' // subname)
@@ -2249,107 +2258,6 @@ contains
 
   !***********************************************************************
 
-  subroutine ciso_comp_varying_d13C(iblock, ciso_atm_d13c_data_ind, d13C)
-
-    !-----------------------------------------------------------------------
-    ! !DESCRIPTION:
-    !  Compute atmospheric mole fractions of d13c when temporarily
-    !  varying data is read from files
-    !  1. Linearly interpolate data values to current model time step
-    !  2. Spatial patern of d13Cis the same everywhere (90 S - 90 N)
-    !-----------------------------------------------------------------------
-
-    use time_management , only : days_in_year
-    use time_management , only : frac_day
-    use time_management , only : iday_of_year
-    use time_management , only : iyear
-    use constants       , only : blank_fmt
-    use constants       , only : delim_fmt
-    use constants       , only : ndelim_fmt
-
-    implicit none
-
-    ! note that ciso_atm_d13c_data_ind is always strictly less than the length
-    ! of the data and is initialized to -1 before the first call
-
-    integer (int_kind) , intent(in)  :: iblock                  ! block index
-    integer (int_kind) , intent(out) :: ciso_atm_d13c_data_ind  ! index for the data for current timestep,
-    real (r8)          , intent(out) :: d13C(nx_block,ny_block) ! atmospheric d13C (permil)
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_comp_varying_d13C'
-
-    real (r8) :: &
-         model_date,     & ! date of current model timestep
-         mapped_date,    & ! model_date mapped to data timeline
-         weight            ! weighting for temporal interpolation
-    !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    !  Generate mapped_date and check to see if it is too large.
-    !-----------------------------------------------------------------------
-
-    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
-    mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
-
-    if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval)) then
-       call document(subname, 'ciso: Model date maps to date after end of d13C data in file.')
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
-    endif
-
-    !--------------------------------------------------------------------------------------------------------------
-    !  Set atmospheric d13C to first value in record for years before record begins
-    !--------------------------------------------------------------------------------------------------------------
-
-    if (mapped_date < ciso_atm_d13c_data_yr(1)) then
-       d13C = ciso_atm_d13c_data(1)
-       ciso_atm_d13c_data_ind = 1
-       if(my_task == master_task) then
-          write(stdout,blank_fmt)
-          write(stdout,ndelim_fmt)
-          write(stdout,blank_fmt)
-          write(stdout,*)'ciso: Mapped date less than start of d13C data --> using first value in d13C data file'
-          write(stdout,blank_fmt)
-          write(stdout,ndelim_fmt)
-          write(stdout,blank_fmt)
-       endif
-       return
-    endif
-
-    !-----------------------------------------------------------------------
-    !  On first time step, perform linear search to find data_ind_d13c
-    !-----------------------------------------------------------------------
-
-    if (ciso_atm_d13c_data_ind == -1) then
-       do ciso_atm_d13c_data_ind = ciso_atm_d13c_data_nbval-1,1,-1
-          if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind)) exit
-       end do
-    endif
-
-    !-----------------------------------------------------------------------
-    !  See if ciso_atm_d13c_data_ind needs to be updated,
-    !  but do not set it to atm_d13c_data_nbval.
-    !-----------------------------------------------------------------------
-
-    if (ciso_atm_d13c_data_ind < ciso_atm_d13c_data_nbval-1) then
-       if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind+1)) ciso_atm_d13c_data_ind = ciso_atm_d13c_data_ind + 1
-    endif
-
-    !-----------------------------------------------------------------------
-    !  Generate hemisphere values for current time step.
-    !-----------------------------------------------------------------------
-
-    weight = (mapped_date - ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind)) &
-         / (ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind+1) - ciso_atm_d13c_data_yr(ciso_atm_d13c_data_ind))
-
-    d13C = weight * ciso_atm_d13c_data(ciso_atm_d13c_data_ind+1) + (c1-weight) * ciso_atm_d13c_data(ciso_atm_d13c_data_ind)
-
-  end subroutine ciso_comp_varying_d13C
-
-  !***********************************************************************
-
   subroutine ciso_init_atm_D13_D14
 
     !---------------------------------------------------------------------
@@ -2358,8 +2266,10 @@ contains
     !  Includes reading CO2 and d13C and D14C data from file if option file is used
     !---------------------------------------------------------------------
 
-    use forcing_timeseries_mod, only : forcing_timeseries_read_file
-    use c14_atm_forcing_mod, only : c14_atm_forcing_init
+    use forcing_timeseries_mod, only : forcing_timeseries_init_dataset
+    use forcing_timeseries_mod, only : forcing_timeseries_taxmode_endpoint
+    use forcing_timeseries_mod, only : forcing_timeseries_taxmode_extrapolate
+    use c14_atm_forcing_mod,    only : c14_atm_forcing_init
 
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_init_atm_D13_D14'
 
@@ -2377,11 +2287,13 @@ contains
 
     case ('file')
 
-       call forcing_timeseries_read_file(ciso_atm_d13c_filename, 'delta13co2_in_air', &
-          ciso_atm_d13c_data_nbval, ciso_atm_d13c_data_yr, data_1d=ciso_atm_d13c_data)
-
-       allocate(ciso_atm_d13c_data_ind(nblocks_clinic))
-       ciso_atm_d13c_data_ind(:) = -1
+       call forcing_timeseries_init_dataset(ciso_atm_d13c_filename, &
+          varnames      = (/ 'delta13co2_in_air' /), &
+          model_year    = ciso_atm_model_year, &
+          data_year     = ciso_atm_data_year, &
+          taxmode_start = forcing_timeseries_taxmode_endpoint, &
+          taxmode_end   = forcing_timeseries_taxmode_extrapolate, &
+          dataset       = ciso_atm_d13c_forcing_dataset)
 
     case default
 
