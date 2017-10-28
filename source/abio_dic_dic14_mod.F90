@@ -130,7 +130,7 @@ module abio_dic_dic14_mod
       abio_atm_d14c_const           !  atmospheric 14CO2 constant [permil]
 
    character(char_len) :: &
-      abio_atm_d14c_filename        ! filenames for varying atm D14C (one each for NH, SH, EQ)
+      abio_atm_d14c_filename        ! filename for varying atm D14C
 
    integer (int_kind) :: &
       abio_atm_model_year,        & !  arbitrary model year
@@ -440,8 +440,8 @@ contains
 
    call broadcast_scalar(abio_atm_co2_opt, master_task)
    call broadcast_scalar(abio_atm_co2_const, master_task)
-
    call broadcast_scalar(abio_atm_co2_filename, master_task)
+
    call broadcast_scalar(abio_atm_d14c_opt, master_task)
    call broadcast_scalar(abio_atm_d14c_const, master_task)
    call broadcast_scalar(abio_atm_d14c_filename, master_task)
@@ -811,35 +811,39 @@ contains
 
 !EOP
 !BOC
-  character(len=char_len) :: message
 !-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: subname = 'abio_dic_dic14_mod:abio_dic_dic14_init_sflux'
+
+   character(len=char_len) :: message
 
 !-------------------------------------------------------------------------
 !     READ in CO2 data from files for option file or get
-!     CO2 from coupler for option coupler
+!     CO2 from coupler for option drv_diag
 !-------------------------------------------------------------------------
+
+   call document(subname, 'abio_atm_co2_opt', abio_atm_co2_opt)
 
    select case (abio_atm_co2_opt)
 
    case ('const')
-      if (my_task == master_task) then
-         write(stdout,*)'Abiotic DIC calculation: Using constant CO2',  &
-                        ' value of ',abio_atm_co2_const
-      endif
 
-   case ('coupler')
-      if (my_task == master_task) then
-         write(stdout,*)'Abiotic DIC calculation: Using CO2 values from coupler'
-      endif
+      call document(subname, 'abio_atm_co2_const', abio_atm_co2_const)
+
+   case ('drv_diag')
 
 !-----------------------------------------------------------------------
-!     Verify running coupled if gas fluxes use coupler forcing
+!     Verify running coupled if gas fluxes use drv_diag forcing
 !-----------------------------------------------------------------------
+
       if (.not. registry_match('lcoupled')) then
          write(message, *) 'abio_dic_dic14_init: abio_dic_dic14 module requires ', &
-                           ' the flux coupler when abio_atm_co2_opt=coupler'
+                           ' the flux coupler when abio_atm_co2_opt=drv_diag'
          call exit_POP(sigAbort, message)
       endif
+
 !-----------------------------------------------------------------------
 !    Get co2 index from coupler for reading of CO2 data later
 !    (each timesstep) and abort if it isn't there
@@ -857,6 +861,7 @@ contains
 
 
    case('file')
+
 !-----------------------------------------------------------------------
 !     READ in CO2 data from file
 !-----------------------------------------------------------------------
@@ -864,7 +869,8 @@ contains
       call read_atm_CO2_data
 
   case default
-      call exit_POP(sigAbort, 'unknown abio_atm_co2_opt in abio_dic_dic14_init_sflux')
+
+      call exit_POP(sigAbort, 'unknown abio_atm_co2_opt')
 
   end select
 
@@ -1065,15 +1071,12 @@ contains
       case ('const')
             pCO2 = abio_atm_co2_const
 
-      case ('coupler')
+      case ('drv_diag')
 
          call named_field_get(atm_co2_nf_ind,iblock, pCO2)
 
       case('file')
-         call comp_varying_CO2(data_ind_co2(iblock),pCO2)
-
-      case default
-         call exit_POP(sigAbort, 'unknown abio_atm_co2_opt in abio_dic_dic14_set_sflux')
+         call comp_varying_CO2(data_ind_co2(iblock), pCO2)
 
       end select
 
@@ -1408,8 +1411,9 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 !     READ in CO2 data from file
 !-----------------------------------------------------------------------
+   call document(subname, 'abio_atm_co2_filename', abio_atm_co2_filename)
+
    if (my_task == master_task) then
-      write(stdout,*)'Abiotic DIC calculation: Using varying CO2 values from file ',trim(abio_atm_co2_filename)
       open (nml_in, file=abio_atm_co2_filename, status='old',iostat=stat)
       if (stat /= 0) then
          write(stdout,fmt=*) 'open failed'

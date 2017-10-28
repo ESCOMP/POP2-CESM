@@ -103,7 +103,6 @@ module cfc_mod
    integer (int_kind) ::  &
       model_year,             & ! arbitrary model year
       data_year,              & ! year in data that corresponds to model_year
-      pcfc_data_len,          & ! length of atmospheric pcfc record
       pcfc_first_nonzero_year   ! first year of non-zero values in pcfc_file
 
    type (forcing_timeseries_dataset) :: &
@@ -168,7 +167,6 @@ contains
    use constants, only: char_blank, delim_fmt
    use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, n_topo_smooth, fill_points
-   use grid, only: REGION_MASK
    use io_types, only: nml_in, nml_filename
    use timers, only: get_timer
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
@@ -597,9 +595,6 @@ contains
 
    use forcing_tools, only: find_forcing_times
    use forcing_timeseries_mod, only: forcing_timeseries_init_dataset
-   use forcing_timeseries_mod, only: forcing_timeseries_dataset_var_size
-   use forcing_timeseries_mod, only: forcing_timeseries_taxmode_endpoint
-   use forcing_timeseries_mod, only: forcing_timeseries_taxmode_extrapolate
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for cfc tracer module.
@@ -618,8 +613,6 @@ contains
       n,                 & ! index for looping over tracers
       iblock               ! index for looping over blocks
 
-   real (r8), dimension (nx_block,ny_block) :: WORK
-
    real (r8), dimension (nx_block,ny_block,12,max_blocks_clinic), target :: &
       WORK_READ            ! temporary space to read in fields
 
@@ -629,8 +622,8 @@ contains
       varnames      = (/ 'pcfc11_nh', 'pcfc11_sh', 'pcfc12_nh', 'pcfc12_sh' /), &
       model_year    = model_year, &
       data_year     = data_year, &
-      taxmode_start = forcing_timeseries_taxmode_endpoint, &
-      taxmode_end   = forcing_timeseries_taxmode_extrapolate, &
+      taxmode_start = 'endpoint', &
+      taxmode_end   = 'extrapolate', &
       dataset       = pcfc_atm_forcing_dataset)
 
 !-----------------------------------------------------------------------
@@ -799,8 +792,6 @@ contains
 
    integer (int_kind) :: &
       iblock             ! block index
-
-   integer (int_kind) :: i, j
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       IFRAC_USED,      & ! used ice fraction (non-dimensional)
@@ -1055,6 +1046,9 @@ contains
 
 !-----------------------------------------------------------------------
 !  Generate hemisphere values for current time step.
+!
+!  varind in the following calls must match varname ordering in 
+!  call to forcing_timeseries_init_dataset in subroutine cfc_init_sflux
 !-----------------------------------------------------------------------
 
    call forcing_timeseries_dataset_get_var(pcfc_atm_forcing_dataset, varind=1, data_1d=pcfc11_nh_curr)

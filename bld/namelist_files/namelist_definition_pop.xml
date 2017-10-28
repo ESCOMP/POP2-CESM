@@ -5300,10 +5300,10 @@ id="abio_atm_co2_opt"
 type="char*256"
 category="passive_tracers"
 group="abio_dic_dic14_nml" 
-valid_values="file,const,coupler" >
+valid_values="file,const,drv_diag" >
 Source of atmos CO2.
 
-Valid Values: 'file', 'const', 'coupler'
+Valid Values: 'file', 'const', 'drv_diag'
 Default: '
 </entry>
 

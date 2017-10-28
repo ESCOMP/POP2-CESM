@@ -2,6 +2,43 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    28 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n90_marbl_dev_n58_cesm_pop_2_1_20170703
+Tag Summary: revisions from code review of forcing_timeseries and c14_atm_forcing mods
+
+rename abio_atm_co2_opt value of 'coupler' to 'drv_diag'
+add T62_g37 ERS ciso_abio_dic_dic14 test to aux_pop_MARBL
+change taxmode_end and taxmode_start arguments of forcing_timeseries_init_dataset to strings,
+  making forcing_timeseries_taxmode_endpoint and forcing_timeseries_taxmode_extrapolate private
+avoid recomputing interpolation in forcing_timeseries_dataset_update_data
+  if it has already been done for the current model_date
+refactor linear interpolation in forcing_timeseries
+correct and add comments
+remove some unused variables
+
+Testing:
+MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n88)
+   except for tests mentioned below, all tests pass
+      NLCOMP and BASELINE failed for new test
+      some MEMLEAK failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/abio_dic_dic14_mod.F90
+M       source/c14_atm_forcing_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_timeseries_mod.F90
+M       source/sf6_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n89_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: utilize forcing_timeseries_mod in cfc_mod.F90 and sf6_mod.F90

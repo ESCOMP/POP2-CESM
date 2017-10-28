@@ -89,6 +89,7 @@
     <grid name="T62_g37">
       <test name="ERS">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient_abio_dic_dic14_transient">cheyenne</machine>
       </test>

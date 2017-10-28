@@ -10,9 +10,6 @@ module forcing_timeseries_mod
   implicit none
   private
 
-  public :: forcing_timeseries_taxmode_endpoint
-  public :: forcing_timeseries_taxmode_extrapolate
-
   public :: forcing_timeseries_dataset
 
   public :: forcing_timeseries_init_dataset
@@ -30,11 +27,13 @@ module forcing_timeseries_mod
   type :: forcing_timeseries_var
     character (char_len)   :: name
     integer (int_kind)     :: rank
-    real (r8), allocatable :: data_1d(:)
-    real (r8)              :: data_1d_curr
-    real (r8), allocatable :: data_2d(:,:)
-    real (r8), allocatable :: data_2d_curr(:)
+    real (r8), allocatable :: data_1d(:)        ! dimension is time
+    real (r8)              :: data_1d_curr      ! data_1d interpolated to the current model time
+    real (r8), allocatable :: data_2d(:,:)      ! dimensions are (*,time)
+    real (r8), allocatable :: data_2d_curr(:)   ! data_2d interpolated to the current model time
   end type forcing_timeseries_var
+
+  ! a dataset is a collection of variables from one file, all on the same time dimension
 
   type :: forcing_timeseries_dataset
     character (char_len)                       :: filename       ! name of file containing dataset
@@ -45,7 +44,13 @@ module forcing_timeseries_mod
     integer (int_kind)                         :: taxmode_end    ! taxmode at the end of timeseries
     type (forcing_timeseries_var), allocatable :: vars(:)
     integer (int_kind)                         :: data_ind       ! current time index
+    real (r8)                                  :: last_update_model_date ! model_date from most recent update
   end type forcing_timeseries_dataset
+
+  interface lin_interp
+    module procedure lin_interp_1d
+    module procedure lin_interp_2d
+  end interface
 
   !*****************************************************************************
 
@@ -69,7 +74,7 @@ contains
       model_year,       & ! arbitrary model year
       data_year           ! year in time_yr corresponding to model_year
 
-    integer (int_kind), intent(in) :: &
+    character (*), intent(in) :: &
       taxmode_start,    & ! taxmode at the start of timeseries
       taxmode_end         ! taxmode at the end of timeseries
 
@@ -89,34 +94,33 @@ contains
     !-----------------------------------------------------------------------
 
     call document(subname, 'filename', filename)
-    call document(subname, 'model_year', model_year)
-    call document(subname, 'data_year', data_year)
+    dataset%filename = trim(filename)
 
-    select case (taxmode_start)
-    case (forcing_timeseries_taxmode_endpoint)
-      call document(subname, 'taxmode_start', 'endpoint')
-    case (forcing_timeseries_taxmode_extrapolate)
-      call document(subname, 'taxmode_start', 'extrapolate')
+    call document(subname, 'model_year', model_year)
+    dataset%model_year = model_year
+
+    call document(subname, 'data_year', data_year)
+    dataset%data_year = data_year
+
+    call document(subname, 'taxmode_start', taxmode_start)
+    select case (trim(taxmode_start))
+    case ('endpoint')
+      dataset%taxmode_start = forcing_timeseries_taxmode_endpoint
+    case ('extrapolate')
+      dataset%taxmode_start = forcing_timeseries_taxmode_extrapolate
     case default
-      call document(subname, 'taxmode_start', taxmode_start)
       call exit_POP(sigAbort, 'unknown taxmode_start')
     end select
 
-    select case (taxmode_end)
-    case (forcing_timeseries_taxmode_endpoint)
-      call document(subname, 'taxmode_end', 'endpoint')
-    case (forcing_timeseries_taxmode_extrapolate)
-      call document(subname, 'taxmode_end', 'extrapolate')
+    call document(subname, 'taxmode_end', taxmode_end)
+    select case (trim(taxmode_end))
+    case ('endpoint')
+      dataset%taxmode_end = forcing_timeseries_taxmode_endpoint
+    case ('extrapolate')
+      dataset%taxmode_end = forcing_timeseries_taxmode_extrapolate
     case default
-      call document(subname, 'taxmode_end', taxmode_end)
       call exit_POP(sigAbort, 'unknown taxmode_end')
     end select
-
-    dataset%filename      = trim(filename)
-    dataset%model_year    = model_year
-    dataset%data_year     = data_year
-    dataset%taxmode_start = taxmode_start
-    dataset%taxmode_end   = taxmode_end
 
     nvars = size(varnames)
     allocate(dataset%vars(nvars))
@@ -128,6 +132,7 @@ contains
     call forcing_timeseries_read_dataset(dataset)
 
     dataset%data_ind = -1
+    dataset%last_update_model_date = -1
 
   end subroutine forcing_timeseries_init_dataset
 
@@ -166,14 +171,14 @@ contains
       varid,            & ! netCDF variable id
       last_dimid,       & ! dimid of last dimension of var
       dim,              & ! dimension loop index
-      last_dimlen,      & ! dimlen of last dimension of var
+      time_dimlen,      & ! dimlen of last dimension of var
       time_ndims,       & ! number of dimensions for time
+      timeind,          & ! time index
       pos                 ! character position in a string
 
-    integer (int_kind), dimension(2) :: &
-      var_dimids,       & ! netCDF dimension ids for varname
-      time_dimids,      & ! netCDF dimension ids for time
-      var_dimlens         ! netCDF dimension lengths for varname
+    integer (int_kind) :: &
+      var_dimids(2),    & ! netCDF dimension ids for varname
+      var_dimlens(2)      ! netCDF dimension lengths for varname
 
     real (r8) :: &
       ref_year            ! year in ref_date
@@ -250,8 +255,6 @@ contains
             call document(subname, 'dimlen', var_dimlens(dim))
           end do
 
-          last_dimlen = var_dimlens(var%rank)
-
           ! allocate space for data, and read in data
 
           select case (var%rank)
@@ -268,91 +271,110 @@ contains
             go to 99
           end if
         end associate
+      end do ! do varind = 1, nvars
 
-        ! if varind==1, read in 'time'
-        ! this is often 'time', but we don't assume it to be
-        ! confirm that 'time' is a 1d var, on the same dimension as the last dimension of varname
+      ! read in 'time'
+      ! this is often named 'time', but we don't assume it to be
+      ! confirm that 'time' is a 1d var, on the same dimension as the last dimension of varname
 
-        if (varind == 1) then
-          timename = ' '
-          stat = nf90_inquire_dimension(ncid, last_dimid, name=timename)
-          if (stat /= 0) then
-            call document(subname, 'nf_inq_dimname(last_dimid)', nf90_strerror(stat))
-            go to 99
-          end if
+      timename = ' '
+      stat = nf90_inquire_dimension(ncid, last_dimid, name=timename)
+      if (stat /= 0) then
+        call document(subname, 'nf_inq_dimname(last_dimid)', nf90_strerror(stat))
+        go to 99
+      end if
 
-          stat = nf90_inq_varid(ncid, timename, varid)
-          if (stat /= 0) then
-            call document(subname, 'nf_inq_varid for time: ', nf90_strerror(stat))
-            go to 99
-          end if
+      call document(subname, 'timename', timename)
 
-          stat = nf90_inquire_variable(ncid, varid, ndims=time_ndims)
-          if (stat /= 0) then
-            call document(subname, 'nf_inq_varndims for time: ', nf90_strerror(stat))
-            go to 99
-          end if
-          if (time_ndims /= 1) then
-            call document(subname, 'non-supported time_ndims', time_ndims)
-            stat = 1
-            go to 99
-          end if
+      stat = nf90_inq_varid(ncid, timename, varid)
+      if (stat /= 0) then
+        call document(subname, 'nf_inq_varid for time: ', nf90_strerror(stat))
+        go to 99
+      end if
 
-          stat = nf90_inquire_variable(ncid, varid, dimids=time_dimids)
-          if (stat /= 0) then
-            call document(subname, 'nf_inq_vardimid for time: ', nf90_strerror(stat))
-            go to 99
-          end if
+      stat = nf90_inquire_variable(ncid, varid, ndims=time_ndims)
+      if (stat /= 0) then
+        call document(subname, 'nf_inq_varndims for time: ', nf90_strerror(stat))
+        go to 99
+      end if
+      if (time_ndims /= 1) then
+        call document(subname, 'non-supported time_ndims', time_ndims)
+        stat = 1
+        go to 99
+      end if
 
-          if (time_dimids(1) /= last_dimid) then
-            call document(subname, 'time dimid /= last_dimid')
-            stat = 1
-            go to 99
-          end if
+      stat = nf90_inquire_variable(ncid, varid, dimids=var_dimids)
+      if (stat /= 0) then
+        call document(subname, 'nf_inq_vardimid for time: ', nf90_strerror(stat))
+        go to 99
+      end if
 
-          ! read 'time' variable
+      if (var_dimids(1) /= last_dimid) then
+        call document(subname, 'time dimid /= last_dimid')
+        stat = 1
+        go to 99
+      end if
 
-          allocate(dataset%time_yr(last_dimlen))
-          stat = nf90_get_var(ncid, varid, dataset%time_yr)
-          if (stat /= 0) then
-            call document(subname, 'nf_get_var for time: ', nf90_strerror(stat))
-            go to 99
-          end if
+      stat = nf90_inquire_dimension(ncid, var_dimids(1), len=time_dimlen)
+      if (stat /= 0) then
+        call document(subname, 'nf_inq_dimlen(time_dimids(1))', nf90_strerror(stat))
+        go to 99
+      end if
 
-          units = ' '
-          stat = nf90_get_att(ncid, varid, 'units', units)
-          if (stat /= 0) then
-            call document(subname, 'nf_get_att for time@units: ', nf90_strerror(stat))
-            go to 99
-          end if
+      allocate(dataset%time_yr(time_dimlen))
+      stat = nf90_get_var(ncid, varid, dataset%time_yr)
+      if (stat /= 0) then
+        call document(subname, 'nf_get_var for time: ', nf90_strerror(stat))
+        go to 99
+      end if
 
-          ! find character position of reference year in units string
-          ! supported units are 'years since ...' and 'common_years since ...'
+      ! ensure that 'time' is increasing
 
-          units = adjustl(units) ! remove leading space(s)
-
-          pos = 0
-          valid_unit_pref = 'years since'
-          if (index(units, trim(valid_unit_pref)) == 1) then
-            pos = len_trim(valid_unit_pref) + 1
-          end if
-          valid_unit_pref = 'common_years since'
-          if (index(units, trim(valid_unit_pref)) == 1) then
-            pos = len_trim(valid_unit_pref) + 1
-          end if
-          if (pos == 0) then
-            call document(subname, 'non-supported time@units', units)
-            stat = 1
-            go to 99
-          end if
-
-          ref_date = adjustl(units(pos:len_trim(units))) ! remove prefix and space(s) immediately after it
-          call ref_date_to_ref_year(ref_date, ref_year)
-
-          dataset%time_yr(:) = dataset%time_yr(:) + ref_year
+      do timeind = 1, time_dimlen-1
+        if (dataset%time_yr(timeind+1) <= dataset%time_yr(timeind)) then
+          call document(subname, 'timeind', timeind)
+          call document(subname, 'time_yr(timeind)', dataset%time_yr(timeind))
+          call document(subname, 'time_yr(timeind+1)', dataset%time_yr(timeind+1))
+          call document(subname, 'time_yr values violate assumption that time is strictly increasing')
+          stat = 1
+          go to 99
         end if
       end do
-    end if
+
+      ! get units of 'time' and convert into absolute years, by adding ref_year
+
+      units = ' '
+      stat = nf90_get_att(ncid, varid, 'units', units)
+      if (stat /= 0) then
+        call document(subname, 'nf_get_att for time@units: ', nf90_strerror(stat))
+        go to 99
+      end if
+
+      ! find character position of reference year in units string
+      ! supported units are 'years since ...' and 'common_years since ...'
+
+      units = adjustl(units) ! remove leading space(s)
+
+      pos = 0
+      valid_unit_pref = 'years since'
+      if (index(units, trim(valid_unit_pref)) == 1) then
+        pos = len_trim(valid_unit_pref) + 1
+      end if
+      valid_unit_pref = 'common_years since'
+      if (index(units, trim(valid_unit_pref)) == 1) then
+        pos = len_trim(valid_unit_pref) + 1
+      end if
+      if (pos == 0) then
+        call document(subname, 'non-supported time@units', units)
+        stat = 1
+        go to 99
+      end if
+
+      ref_date = adjustl(units(pos:len_trim(units))) ! remove prefix and space(s) immediately after it
+      call ref_date_to_ref_year(ref_date, ref_year)
+
+      dataset%time_yr(:) = dataset%time_yr(:) + ref_year
+    end if       ! my_task == master_task
 
 99  call broadcast_scalar(stat, master_task)
     if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
@@ -363,8 +385,8 @@ contains
     !  allocate space for _curr value
     !---------------------------------------------------------------------
 
-    call broadcast_scalar(last_dimlen, master_task)
-    if (my_task /= master_task) allocate(dataset%time_yr(last_dimlen))
+    call broadcast_scalar(time_dimlen, master_task)
+    if (my_task /= master_task) allocate(dataset%time_yr(time_dimlen))
     call broadcast_array(dataset%time_yr, master_task)
 
     do varind = 1, nvars
@@ -449,7 +471,7 @@ contains
 
     ! search for a separator between the day and anything else
     pos = pos+dpos
-    dpos = scan(ref_date(pos:ref_date_len), '-')
+    dpos = scan(ref_date(pos:ref_date_len), '- ')
 
     ! read the day and add proper fraction to ref_year
     if (dpos == 0) then
@@ -471,7 +493,7 @@ contains
 !  return the size of a variable in a dataset
 
     type (forcing_timeseries_dataset), intent(in) :: &
-      dataset             ! forcing_timeseries_dataset being read in
+      dataset             ! forcing_timeseries_dataset that inquiry is about
 
     integer (int_kind), intent(in) :: &
       varind,           & ! index of variable that inquiry is about
@@ -481,13 +503,32 @@ contains
       forcing_timeseries_dataset_var_size ! result
 
     !---------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
 
-    select case (dataset%vars(varind)%rank)
-    case (1)
-      forcing_timeseries_dataset_var_size = size(dataset%vars(varind)%data_1d, dim=dim)
-    case (2)
-      forcing_timeseries_dataset_var_size = size(dataset%vars(varind)%data_2d, dim=dim)
-    end select
+    character(*), parameter :: subname = 'forcing_timeseries_mod:forcing_timeseries_dataset_var_size'
+
+    !-----------------------------------------------------------------------
+
+    associate (var => dataset%vars(varind))
+
+      ! ensure consistency between arguments and var corresponding to varind
+
+      if ((dim < 1) .or. (dim > var%rank)) then
+        call document(subname, 'varname', var%name)
+        call document(subname, 'var%rank', var%rank)
+        call document(subname, 'dim', dim)
+        call exit_POP(sigAbort, 'requested dim out of range for var')
+      end if
+
+      select case (var%rank)
+      case (1)
+        forcing_timeseries_dataset_var_size = size(var%data_1d, dim=dim)
+      case (2)
+        forcing_timeseries_dataset_var_size = size(var%data_2d, dim=dim)
+      end select
+
+    end associate
 
     !---------------------------------------------------------------------
 
@@ -498,7 +539,7 @@ contains
   subroutine forcing_timeseries_dataset_update_data(dataset)
 
 ! !DESCRIPTION:
-!  update the vars in a dataset
+!  update the vars in a dataset, interpolating in time, storing the result in curr var components
 
     use time_management, only: iyear, iday_of_year, frac_day, days_in_year
     use constants,       only: c0
@@ -523,10 +564,14 @@ contains
       weight          ! weighting for temporal interpolation
 
     !-----------------------------------------------------------------------
-    !  Generate mapped_date and check to see if it is too large.
+    !  Generate mapped_date
+    !    return immediately if update_data has already been called for the current model_date
     !-----------------------------------------------------------------------
 
     model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
+    if (model_date .eq. dataset%last_update_model_date) return
+    dataset%last_update_model_date = model_date
+
     mapped_date = model_date - dataset%model_year + dataset%data_year
 
     !-----------------------------------------------------------------------
@@ -554,9 +599,9 @@ contains
         associate (var => dataset%vars(varind))
           select case (var%rank)
           case (1)
-            var%data_1d_curr = var%data_1d(1) + weight * (var%data_1d(2) - var%data_1d(1))
+            call lin_interp(weight, var%data_1d(1), var%data_1d(2), var%data_1d_curr)
           case (2)
-            var%data_2d_curr(:) = var%data_2d(:,1) + weight * (var%data_2d(:,2) - var%data_2d(:,1))
+            call lin_interp(weight, var%data_2d(:,1), var%data_2d(:,2), var%data_2d_curr)
           end select
         end associate
       end do
@@ -586,16 +631,16 @@ contains
       case (forcing_timeseries_taxmode_endpoint)
         weight = c0
       case (forcing_timeseries_taxmode_extrapolate)
-        weight = (mapped_date - dataset%time_yr(nbval)) / (dataset%time_yr(nbval) - dataset%time_yr(nbval-1))
+        weight = (dataset%time_yr(nbval) - mapped_date) / (dataset%time_yr(nbval) - dataset%time_yr(nbval-1))
       end select
 
       do varind = 1, size(dataset%vars)
         associate (var => dataset%vars(varind))
           select case (var%rank)
           case (1)
-            var%data_1d_curr = var%data_1d(nbval) + weight * (var%data_1d(nbval) - var%data_1d(nbval-1))
+            call lin_interp(weight, var%data_1d(nbval), var%data_1d(nbval-1), var%data_1d_curr)
           case (2)
-            var%data_2d_curr(:) = var%data_2d(:,nbval) + weight * (var%data_2d(:,nbval) - var%data_2d(:,nbval-1))
+            call lin_interp(weight, var%data_2d(:,nbval), var%data_2d(:,nbval-1), var%data_2d_curr)
           end select
         end associate
       end do
@@ -633,9 +678,9 @@ contains
       associate (var => dataset%vars(varind))
         select case (var%rank)
         case (1)
-          var%data_1d_curr = var%data_1d(data_ind) + weight * (var%data_1d(data_ind+1) - var%data_1d(data_ind))
+          call lin_interp(weight, var%data_1d(data_ind), var%data_1d(data_ind+1), var%data_1d_curr)
         case (2)
-          var%data_2d_curr(:) = var%data_2d(:,data_ind) + weight * (var%data_2d(:,data_ind+1) - var%data_2d(:,data_ind))
+          call lin_interp(weight, var%data_2d(:,data_ind), var%data_2d(:,data_ind+1), var%data_2d_curr)
         end select
       end associate
     end do
@@ -643,6 +688,64 @@ contains
     !---------------------------------------------------------------------
 
   end subroutine forcing_timeseries_dataset_update_data
+
+  !*****************************************************************************
+
+  subroutine lin_interp_1d(w, w0_val, w1_val, interp_val)
+
+! !DESCRIPTION:
+!  linear interpolation between 2 values
+!  it is named with a _1d suffix because it is applied to 1d timeseries
+!    i.e., the time dimension
+
+    real (r8), intent(in) :: &
+      w,                & ! interpolation weight
+      w0_val,           & ! value when w==0
+      w1_val              ! value when w==1
+
+    real (r8), intent(out) :: &
+      interp_val          ! interpolated value
+
+    !---------------------------------------------------------------------
+
+    interp_val = w0_val + w * (w1_val - w0_val)
+
+    !---------------------------------------------------------------------
+
+  end subroutine lin_interp_1d
+
+  !*****************************************************************************
+
+  subroutine lin_interp_2d(w, w0_val, w1_val, interp_val)
+
+! !DESCRIPTION:
+!  linear interpolation between 2 values
+!  it is named with a _2d suffix because it is applied to 2d timeseries
+!    i.e., the time dimension plus another dimension
+
+    real (r8), intent(in) :: &
+      w,                & ! interpolation weight
+      w0_val(:),        & ! value when w==0
+      w1_val(:)           ! value when w==1
+
+    real (r8), intent(out) :: &
+      interp_val(:)       ! interpolated value
+
+    !---------------------------------------------------------------------
+    !  local variables
+    !---------------------------------------------------------------------
+
+    integer (int_kind) :: i
+
+    !---------------------------------------------------------------------
+
+    do i = 1, size(w0_val)
+      call lin_interp_1d(w, w0_val(i), w1_val(i), interp_val(i))
+    end do
+
+    !---------------------------------------------------------------------
+
+  end subroutine lin_interp_2d
 
   !*****************************************************************************
 
@@ -671,6 +774,8 @@ contains
 
     associate (var => dataset%vars(varind))
 
+      ! ensure consistency between arguments and var corresponding to varind
+
       select case (var%rank)
       case (1)
         if (.not. present(data_1d)) then
@@ -681,7 +786,6 @@ contains
           call document(subname, 'data_2d argument passed in for rank=1 var', var%name)
           call exit_POP(sigAbort, 'data rank mismatch')
         end if
-        data_1d = var%data_1d_curr
       case (2)
         if (present(data_1d)) then
           call document(subname, 'data_1d argument passed in for rank=2 var', var%name)
@@ -691,14 +795,17 @@ contains
           call document(subname, 'data_2d argument not passed in for rank=2 var', var%name)
           call exit_POP(sigAbort, 'data rank mismatch')
         end if
-        if (size(data_2d) /= size(var%data_2d, dim=1)) then
+        if (size(data_2d) /= size(var%data_2d_curr)) then
           call document(subname, 'var', var%name)
-          call document(subname, 'size(var,dim=1)', size(var%data_2d, dim=1))
+          call document(subname, 'size(var%data_2d_curr)', size(var%data_2d_curr))
           call document(subname, 'size(data_2d)', size(data_2d))
           call exit_POP(sigAbort, 'dimension size mismatch')
         end if
-        data_2d(:) = var%data_2d_curr(:)
       end select
+
+      if (present(data_1d)) data_1d    = var%data_1d_curr
+
+      if (present(data_2d)) data_2d(:) = var%data_2d_curr(:)
 
     end associate
 

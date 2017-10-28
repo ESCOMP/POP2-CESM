@@ -169,14 +169,12 @@ module ecosys_forcing_mod
   integer(int_kind)   :: iron_patch_month             ! integer month to add patch flux
   integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
   integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-  real(r8), allocatable :: ciso_atm_d13c_data(:)          ! atmospheric d13C values in datafile
-  real(r8), allocatable :: ciso_atm_d13c_data_yr(:)       ! date of atmospheric d13C values in datafile
   real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
   real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
   character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and d13C varying or constant forcing
-  character(char_len) :: ciso_atm_d13c_filename         ! filenames for varying atm d13C
+  character(char_len) :: ciso_atm_d13c_filename         ! filename for varying atm d13C
   character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and d13C varying or constant forcing
-  character(char_len) :: ciso_atm_d14c_filename         ! filenames for varying atm D14C (one each for NH, SH, EQ)
+  character(char_len) :: ciso_atm_d14c_filename         ! filename for varying atm D14C
 
   type (forcing_timeseries_dataset) :: &
     ciso_atm_d13c_forcing_dataset                       ! data structure for atm d13C timeseries
@@ -2267,8 +2265,6 @@ contains
     !---------------------------------------------------------------------
 
     use forcing_timeseries_mod, only : forcing_timeseries_init_dataset
-    use forcing_timeseries_mod, only : forcing_timeseries_taxmode_endpoint
-    use forcing_timeseries_mod, only : forcing_timeseries_taxmode_extrapolate
     use c14_atm_forcing_mod,    only : c14_atm_forcing_init
 
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:ciso_init_atm_D13_D14'
@@ -2291,8 +2287,8 @@ contains
           varnames      = (/ 'delta13co2_in_air' /), &
           model_year    = ciso_atm_model_year, &
           data_year     = ciso_atm_data_year, &
-          taxmode_start = forcing_timeseries_taxmode_endpoint, &
-          taxmode_end   = forcing_timeseries_taxmode_extrapolate, &
+          taxmode_start = 'endpoint', &
+          taxmode_end   = 'extrapolate', &
           dataset       = ciso_atm_d13c_forcing_dataset)
 
     case default

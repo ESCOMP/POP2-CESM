@@ -28,7 +28,7 @@ module c14_atm_forcing_mod
     c14_atm_forcing_const           ! atmospheric 14CO2 constant [permil]
 
   character (char_len) :: &
-    c14_atm_forcing_filename        ! filenames for varying atm D14C (one each for NH, SH, EQ)
+    c14_atm_forcing_filename        ! filename for varying atm D14C
 
   integer (int_kind) :: &
     c14_atm_forcing_model_year,   & ! arbitrary model year
@@ -50,8 +50,6 @@ contains
     use kinds_mod,              only: log_kind
     use forcing_timeseries_mod, only: forcing_timeseries_init_dataset
     use forcing_timeseries_mod, only: forcing_timeseries_dataset_var_size
-    use forcing_timeseries_mod, only: forcing_timeseries_taxmode_endpoint
-    use forcing_timeseries_mod, only: forcing_timeseries_taxmode_extrapolate
 
     character(*), intent(in) :: &
       caller,                          & ! name of module calling c14_atm_forcing_init
@@ -61,7 +59,7 @@ contains
       c14_atm_forcing_const_in           ! atmospheric 14CO2 constant [permil]
 
     character (*), intent(in) :: &
-      c14_atm_forcing_filename_in        ! filenames for varying atm D14C (one each for NH, SH, EQ)
+      c14_atm_forcing_filename_in        ! filename for varying atm D14C
 
     integer (int_kind), intent(in) :: &
       c14_atm_forcing_model_year_in,   & ! arbitrary model year
@@ -92,39 +90,34 @@ contains
         call document(subname, 'c14_atm_forcing_opt', c14_atm_forcing_opt)
         call document(subname, 'c14_atm_forcing_opt_in', c14_atm_forcing_opt_in)
         val_mismatch = .true.
+      else
+        select case (trim(c14_atm_forcing_opt))
+        case ('const')
+          if (c14_atm_forcing_const /= c14_atm_forcing_const_in) then
+            call document(subname, 'c14_atm_forcing_const', c14_atm_forcing_const)
+            call document(subname, 'c14_atm_forcing_const_in', c14_atm_forcing_const_in)
+            val_mismatch = .true.
+          end if
+        case ('file')
+          if (trim(c14_atm_forcing_filename) /= trim(c14_atm_forcing_filename_in)) then
+            call document(subname, 'c14_atm_forcing_filename', c14_atm_forcing_filename)
+            call document(subname, 'c14_atm_forcing_filename_in', c14_atm_forcing_filename_in)
+            val_mismatch = .true.
+          end if
+          if (c14_atm_forcing_model_year /= c14_atm_forcing_model_year_in) then
+            call document(subname, 'c14_atm_forcing_model_year', c14_atm_forcing_model_year)
+            call document(subname, 'c14_atm_forcing_model_year_in', c14_atm_forcing_model_year_in)
+            val_mismatch = .true.
+          end if
+          if (c14_atm_forcing_data_year /= c14_atm_forcing_data_year_in) then
+            call document(subname, 'c14_atm_forcing_data_year', c14_atm_forcing_data_year)
+            call document(subname, 'c14_atm_forcing_data_year_in', c14_atm_forcing_data_year_in)
+            val_mismatch = .true.
+          end if
+        end select
       end if
-      select case (trim(c14_atm_forcing_opt))
-      case ('const')
-        if (c14_atm_forcing_const /= c14_atm_forcing_const_in) then
-          call document(subname, 'c14_atm_forcing_const', c14_atm_forcing_const)
-          call document(subname, 'c14_atm_forcing_const_in', c14_atm_forcing_const_in)
-          val_mismatch = .true.
-        end if
-      case ('file')
-        if (trim(c14_atm_forcing_filename) /= trim(c14_atm_forcing_filename_in)) then
-          call document(subname, 'c14_atm_forcing_filename', c14_atm_forcing_filename)
-          call document(subname, 'c14_atm_forcing_filename_in', c14_atm_forcing_filename_in)
-          val_mismatch = .true.
-        end if
-        if (c14_atm_forcing_model_year /= c14_atm_forcing_model_year_in) then
-          call document(subname, 'c14_atm_forcing_model_year', c14_atm_forcing_model_year)
-          call document(subname, 'c14_atm_forcing_model_year_in', c14_atm_forcing_model_year_in)
-          val_mismatch = .true.
-        end if
-        if (c14_atm_forcing_data_year /= c14_atm_forcing_data_year_in) then
-          call document(subname, 'c14_atm_forcing_data_year', c14_atm_forcing_data_year)
-          call document(subname, 'c14_atm_forcing_data_year_in', c14_atm_forcing_data_year_in)
-          val_mismatch = .true.
-        end if
-      case default
-        call exit_POP(sigAbort, 'unknown c14_atm_forcing_opt ' /&
-          &/ trim(c14_atm_forcing_opt) /&
-          &/ ' in ' /&
-          &/ trim(subname))
-      end select
       if (val_mismatch) then
-        call exit_POP(sigAbort, 'forcing mismatch in ' /&
-          &/ trim(subname))
+        call exit_POP(sigAbort, 'c14_atm_forcing mismatch')
       end if
       return
     end if
@@ -154,8 +147,8 @@ contains
         varnames      = (/ 'Delta14co2_in_air' /), &
         model_year    = c14_atm_forcing_model_year, &
         data_year     = c14_atm_forcing_data_year, &
-        taxmode_start = forcing_timeseries_taxmode_endpoint, &
-        taxmode_end   = forcing_timeseries_taxmode_extrapolate, &
+        taxmode_start = 'endpoint', &
+        taxmode_end   = 'extrapolate', &
         dataset       = c14_atm_forcing_dataset)
 
       if (forcing_timeseries_dataset_var_size(c14_atm_forcing_dataset, varind=1, dim=1) /= 3) then
@@ -225,7 +218,7 @@ contains
   subroutine c14_atm_forcing_comp_varying_D14C(iblock, D14C)
 
 ! !DESCRIPTION:
-!  Compute atmospheric D14C when temporarily varying data is read from files
+!  Compute atmospheric D14C when temporally varying data is read from files
 !  1. Linearly interpolate hemispheric values to current time step
 !  2. Make global field of D14C, determined by:
 !   -Northern Hemisphere value is used for 30N - 90 N
@@ -260,18 +253,18 @@ contains
     !-----------------------------------------------------------------------
     !  Merge hemisphere values for D14C
     !      -Northern Hemisphere value is used for >30N - 90 N
-    !      -Southern Hemisphere value is used for >30 S - 90 S
     !      -Equatorial value is used for 30 S to 30 N
+    !      -Southern Hemisphere value is used for >30 S - 90 S
     !-----------------------------------------------------------------------
 
     do j = 1, ny_block
       do i = 1, nx_block
-        if (TLATD(i,j,iblock) < -30.0_r8) then
-          D14C(i,j) = D14C_curr(3)
-        else if (TLATD(i,j,iblock) > 30.0_r8) then
+        if (TLATD(i,j,iblock) > 30.0_r8) then
           D14C(i,j) = D14C_curr(1)
-        else
+        else if (TLATD(i,j,iblock) > -30.0_r8) then
           D14C(i,j) = D14C_curr(2)
+        else
+          D14C(i,j) = D14C_curr(3)
         end if
       end do
     end do
