@@ -1,8 +1,12 @@
 <?xml version="1.0"?>
 
-<?xml-stylesheet type="text/xsl" href="definitions_variables.xsl" ?>
-
-<definitions_variables>
+<entry_id version="3.0">
+  <description modifier_mode="*">
+    <desc ocn="POP2[%1D][%ECO][%DAR]"    >POP2 </desc>
+    <desc option="1D" >Single column </desc>
+    <desc option="ECO">Ecosystem</desc>
+    <desc option="DAR">diagnostic</desc>
+  </description>
 
   <entry id="COMP_OCN">
     <type>char</type>
@@ -276,16 +280,10 @@
     <desc>if not equal to none, then passive tracers modules use this as their restart file</desc>
   </entry>
 
-  <description>
-    <desc compset="_POP2"    >POP2 default:</desc>
-    <desc compset="_POP2%1D" >Single column POP2:</desc>
-    <desc compset="_POP2%ECO">POP2/Ecosystem:</desc>
-  </description>
-
   <help>
     =========================================
     POP naming conventions
     =========================================
   </help>
 
-</definitions_variables>
+</entry_id>

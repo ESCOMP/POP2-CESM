@@ -2,6 +2,50 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    29 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n91_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: merge marbl_dev_n60 tag to this branch
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n82)
+   except for tests mentioned below, all tests pass
+      BASELINE failures in G compsets because of shortwave changes in CICE
+      all NLCOMP tests fail because of movement of iron_frac_in_{dust,bc} from MARBL to POP
+         and removal of luse_nf_64bit_offset
+      some MEMLEAK failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       source/baroclinic.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/io.F90
+M       source/io_netcdf.F90
+M       source/io_pio.F90
+M       source/io_types.F90
+M       source/tavg.F90
+M       source/vmix_kpp.F90
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    28 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n90_marbl_dev_n58_cesm_pop_2_1_20170703
 Tag Summary: revisions from code review of forcing_timeseries and c14_atm_forcing mods
@@ -224,7 +268,7 @@ MARBL commit 2cb69eec8013aefcb5c505dc0c1104566b2ec487 master branch
 
 aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n82)
    except for tests mentioned below, all tests pass
-      all NLCOMP tests fail because of rerrangement of marbl related namelists
+      all NLCOMP tests fail because of rearrangement of marbl related namelists
       some MEMCOMP failures
 
 Files Modified:

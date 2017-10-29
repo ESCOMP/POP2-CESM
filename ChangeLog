@@ -1,4 +1,102 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    08 Oct 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171008
+Tag Summary: add NTASKS_PER_INST_OCN to buildcpp
+
+Testing:     aux_pop on cheyenne. bit for bit
+
+M       cime_config/buildcpp
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  mlevy
+Tag Date:    27 Sep 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170927
+Tag Summary: eliminated the case where smoothed boundary layer is above the
+             center of top layer.
+
+Testing:     aux_pop on cheyenne. bit for bit
+
+M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    25 Sep 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170925
+Tag Summary: add NTASKS_PER_INST_OCN and MAX_MPITASKS_PER_NODE
+
+Testing:     aux_pop on cheyenne run successfully
+
+M       cime_config/buildnml
+M       cime_config/config_pes.xml
+
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    17 Aug 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170817
+Tag Summary: update config_component.xml to version 3.0 format
+	removed unused optional cdf64 variable in io_pio.F90
+Testing:     aux_pop on cheyenne run successfully
+
+M          cime_config/config_component.xml
+M          source/io_pio.F90
+
+
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    8 Aug 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170808
+Tag Summary: Change DICE%SIAF to DICE%IAF in config_compsets.xml
+	Replace namelist variable luse_nf_64bit_offset with pio_netcdf_format flag provided from
+	shr_pio_mod.F90 and set in xml using PIO_NETCDF_FORMAT with values 'classic' '64bit_offset', '64bit_data'
+
+Testing:     aux_pop on yellowstone run successfully
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_compsets.xml
+M       source/io_netcdf.F90
+M       source/io_pio.F90
+M       source/io_types.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  klindsay
+Tag Date:    25 July 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170725
+Tag Summary: Added mods for getting _FillValue where land block elimination occurs
+
+Testing:     aux_pop on cheyenne, run successfully
+             bit-for-bit
+
+Files Modified:
+M       source/io.F90
+M       source/io_netcdf.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    10 July 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170710
+Tag Summary: Moved aux_pop g16 tests to g17
+             Also added mods by yeager to allow the possibility of saving extra
+             3D fields associated with the POP momentum budget.
+
+Testing:     aux_pop on cheyenne, run successfully
+             bit-for-bit except for tests with no previous baselines (the new gx1v7
+             tests).
+
+Files Modified:
+M       cime_config/testdefs/testlist_pop.xml
+M       source/baroclinic.F90
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    3 July 2017
@@ -115,10 +213,10 @@ Developers:  altuntas
 Tag Date:    3 June 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20170603
 Tag Summary: Minor changes in pop config_compsets.xml
-	     Added compsets version specifier and removed a couple of comments as requested by jedwards 
+	     Added compsets version specifier and removed a couple of comments as requested by jedwards
 
 Testing: aux_pop on cheyenne. compared to cesm_pop_2_1_20170601 baselines; bit-for-bit. no answer changing mods.
-	 test root: /glade/scratch/altuntas/cesm.tests/cheyenne/aux_pop/cime5.3.0-alpha.21-cice5_20170516-pop_2_1_20170601  
+	 test root: /glade/scratch/altuntas/cesm.tests/cheyenne/aux_pop/cime5.3.0-alpha.21-cice5_20170516-pop_2_1_20170601
 
 	M       ChangeLog
 	M       cime_config/config_compsets.xml
@@ -386,7 +484,7 @@ Tag Summary: Critical Salinity Bug Fix.
 
 Testing:     ran aux_pop on this tag.  This is an answer changing (salinity bug fix) that will cause baseline failures.
              everything but comparisons ran fine, exact restarts etc.
-	
+
         M       source/ice.F90
 	M       source/step_mod.F90
 	M       source/budget_diagnostics.F90
@@ -747,7 +845,7 @@ Testing: aux_pop all tests past with the exception of some MEM leak tests and on
 	M       cesm_pop_2_1_20161229/bld/namelist_files/namelist_defaults_pop.xml
 	M       cesm_pop_2_1_20161229/bld/namelist_files/namelist_definition_pop.xml
 	M       cesm_pop_2_1_20161229/input_templates/test_pop2_in_build.csh
-	
+
 ===============================================================================
 Tag Creator: mvertens
 Developers:  mvetesn
@@ -757,24 +855,24 @@ Tag Summary: pythonization of buildnml and buildlib and removal of moby
 
 Testing:
 Ran aux_pop and aux_pop_MARBL test suites - bfb with cesm_pop_2_1_20161219
-Ran prealpha test suite - bfb with alpha05c 
+Ran prealpha test suite - bfb with alpha05c
 
 The creation of the pop Filepath file, the cpp variables and the config_cachel.xml file
 is now done in a new cime_config/buildcpp script
 The config_cache.xml file is needed to generate namelists
 The Filepath and cpp variables are needed to build the model
   - the buildcpp script is now always called from buildlib
-  - the buildcpp script is ONLY called from buildnml if necessary 
+  - the buildcpp script is ONLY called from buildnml if necessary
     (i.e. if you are trying to generate a namelist and you have have
     not created the config_cache.xml file)
-The new pythonized buildnml script still calls the perl bld/build-namelist script, 
+The new pythonized buildnml script still calls the perl bld/build-namelist script,
 which will by pythonized in a future commit.
-	
+
 - pythonization of buildml and buildlib and introduction of new buildcpp
-  build-namelist has a modified interface to deal with new CIME schemas 
+  build-namelist has a modified interface to deal with new CIME schemas
   for pe-layouts. However, this is backwards compatible with the current
   version of CIME.
-  
+
 M       bld/build-namelist
 A       cime_config/buildcpp
 M       cime_config/buildlib
@@ -803,7 +901,7 @@ D       bld/moby_activate.csh
 D       bld/moby_deactivate.csh
 M       drivers/cpl/POP_FinalMod.F90
 D       input_templates/ocn.moby.tavg.csh
-M       cime_config/config_component.xml 
+M       cime_config/config_component.xml
 	- (removed OCN_SUBMODEL and DARWIN attributes)
 M       cime_config/config_compsets.xml
         - (removed DARWIN compsets)
@@ -813,11 +911,11 @@ M       bld/namelist_files/namelist_definition_pop.xml
 ===============================================================================
 Tag Creator: jedwards
 Developers:  jedwards
-Tag Date:    
-Tag Name:    
+Tag Date:
+Tag Name:
 Tag Summary: oneline change in build-namelist, perl can no longer access NTASKS_OCN or NINST_OCN
 
-Testing: cesm2_0_alpha05b 
+Testing: cesm2_0_alpha05b
 
 ===============================================================================
 Tag Creator: jedwards
@@ -826,7 +924,7 @@ Tag Date:    19 DEC 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161219
 Tag Summary: oneline change in configure, xmlquery now returns "TRUE" instead of "true"
 
-Testing: cesm2_0_alpha05b 
+Testing: cesm2_0_alpha05b
 
 
 ===============================================================================
@@ -836,7 +934,7 @@ Tag Date:    28 Nov 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20161128
 Tag Summary: Allow cvmix files to be included in pop library build instead of creating
 	     a separate cvmix library.  This tag is dependent upon a
-	     cime/cime_config/cesm/machines/Makefile 
+	     cime/cime_config/cesm/machines/Makefile
 	     update.
 
 	     (merged to esmci master https://github.com/ESMCI/cime/pull/840 via pull request)
@@ -955,7 +1053,7 @@ Tag Date:    28 Sep 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160928
 Tag Summary:  fix for the NCK test
 
-Testing: 
+Testing:
 
 ===============================================================================
 Tag Creator: jet
@@ -1055,7 +1153,7 @@ Tag Summary: New Sulfur hexafluoride (SF6) tracer.
 
 Testing:
 aux_pop: (baseline comparison to cesm_pop_2_1_20160413 tag)
-   all aux_pop tests pass and bfb.  Added 1 new module, 
+   all aux_pop tests pass and bfb.  Added 1 new module,
 	a boundary dataset, and output template	for SF6.
 	The new SF6 boundary dataset was added to the glade input
 	directory as well as imported to the data repository.
@@ -1115,9 +1213,9 @@ Developers:  yu-heng
 Tag Date:    13 Apr 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160413
 Tag Summary: Add Estuary Box Model to pop.  Off by default.  This implementation requires
-	     new mapping files that adjust the spreading function. 
-	     /glade/p/cesmdata/cseg/inputdata/cpl/gridmaps/rx1/map_rx1_to_gx1v6_ac_nn_160304.nc 
-	     I will speak with CSEG about how to build this into the CESM scripts so EBM works 
+	     new mapping files that adjust the spreading function.
+	     /glade/p/cesmdata/cseg/inputdata/cpl/gridmaps/rx1/map_rx1_to_gx1v6_ac_nn_160304.nc
+	     I will speak with CSEG about how to build this into the CESM scripts so EBM works
 	     out of the box with the correct maps.
 
              Passes aux_pop tests on yellowstone.intel
@@ -1357,10 +1455,10 @@ Tag Creator: jet
 Developers:  jet
 Tag Date:    19 Feb 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160219
-Tag Summary: set lchange_ans = .true. in namelist defaults 
+Tag Summary: set lchange_ans = .true. in namelist defaults
 
 	     This tag computes surface layer depth to be 10% of boundary layer by
-	     default (old code uses just the top layer).  This change is in preparation 
+	     default (old code uses just the top layer).  This change is in preparation
 	     for full CVMIX testing.
 
 Testing:     aux_pop (compare to cesm_pop_2_1_20160114 trunk) new surface layer not bit for bit
@@ -1377,7 +1475,7 @@ Tag Date:    01 Feb 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160201a
 Tag Summary: This tag recreates cesm_pop_2_1_20160114 since that tag was corrupted
 	     by the previous commit.  Copied below are the comments for cesm_pop_2_1_20160114
-	     which are relevant to this commit and the noncorrupted version of 
+	     which are relevant to this commit and the noncorrupted version of
 	     cesm_pop_2_1_20160114
 
              * Update CVMix version, arrange calls to be more in line with what
@@ -1405,9 +1503,9 @@ Tag Summary: This commit corrupted the previous tag cesm_pop_2_1_20160114. A new
 	     tag was created (cesm_pop_2_1_20160201a) that is a duplicate of the
 	     original cesm_pop_2_1_20160114 code.
 
-	     Unfortunately this tag modified 2 files of cesm_pop_2_1_20160114 
+	     Unfortunately this tag modified 2 files of cesm_pop_2_1_20160114
 
-             namelist_defaults_pop.xml had a one line change setting 
+             namelist_defaults_pop.xml had a one line change setting
 	     lchange_ans = .true.  (set to false originally in cesm_pop_2_1_20160114)
 
 	     Information for this tag went into the ChangeLog for cesm_pop_2_1_20160114
@@ -1420,7 +1518,7 @@ Tag Date:    14 Jan 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160114
 Tag Summary: merge cvmix_kpp_roundoff_n02_cesm_pop_2_1_20160112 to trunk
 
-             * !!!!NOTE!!!!  This tag has been corrupted and cesm_pop_2_1_20160201a 
+             * !!!!NOTE!!!!  This tag has been corrupted and cesm_pop_2_1_20160201a
 	       should be used instead if you need the original cesm_pop_2_1_20160114 code.
 
              * Update CVMix version, arrange calls to be more in line with what
@@ -1670,7 +1768,7 @@ Tag Summary: Allow negative ice runnoff to Pop needed for landice
 	     Timing mods to fix the intermittent timer errors. Adapted
 	     from cice mods for same error.
 
-Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb 
+Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb
 	 with baseline with the exception of the following expected failures which have
 	 been in the baseline for awhile now.
 
@@ -1685,7 +1783,7 @@ M       ChangeLog
 ===============================================================================
 ===============================================================================
 Tag Creator: jet
-Developers:  Gokhan, Matt Long, John Marshall, jet 
+Developers:  Gokhan, Matt Long, John Marshall, jet
 Tag Date:    24 Oct 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151024
 Tag Summary: Add POP Implementation of Mesoscale eddy diffusivity (steering param) based on mixing theory
@@ -1693,7 +1791,7 @@ Tag Summary: Add POP Implementation of Mesoscale eddy diffusivity (steering para
 	     kappa_thic = 'steer'
 	     kappa_isop = 'steer'
 
-Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb 
+Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb
 	 with baseline with the exception of the following expected failures which have
 	 been in the baseline for awhile now.
 
@@ -1717,7 +1815,7 @@ Tag Summary: The is an update to the GM Aniso module added by Mariana.
 Testing: Ran aux_pop.  Because of the new aniso namelist the nlcomp comparison tests
 	 failed against the baseline.  All of these were expected.  All bfb tests
 	 passed.
-	
+
 	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
           ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
 
@@ -1728,7 +1826,7 @@ M       bld/build-namelist
 M       bld/namelist_files/namelist_defaults_pop.xml
 M       bld/namelist_files/namelist_definition_pop.xml
 M       cime_config/config_pes.xml
-	
+
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
@@ -1755,13 +1853,13 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151015
 Tag Summary: Bring Robert filter mods to the trunk.  Since auto-dt time option
 	 and matsuno mixing option never worked correctly they were removed.
 
-Testing: 
-         Ran aux_pop tests with 20151007 tag. Although Robert filtering 
-	 is disabled, it also required mods to the overflow parameterization 
-	 which are enabled and are answer-changing. Instead of running aux_pop 
-	 compared to a baseline, I ran a 10 year branch of Dave Bailey's latest 
+Testing:
+         Ran aux_pop tests with 20151007 tag. Although Robert filtering
+	 is disabled, it also required mods to the overflow parameterization
+	 which are enabled and are answer-changing. Instead of running aux_pop
+	 compared to a baseline, I ran a 10 year branch of Dave Bailey's latest
 	 control with the overflow changes and ran the ocean diagnostics
-	 against the last 10 years of Dave's control. 
+	 against the last 10 years of Dave's control.
   	 http://webext.cgd.ucar.edu/GIAF/g.e15.GIAF.T62_g16.newoverflow.002/ocn/g.e15.GIAF.T62_g16.newoverflow.002-g.e15.GIAF.T62_g16.001_yrs_50_59/
 	 The 10 year comparison showed very minimal changes and was OK'd by Gokhan.
 
@@ -1780,7 +1878,7 @@ Files Modified/Added/Removed:
 	M       bld/namelist_files/namelist_defaults_pop.xml
 	M       bld/namelist_files/namelist_definition_pop.xml
 	M       ChangeLog
-	
+
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
@@ -1788,7 +1886,7 @@ Tag Date:    7 Oct 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151007
 Tag Summary: Bug-fixes - SMS_D GECO test now passes and code compiles on mira
 
-Testing: 
+Testing:
          Ran aux_pop tests with 20151004 tag, created temporary baseline (the
          20150929 baseline was made with an answer-changing bug fix in CIME
          that has since been removed, so couldn't use old baseline and the
@@ -1810,7 +1908,7 @@ Tag Date:    4 Oct 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151004
 Tag Summary: Incorporation of anisotropic gm option
 
-Testing: 
+Testing:
          Ran aux-pop pre-intel tests on yellowstone and compared to baseline
          cesm_pop_2_1_20150929; Everything was bfb except the following tests
          which had run time failures:
@@ -1841,7 +1939,7 @@ Testing: (ran in conjunction with tcraig/wave branch from https://github.com/mve
          1) Ran aux_pop pre-intel tests and compared then to aux_pop_120916a
            test failures:
              none
-           baseline failures: 
+           baseline failures:
              none (other than in cpl.hi for one field o2x_So_bldepth)
            run time failures:
              SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
@@ -1854,11 +1952,11 @@ Testing: (ran in conjunction with tcraig/wave branch from https://github.com/mve
              SMS_E.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
              SMS_E.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
            test failures (none) - the following ran successfully
-             ERS.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default 
-             ERS.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default 
-             ERS.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+             ERS.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default
+             ERS.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             ERS.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
              NCK.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
-             NCK.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+             NCK.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
              SMS_D.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
              SMS_D.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
            run time failures:
@@ -1872,7 +1970,7 @@ Files Modified/Added/Removed:
 M       source/diagnostics.F90
 M       source/vmix_kpp.F90
 M       source/forcing_coupled.F90
-M       source/forcing_fields.F90  
+M       source/forcing_fields.F90
 M       bld/build-namelist
 M       bld/namelist_files/namelist_defaults_pop.xml
 M       bld/namelist_files/namelist_definition_pop.xml
@@ -1892,7 +1990,7 @@ Tag Summary: Updates for compatibility with cime3.0.5 and later
 Testing: Ran aux_pop pre-intel tests and compared to aux_pop_120916a
          All tests ran successfully other than the following:
            Baseline failures (unexpected):
-             FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
+             FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file)
 
            Run time failures (expected- see 9/11/2015 log entry):
              RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14
@@ -2525,7 +2623,7 @@ Tag Creator: jedwards
 Developers:  jedwards
 Tag Date:    31 Jan 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150131
-Tag Summary: pio2 port 
+Tag Summary: pio2 port
 
 Files Modified:
 M       source/io_netcdf.F90
@@ -3566,7 +3664,7 @@ Tag Date:    15 January 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130115
 Tag Summary: Yu-heng found a bug in how the diagnostic quantity RHO_VINT is
              calculated.
-             
+
 Testing:     Gokhan implemented a fix in cesm1_1_beta01 (using pop tag from
              May 2011), Susan tested the fix, and then I patched the latest
              trunk / ensured that it still builds.
@@ -3872,7 +3970,7 @@ Tag Summary: * Primary purpose: added near-inertial wave (NIW)  mixing code. Mod
                TLONG in degrees (TLATD, TLOND), then replaced code in several modules
                to reference the new variables.
 Testing:     Many special-purpose tests (njn01; see NJN test log for details)
-            
+
 Note:        Default setting is lniw_mixing = .false. for now
 
 Files Modified:
@@ -4073,7 +4171,7 @@ Tag Summary: * change name in ocn.moby.setup.csh script (MOBY_CO2_FLUX --> FG_CO
              * configure streams in manner equivalent to what is done in ecosys_mod,
                  where possible
              * only write tavg qflux stream info from master_task
-               
+
 Testing:     * Ran customized tests from the cesm1_1_beta09.20120327-114702 sandbox
 
 Files Modified:
@@ -4127,7 +4225,7 @@ Tag Date:    8 March 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120308
 Tag Summary: Add MOBY "hooks" to the pop2 base model
              This tag brings in modified pop2/source files that contain MOBY
-             modifications, plus a "stub" version of moby_mod.F90. 
+             modifications, plus a "stub" version of moby_mod.F90.
 
              This is the first of two steps towards bringing support for MOBY
              onto the pop2 trunk (without bringing the actual MOBY darwin code in).
@@ -4180,8 +4278,8 @@ Tag Summary: update esmf calls to esmf 520r standard.
              add support for multi-instance runs with esmf coupling interfaces.
              fix timer issue when writing output during run (pw).
 
-Testing: 
-             tested in a beta09a sandbox on bluefire (prealpha and prebeta) and 
+Testing:
+             tested in a beta09a sandbox on bluefire (prealpha and prebeta) and
              lynx (prealpha)
 
 Files Modified:
@@ -4199,9 +4297,9 @@ Tag Summary: Corrected a bug in the pop2.cpl7.template that was introduced
              cases to incorrectly point to the original case directory when
              creating pop2_in during the execution of pop2.buildnml.csh,
              rather than to its own case directory.
-           
+
 svn diff:
- if (\$NINST_OCN == 1) then    
+ if (\$NINST_OCN == 1) then
     set ocn_inst_string = ''
 -   setenv POP2_IN       $POP2_DOCDIR/document_pop2_in
 +   setenv POP2_IN      \$POP2_DOCDIR/document_pop2_in
@@ -4218,7 +4316,7 @@ svn diff:
     setenv output_h      ./\$CASE.pop\${ocn_inst_string}.h
     setenv output_d      \$rundir/\$CASE.pop\${ocn_inst_string}.d
 
-Testing: 
+Testing:
           None at this point. Will hand off testing to someone else?
 Files Modified:
 M            32802   bld/pop2.cpl7.template
@@ -4230,7 +4328,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111210
 Tag Summary: Modified pop2.cpl7.template to restart file format
              setting associated with the rpointer files for
              multi-instance mode.
-Testing: 
+Testing:
           Test (tcraig):
              tested with alpha07c (w/ pop 20111206) + mod, could
                not test with 20111209 due to dependencies on other
@@ -4239,7 +4337,7 @@ Testing:
              bluefire: bluefire.prealpha
           Results:
              fixes ERS_N2 test cases, all results bfb for other tests.
-             
+
 Files Modified:
 M       bld/pop2.cpl7.template
 
@@ -4253,12 +4351,12 @@ Tag Summary: Modified files to change the field names to be consistent with
 
 Foxx_snow  -> Faxa_snow
 Foxx_rain  -> Faxa_rain
-Foxx_lwdn  -> Faxa_lwdn 
-Foxx_melth -> Fioi_melth 
-Foxx_meltw -> Fioi_meltw 
+Foxx_lwdn  -> Faxa_lwdn
+Foxx_melth -> Fioi_melth
+Foxx_meltw -> Fioi_meltw
 Foxx_salt  -> Fioi_salt
 
-Testing: 
+Testing:
 Ran all bluefire and lynx prebeta tests and showed that the history files
 were identical with and without the upcoming beta08 changes. The only exception
 was debug tests on bluefire that were roundoff level different in pop. The same
@@ -4276,11 +4374,11 @@ Developers:  1) tcraig
 Tag Date:    06 December 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111206
 Tag Summary: Modified pop2.cpl7.template to address missing rpointer
-             file for multi-instance cases when starting from a 
+             file for multi-instance cases when starting from a
              restart set from an earlier non-multi-instance case.
              this just requires duplicating the rpointer files to
              the appropriate multi-instance names.
-Testing: 
+Testing:
           Test (tcraig):
              bluefire: cesm prealpha and prebeta suites
              lynx_pgi: cesm prealpha suite
@@ -4288,7 +4386,7 @@ Testing:
           Results:
              fixes problesm in NCK and ERS_N2 test cases, all results
              bfb for other tests.
-             
+
 Files Modified:
 M       bld/pop2.cpl7.template
 
@@ -4302,7 +4400,7 @@ Tag Summary: Replace dimensioned arrays with assumed-shape arrays in ecosys_mod.
              which occurs when the ecosys_mod and any other passive-tracer module with
              more than two (or three, in our default setup) tracers is compiled and
              'ecosys' is not active.
-Testing: 
+Testing:
           Test (njn01):
              T62_gx3v7, bluefire, 2-month ER, manual setup with binary restart file compare
                  at end of Feb
@@ -4314,7 +4412,7 @@ Testing:
              case1 b4b with case2; case3 b4b with case4
           Test (jedwards): Intel compiler
           Results: no complaints
-             
+
 Files Modified:
 M            31647   source/ecosys_mod.F90
 
@@ -4346,8 +4444,8 @@ POP_ReductionsMod.F90, initial.F90:
     and b4b_flag=.true. in context_nml
     This has an unquantified performance hit for large block counts.
 _________________________________________________________________________________________
-            
-Testing: 1) Diane Feddema (2011-11-08): 
+
+Testing: 1) Diane Feddema (2011-11-08):
             when restart format is 'nc' tests on lynx are b4b; when it is 'bin', they are not.
          2) Keith Lindsay (2011-11-08):
 bluefire, CECO, T62_gx3v7:
@@ -4400,12 +4498,12 @@ Files Modified:
         M            bld/pop_decomp.xml
         M            mpi/gather_scatter.F90 (workaround for cray/gemini performance issue)
 
-PASS  ERS.T62_g16.CIAF.bluefire 
-PASS  ERS.T62_g16.CIAF.bluefire.compare_hist.cesm1_1_alpha05a 
-PASS  ERS.T62_g16.CIAF.bluefire.compare.cesm1_1_alpha05a 
-PASS  ERT_PT.T62_g16.GIAF.bluefire 
-PASS  ERT_PT.T62_g16.GIAF.bluefire.compare_hist.cesm1_1_alpha05a 
-PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha05a 
+PASS  ERS.T62_g16.CIAF.bluefire
+PASS  ERS.T62_g16.CIAF.bluefire.compare_hist.cesm1_1_alpha05a
+PASS  ERS.T62_g16.CIAF.bluefire.compare.cesm1_1_alpha05a
+PASS  ERT_PT.T62_g16.GIAF.bluefire
+PASS  ERT_PT.T62_g16.GIAF.bluefire.compare_hist.cesm1_1_alpha05a
+PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha05a
 
 
 ===============================================================================
@@ -4416,25 +4514,25 @@ Tag Summary: added multiple instance capability
 Testing: mvertens
              cesm1_1_beta01 - with modified pop and cice4_0_20110803
 
-PASS  ERS.T62_g16.CIAF.bluefire 
-PASS  ERS.T62_g16.CIAF.bluefire.compare_hist.cesm1_1_alpha01a 
-PASS  ERS.T62_g16.CIAF.bluefire.compare.cesm1_1_alpha01a 
-PASS  ERS.T62_g37.G.bluefire 
-PASS  ERS.T62_g37.G.bluefire.compare_hist.cesm1_1_alpha01a 
-PASS  ERS.T62_g37.G.bluefire.compare.cesm1_1_alpha01a 
-PASS  ERS.T62_s11.G.bluefire 
-PASS  ERS.T62_s11.G.bluefire.compare_hist.cesm1_1_alpha01a 
-PASS  ERS.T62_s11.G.bluefire.compare.cesm1_1_alpha01a 
-PASS  ERT_PT.T62_g16.GIAF.bluefire 
-PASS  ERT_PT.T62_g16.GIAF.bluefire.compare_hist.cesm1_1_alpha01a 
-PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha01a 
-PASS  PET_PT.T62_g16.G.bluefire 
-PASS  PET_PT.T62_g16.G.bluefire.compare.cesm1_1_alpha01a 
-PASS  SMS_D.T62_s11.G.bluefire 
-PASS  SMS_D.T62_s11.G.bluefire.compare_hist.cesm1_1_alpha01a 
-PASS  SMS_D.T62_s11.G.bluefire.compare.cesm1_1_alpha01a 
-PASS  CME.T62_g37.G.bluefire 
-PASS  CME.T31_g37.B1850CN.bluefire 
+PASS  ERS.T62_g16.CIAF.bluefire
+PASS  ERS.T62_g16.CIAF.bluefire.compare_hist.cesm1_1_alpha01a
+PASS  ERS.T62_g16.CIAF.bluefire.compare.cesm1_1_alpha01a
+PASS  ERS.T62_g37.G.bluefire
+PASS  ERS.T62_g37.G.bluefire.compare_hist.cesm1_1_alpha01a
+PASS  ERS.T62_g37.G.bluefire.compare.cesm1_1_alpha01a
+PASS  ERS.T62_s11.G.bluefire
+PASS  ERS.T62_s11.G.bluefire.compare_hist.cesm1_1_alpha01a
+PASS  ERS.T62_s11.G.bluefire.compare.cesm1_1_alpha01a
+PASS  ERT_PT.T62_g16.GIAF.bluefire
+PASS  ERT_PT.T62_g16.GIAF.bluefire.compare_hist.cesm1_1_alpha01a
+PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha01a
+PASS  PET_PT.T62_g16.G.bluefire
+PASS  PET_PT.T62_g16.G.bluefire.compare.cesm1_1_alpha01a
+PASS  SMS_D.T62_s11.G.bluefire
+PASS  SMS_D.T62_s11.G.bluefire.compare_hist.cesm1_1_alpha01a
+PASS  SMS_D.T62_s11.G.bluefire.compare.cesm1_1_alpha01a
+PASS  CME.T62_g37.G.bluefire
+PASS  CME.T31_g37.B1850CN.bluefire
 
 Files Modified:
 M            29392   source/io_pio.F90
@@ -4464,7 +4562,7 @@ Files Modified:
 M            27996   source/io_netcdf.F90
 
        case('conventions','Conventions','CONVENTIONS')
- 
+
           data_file%conventions = char_blank
 -         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  'Conventions', &
 +         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  trim(att_name), &
@@ -4523,10 +4621,10 @@ Tag Summary: Bugfix for Bug #1287 - missing metadata for meridional transport ta
              and N_SALT in the tavg history files.
 Testing:  njn01. Set up three sets of side-by-side 1-month test runs  (T62_gx3v7, C)
           on bluefire. Tested the following settings:
-             o OCN_TAVG_TRACER_BUDGET=FALSE, OCN_TAVG_HIFREQ=FALSE 
-             o OCN_TAVG_TRACER_BUDGET=TRUE , OCN_TAVG_HIFREQ=TRUE 
+             o OCN_TAVG_TRACER_BUDGET=FALSE, OCN_TAVG_HIFREQ=FALSE
+             o OCN_TAVG_TRACER_BUDGET=TRUE , OCN_TAVG_HIFREQ=TRUE
              o OCN_TAVG_TRACER_BUDGET=FALSE, OCN_TAVG_HIFREQ=TRUE
-          by differencing monthly and nday streams (ncl diff_files.ncl) and 
+          by differencing monthly and nday streams (ncl diff_files.ncl) and
           by differencing these files' cdl files.
 Files Modified:
 M            26624   source/io_netcdf.F90
@@ -4551,10 +4649,10 @@ M            26624   source/distribution.F90
 Tag Creator: njn01
 Tag Date:    22 March 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110322
-Tag Summary: 
+Tag Summary:
              * Add comments next to indices in POP_CplIndices.F90
              * Comment out OMP directives in tavg.F90 (improper exit within
-                a threaded region)  
+                a threaded region)
              * Add high-resolution grid detection to pop2.cpl7.template script,
                to avoid relying on cesm1 script settings (which have been known
                to set HIRES incorrectly)
@@ -4562,14 +4660,14 @@ Testing: njn01:
            * T62_tx0.1v2, HIRES = false, with new pop2.cpl7.template: compiles with -D_HIRES; runs
            * T62_gx3v7, with new pop2.cpl7.template: compiles withOUT -D_HIRES; runs
            * should be b4b, but not tested against oob
-           
+
 
 Files Modified:
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    28 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110128
-Tag Summary: tavg module improvements 
+Tag Summary: tavg module improvements
              * Move all accumulation testing into subroutine accumulate_tavg_field
              * Create new subroutine, accumulate_tavg_now
              * Remove references to tavg_requested from all other modules;
@@ -4577,7 +4675,7 @@ Tag Summary: tavg module improvements
                the test would potentially eliminate expensive computations
              * Make tavg_requested private, so that new developments cannot
                access it from outside modules
-               
+
 Testing: njn01 cesm1_0_beta14 context, side-by-side baseline vs test case,
                then difference all tavg *.nc files
                (Test record available from NCAR POP2 website)
@@ -4616,16 +4714,16 @@ Tag Date:    25 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110125
 Tag Summary: Ecosystem-model changes by Keith Lindsay
              * Correct units metadata for IRON_FLUX tavg variable
-             * Make pH solver more robust to large tracer changes in a single timestep, 
+             * Make pH solver more robust to large tracer changes in a single timestep,
                by iteratively doubling the width of the pH search interval when necessary.
                The code will abort if 3 doublings is not sufficient.
 =====
 NOTE:        Solutions are bit-for-bit with the previous tag (except when the pH search
 =====        interval is increased), but the carbonate *diagnostics* fields (CO3, HCO3, H2CO3)
-             are slightly different because the phlo_3d_init value is different from the 
+             are slightly different because the phlo_3d_init value is different from the
              previous tag)
 
-Testing: klindsay 
+Testing: klindsay
              * CECO gx3v7 bluefire 2-month exact-restart
              * b4b with 2-month CECO gx3v7 bluefire control case
 
@@ -4640,7 +4738,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110118
 Tag Summary: Import new cpl7 mods supplied by mvertens
              (but modify file and module names so that they
               conform to the "pop3" convention)
-              
+
 Testing: mvertens
 
 Files Modified:
@@ -4657,7 +4755,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110111a
 Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem
              NOTE: The wrong files were checked into the pop2 trunk
              on 2010-12-29. This tag checks in the CORRECT files.
-              
+
 Testing:
   * cesm1_0_beta12 and cesm1_0_beta13 with source mods.
     Reviewed monthly timeseries of daily tavg MOC, N_HEAT, and N_SALT.
@@ -4674,7 +4772,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110111
 Tag Summary: * Apply bugix for time_to_do (nsecond and nhour options)
              * Update time_management unit testing to make it consistent with present tag
                and to make it easier to use.
-              
+
 Testing:
   * fairly extensive unit testing plus gx3v7 smoke tests
 
@@ -4700,7 +4798,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110110
 Tag Summary: Apply esmf changes to support metadata capability
              source: pop2/branch_tags/cesm1_0_esmf01_tags/esmf01_02_cesm_pop_2_1_20100813
              author: T. Craig
-              
+
 Testing:
   * external testing (T. Craig and pre-tag testing)
 
@@ -4715,7 +4813,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101229
 Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem
              NOTE: WRONG FILES!  See cesm_pop_2_1_20110111a for correct version of
              the MOC and *_HEAT bugfix.
-              
+
 Testing:
   * cesm1_0_beta12 with source mods. Tested C, gx3v7 and gx1v6, bluefire.
     Reviewed monthly timeseries of daily tavg MOC, N_HEAT, and N_SALT.
@@ -4730,7 +4828,7 @@ Tag Creator: njn01
 Tag Date:    17 December 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101217
 Tag Summary: * add "use shr_sys_mod" to state_mod.F90
-              
+
 Tag Testing:
   * cesm1_0_beta13 pre-tag testing
 
@@ -4741,21 +4839,21 @@ M            25901   source/state_mod.F90
 Tag Creator: njn01
 Tag Date:    02 December 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101201
-Tag Summary: * Add tavg SALT_MIN, SALT_MAX code support and SALT_MIN, SALT_MAX, 
+Tag Summary: * Add tavg SALT_MIN, SALT_MAX code support and SALT_MIN, SALT_MAX,
                TEMP_MIN, TEMP_MAX tavg_contents support.
              * Correction: single--> double precision overflows state constants.
                Move special-purpose overflows state subroutine to state_mod and rename.
                Add a fatal-error check to POP_check to trap inconsistencies between
                overflows and base-model state module settings.
-              
+
 Tag Testing (njn01):
   * cesm1_0_beta11 test case: C, T62_gx3v7, one-month run with SALT_MIN, SALT_MAX,
     TEMP_MIN, TEMP_MAX active. Test: ncdump inspection.
   * cesm1_0_beta10 test case: C, T62_gx1v6
-      o five-day smoke test 
+      o five-day smoke test
       o one-month side-by-side comparison with single-precision-constants version; approved by bruceb.
       o inconsistency-trapping test (state_range_opt  = 'ignore'): Error was trapped.
-   
+
 Code Review: njn01 and bruceb 2010-12-01 (overflows)
 
 Files Modified:
@@ -4772,7 +4870,7 @@ Tag Date:    18 November 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101118
 Tag Summary: * fix MY_PATH bug: must not be resolved in order for clone to work
              * fixed the initialization of the region-mask filename
-              
+
 Tag Testing (njn01):
   * cesm1_0_beta10 test case with Tools/Templates/pop2.cpl7.csh
     Created two cases: one oob and one with new pop2.cpl7.csh, then
@@ -4793,7 +4891,7 @@ Tag Summary: * major pio rewrite, synched with new pio, drv, scripts, and compon
                cesm1_0_beta11
              * add UVEL1, VVEL1 tavg output field support
              * bugfix: fix corrupted gx3*_history_contents files
-              
+
 Tag Testing (njn01):
   * cesm1_0_beta10 vs cesm1_0_beta10+ (updated drv,scripts,data model,pio, and pop2 tags)
         C gx3v7, C gx1v6, CECO gx1v6  1-month runs, oob
@@ -4833,7 +4931,7 @@ M           25033   bld/pop2.cpl7.template
 Tag Creator: njn01
 Tag Date:    6 October 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101006
-Tag Summary: * Modify code that creates tavg netCDF files: add _FillValue, make coordinate 
+Tag Summary: * Modify code that creates tavg netCDF files: add _FillValue, make coordinate
                variables double when the TAVG_R8 option is active, make MOC and N_* attributes
                match their type, add _FillValue and missing_value to all time-independent variables.
              * Modify pop_hist_postprocess.csh so as to avoid user conflicts
@@ -4926,7 +5024,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20100813
 Tag Summary: * bugfix: correct the units for latent_heat_vapor in tavg history files
              * rename latent_heat_vapor as latent_heat-vapor_mks
 Tag Testing:
-  * njn01: C,gx1v6, new vs old code: 
+  * njn01: C,gx1v6, new vs old code:
                  o ocn restart files are b4b at end of day 5
                  o ncdump -v latent_heat_vapor from each case; differences only in units
 Files Modified:
@@ -4942,14 +5040,14 @@ M           24266   source/constants.F90
 Tag Creator: njn01
 Tag Date:    4 August 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100804
-Tag Summary: * pop allow_leapyear flag is now triggered by the cesm 
+Tag Summary: * pop allow_leapyear flag is now triggered by the cesm
                env_run variable CALENDAR. When GREGORIAN, allow_leapyear = .true.
              * bugfix: tavg_DON_prod definition -- "... [units] should be mmol/m^3/s"
              * change: "There is a single call to timer_print in ecosys_mod.F90 that
                is called every timestep. I'd like this call removed."
 
 Tag Testing:
-            
+
   * njn01 tested CALENDAR = {NO_LEAP,GREGORIAN} with new pop2_in_build.csh
   * Keith Lindsay confirmed the corrections/changes to the ecosys_mod.F90 module
 
@@ -4966,7 +5064,7 @@ Tag Summary: * bugfix: add an implementation to deal with land-grid elimination 
              * bugfix: correction to timestamps on forcing/ndep_ocn_1850-2005 datasets. This necessitates a new
                version of ocn.ecosys.setup.csh, which points to the new ndep_ocn datasets.
 Tag Testing:
-            
+
   * Tony Craig confirms the following tests pass with the drivers/cpl_esmf corrections:
       o  ERS_E.T62_t12.C.jaguar
       o  ERS_E.T62_t12.G.jaguar
@@ -5010,7 +5108,7 @@ Tag Date:    28 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528b
 Tag Summary: Correct a problem with zt_150m variables, pio/netcdf, and threading;
              correct a problem with the corrected code and TAVG_R8.
-             This tag tests only the TAVG_R8 correction; threading tests will 
+             This tag tests only the TAVG_R8 correction; threading tests will
              continue next week.
 Tag Testing: cesm1_0_beta01 oob and with SourceMods
                * oob vs new, single precision
@@ -5047,7 +5145,7 @@ A      drivers/cpl_esmf/POP_MCT_vars_mod.F90
 M      drivers/cpl_esmf/ocn_comp_mct.F90
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    28 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528
 Tag Summary: bugfix: completely "streamify" tavg_method_qflux
@@ -5079,7 +5177,7 @@ Tag Testing: * ccsm4_0_beta55+ = ccsm4_0_beta55 with ccsm_pop_2_1_20100521
 Files Modified:
 M           23276   source/tavg.F90
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    21 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100521
 Tag Summary: Increase default C-compset tx0.1v2 DT_COUNT setting  (decrease timestep)
@@ -5091,10 +5189,10 @@ Files Modified:
 M           23222   input_templates/pop2_in_build.csh
 
 ===============================================================================
-Tag Creator: klindsay 
+Tag Creator: klindsay
 Tag Date:    19 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100519a
-Tag Testing:  
+Tag Testing:
              * CECO compset, T62_gx1v6, exact restart & DEBUG
              * CECO compset, T62_gx3v7, exact restart & DEBUG
              * verify ndep fluxes match dataset when OCN_TRANSIENT == 1850-2000
@@ -5119,10 +5217,10 @@ A      drivers/cpl_mct/POP_MCT_vars_mod.F90
 M      drivers/cpl_mct/ocn_comp_mct.F90
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    19 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100519
-Tag Testing:  
+Tag Testing:
              * C compset, T62_tx1v1, oob vs oob+hmix_del4.F90, 2-month timing and correctness:
                results: identical pop2 binary restart files at end of two months
                         ~2x speedup in HMIX_MOMENTUM_DEL4; ~1% overall model speedup
@@ -5135,12 +5233,12 @@ Tag Summary: * hmix_del4.F90 performance improvements (worley)
              * default tx0.1v2 io_pio_numtasks setting increased (mvertens)
 
 Files Modified:
- 
+
 M      source/hmix_del4.F90
 M      input_templates/pop2_in_build.csh
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Developers : njn01 and gokhan
 Tag Date:    12 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100512
@@ -5149,27 +5247,27 @@ Tag Testing: Gokhan C compset, T62_gx3v7 production runs
 Tag Summary: * Add 60 ocn pe decomposition support for gx3v7 resolution
 
 M           22880   bld/pop_decomp.xml
-              
+
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Developers : njn01 and klindsay
 Tag Date:    10 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100510
 Tag Testing: ccsm4_0_beta52+, special-purpose testing:
              C,G,B compsets (checked ice_ref_salinity values); HIFREQ (oob vs .)
              ncdump diffs, and the following pre-tag automated tests:
-             PASS  ERB.T62_g16.C.bluefire 
-             PASS  ERI.T31_g37.BCN.bluefire 
-             PASS  ERP.T62_g37.C.bluefire 
-             PASS  ERS.f19_g16.B.bluefire 
-             PASS  ERT.T62_g16.C.bluefire 
-             PASS  ERT.T62_g16.CECO.bluefire 
+             PASS  ERB.T62_g16.C.bluefire
+             PASS  ERI.T31_g37.BCN.bluefire
+             PASS  ERP.T62_g37.C.bluefire
+             PASS  ERS.f19_g16.B.bluefire
+             PASS  ERT.T62_g16.C.bluefire
+             PASS  ERT.T62_g16.CECO.bluefire
              PASS  ERI.f09_g16.B1850CN.bluefire
 
 Tag Summary: * Add ZERO_SEA_ICE_REF_SAL Cpp variable to control sea_ice_ref_salinity
                in C compsets oob (should be zero for C compsets; 4 for G,B compsets)
              * Add automatic scale_factor and salinity-units support in define_tavg_field
-              
+
 M           22834   source/POP_ConstantsMod.F90
 M           22834   source/vmix_kpp.F90
 M           22834   source/advection.F90
@@ -5181,30 +5279,30 @@ M           22834   source/prognostic.F90
 M           22834   source/tavg.F90
 M           22834   source/constants.F90
 M           22834   bld/pop2.cpl7.template
-              
+
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    7 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100507a
-Tag Testing: ccsm4_0_beta52, with SourceMods. RMS difference timeseries gx3v7, HDIFT.      
-             PASS  ERB.T62_g16.C.bluefire 
-             PASS  ERI.T31_g37.BCN.bluefire 
-             PASS  ERP.T62_g37.C.bluefire 
-             PASS  ERS.f19_g16.B.bluefire 
-             PASS  ERT.T62_g16.C.bluefire 
-             PASS  ERT.T62_g16.CECO.bluefire 
-             PASS  ERI.f09_g16.B1850CN.bluefire 
+Tag Testing: ccsm4_0_beta52, with SourceMods. RMS difference timeseries gx3v7, HDIFT.
+             PASS  ERB.T62_g16.C.bluefire
+             PASS  ERI.T31_g37.BCN.bluefire
+             PASS  ERP.T62_g37.C.bluefire
+             PASS  ERS.f19_g16.B.bluefire
+             PASS  ERT.T62_g16.C.bluefire
+             PASS  ERT.T62_g16.CECO.bluefire
+             PASS  ERI.f09_g16.B1850CN.bluefire
 
 
 Tag Summary: * Merge submeso reorganization mods onto pop2 trunk. Not b4b, but smaller
                differences that those caused by change in ocn pe layout (gx3v7)
-              
+
 A               0   source/hmix_gm_submeso_share.F90
 M           22833   source/mix_submeso.F90
 M           22833   source/horizontal_mix.F90
 M           22833   source/hmix_gm.F90
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    7 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100507
 Tag Testing: ccsm4_0_beta52+, (OCN_TAVG_HIFREQ,OCN_TAVG_TRACER_BUDGET) = (TT,TF,FT,FF)
@@ -5212,54 +5310,54 @@ Tag Testing: ccsm4_0_beta52+, (OCN_TAVG_HIFREQ,OCN_TAVG_TRACER_BUDGET) = (TT,TF,
 
 Tag Summary: * minor bugfix: no extra tracers, 'file' sw_absorption option should not abort (Maltrud)
              * restore logicals in pop2_in_build.csh to control budget_diagnostics computations
-              
+
 M           22779   source/sw_absorption.F90
 M           22779   input_templates/pop2_in_build.csh
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    30 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100430
-Tag Testing: none. 
+Tag Testing: none.
 
 Tag Summary: * back out ccsm_pop_2_1_20100429 changes
                This tag is identical to ccsm_pop_2_1_20100427
-              
+
 M           22659   source/timers.F90
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    29 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100429
 Tag Testing: ccsm4_0_beta51, oob vs oob + new timers.F90
 
 Tag Summary: * fixes the missing OCN timing summary information problem
-              
+
 M           22658   source/timers.F90
 ===============================================================================
-Tag Creator: klindsay 
+Tag Creator: klindsay
 Tag Date:    27 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100427
-Tag Testing: 
+Tag Testing:
 
-Tag Summary: * move timer_start call so that it follows the last return statement in 
+Tag Summary: * move timer_start call so that it follows the last return statement in
                subroutine tavg_bsf_diags in module tavg.F90
-             
+
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    23 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100423
-Tag Testing: tx1v1 oob vs new, with and without 'never' option 
-PASS  SMS_D.f19_g16.BCN.bluefire 
-PASS  SMS_D.T31_g37.BCN.bluefire 
-PASS  ERI.f19_g16.BCN.bluefire 
-PASS  ERI.T31_g37.BCN.bluefire 
-PASS  ERS.f19_g16.B.bluefire 
-PASS  PET_PT.T62_g16.C.bluefire 
-PASS  PET_PT.f19_g16.B1850CN.bluefire 
-PASS  ERB.T62_g16.C.bluefire 
-PASS  ERT.T62_g16.C.bluefire 
-PASS  ERP.T62_g37.C.bluefire 
-PASS  SMS_D.T62_g16.C.bluefire 
+Tag Testing: tx1v1 oob vs new, with and without 'never' option
+PASS  SMS_D.f19_g16.BCN.bluefire
+PASS  SMS_D.T31_g37.BCN.bluefire
+PASS  ERI.f19_g16.BCN.bluefire
+PASS  ERI.T31_g37.BCN.bluefire
+PASS  ERS.f19_g16.B.bluefire
+PASS  PET_PT.T62_g16.C.bluefire
+PASS  PET_PT.f19_g16.B1850CN.bluefire
+PASS  ERB.T62_g16.C.bluefire
+PASS  ERT.T62_g16.C.bluefire
+PASS  ERP.T62_g37.C.bluefire
+PASS  SMS_D.T62_g16.C.bluefire
 PASS  SMS.T62_g16.CECO.bluefire
 
 Tag Summary: * correction to tripole-grid tavg streams 'never' problems
@@ -5274,20 +5372,20 @@ M           22470   source/tavg.F90
 M           22469   input_templates/pop2_tavg_nml.csh
 M           22469   input_templates/pop2_in_build.csh
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    21 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100421
-Tag Testing:  
-Tag Summary: * correction to pop2.cpl7.template bug        
+Tag Testing:
+Tag Summary: * correction to pop2.cpl7.template bug
 
 M           22469   bld/pop2.cpl7.template
 
 
 -      endif ! tavg_contents
 +      endif # tavg_contents
-                   
+
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    19 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100419a
 Tag Testing:  1-month + 1-month cfc functionality test
@@ -5295,9 +5393,9 @@ Tag Summary: * correction to qflux streams bug (now QFLUX can appear in any stre
 
 M           22460   source/budget_diagnostics.F90
 M           22460   source/tavg.F90
-                   
+
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    19 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100419
 Tag Testing:  inspection of pop2.buildnml.csh script; inspection of high-freq output files;
@@ -5308,7 +5406,7 @@ Tag Summary: additional MOAR support
               * ocn.cfc.setup.csh modifications to support OCN_TAVG_TRACER_BUDGET
               * revised gx1v6 high-frequency tavg_contents file (additional surface fluxes included)
               * pop2_in_build.csh -- deactivate budget diagnostics if high-freq output is active
-                   
+
 M           22311   source/advection.F90
 M           22408   source/horizontal_mix.F90
 M           22311   input_templates/ocn.cfc.setup.csh
@@ -5316,7 +5414,7 @@ M           22408   input_templates/gx1v6_tavg_contents_high_freq
 M           22315   input_templates/pop2_in_build.csh
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    15 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100415
 Tag Testing:  *  customized testing: OCN_TAVG_TRACER_BUDGET and OCN_TAVG_HIFREQ TRUE & FALSE
@@ -5325,7 +5423,7 @@ Tag Testing:  *  customized testing: OCN_TAVG_TRACER_BUDGET and OCN_TAVG_HIFREQ 
                      o pop.h.nday1.0001-02-01.nc are identical
                      o pop.r.0001-03-01-00000 restart files (end of February) are identical
 
-            
+
 Tag Summary: MOAR support
               * pop2.cpl7.template responds to new CCSM4 run-time environment variables
                  OCN_TAVG_TRACER_BUDGET and OCN_TAVG_HIFREQ
@@ -5336,7 +5434,7 @@ Tag Summary: MOAR support
               * tavg.F90 bugfix -- nonstandard fields stream-support bug
               * tavg.F90 cleanup -- move define_tavg_field from moc and transport diagnostics
                  computation routines to initialization routines
-                   
+
 M           22316   source/sw_absorption.F90
 M           22316   source/initial.F90
 M           22316   source/hmix_del2.F90
@@ -5356,7 +5454,7 @@ A               0   input_templates/tavg_contents_tracer_budget_terms
 
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    8 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100408a
 Tag Testing: built tx0.1v2 B and C cases and confirmed correct dt_count settins
@@ -5366,11 +5464,11 @@ Tag Summary: for tx0.1v2, set dt_count = 400 for C and G compsets; dt_count = 30
 M           22314   input_templates/pop2_in_build.csh
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    8 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100408
 Tag Testing: none
-Tag Summary: * Change \$BLDROOT/Makefile to \$CASETOOLS/Makefile 
+Tag Summary: * Change \$BLDROOT/Makefile to \$CASETOOLS/Makefile
                 (feature change request via bugz #1142)
              * Bugfix: (reported by MV; correction supplied by Phil Jones)
                  allocate(workTmp(POP_numBlocks), procTmp(POP_numBlocks), stat=istat)
@@ -5399,19 +5497,19 @@ M           22311   input_templates/pop2_in_build.csh
 M           22311   source/POP_DistributionMod.F90
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    26 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100326
 Tag Testing: create_test_suite
 
-  PASS  PET_PT.T31_g37.B.bluefire 
-  PASS  ERS_PT.T31_g37.B.bluefire 
-  PASS  ERI.T62_g16.C.bluefire 
-  PASS  ERT.T62_g16.C.bluefire 
-  PASS  PFS.T62_g16.C.bluefire 
-  PASS  ERT.f19_g16.B1850CN.bluefire 
-  PASS  ERH.f19_g16.B1850CN.bluefire 
-  PASS  ERI_E.T31_g37.BCN.bluefire 
+  PASS  PET_PT.T31_g37.B.bluefire
+  PASS  ERS_PT.T31_g37.B.bluefire
+  PASS  ERI.T62_g16.C.bluefire
+  PASS  ERT.T62_g16.C.bluefire
+  PASS  PFS.T62_g16.C.bluefire
+  PASS  ERT.f19_g16.B1850CN.bluefire
+  PASS  ERH.f19_g16.B1850CN.bluefire
+  PASS  ERI_E.T31_g37.BCN.bluefire
 
 Tag Summary: * Add support for the new tx0.1v2 shf and sfwf forcing datasets. The
                addition of these datasets supports the C compset, T62_tx0.1v2 case.
@@ -5419,27 +5517,27 @@ Tag Summary: * Add support for the new tx0.1v2 shf and sfwf forcing datasets. Th
                "moc_components", "transport_components", and "transport_regions" variables.
                The first implementation generated a compiler error on an old pgi compiler
                and a failure in a ERI_E.bluefire test.
-             
+
 M           21830   source/io_netcdf.F90
 M           21830   input_templates/tx0.1v2_inputdata
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    19 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100319
-Tag Testing: 
-  PASS  PET_PT.T31_g37.B.bluefire 
-  PASS  ERS_PT.T31_g37.B.bluefire 
-  PASS  ERI.T62_g16.C.bluefire 
-  PASS  ERT.T62_g16.C.bluefire 
-  PASS  PFS.T62_g16.C.bluefire 
-  PASS  ERT.f19_g16.B1850CN.bluefire 
-  PASS  ERH.f19_g16.B1850CN.bluefire 
+Tag Testing:
+  PASS  PET_PT.T31_g37.B.bluefire
+  PASS  ERS_PT.T31_g37.B.bluefire
+  PASS  ERI.T62_g16.C.bluefire
+  PASS  ERT.T62_g16.C.bluefire
+  PASS  PFS.T62_g16.C.bluefire
+  PASS  ERT.f19_g16.B1850CN.bluefire
+  PASS  ERH.f19_g16.B1850CN.bluefire
 
-             
+
 Tag Summary: * Correction:  remove "call pio_seterrorhandling(File,PIO_RETURN_ERROR)" from
                subroutine io_pio_init in module io_pio.F90 (MV)
-             * Increase format string length in movie.F90 so that entire string is printed 
+             * Increase format string length in movie.F90 so that entire string is printed
                in log file
              * Correction: write out character-string data to tavg history file fields
                 "moc_components", "transport_components", and "transport_regions". These
@@ -5463,7 +5561,7 @@ M           21684   ChangeLog
 M           21684   input_templates/tx0.1v2_inputdata
 
 ===============================================================================
-Tag Creator: klindsay 
+Tag Creator: klindsay
 Tag Date:    11 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100311
 Tag Testing: unknown
@@ -5472,7 +5570,7 @@ Tag Summary: 1) hmix_gm.F90: in this version, we are now using Pat Worley's Open
                  the old, non-OpenMP friendly loops and Pat's version.
              2) drivers/cpl_none/POP_CouplingMod.F90: remove OpenMP commands
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    5 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100305
 Tag Testing: PET_PT.T31_g37.B.bluefire: PASS + inspection of global integral tavg quantities in ocn.log. files
@@ -5485,7 +5583,7 @@ M           21475   source/tavg.F90
 
 ===============================================================================
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    1 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100301
 Tag Testing: See testing log
@@ -5498,7 +5596,7 @@ M           21322   source/sw_absorption.F90           import openmp2pop04_ccsm_
 M           21322   source/hmix_aniso.F90                   ditto
 M           21322   source/diagnostics.F90                  ditto
 M           21322   source/movie.F90                        ditto
-M           21322   source/timers.F90                       ditto, EXCEPT add CCSMCOUPLED blocks 
+M           21322   source/timers.F90                       ditto, EXCEPT add CCSMCOUPLED blocks
 M           21322   source/cfc_mod.F90                      ditto
 M           21322   source/io_netcdf.F90                    ditto
 M           21322   source/cfc11_mod.F90                    ditto, EXCEPT changed !pw to !untested
@@ -5506,7 +5604,7 @@ M           21322   source/passive_tracers.F90              ditto
 M           21322   source/forcing_coupled.F90              ditto
 M           21322   source/co2calc.F90                      ditto
 M           21322   source/ms_balance.F90                   ditto
-M           21322   source/hmix_gm.F90                      ditto (This creates HUGE replicated blocks) 
+M           21322   source/hmix_gm.F90                      ditto (This creates HUGE replicated blocks)
 M           21322   source/baroclinic.F90                   ditto
 M           21322   source/state_mod.F90                    ditto
 M           21322   mpi/gather_scatter.F90                  ditto
@@ -5514,9 +5612,9 @@ M           21322   mpi/POP_HaloMod.F90                     ditto
 M           21322   drivers/cpl_mct/ocn_comp_mct.F90        ditto
 M           21322   drivers/cpl_esmf/ocn_comp_esmf.F90      ditto
 
-M           21322   source/tavg.F90                    openmp2pop04_ccsm_pop_2_1_20100125 mods imported 
-                                                           into trunk version    
-M           21322   source/ecosys_mod.F90                   ditto 
+M           21322   source/tavg.F90                    openmp2pop04_ccsm_pop_2_1_20100125 mods imported
+                                                           into trunk version
+M           21322   source/ecosys_mod.F90                   ditto
 M           21322   ChangeLog
 M           21322   input_templates/ocn.ecosys.setup.csh compensate for possibility of missing inputdata
 M           21322   input_templates/ocn.cfc.setup.csh       ditto
@@ -5524,35 +5622,35 @@ M           21322   input_templates/ocn.cfc11.setup.csh     ditto
 
 From previous, untagged commit:
                      source/POP_IOUnitsMod.F90  (redirect POP_stdout if CCSMCOUPLED)
-            
+
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    17 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100217
 Tag Testing: See testing log
 Tag Summary: pop2.cpl7.template changes to allow the creation of a correct
-               pop2.buildnml.csh script on jaguar (shell-command differences) 
+               pop2.buildnml.csh script on jaguar (shell-command differences)
 
 M           21095   bld/pop2.cpl7.template
 M           21095   ChangeLog
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    12 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100212
 Tag Testing: 1-month+1-month DEBUG exact restart for new gx3 decomp
              1-month+1-month exact restart test for overflows
              1-month+1-month exact restart test for  POP_DistributionMod.F90
-             2-month b4b test for exit_POP cleanup 
-             See /fis/cgd/cseg/people/njn01/test/usability/ cases             
-Tag Summary: Misc: 
-               o  64-pe gx3 decomp   
-               o  deallocate only associated arrays in POP_DistributionMod.F90 
+             2-month b4b test for exit_POP cleanup
+             See /fis/cgd/cseg/people/njn01/test/usability/ cases
+Tag Summary: Misc:
+               o  64-pe gx3 decomp
+               o  deallocate only associated arrays in POP_DistributionMod.F90
                     (contributed by Pat Worley)
                o  lccsm_control_compatible = .false. for gx1v6 (break backwards
                      compatability)
-               o  move overflows write from write_restart to output_driver 
+               o  move overflows write from write_restart to output_driver
                o  begin exit_POP cleanup: initial.F90, time_management.F90,
                    budget_diagnostics.F90, restart.F90
 
@@ -5566,7 +5664,7 @@ M           20936   input_templates/pop2_in_build.csh
 M           20936   bld/pop_decomp.xml
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    10 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100210
 Tag Testing: customized testing/inspection
@@ -5579,16 +5677,16 @@ M           20886   source/tavg.F90
 M           20887   input_templates/pop2_tavg_nml.csh
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    8 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100208
 Tag Testing: side-by-side ccsm4_0_beta42 comparison + bluefire.pop2.aux tests
-Tag Summary: Misc. changes + ecosys_mod.F90 correction: 
+Tag Summary: Misc. changes + ecosys_mod.F90 correction:
             o  reorganize pop2 template, setup, and build scripts to support
                  build-time passive-tracer changes; this includes the addition
                  of a new support-level script, pop2_tavg_nml.csh
             o  high-frequency printed diagnostics when INFO_DBUG >= 2
-            o Correct O2_ZMIN and O2_ZMIN_DEPTH tavg fields. Except for these fields, 
+            o Correct O2_ZMIN and O2_ZMIN_DEPTH tavg fields. Except for these fields,
 results are b4b identical to results with previous tag.
 
 M           20712   bld/pop2.cpl7.template
@@ -5599,19 +5697,19 @@ M           20627   input_templates/ocn.iage.setup.csh
 M           20712   input_templates/pop2_in_build.csh
 
 Testsuite results: (using ccsm4_0_beta42 + this tag)
-PASS  ERS.T62_g16.C.bluefire 
-PASS  ERT.T62_g16.C.bluefire 
-PASS  PFS.T62_g16.C.bluefire 
-PASS  ERT.f19_g16.B1850CN.bluefire 
-PASS  ERH.f19_g16.B1850CN.bluefire 
+PASS  ERS.T62_g16.C.bluefire
+PASS  ERT.T62_g16.C.bluefire
+PASS  PFS.T62_g16.C.bluefire
+PASS  ERT.f19_g16.B1850CN.bluefire
+PASS  ERH.f19_g16.B1850CN.bluefire
 
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    25  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100125
-Tag Testing: 
-Tag Summary: Misc. changes: 
+Tag Testing:
+Tag Summary: Misc. changes:
                bugfix POP_DistributionCreateRake (maxWork definition)
                make NPROCS_CLINIC a variable in buildnml script; do not resolve it
                make 64-bit offset the default for all pop2 netCDF output files
@@ -5624,16 +5722,16 @@ M           20627   input_templates/pop2_in_build.csh
 
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    8  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100108
 Tag Testing: see walkthrough log on ccsm pop2 documentation page
 Tag Summary: Add new code that supports gx3v7 overflows and corrects
-             the T,S limits in the overflows module. 
-             Add logical control flag that forces all gx1v6 cases to be 
+             the T,S limits in the overflows module.
+             Add logical control flag that forces all gx1v6 cases to be
              backwards compatible with previous tags (bypasses corrections/
-             improvements that are allowed in the gx3v7 resolution). 
-             Replace references to gx3v7 initial, topography, and tidal-mixing 
+             improvements that are allowed in the gx3v7 resolution).
+             Replace references to gx3v7 initial, topography, and tidal-mixing
              files in the gx3v7_inputdata file.
              Turn ON gx3v7 overflows
 
@@ -5646,7 +5744,7 @@ M      *    20168   input_templates/pop2_in_build.csh
 M           20168   ChangeLog
 
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    7  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100107
 Tag Testing: B20TRCN smoke test
@@ -5658,14 +5756,14 @@ Tag Summary: Fix problem with ocn.cfc.setup.csh: add "set module = cfc' to
              This pop2 tag is used in ccsm4_0_beta39 and ccsm4_0_rel01 branch
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    6  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100106a
 Tag Testing: REMOVE references to lccsm_control_compatible -- these will be added
              in a later tag
              turn gx3v7 overflows OFF -- will be turned on in a later tag
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    6  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100106
 Tag Testing: bluefire.pop2.auxtest
@@ -5673,11 +5771,11 @@ Tag Summary: Change pop2_in_build.csh so that it does NOT resolve output-file
              strings at the configure stage; make these runtime settings instead,
              which allows the create_clone script to function properly.
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    4  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100104
 Tag Testing: bluefire.pop2.auxtest + case-customized tests
-Tag Summary: 1) bugfixes for tavg restarts/timeseries  (restarting an 
+Tag Summary: 1) bugfixes for tavg restarts/timeseries  (restarting an
                  open timeseries, in the middle of accumulating an average)
              2) bugfix for tavg zt_150m_dim restart
              3) modern ecosystem model (klindsay)
@@ -5698,7 +5796,7 @@ M           20109   input_templates/pop2_in_build.csh
 M           20109   input_templates/ocn.cfc.setup.csh
 M           20109   input_templates/ocn.cfc11.setup.csh
 ===============================================================================
-Tag Creator: njn01 
+Tag Creator: njn01
 Tag Date:    18  December 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091218
 Tag Testing: extensive testing -- see testing log on ccsm pop2 documentation page
@@ -5706,7 +5804,7 @@ Tag Summary: Redevelop the pop2.cpl7.template script so that it generates a clea
              simpler pop2.buildnml.csh script. The new pop2.buildnml.csh script contains
              a mostly-resolved pop2_in "here document"
              Also, remove obsolete files from input_templates
- 
+
 M           19927   bld/pop2.cpl7.template                        --
 M           19927   input_templates/gx1v5_inputdata         -- change *_data to *_filename
 M           19927   input_templates/gx1v5b_inputdata        --   ditto
@@ -5729,7 +5827,7 @@ Tag Creator: njn01 (pio developer: Mariana Vertenstein)
 Tag Date:    19  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091119
 Tag Testing:  extensive testing -- see testing log on ccsm pop2 documentation page
-            
+
 Tag Summary:  1) Replace pure netCDF implementation in io_netcdf.F90 with pio version.
                  This implementation was developed by Mariana Vertenstein. The
                  code in this tag is based upon the piopop11_ccsm_pop_2_1_20091030/
@@ -5739,7 +5837,7 @@ Tag Summary:  1) Replace pure netCDF implementation in io_netcdf.F90 with pio ve
                        of overflows.F90, so tests done with the piopop11 tag do not
                        directly compare with the code in this tag.
               2) bugfix pop2.cpl7.template wrt runtype and ecosystem interaction
- 
+
 M           19471   input_templates/pop2_in_build.csh
 M           19471   source/initial.F90
 A               0   source/io_pio.F90
@@ -5754,30 +5852,30 @@ Tag Creator: njn01
 Tag Date:    17  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091117
 Tag Testing:  inspection
-            
-Tag Summary:  Update the pcfc1112 file in ocn.cfc.setup.csh script 
+
+Tag Summary:  Update the pcfc1112 file in ocn.cfc.setup.csh script
               (pcfc1112_atm_20091117.nc) Values were extended from year 2003.5 to year 2008.5
- 
+
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    9  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091109
 Tag Testing:  see testing log on ccsm pop2 documentation page
-            
+
 Tag Summary:  Replace user-defined constants with ccsm shared constants
               in the overflows.F90 module
- 
+
 M           19130   source/overflows.F90
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    1  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091101
-Tag Testing:  
-            
+Tag Testing:
+
 Tag Summary:  Change H2 --> SSH2 in those tavg_contents files that had not
               been updated to reflect the name change introduced in the
               ccsm_pop_2_1_20090911 tag
- 
+
 M           18834   input_templates/test_sample_tavg_contents
 M           18834   input_templates/tx1v1_tavg_contents
 M           18834   input_templates/tx0.1v2_tavg_contents
@@ -5786,8 +5884,8 @@ M           18834   input_templates/tx0.1v2_tavg_contents
 Tag Creator: njn01
 Tag Date:    30  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091030
-Tag Testing:  
-            
+Tag Testing:
+
 Tag Summary:  1) move *.f90 files to $EXEDIR/ocn/source/f90, should they exist
               2) redirect pop2 buildnml messages to $CASE/Buildconf/pop2doc
 
@@ -5801,8 +5899,8 @@ M           18835   input_templates/ocn.iage.setup.csh
 Tag Creator: njn01
 Tag Date:    12  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091012
-Tag Testing:  
-            
+Tag Testing:
+
 Tag Summary:  Eliminate LANL/CCSM branch definition conflict and fix minor
  problem with tripole grid settings in pop2_in_build.csh
 
@@ -5820,15 +5918,15 @@ M           18792   input_templates/pop2_in_build.csh
 M           18792   input_templates/test_pop2_in_build.csh
 M           18792   input_templates/ocn.cfc.setup.csh
 M           18792   input_templates/ocn.cfc11.setup.csh
-            
+
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    2  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091002
-Tag Testing:  
-            
+Tag Testing:
+
 Tag Summary:  Fix diagnostics problem (to be filled in later)
-            
+
 M           18710   source/tavg.F90
 
 
@@ -5837,8 +5935,8 @@ Tag Creator: njn01
 Tag Date:    1  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091001a
 Tag Testing:  Visual inspection of gx1v6 tavg fields (*.pop.h.* files)
-            
-Tag Summary: Small corrections for the new fields generated by tavg.F90 in 
+
+Tag Summary: Small corrections for the new fields generated by tavg.F90 in
              the ccsm_pop_2_1_20091001 tag.
 
 M           18703   source/vmix_kpp.F90
@@ -5850,7 +5948,7 @@ Tag Date:    1  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091001
 Tag Testing:  Debug smoke tests gx1v6 and gx3v7. Code walkthrough with Gokhan.
               Two-month gx1v6 test and review of new output fields by Gokhan.
-            
+
 Tag Summary: Add support for remaining CMIP5 output fields. Add z_w_bot
              dimension, and modify diagnostics computations so that
              vertical dimensions are consistent between code and the tavg file
@@ -5870,7 +5968,7 @@ M           18702   input_templates/gx3v7_tavg_contents
 Tag Creator: njn01
 Tag Date:    30  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090930
-Tag Testing: 5-day + 5-day smoke test; 10-day + 25-day smoke test 
+Tag Testing: 5-day + 5-day smoke test; 10-day + 25-day smoke test
              (test regular and restart history files)
 Tag Summary: Fix bug introduced in ccsm_pop_2_1_20090929 tag that affected
              the creation of tavg restart files (*.rh.* files)
@@ -5881,7 +5979,7 @@ Tag Creator: njn01
 Tag Date:    29  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090929
 Tag Testing: two-month C gx1v6 side-by-side comparison with ccsm4_0_beta23 tag
-Tag Summary: Restore the "bounds" attribute to time coordinate 
+Tag Summary: Restore the "bounds" attribute to time coordinate
 
 M           18616   source/tavg.F90
 ===============================================================================
@@ -5910,9 +6008,9 @@ Tag Summary:
    and by default, the code is set up to create timeseries files of the daily
    tavg history fields.
 
-   Further testing of this tag may result in changes/corrections. 
+   Further testing of this tag may result in changes/corrections.
 
- 
+
 M           18462   source/io_types.F90
 M           18462   source/io.F90
 M           18462   source/io_netcdf.F90
@@ -5929,7 +6027,7 @@ Tag Date:    24  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090924
 Tag Testing: ccsm4_0_beta27 post-tag testing
 Tag Summary:
- 
+
   Correct a problem in diagnostics.F90 when tavg HMXL_2 is NOT requested
   (nonstandard usage).
 ===============================================================================
@@ -5938,21 +6036,21 @@ Tag Date:    23  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090923
 Tag Testing: ccsm4_0_beta27 post-tag testing
 Tag Summary:
- 
+
   This is a bugfix tag which adds gx3v7 support to the input_templates/pop2_in_build.csh
   script.
 M           18448   input_templates/pop2_in_build.csh
-  
+
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    22  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090922
 Tag Testing: ccsm4_0_beta27 post-tag testing
 Tag Summary:
- 
+
   This is a bugfix tag which adds gx3v7 support to the bld/pop_decomp.xml script and
   fixes a tx0.1/tx1 definition omission in tavg_nml input in the pop2_in_build.csh script.
-  
+
 M           18411   bld/pop_decomp.xml
 M           18411   input_templates/pop2_in_build.csh
 
@@ -5960,17 +6058,17 @@ M           18411   input_templates/pop2_in_build.csh
 Originator: njn01
 Date:  11  September 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090911
-Summary of Changes:   
- 
+Summary of Changes:
+
    *This is a significant revision to improve the support of multiple tavg output "streams".
-    Extensive testing at the gx3v5 resolution was conducted (see test log) . This version 
+    Extensive testing at the gx3v5 resolution was conducted (see test log) . This version
     now contains support for writing time-invariant fields, such as background diffusivities,
     the the new frequency option, "once."
 
    * Correction of the (re-introduced) overflows.F90 threading bug
-  
+
    * Addition of gx3v7 support
-                      
+
 M           17956   source/overflows.F90
 M           17957   source/initial.F90
 M           17956   source/surface_hgt.F90
@@ -6004,7 +6102,7 @@ M           17957   ChangeLog
 Originator: njn01
 Date:  24  August 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090824
-Summary of Changes:   This is a *preliminary* tag which contains a *MAJOR* 
+Summary of Changes:   This is a *preliminary* tag which contains a *MAJOR*
                       revision to support multiple tavg output "streams".
                       Extensive testing and substantial modifications will
                       continue over the next several weeks; users should
@@ -6040,19 +6138,19 @@ M           17758   drivers/cpl_mct/POP_InitMod.F90
 Originator: njn01
 Date:  12  August 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090812
-Summary of Changes:  
+Summary of Changes:
      * Major time-flag revision:
           Create the routine "access_time_flag" to allow
             other routines to access a time_flag defined in another module.
           Refactor routines to create smaller, single-purpose subroutines
             that can be combined in various ways to support robust time_flag
             creation and use.
-          Allow only one module to initialize a time flag. 
-          Add error checking to prevent using a noninitialized time_flag. 
+          Allow only one module to initialize a time flag.
+          Add error checking to prevent using a noninitialized time_flag.
      * add definition of undefined_nf_r8 to constants.F90
      * add optional output unit specifier to exit_POP
      * add support for overriding cpl_ts%old_value based upon restart information
-     * remove code for overriding cpl_ts%old_value from read_restart 
+     * remove code for overriding cpl_ts%old_value from read_restart
          (now, override cpl_ts%old_value after it has been initialized)
      * change get_time_flag_id to access_time_flag in ice.F90, restart.F90,
      * remove shr_sys_flush references; use POP_IOUnitsFlush instead
@@ -6069,15 +6167,15 @@ M           17758   source/tavg.F90
 M           17758   source/constants.F90
 
 Summary of Testing:  (in ccsm4_0_beta21 context)
-  PASS  ERS.T62_g16.C.bluefire 
-  PASS  ERS.f19_g16.BTR1.bluefire 
-  PASS  ERH.f19_g16.BTR1.bluefire 
+  PASS  ERS.T62_g16.C.bluefire
+  PASS  ERS.f19_g16.BTR1.bluefire
+  PASS  ERH.f19_g16.BTR1.bluefire
   PASS  ERB.f19_g16.BTR1.bluefire
 ===============================================================================
 Originator: njn01
 Date:  28  July 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090728
-Summary of Changes:  
+Summary of Changes:
      * Corrections:
          o pop2.cpl7.template -- changes for jaguar branch and hybrid cases
 M           17322   bld/pop2.cpl7.template
@@ -6087,9 +6185,9 @@ M           17322   ChangeLog
 Originator: njn01
 Date:  27  July 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090727
-Summary of Changes:  
+Summary of Changes:
      * Corrections:
-         o pop2.cpl7.template -- changes for jaguar    
+         o pop2.cpl7.template -- changes for jaguar
 
 M           17212   bld/pop2.cpl7.template
 M           17212   ChangeLog
@@ -6097,12 +6195,12 @@ M           17212   ChangeLog
 Originator: njn01
 Date:  20  July 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090720
-Summary of Changes:  
+Summary of Changes:
      * Corrections:
-         o update the tx1v1 chlorophyll dataset; the old one was mistakenly written 
+         o update the tx1v1 chlorophyll dataset; the old one was mistakenly written
             in little-endian format
          o add tripole-grid correction to DYU in grid.F90 (Gokhan/Keith)
-         o interchange the order of allocate and INQUIRE statements in read_bottom_cell, 
+         o interchange the order of allocate and INQUIRE statements in read_bottom_cell,
              so that the record length for the partial bottom cell file is correctly determined
              (affected tx0.1v2 oob only)
          o modify pop2_in_build.csh to support restarts from netCDF restart files
@@ -6114,7 +6212,7 @@ Summary of Changes:
      * Misc changes:
          o rename pop2/drivers/nocouple  pop2/drivers/cpl_none for improved name parallelism
             and modify build/* nocouple references to point to cpl_none
-         o add "call POP_IOUnitsFlush(stdout) " to locations where POP_IOUnitsFlush(POP_stdout) 
+         o add "call POP_IOUnitsFlush(stdout) " to locations where POP_IOUnitsFlush(POP_stdout)
             calls exist; this restores the flushes in ccsm coupled context during the
             transition from old to new pop2 infrastructure
          o eliminate some "call shr_sys_flush (stdout)" references and replace with
@@ -6169,9 +6267,9 @@ Summary of Changes:  time-flag changes; add time_management unit tester
      * remove ^M characters from serial/communicate.F90
      * restore printed completion messages to ocn.log.* output (use stdout, not POP_stdout)
         and print only from master-task (eliminates messages from each task in ccsm.log.*)
-     * modify pop2.cpl7.template so that $INPUT is not resolved in the pop2.build* scripts 
+     * modify pop2.cpl7.template so that $INPUT is not resolved in the pop2.build* scripts
         that the template script creates
-      
+
 Testing:   See test log linked to ocn doc page
 Reviewers: klindsay, gokhan, yeager
 A               0   build/ibm.gnu
@@ -6213,9 +6311,9 @@ Status against revision:  16638
 Originator: njn01 (new ccsm4 requirement)
 Date:  9 June 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090609
-Summary of Changes:  
+Summary of Changes:
      * Remove all references to SEQ_MCT
-      
+
 Testing:  C compset smoke test in ccsm4_0_beta17 context
 Reviewer: none
 M           16535   source/io_types.F90
@@ -6226,11 +6324,11 @@ M           16535   ChangeLog
 Originator: njn01
 Date:  22 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090522
-Summary of Changes:  
+Summary of Changes:
      * Change pop2_in_build.csh settings, according to directions from
        Gokhan (see ocean doc pages)
      * Add useful write statement to io_netCDF.F90, to help in debugging
-      
+
 Testing:  none
 Reviewer: none
 M           16215   source/io_netcdf.F90
@@ -6242,12 +6340,12 @@ Status against revision:  16215
 Originator: njn0
 Date:  13 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090513
-Summary of Changes:  
+Summary of Changes:
      * Modify ocn.*.setup.csh scripts so that they only echo *default*
        input files into pop2.input_data_list file. This will allow users
        to select nonstandard files from their $case directory without
        causing the check_input_data script to stop with an error message.
-      
+
 Testing:  See test log
 Reviewer: klindsay (walkthrough)
 M           15792   input_templates/ocn.cfc.setup.csh
@@ -6260,15 +6358,15 @@ Status against revision:  16008
 Originator: njn01
 Date:  11 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090511
-Summary of Changes:  
+Summary of Changes:
      * bugfix: tavg.F90 cell_methods correction (correctly identify minimum and maximum quantities
         in netCDF tavg history output files)
      * bugfix: correct gx3v5 pop2_in_build.csh so that this case runs without error-detection shutdown
      * add  ltidal_mixing/lhoriz_varying_bckgrnd dependencies to pop2_in_build.csh (to catch problems
         at buildnml time, rather than at execution time)
-     * add iter-option consistency checking to pop2_in_build.csh  
+     * add iter-option consistency checking to pop2_in_build.csh
         (to protect users from selecting internally inconsistent options)
-      
+
 Testing:  See test logs
 Reviewer: Gokhan (pop2_in_build.csh), klindsay (tavg/cell methods)
 M           15792   source/tavg.F90
@@ -6281,10 +6379,10 @@ Originator: klindsay
 Date: 1 May 2009  (testing completed, and tag created, on 20090506)
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090506
-Summary of Changes:  
+Summary of Changes:
      * Initialize arrays in cfc_mod.F90, which allows the ocean model compiled
        in DEBUG mode (NaN initialization and signal trapping) to properly execute.
-      
+
 Testing: preliminary testing: klindsay, mai Further testing: njn01
          All of the following tests pass.  In addition, the binary ocean restart files
          from ERT1850.f19_g16.B20TRTR1.bluefire and ERT1850.f19_g16.B20TRTR1.bluefire.with_cfc
@@ -6307,10 +6405,10 @@ Originator: gokhan
 Date: 27 April 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090427
-Summary of Changes:  
+Summary of Changes:
      * Change default setting for gx3*,tx* grids:
        for vmix_kpp (these changes should have been made in August 2008)
-Testing: 
+Testing:
        ccsm4_0_beta14 tag. set up oob and new B gx1v6, C gx3v5, C tx1v1 cases:
      * new and old B gx1v6: pop2_in files are identical (except for filenames)
      * new and old C gx3v5: pop2_in files are identical (except for filenames)
@@ -6325,9 +6423,9 @@ Originator: yeager, gokhan
 Date: 24 April 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090424
-Summary of Changes:  
+Summary of Changes:
      * Change default setting for gx3v* grids:
-         set sfwf_weak_restore = 0.0115 
+         set sfwf_weak_restore = 0.0115
 Testing: none
 Reviewer: yeager, gokhan
 M           15492   input_templates/pop2_in_build.csh
@@ -6337,7 +6435,7 @@ Originator: njn01
 Date: 6 April 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090406
-Summary of Changes:  
+Summary of Changes:
      * 1850-2000_control --> 1850-2000 in ocn.cfc.setup.csh
        (this is now consistent with the upcoming compset definition)
 Testing: none
@@ -6347,7 +6445,7 @@ Originator: njn01
 Date: 3 April 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090403
-Summary of Changes:  
+Summary of Changes:
      * Add tx1v1 support to pop_decomp.xml
      * Redefine tx1v1_tavg_contents so that it is identical to the tx0.1v2 version
      * Modify pop2_in_build.csh tx1v1 settings (more closely related to tx0.1v2 settings)
@@ -6368,7 +6466,7 @@ Originator: njn01
 Date: 27 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090327
-Summary of Changes:  
+Summary of Changes:
      * Change default tavg frequency back to nmonth
 Testing: none
 Reviewer: none
@@ -6378,12 +6476,12 @@ Originator: njn01
 Date: 24 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090324
-Summary of Changes:  
+Summary of Changes:
      * Default hmix_gm kappa_isop_choice,kappa_thic_choice = 'bfre'
        (Gokhan 23 March 2009 email)
      * Correction of overflows logic bug
        (Bruce 24 March 2009: /home/bruceb/ccsm/ocn/overflow/pop2_conversion/info_nancy/24mar09)
-Testing: 
+Testing:
      Gokhan, Bruce
      http://www.cgd.ucar.edu/~njn01/ccsm_pop/log_by_date_2.1.html
 
@@ -6395,16 +6493,16 @@ Originator: njn01
 Date: 13 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090313b
-Summary of Changes:  
+Summary of Changes:
      * Allow all processors to print error message from exit_mod.F90
      * Add error-detection logic to pop2_in_build.csh to prevent
-       setting ltavg_nino_diags when tavg averages are not created 
+       setting ltavg_nino_diags when tavg averages are not created
        frequently enough
-Testing: 
+Testing:
      * Confirmed that all tasks write exit_POP error message when
        "if (my_task == master_task)" test is if-def'd out
      * Set up case with annual tavg and ltavg_nino_diags .true. and confirmed
-       pop2_in_build.csh traps the error. 
+       pop2_in_build.csh traps the error.
 
 Reviewer: njn01
 
@@ -6418,12 +6516,12 @@ Originator: njn01
 Date: 13 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090313
-Summary of Changes:  
+Summary of Changes:
      * overflows: generalize restart procedure to support ocean tracers
-     * ocn_comp_mct: change the two instances of "rattr" to "rAttr" to 
+     * ocn_comp_mct: change the two instances of "rattr" to "rAttr" to
         match all other instances of rAttr
 
-Testing: 
+Testing:
          See walkthrough summary/test log for details and testing
          http://www.cgd.ucar.edu/~njn01/ccsm_pop/log_by_date_2.1.html
 Reviewer: njn01, gokhan, bruceb
@@ -6440,14 +6538,14 @@ M           14951   drivers/ccsm_cpl7/ocn_comp_mct.F90
 ===============================================================================
 
 Originator: njn01
-Date: 4 March 2009 
+Date: 4 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090304
-Summary of Changes:  
+Summary of Changes:
      * Import Jon Wolfe's OpenMP corrections
      * correct overflows.F90 (eliminate "block" dimension in WORK3,WORK4)
        Note: did not import hmix_aniso.F90 code changes
-Testing: ccsm4_0_beta10, oob vs oob + new code, 2-month exact restart 
+Testing: ccsm4_0_beta10, oob vs oob + new code, 2-month exact restart
          See walkthrough summary/test log for details and testing
 Reviewer: njn01
 
@@ -6474,7 +6572,7 @@ Originator: njn01
 Date:  27 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090227
-Summary of Changes:  
+Summary of Changes:
      * Update pop2_in_build.csh to reflect most recent hmix_gm eg namelist parameters
 Testing:  Gokhan, Markus
 Reviewer: None
@@ -6500,7 +6598,7 @@ Originator: njn01
 Date:  26 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090226
-Summary of Changes:  
+Summary of Changes:
      * Update movie.F90 to support high-resolution work
 Testing:  See walkthrough summary/test log for details and testing
 Reviewer: Gokhan
@@ -6526,7 +6624,7 @@ Originator: njn01
 Date:  24 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090224
-Summary of Changes:  
+Summary of Changes:
      * Change const_eg = 1.0 ---> const_eg  = 0.8
 Testing:  Markus C compset control run
 Reviewer: Gokhan
@@ -6540,12 +6638,12 @@ Originator: njn01
 Date:  23 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090223b
-Summary of Changes:  
+Summary of Changes:
      * Change path for output files from full pathname to relative filename
      * Fix timer_total
      * Eliminate references to ccsm3 timers (SEND,RECV,RECV to SEND, and SEND to RECV)
 Testing:
-     * /fis01/cgd/cseg/people/njn01/test/rpointer 
+     * /fis01/cgd/cseg/people/njn01/test/rpointer
           gx1v5 C two-month restart
           gx1v5 C 8-day restart
      * /fis01/cgd/cseg/people/njn01/test/timers
@@ -6563,7 +6661,7 @@ Originator: njn01
 Date:  23 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090223
-Summary of Changes:  
+Summary of Changes:
      * new hmix_gm.F90 option: Eden and Greatbatch
      * small correction to hmix_gm.F90 (TAPER2; Gokhan; identified several years ago)
      * pop2_in_build.csh modified to support Eden and Greatbatch option (on by default)
@@ -6581,10 +6679,10 @@ Testing:
 
 ===============================================================================
 Originator: njn01
-Date:  
+Date:
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090218
-Summary of Changes:  
+Summary of Changes:
      * Add gx1v6 support
      * Add support for startup/spunup *.hdr file
      * Write tavg error message on all procs
@@ -6596,16 +6694,16 @@ Process:
     Get gx1v6 datasets from Steve Yeager. Modify pop2_in_build.csh
     to recognize gx1v6. Check gx1v6 datasets into inputdata and $SVN data
     repo.  Create gx1v6_input_data, pointing to new gx1v6 datasets.
-    Modify pop_decomp.xml to recognize gx1v6. 
+    Modify pop_decomp.xml to recognize gx1v6.
 
 Testing (njn01):
      Modify ccsm4_0_beta09 (cice, clm, dice, dlnd, datm, scripts, pop2).
      Set up B compset. Compare $comp_in for comp = (drv,ice,lnd,atm,pop)
      with Steve Yeager's b40.008o case. Diff'd ocean and ice datasets
      with Steve Yeager's b40.008o case.
- 
+
      Set up C compset. Will need new gx1v6 datasets before testing
-     can be completed.  
+     can be completed.
 
      This tag will be updated, if necessary, after full gx1v6 test suite
      is completed.
@@ -6639,7 +6737,7 @@ Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090121
 Summary of Changes:  Correct bug #890 (branch start bug)
 
-Testing:  
+Testing:
      njn01: Set up control run and branch case using ccsm4_0_beta08 tag.
             Modify $case/Tools/Template/pop2.cpl7.template to correct the bug.
             Build branch case (using new pop2.cpl7.template) and run. Confirm
@@ -6656,7 +6754,7 @@ Originator: njn01
 Date:  Fri Jan 9 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090109
-Summary of Changes:  
+Summary of Changes:
    1) New overflows.F90 module and gx1v5b_overflow input file from
       Bruce B and Gokhan. The overflows.F90 module has been used
       extensively in recent runs; njn01 modified it to be consistent
@@ -6667,7 +6765,7 @@ Summary of Changes:
    5) Only check COMPUTE_TLT in hmix_gm.F90 if not _HIRES
    6) Add new tx0.1v2 blocks to pop_decomp.xml file (from a38hr02_hrpop43 tag)
 
-Testing:  
+Testing:
    1) Bruce B confirmed on 9 Jan 2009 that the resulting overflows *.do* files are ok
    2) Compile and run a one-month gx1v5 C case.
    3) No testing of tx0.1v2 mods, beyond inspection
@@ -6686,13 +6784,13 @@ Originator: klindsay
 Date:  Wed Jan 7 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090107b
-Summary of Changes:  
+Summary of Changes:
 Add time-filtering of surface Chl to initialization so that it is
 consistent with the time-filtering in the main time loop. Move set_chl
 call in subroutine set_surface_forcing of forcing.F90 to eliminate
 time-lag in prognostic Chl.
 
-Testing:  
+Testing:
 The mods ensure exact restart for compset CECO at resolutions T62_g35 &
 T62_g15. They do not change results (bit-for-bit) for compset B at
 resolution f19_g15 or for compset C at resolutions T62_g35 & T62_g15.
@@ -6713,7 +6811,7 @@ Tag: pop2/trunk_tags/ccsm_pop_2_1_20090107a
 Summary of Changes:  Remove system calls from diagnostics.F90 and overflows.F90
 Testing:  C compset, gx1v5 and gx3v5. Confirm output diagnostics
    files are named with beginning model date, by inspection
-   Gokhan and Bruce confirmed diagnostics files are ok. 
+   Gokhan and Bruce confirmed diagnostics files are ok.
 
 M           13010   source/overflows.F90
 M           12674   source/initial.F90
@@ -6740,7 +6838,7 @@ Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081121
 Testing:  2-month gx1v5b exact restart tests, C and B compsets
 ----------------------------------------------------------------
-Summary of Changes:  
+Summary of Changes:
    * Correct bugs in overflows product water code
    * Add support for gx1v5b resolution
    * Delete support for gx1v5a resolution
@@ -6778,7 +6876,7 @@ M           12892   ChangeLog
 
 ===============================================================================
 Originator: njn01
-Date: 
+Date:
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081117
 Testing:  see testing log on web page
@@ -6796,9 +6894,9 @@ Originator: njn01
 Date: Mon Nov 10 12::10 MST 2008
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081110
-Testing:  
-History: 
-Summary of Changes: 
+Testing:
+History:
+Summary of Changes:
     * bugfix for TAVG_R8 3D tavg netCDF output
     * bugfix for history.F90: add target attribute
     * add support for gx3v6 to pop_decomp.xml
@@ -6815,12 +6913,12 @@ Originator: njn01
 Date: Fri 31 Oct 2008
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081031
-Testing:  
-History: 
+Testing:
+History:
 Summary of Changes: This tag is based upon /pop2/branch_tags/hrpop_tags/hrpop61_ccsm_pop_2_1_20080125
   Differences from hrpop61 include:
        * removal of cpl6 support.
-       * the use of shr_sys_abort where needed (as a CCSMCOUPLED option that will remain in place 
+       * the use of shr_sys_abort where needed (as a CCSMCOUPLED option that will remain in place
          until Phil's new error trapping is fully functional)
        * error-trapping for SHF_QSW < epsilon in the high-res version
        * corrections to high-res settings in pop2_in_build.csh

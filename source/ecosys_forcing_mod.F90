@@ -294,7 +294,6 @@ contains
   !*****************************************************************************
 
   subroutine ecosys_forcing_init(ciso_on, land_mask,                &
-                                 fe_frac_dust, fe_frac_bc,          &
                                  marbl_req_surface_forcing_fields,  &
                                  marbl_req_interior_forcing_fields, &
                                  forcing_nml,                       &
@@ -312,8 +311,6 @@ contains
 
     logical,                         intent(in)    :: ciso_on
     logical,                         intent(in)    :: land_mask(:,:,:)
-    real(r8),                        intent(in)    :: fe_frac_dust
-    real(r8),                        intent(in)    :: fe_frac_bc
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_forcing_fields(:)
     type(marbl_forcing_fields_type), intent(in)    :: marbl_req_interior_forcing_fields(:)
     character(len=*),                intent(in)    :: forcing_nml
@@ -392,14 +389,8 @@ contains
          restore_scale_factor,                                                &
          restore_inv_tau_opt, restore_inv_tau_const, restore_inv_tau_input,   &
          surf_avg_alk_const, surf_avg_dic_const,                              &
-         surf_avg_di13c_const, surf_avg_di14c_const
-
-    !-----------------------------------------------------------------------
-    !  Set module variables from intent(in)
-    !-----------------------------------------------------------------------
-
-    iron_frac_in_dust = fe_frac_dust
-    iron_frac_in_bc   = fe_frac_bc
+         surf_avg_di13c_const, surf_avg_di14c_const,                          &
+         iron_frac_in_dust, iron_frac_in_bc
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -480,6 +471,8 @@ contains
     surf_avg_dic_const   = 1944.0_r8
     surf_avg_di13c_const = 1944.0_r8
     surf_avg_di14c_const = 1944.0_r8
+    iron_frac_in_dust    = 0.035_r8 * 0.01_r8
+    iron_frac_in_bc      = 0.06_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
