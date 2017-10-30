@@ -47,11 +47,6 @@ module forcing_timeseries_mod
     real (r8)                                  :: last_update_model_date ! model_date from most recent update
   end type forcing_timeseries_dataset
 
-  interface lin_interp
-    module procedure lin_interp_1d
-    module procedure lin_interp_2d
-  end interface
-
   !*****************************************************************************
 
 contains
@@ -556,7 +551,9 @@ contains
     integer (int_kind) :: &
       nbval,        & ! number of values in timeseries
       varind,       & ! variable index
-      data_ind        ! data_ind for this block
+      data_ind,     & ! data_ind for this block
+      w0_ind,       & ! time index into timeseries of data values corresponding to weight=0
+      w1_ind          ! time index into timeseries of data values corresponding to weight=1
 
     real (r8) :: &
       model_date,   & ! date of current model timestep
@@ -574,11 +571,14 @@ contains
 
     mapped_date = model_date - dataset%model_year + dataset%data_year
 
-    !-----------------------------------------------------------------------
-    !  Set values if mapped_date is before first date in file
-    !-----------------------------------------------------------------------
+    nbval = size(dataset%time_yr)
 
     if (mapped_date < dataset%time_yr(1)) then
+
+      !-----------------------------------------------------------------------
+      !  Set interpolation weights and indices if mapped_date is before first date in file
+      !-----------------------------------------------------------------------
+
       if ((dataset%taxmode_start == forcing_timeseries_taxmode_extrapolate) &
          .and. (mapped_date < dataset%time_yr(1) - max_yr_extension)) then
         call document(subname, 'filename', dataset%filename)
@@ -595,28 +595,55 @@ contains
         weight = (mapped_date - dataset%time_yr(1)) / (dataset%time_yr(2) - dataset%time_yr(1))
       end select
 
-      do varind = 1, size(dataset%vars)
-        associate (var => dataset%vars(varind))
-          select case (var%rank)
-          case (1)
-            call lin_interp(weight, var%data_1d(1), var%data_1d(2), var%data_1d_curr)
-          case (2)
-            call lin_interp(weight, var%data_2d(:,1), var%data_2d(:,2), var%data_2d_curr)
-          end select
-        end associate
-      end do
+      w0_ind = 1
+      w1_ind = 2
 
       dataset%data_ind = 1
-      return
-    end if
 
-    !-----------------------------------------------------------------------
-    !  Set values if mapped_date is after last date in file
-    !-----------------------------------------------------------------------
+    else if (mapped_date < dataset%time_yr(nbval)) then
 
-    nbval = size(dataset%time_yr)
+      !-----------------------------------------------------------------------
+      !  Set interpolation weights and indices if mapped_date is between first and last dates in file
+      !-----------------------------------------------------------------------
 
-    if (mapped_date > dataset%time_yr(nbval)) then
+      if (dataset%data_ind == -1) then
+
+        !-----------------------------------------------------------------------
+        !  If data_ind is not set, perform linear search to find data_ind.
+        !-----------------------------------------------------------------------
+
+        do data_ind = nbval-1,1,-1
+          if (mapped_date >= dataset%time_yr(data_ind)) exit
+        end do
+        dataset%data_ind = data_ind
+
+      else
+
+        !-----------------------------------------------------------------------
+        !  See if data_ind need to be updated, but do not set it to nbval.
+        !-----------------------------------------------------------------------
+
+        data_ind = dataset%data_ind
+        if (data_ind < nbval-1) then
+          if (mapped_date >= dataset%time_yr(data_ind+1)) then
+            data_ind = data_ind + 1
+            dataset%data_ind = data_ind
+          end if
+        end if
+
+      end if
+
+      weight = (mapped_date - dataset%time_yr(data_ind)) / (dataset%time_yr(data_ind+1) - dataset%time_yr(data_ind))
+
+      w0_ind = data_ind
+      w1_ind = data_ind+1
+
+    else
+
+      !-----------------------------------------------------------------------
+      !  Set interpolation weights and indices if mapped_date is after last date in file
+      !-----------------------------------------------------------------------
+
       if ((dataset%taxmode_end == forcing_timeseries_taxmode_extrapolate) &
          .and. (mapped_date > dataset%time_yr(nbval) + max_yr_extension)) then
         call document(subname, 'filename', dataset%filename)
@@ -634,53 +661,24 @@ contains
         weight = (dataset%time_yr(nbval) - mapped_date) / (dataset%time_yr(nbval) - dataset%time_yr(nbval-1))
       end select
 
-      do varind = 1, size(dataset%vars)
-        associate (var => dataset%vars(varind))
-          select case (var%rank)
-          case (1)
-            call lin_interp(weight, var%data_1d(nbval), var%data_1d(nbval-1), var%data_1d_curr)
-          case (2)
-            call lin_interp(weight, var%data_2d(:,nbval), var%data_2d(:,nbval-1), var%data_2d_curr)
-          end select
-        end associate
-      end do
+      w0_ind = nbval
+      w1_ind = nbval-1
 
       dataset%data_ind = nbval-1
-      return
+
     end if
 
     !-----------------------------------------------------------------------
-    !  On first time step, perform linear search to find data_ind.
+    !  Perform linear interpolation
     !-----------------------------------------------------------------------
-
-    if (dataset%data_ind == -1) then
-      do data_ind = nbval-1,1,-1
-        if (mapped_date >= dataset%time_yr(data_ind)) exit
-      end do
-      dataset%data_ind = data_ind
-    end if
-
-    !-----------------------------------------------------------------------
-    !  See if data_ind need to be updated, but do not set it to nbval.
-    !-----------------------------------------------------------------------
-
-    data_ind = dataset%data_ind
-    if (data_ind < nbval-1) then
-      if (mapped_date >= dataset%time_yr(data_ind+1)) then
-        data_ind = data_ind + 1
-        dataset%data_ind = data_ind
-      end if
-    end if
-
-    weight = (mapped_date - dataset%time_yr(data_ind)) / (dataset%time_yr(data_ind+1) - dataset%time_yr(data_ind))
 
     do varind = 1, size(dataset%vars)
       associate (var => dataset%vars(varind))
         select case (var%rank)
         case (1)
-          call lin_interp(weight, var%data_1d(data_ind), var%data_1d(data_ind+1), var%data_1d_curr)
+          var%data_1d_curr    = var%data_1d(w0_ind)   + weight * (var%data_1d(w1_ind)   - var%data_1d(w0_ind))
         case (2)
-          call lin_interp(weight, var%data_2d(:,data_ind), var%data_2d(:,data_ind+1), var%data_2d_curr)
+          var%data_2d_curr(:) = var%data_2d(:,w0_ind) + weight * (var%data_2d(:,w1_ind) - var%data_2d(:,w0_ind))
         end select
       end associate
     end do
@@ -688,64 +686,6 @@ contains
     !---------------------------------------------------------------------
 
   end subroutine forcing_timeseries_dataset_update_data
-
-  !*****************************************************************************
-
-  subroutine lin_interp_1d(w, w0_val, w1_val, interp_val)
-
-! !DESCRIPTION:
-!  linear interpolation between 2 values
-!  it is named with a _1d suffix because it is applied to 1d timeseries
-!    i.e., the time dimension
-
-    real (r8), intent(in) :: &
-      w,                & ! interpolation weight
-      w0_val,           & ! value when w==0
-      w1_val              ! value when w==1
-
-    real (r8), intent(out) :: &
-      interp_val          ! interpolated value
-
-    !---------------------------------------------------------------------
-
-    interp_val = w0_val + w * (w1_val - w0_val)
-
-    !---------------------------------------------------------------------
-
-  end subroutine lin_interp_1d
-
-  !*****************************************************************************
-
-  subroutine lin_interp_2d(w, w0_val, w1_val, interp_val)
-
-! !DESCRIPTION:
-!  linear interpolation between 2 values
-!  it is named with a _2d suffix because it is applied to 2d timeseries
-!    i.e., the time dimension plus another dimension
-
-    real (r8), intent(in) :: &
-      w,                & ! interpolation weight
-      w0_val(:),        & ! value when w==0
-      w1_val(:)           ! value when w==1
-
-    real (r8), intent(out) :: &
-      interp_val(:)       ! interpolated value
-
-    !---------------------------------------------------------------------
-    !  local variables
-    !---------------------------------------------------------------------
-
-    integer (int_kind) :: i
-
-    !---------------------------------------------------------------------
-
-    do i = 1, size(w0_val)
-      call lin_interp_1d(w, w0_val(i), w1_val(i), interp_val(i))
-    end do
-
-    !---------------------------------------------------------------------
-
-  end subroutine lin_interp_2d
 
   !*****************************************************************************
 

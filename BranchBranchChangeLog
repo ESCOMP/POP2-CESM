@@ -2,6 +2,31 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    30 Oct 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n92_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: more refactoring of linear interpolation in forcing_timeseries
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+ran the following tests on cheyenne:
+ERS_D.T62_g37.G1850ECO.cheyenne_gnu.pop-ciso
+ERS_D.T62_g37.G1850ECO.cheyenne_gnu.pop-ciso_transient
+ERS_D.T62_g37.G1850ECO.cheyenne_gnu.pop-abio_dic_dic14
+ERS_D.T62_g37.G1850ECO.cheyenne_gnu.pop-abio_dic_dic14_transient
+ERS_D.T62_g37.G1850ECO.cheyenne_gnu.pop-ciso_abio_dic_dic14
+ERS_D.T62_g37.G1850ECO.cheyenne_gnu.pop-ciso_transient_abio_dic_dic14_transient
+
+tests passed, including BASELINE compare to marbl_dev_klindsay_n91
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/forcing_timeseries_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    29 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n91_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: merge marbl_dev_n60 tag to this branch
@@ -9,7 +34,7 @@ Tag Summary: merge marbl_dev_n60 tag to this branch
 Testing:
 MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
 
-aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n82)
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n90)
    except for tests mentioned below, all tests pass
       BASELINE failures in G compsets because of shortwave changes in CICE
       all NLCOMP tests fail because of movement of iron_frac_in_{dust,bc} from MARBL to POP
@@ -42,6 +67,7 @@ M       source/io_pio.F90
 M       source/io_types.F90
 M       source/tavg.F90
 M       source/vmix_kpp.F90
+
 ===============================================================================
 
 Tag Creator: klindsay
