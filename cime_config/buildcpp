@@ -32,9 +32,7 @@ _config_cache_template = """
 <entry id="use_abio" value="{use_abio}" list="" valid_values="FALSE,TRUE">Use abio tracer module</entry>
 <entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
 <entry id="use_ecosys" value="{use_ecosys}" list="" valid_values="FALSE,TRUE">Use ecosys tracer module</entry>
-<entry id="lvariable_PtoC" value="{lvariable_PtoC}" list="" valid_values="FALSE,TRUE">control if PtoC ratios in autotrophs vary</entry>
 <entry id="use_iage" value="{use_iage}" list="" valid_values="FALSE,TRUE">Use ideal age tracer module</entry>
-<entry id="use_ciso" value="{use_ciso}" list="" valid_values="FALSE,TRUE">Use ciso tracer module</entry>
 <entry id="use_irf" value="{use_irf}" list="" valid_values="FALSE,TRUE">Use IRF tracer module</entry>
 <entry id="use_sf6" value="{use_sf6}" list="" valid_values="FALSE,TRUE">Use sf6 tracer module</entry>
 </config_definition>
@@ -44,9 +42,7 @@ _config_cache_template = """
 def determine_tracer_count(case, decomp_cppdefs):
 ###############################################################################
 
-    ECOSYS_BASE_NT      = 32
-    CISO_NT             = 14
-    lvariable_PtoC      = "TRUE"
+    MARBL_NT            = 0
     IRF_NT              = 0
     IRF_MODE            = "NK_precond"
 
@@ -63,12 +59,8 @@ def determine_tracer_count(case, decomp_cppdefs):
         for module_opt in module_opts:
             varname = module_opt.split("=")[0]
             value = module_opt.split("=")[1]
-            if varname == "ECOSYS_BASE_NT":
-                ECOSYS_BASE_NT = int(value)
-            elif varname == "lvariable_PtoC":
-                is_value_valid = (value == "TRUE") or (value == "FALSE")
-                expect(is_value_valid, "%s is not a valid value for %s in OCN_TRACER_MODULES_OPT" % (value, varname))
-                lvariable_PtoC = value
+            if varname == "MARBL_NT":
+                MARBL_NT = int(value)
             elif varname == "IRF_NT":
                 IRF_NT = int(value)
             elif varname == "IRF_MODE":
@@ -87,12 +79,10 @@ def determine_tracer_count(case, decomp_cppdefs):
     use_cfc    = "FALSE"
     use_sf6    = "FALSE"
     use_abio   = "FALSE"
-    use_ciso   = "FALSE"
     use_ecosys = "FALSE"
     use_irf    = "FALSE"
 
     NT = 2
-    MARBL_NT = 0
 
     # expression on RHS strips leading and trailing whitespace,
     # and replaces multiple whitespace with a single space
@@ -112,12 +102,12 @@ def determine_tracer_count(case, decomp_cppdefs):
             elif module == "abio_dic_dic14":
                 use_abio = "TRUE"
                 NT = NT + 2
-            elif module == "ciso":
-                use_ciso = "TRUE"
-                MARBL_NT = MARBL_NT + CISO_NT
             elif module == "ecosys":
                 use_ecosys = "TRUE"
-                MARBL_NT = MARBL_NT + ECOSYS_BASE_NT
+                if MARBL_NT == 0:
+                    MARBL_NT = 32
+            elif module == "ciso":
+                pass
             elif module == "IRF":
                 use_irf = "TRUE"
                 if IRF_NT == 0:
@@ -139,8 +129,7 @@ def determine_tracer_count(case, decomp_cppdefs):
     # Determine tracer cppdefs and update pop_cppdefs
     #----------------------------------------------------
 
-    tracer_cppdefs = " -DNT=%d -DECOSYS_BASE_NT=%d -DCISO_NT=%d -DMARBL_NT=%d -DIRF_NT=%d " \
-                     %(NT, ECOSYS_BASE_NT, CISO_NT, MARBL_NT, IRF_NT)
+    tracer_cppdefs = " -DNT=%d -DMARBL_NT=%d -DIRF_NT=%d " % (NT, MARBL_NT, IRF_NT)
 
     other_cppdefs = ""
     if "tx0.1" in case.get_value("OCN_GRID"): 
@@ -165,8 +154,6 @@ def determine_tracer_count(case, decomp_cppdefs):
         use_abio=use_abio,
         use_cfc=use_cfc,
         use_ecosys=use_ecosys,
-        lvariable_PtoC=lvariable_PtoC,
-        use_ciso=use_ciso,
         use_iage=use_iage,
         use_irf=use_irf,
         use_sf6=use_sf6)
