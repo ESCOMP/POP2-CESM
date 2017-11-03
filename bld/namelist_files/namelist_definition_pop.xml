@@ -4525,16 +4525,6 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 </entry>
 
 <entry
-id="ciso_on"
-type="logical"
-category="passive_tracers"
-group="passive_tracers_on_nml" >
-Flag for using ciso module.
-
-Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
-</entry>
-
-<entry
 id="IRF_on"
 type="logical"
 category="passive_tracers"

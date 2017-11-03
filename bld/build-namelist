@@ -1224,7 +1224,6 @@ add_default($nl, "lchange_ans");
 add_default($nl, "iage_on");
 add_default($nl, "cfc_on");
 add_default($nl, "sf6_on");
-add_default($nl, "ciso_on");
 add_default($nl, "abio_dic_dic14_on");
 add_default($nl, "ecosys_on");
 add_default($nl, "irf_on");
@@ -1390,7 +1389,6 @@ if ($abio_on eq "TRUE") {
 ##########################################
 
 my $ecosys_on = $cfg->get("use_ecosys");
-my $ciso_on = $nl->get_value('ciso_on');
 my %ecosys_cfg; # New hash containing some MARBL settings
 
 if ($ecosys_on eq "TRUE") {
@@ -1500,27 +1498,25 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
   add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
 
-  if ($ciso_on eq ".true.") {
-    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d14c_const');
+  add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d13c_const');
+  add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d14c_const');
 
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d13c_filename');
-    }
-
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d14c_filename(1)');
-      add_default($nl, 'ciso_atm_d14c_filename(2)');
-      add_default($nl, 'ciso_atm_d14c_filename(3)');
-    }
-
-    add_default($nl, 'ciso_atm_model_year');
-    add_default($nl, 'ciso_atm_data_year');
+  my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
+  if ($ciso_atm_opt eq '\'file\'') {
+    add_default($nl, 'ciso_atm_d13c_filename');
   }
+
+  my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+  if ($ciso_atm_opt eq '\'file\'') {
+    add_default($nl, 'ciso_atm_d14c_filename(1)');
+    add_default($nl, 'ciso_atm_d14c_filename(2)');
+    add_default($nl, 'ciso_atm_d14c_filename(3)');
+  }
+
+  add_default($nl, 'ciso_atm_model_year');
+  add_default($nl, 'ciso_atm_data_year');
 
   add_default($nl, 'restorable_tracer_names');
 
@@ -1568,73 +1564,72 @@ if ($ecosys_on eq "TRUE") {
   # (1) query init_ecosys_init_file
   # (2) add_default('ciso_init_ecosys_init_file', 'val' => '$init_ecosys_init_file')
 
-  if ($ciso_on eq ".true.") {
-    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+  add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
 
-    # By default, we use the same initial condition file for the base
-    # ecosystem module and the CISO module, but users have the option of
-    # specifying different files if desired.
-    my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
-    my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
-    add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
-    add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
+  # By default, we use the same initial condition file for the base
+  # ecosystem module and the CISO module, but users have the option of
+  # specifying different files if desired.
+  my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
+  my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
+  add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
+  add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
 
-    add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
-  }
+  add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
+
 }
 
 ##########################################

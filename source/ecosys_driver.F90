@@ -147,7 +147,6 @@ contains
 
   subroutine ecosys_driver_init( &
        ecosys_driver_ind_begin,  &
-       ciso_active_flag,         &
        init_ts_file_fmt,         &
        read_restart_filename,    &
        tracer_d_module,          &
@@ -183,7 +182,6 @@ contains
 
     integer (int_kind)       , intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
                                                                         ! array, passed through to rest_read_tracer_block
-    logical                  , intent(in)    :: ciso_active_flag      ! set ciso_on
     character (*)            , intent(in)    :: init_ts_file_fmt      ! format (bin or nc) for input file
     character (*)            , intent(in)    :: read_restart_filename ! file name for restart file
     type (tracer_field_type) , intent(inout) :: tracer_d_module(:)    ! descriptors for each tracer
@@ -240,7 +238,6 @@ contains
          lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
 
     errorCode = POP_Success
-    ciso_on   = ciso_active_flag
 
     lmarginal_seas        = .true.
     ecosys_tadvect_ctype  = 'base_model'
@@ -423,8 +420,7 @@ contains
             gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
-            lgcm_has_global_ops = .true.,                                     &
-            marbl_tracer_cnt = marbl_actual_tracer_cnt)
+            lgcm_has_global_ops = .true.)
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
@@ -433,16 +429,20 @@ contains
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
 
-       ! Make sure MARBL tracer count lines up with what POP expects
-       if (marbl_actual_tracer_cnt.ne.ecosys_tracer_cnt) then
-         write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
-                    marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
-                    ecosys_tracer_cnt
-         call document(subname, log_message)
-         call exit_POP(sigAbort, 'Stopping in ' // subname)
-       end if
-
     end do
+
+    ! Is ciso enabled in this run?
+    call marbl_instances(1)%get_setting('ciso_on', ciso_on)
+    marbl_actual_tracer_cnt = size(marbl_instances(1)%tracer_metadata)
+
+    ! Make sure MARBL tracer count lines up with what POP expects
+    if (marbl_actual_tracer_cnt.ne.ecosys_tracer_cnt) then
+      write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
+                 marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
+                 ecosys_tracer_cnt
+      call document(subname, log_message)
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
 
     !--------------------------------------------------------------------
     !  Initialize ecosys tracers and saved state
