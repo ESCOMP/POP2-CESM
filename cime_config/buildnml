@@ -115,9 +115,10 @@ def buildnml(case, caseroot, compname):
         MARBL_args = dict()
 
         # User can put default_values.yaml in SourceMods, otherwise use file provided by MARBL
-        MARBL_args["yaml_file"] = os.path.join(caseroot,"SourceMods","src.pop","default_settings.yaml")
-        if not os.path.isfile(MARBL_args["yaml_file"]):
-            MARBL_args["yaml_file"] = os.path.join(marbl_dir, "src", "default_settings.yaml")
+        MARBL_args["default_settings_file"] = os.path.join(caseroot,"SourceMods","src.pop","default_settings.json")
+        if not os.path.isfile(MARBL_args["default_settings_file"]):
+            MARBL_args["default_settings_file"] = os.path.join(marbl_dir, "MARBL_tools", "cesm_config", "default_settings.json")
+        MARBL_args["file_is_JSON"] = True
 
         # User can modify user_settings_marbl in caseroot
         MARBL_args["settings_file_in"] = os.path.join(caseroot, "user_settings_marbl")

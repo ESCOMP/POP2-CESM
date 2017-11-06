@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    7 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n130_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: MARBL now offers JSON version of default_settings.yaml; POP
+             should use that file since PyYAML is not a standard library in
+             python.
+
+             Note that this requires MARBL 5f774b0
+
+Testing:     Ran aux_pop_marbl on cheyenne and hobart; I was able to produce
+             baselines on both machines with work-arounds [but cheyenne
+             flagged an issue with ladjust_bury_coeff that still needs to be
+             fixed] so this tag is bit-for-bit with n130.
+
+Files Modified:
+M       cime_config/buildnml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    3 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n129_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: Remove ciso_on from passive_tracers.F90 (ecosys_driver requests
