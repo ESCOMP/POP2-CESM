@@ -2,6 +2,24 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    6 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n93_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: rework phys_cycle_{pre,post}run scripts so that they are run in CIME python environment
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+ran separate phys_cycle test run on cheyenne/intel
+
+Files Modified:
+M       BranchBranchChangeLog
+M       cime_config/phys_cycle_postrun
+M       cime_config/phys_cycle_prerun
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    30 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n92_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: more refactoring of linear interpolation in forcing_timeseries
