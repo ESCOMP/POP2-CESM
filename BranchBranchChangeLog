@@ -2,6 +2,26 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    8 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n94_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: switch to updated CMIP6 atm D14C and d13C 20C timeseries
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+ran the following tests on yellowstone:
+ERS.T62_g17.G1850ECO.yellowstone_intel.pop-ciso_transient_abio_dic_dic14_transient
+
+test passed, no baseline comparison, and atmospheric D14C and d13C in model output matches dataset
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    6 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n93_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: rework phys_cycle_{pre,post}run scripts so that they are run in CIME python environment
