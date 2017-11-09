@@ -2,6 +2,42 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    9 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n95_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: split DUST_FLUX_CPL into FINE_DUST_FLUX_CPL and COARSE_DUST_FLUX_CPL
+
+namelist variable iron_frac_in_dust replaced with iron_frac_in_coarse_dust, iron_frac_in_fine_dust
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+ran the following tests on yellowstone:
+SMS_D.T62_g37.G1850ECO.yellowstone_intel.pop-cice_ecosys_dust_flux_driver
+SMS_D.T62_g16.G1850ECO.yellowstone_gnu.pop-cice_ecosys_dust_flux_driver
+ERS.T62_g16.G1850ECO.yellowstone_intel.pop-cice_ecosys_dust_flux_driver
+
+tests passed
+   nlcomp failed because of namelist variable replacement
+   baseline failed because of roundoff differences to dust and iron fluxes
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/cpl/ocn_import_export.F90
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    8 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n94_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: switch to updated CMIP6 atm D14C and d13C 20C timeseries

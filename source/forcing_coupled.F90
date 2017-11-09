@@ -1361,14 +1361,25 @@
       return
    endif
 
-   call POP_HaloUpdate(DUST_FLUX,POP_haloClinic,       &
+   call POP_HaloUpdate(FINE_DUST_FLUX,POP_haloClinic,  &
                        POP_gridHorzLocCenter,          &
                        POP_fieldKindScalar, errorCode, &
                        fillValue = 0.0_POP_r8)
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
-         'update_ghost_cells_coupler: error updating DUST_FLUX')
+         'update_ghost_cells_coupler: error updating FINE_DUST_FLUX')
+      return
+   endif
+
+   call POP_HaloUpdate(COARSE_DUST_FLUX,POP_haloClinic,&
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating COARSE_DUST_FLUX')
       return
    endif
 

@@ -6268,11 +6268,21 @@ Default: 1944.0
 </entry>
 
 <entry
-id="iron_frac_in_dust"
+id="iron_frac_in_fine_dust"
 type="real"
 category="marbl"
 group="ecosys_forcing_data_nml">
-fraction, by weight, of iron in dust
+fraction, by weight, of iron in fine dust
+
+Default: 0.00035
+</entry>
+
+<entry
+id="iron_frac_in_coarse_dust"
+type="real"
+category="marbl"
+group="ecosys_forcing_data_nml">
+fraction, by weight, of iron in coarse dust
 
 Default: 0.00035
 </entry>

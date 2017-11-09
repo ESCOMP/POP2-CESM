@@ -283,7 +283,8 @@ module ecosys_forcing_mod
   ! Virtual fluxes
   real(r8), dimension(marbl_tracer_cnt) :: surf_avg                      ! average surface tracer values
 
-  real(r8) :: iron_frac_in_dust
+  real(r8) :: iron_frac_in_fine_dust
+  real(r8) :: iron_frac_in_coarse_dust
   real(r8) :: iron_frac_in_bc
   real(r8) :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
 
@@ -390,7 +391,7 @@ contains
          restore_inv_tau_opt, restore_inv_tau_const, restore_inv_tau_input,   &
          surf_avg_alk_const, surf_avg_dic_const,                              &
          surf_avg_di13c_const, surf_avg_di14c_const,                          &
-         iron_frac_in_dust, iron_frac_in_bc
+         iron_frac_in_fine_dust, iron_frac_in_coarse_dust, iron_frac_in_bc
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -467,12 +468,13 @@ contains
 
     call set_defaults_tracer_read(restore_inv_tau_input, file_varname='RESTORE_INV_TAU_MARGINAL_SEA_ONLY')
 
-    surf_avg_alk_const   = 2225.0_r8
-    surf_avg_dic_const   = 1944.0_r8
-    surf_avg_di13c_const = 1944.0_r8
-    surf_avg_di14c_const = 1944.0_r8
-    iron_frac_in_dust    = 0.035_r8 * 0.01_r8
-    iron_frac_in_bc      = 0.06_r8
+    surf_avg_alk_const       = 2225.0_r8
+    surf_avg_dic_const       = 1944.0_r8
+    surf_avg_di13c_const     = 1944.0_r8
+    surf_avg_di14c_const     = 1944.0_r8
+    iron_frac_in_fine_dust   = 0.035_r8 * 0.01_r8
+    iron_frac_in_coarse_dust = 0.035_r8 * 0.01_r8
+    iron_frac_in_bc          = 0.06_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -1579,7 +1581,8 @@ contains
        u10_sqr,                               &
        ifrac,                                 &
        press,                                 &
-       dust_flux,                             &
+       fine_dust_flux,                        &
+       coarse_dust_flux,                      &
        black_carbon_flux,                     &
        sst,                                   &
        sss)
@@ -1612,7 +1615,8 @@ contains
     real (r8), intent(in)  :: u10_sqr              (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
     real (r8), intent(in)  :: ifrac                (nx_block,ny_block,max_blocks_clinic) ! sea ice fraction (non-dimensional)
     real (r8), intent(in)  :: press                (nx_block,ny_block,max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8), intent(in)  :: dust_flux            (nx_block,ny_block,max_blocks_clinic) ! dust flux (g/cm**2/s)
+    real (r8), intent(in)  :: fine_dust_flux       (nx_block,ny_block,max_blocks_clinic) ! fine dust flux (g/cm**2/s)
+    real (r8), intent(in)  :: coarse_dust_flux     (nx_block,ny_block,max_blocks_clinic) ! coarse dust flux (g/cm**2/s)
     real (r8), intent(in)  :: black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux (g/cm**2/s)
     real (r8), intent(in)  :: sst                  (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
     real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
@@ -1856,14 +1860,15 @@ contains
                 else if (index == bc_dep_ind) then
                    ! compute iron_flux in gFe/cm^2/s, then convert to nmolFe/cm^2/s
                    forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) *   &
-                        ((dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_dust + &
+                        ((fine_dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_fine_dust + &
+                         (coarse_dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_coarse_dust + &
                          black_carbon_flux(:,:,iblock) * iron_frac_in_bc)
 
                 else if (index == u10sqr_ind) then
                    forcing_field%field_0d(:,:,iblock) = u10_sqr(:,:,iblock)
 
                 else if (index == dust_dep_ind) then
-                   forcing_field%field_0d(:,:,iblock) = dust_flux(:,:,iblock)
+                   forcing_field%field_0d(:,:,iblock) = fine_dust_flux(:,:,iblock) + coarse_dust_flux(:,:,iblock)
 
                 else if (index == d13c_ind) then
                    forcing_field%field_0d(:,:,iblock) = d13c(:,:,iblock)

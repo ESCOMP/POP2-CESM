@@ -1547,7 +1547,8 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'surf_avg_di13c_const');
   add_default($nl, 'surf_avg_di14c_const');
 
-  add_default($nl, 'iron_frac_in_dust');
+  add_default($nl, 'iron_frac_in_fine_dust');
+  add_default($nl, 'iron_frac_in_coarse_dust');
   add_default($nl, 'iron_frac_in_bc');
 }
 

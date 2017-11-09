@@ -850,7 +850,8 @@ contains
        u10_sqr,                       &
        ifrac,                         &
        press,                         &
-       dust_flux,                     &
+       fine_dust_flux,                &
+       coarse_dust_flux,              &
        black_carbon_flux,             &
        sst,                           &
        sss)
@@ -863,7 +864,8 @@ contains
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: u10_sqr           ! 10m wind speed squared (cm/s)**2
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: ifrac             ! sea ice fraction (non-dimensional)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: press             ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: dust_flux         ! dust flux (g/cm**2/s)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: fine_dust_flux    ! fine dust flux (g/cm**2/s)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: coarse_dust_flux  ! coarse dust flux (g/cm**2/s)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: black_carbon_flux ! black carbon flux (g/cm**2/s)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sst               ! sea surface temperature (c)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sss               ! sea surface salinity (psu)
@@ -878,7 +880,8 @@ contains
          u10_sqr,                         &
          ifrac,                           &
          press,                           &
-         dust_flux,                       &
+         fine_dust_flux,                  &
+         coarse_dust_flux,                &
          black_carbon_flux,               &
          sst,                             &
          sss)
