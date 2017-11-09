@@ -2,6 +2,32 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    9 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n132_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: Introduce a new marbl_interface layer between build* and
+             MARBL_tools; makes it easier to reuse code between buildcpp and
+             buildnml, which is necessary because buildcpp now gets MARBL_NT
+             from MARBL_tools. Requires MARBL a30eee3
+
+             Still need to check MARBL_NT in buildnml to make sure it hasn't
+             changed, but it isn't obvious how to pull in vars from
+             config_cache.xml so I'll wait until n133 to do that.
+
+Testing:     aux_pop_marbl on hobart is bit-for-bit with n131 (nag, intel,
+             pgi)
+
+Files Modified:
+M       cime_config/buildcpp
+M       cime_config/buildnml
+A       cime_config/marbl_interface
+A       cime_config/marbl_interface/__init__.py
+A       cime_config/marbl_interface/marbl_settings.py
+M       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/shell_commands
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/shell_commands
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n131_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: MARBL moved location of default_settings.json (requires e479512
              which is currently on enhancement/YAML_parameter_list branch on

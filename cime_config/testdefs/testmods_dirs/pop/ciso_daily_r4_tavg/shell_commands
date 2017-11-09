@@ -11,4 +11,3 @@ if [[ $found == 0 ]]; then
   ./xmlchange -a OCN_TRACER_MODULES=ciso
 fi
 
-./xmlchange --append OCN_TRACER_MODULES_OPT="MARBL_NT=46"
