@@ -22,6 +22,7 @@ from CIME.nmlgen import NamelistGenerator
 from CIME.utils import expect
 from CIME.buildnml import create_namelist_infile, parse_input
 from CIME.utils import run_cmd
+from CIME.XML.generic_xml import GenericXML
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,14 @@ def buildnml(case, caseroot, compname):
         from marbl_interface import MARBL_settings_for_POP_class
         MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, settings_class_dir)
         MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
+
+        # Compare MARBL_NT to value from buildcpp (in config_cache)
+        MARBL_NT = MARBL_settings.get_MARBL_NT()
+        config_cache_file = GenericXML(infile=os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml"))
+        MARBL_NT_buildcpp = int(config_cache_file.get_optional_node("entry", attributes={"id":"marbl_nt"}).get("value"))
+        if MARBL_NT != MARBL_NT_buildcpp:
+          logger.error("The number of MARBL tracers has changed since POP was built")
+          sys.exit(1)
 
         # determine instance string
 

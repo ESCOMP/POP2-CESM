@@ -21,13 +21,13 @@ from CIME.buildnml import parse_input
 import glob, shutil
 logger = logging.getLogger(__name__)
 
-_config_cache_template = """
-<?xml version="1.0"?>
+_config_cache_template = """<?xml version="1.0"?>
 <config_definition>
 <commandline></commandline>
 <entry id="comp_wav" value="{comp_wav}" list="" valid_values="">wave component</entry>
 <entry id="irf_mode" value="{IRF_MODE}" list="" valid_values="NK_precond,offline_transport">IRF tracer module mode</entry>
 <entry id="irf_nt" value="{IRF_NT}" list="" valid_values="">Number of IRF tracers</entry>
+<entry id="marbl_nt" value="{MARBL_NT}" list="" valid_values="">Number of MARBL tracers</entry>
 <entry id="ocn_grid" value="{ocn_grid}" list="" valid_values="">Ocean grid used for POP</entry>
 <entry id="use_abio" value="{use_abio}" list="" valid_values="FALSE,TRUE">Use abio tracer module</entry>
 <entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
@@ -161,6 +161,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
         cppdefs=pop_cppdefs,
         IRF_MODE=IRF_MODE,
         IRF_NT=IRF_NT,
+        MARBL_NT=MARBL_NT,
         ocn_grid=case.get_value("OCN_GRID"),
         use_abio=use_abio,
         use_cfc=use_cfc,
