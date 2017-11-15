@@ -35,7 +35,7 @@
     <values>
       <value compset="_POP2%ECO"             >prognostic</value>
       <value compset="_DATM.*CICE.*_POP2%ECO">diagnostic</value>
-      <value compset="_POP2%DAR"             >diagnostic</value>
+      <value compset="_DATM%CPLHIST.*CICE.*_POP2%ECO">prognostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -163,6 +163,7 @@
     <values>
       <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%ECO.*_BGC%BDRD">diagnostic</value>
+      <value compset="_DATM%CPLHIST.*_POP2%ECO">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -250,6 +251,33 @@
     <group>build_component_pop</group>
     <file>env_build.xml</file>
     <desc>POP cpp definitions (for diagnostic use only, setup automatically, overwritten by configure_pop.py - DO NOT EDIT)</desc>
+  </entry>
+
+  <entry id="POP_PHYS_CYCLE_YEARS_IN_CYCLE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>number of years to run before cycling POP physics
+    POP physics cycling only occurs if POP_PHYS_CYCLE_YEARS_IN_CYCLE>0
+    and pre- and post-run scripts are specified in env vars
+    PRERUN_SCRIPT and POSTRUN_SCRIPT</desc>
+  </entry>
+    
+  <entry id="POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>number of months run since most recent cycling of POP physics</desc>
+  </entry>
+
+  <entry id="POP_PASSIVE_TRACER_RESTART_OVERRIDE">
+    <type>char</type>
+    <default_value>none</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>if not equal to none, then passive tracers modules use this as their restart file</desc>
   </entry>
 
   <help>

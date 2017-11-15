@@ -555,8 +555,8 @@
       lname = trim(tracer_d(n)%long_name) /&
                                            &/ ' Squared'
       units = '(' /&
-                   &/ tracer_d(n)%units /&
-                                         &/ ')^2'
+                   &/ trim(tracer_d(n)%units) /&
+                                               &/ ')^2'
       call define_tavg_field(tavg_var_sqr(n),                       &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &

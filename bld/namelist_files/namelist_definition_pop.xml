@@ -5267,7 +5267,7 @@ Default: '1'
 
 <entry
 id="abio_atm_d14c_filename"
-type="char*256(3)"
+type="char*256" 
 category="passive_tracers"
 group="abio_dic_dic14_nml"
 input_pathname="abs" >
@@ -5285,18 +5285,30 @@ Default:
 </entry>
 
 <entry
-id="abio_atm_co2_d14c_opt"
+id="abio_atm_co2_opt"
 type="char*256"
 category="passive_tracers"
 group="abio_dic_dic14_nml"
-valid_values="file,const,coupler" >
-Source of atmos CO2 and D14C.
+valid_values="file,const,drv_diag" >
+Source of atmos CO2.
 
-Valid Values: 'file', 'const', 'coupler'
+Valid Values: 'file', 'const', 'drv_diag'
 Default: '
 </entry>
 
 <entry
+id="abio_atm_d14c_opt"
+type="char*256"
+category="passive_tracers"
+group="abio_dic_dic14_nml" 
+valid_values="file,const" >
+Source of atmos D14C.
+
+Valid Values: 'file', 'const'
+Default: '
+</entry>
+
+<entry 
 id="abio_atm_d14c_const"
 type="real"
 category="passive_tracers"
@@ -5313,7 +5325,7 @@ Default:
 </entry>
 
 <entry
-id="abio_dic_dic14_model_year"
+id="abio_atm_model_year"
 type="integer"
 category="passive_tracers"
 group="abio_dic_dic14_nml" >
@@ -5323,15 +5335,14 @@ Default: 1
 </entry>
 
 <entry
-id="abio_dic_dic14_data_year"
+id="abio_atm_data_year"
 type="integer"
 category="passive_tracers"
 group="abio_dic_dic14_nml" >
-Year in data that corresponds to abio_dic_dic14_model_year.
+Year in data that corresponds to abio_atm_model_year.
 
 Default: 1
 </entry>
-
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -6106,7 +6117,7 @@ Default:
 
 <entry
 id="ciso_atm_d14c_filename"
-type="char*256(3)"
+type="char*256" 
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >

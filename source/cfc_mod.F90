@@ -38,8 +38,8 @@ module cfc_mod
    use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair
    use passive_tracer_tools, only : read_field, tracer_read
    use time_management, only : iyear, iday_of_year, frac_day, days_in_year
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset
    use broadcast
-   use netcdf
 
    implicit none
    save
@@ -103,19 +103,10 @@ module cfc_mod
    integer (int_kind) ::  &
       model_year,             & ! arbitrary model year
       data_year,              & ! year in data that corresponds to model_year
-      pcfc_data_len,          & ! length of atmospheric pcfc record
       pcfc_first_nonzero_year   ! first year of non-zero values in pcfc_file
 
-   real (r8), parameter :: &
-      max_pcfc_extension = 2.0_r8
-      ! maximum number of years that pcfc record will be extrapolated
-
-   real (r8), dimension(:), allocatable :: &
-      pcfc_date,              & ! date for atmospheric pcfc record (years)
-      pcfc11_nh,              & ! pcfc11 data for northern hemisphere (pmol/mol)
-      pcfc11_sh,              & ! pcfc11 data for southern hemisphere (pmol/mol)
-      pcfc12_nh,              & ! pcfc12 data for northern hemisphere (pmol/mol)
-      pcfc12_sh                 ! pcfc12 data for southern hemisphere (pmol/mol)
+   type (forcing_timeseries_dataset) :: &
+      pcfc_atm_forcing_dataset  ! data structure for atm pcfc timeseries
 
    real (r8), dimension(:,:,:,:), allocatable :: &
       INTERP_WORK               ! temp array for interpolate_forcing output
@@ -144,18 +135,6 @@ module cfc_mod
       tavg_CFC11_surf_sat, & ! tavg id for cfc11 surface saturation
       tavg_CFC12_PV,       & ! tavg id for cfc12 piston velocity
       tavg_CFC12_surf_sat    ! tavg id for cfc12 surface saturation
-
-!-----------------------------------------------------------------------
-!  data_ind is the index into data for current timestep, i.e
-!  data_ind is largest integer less than pcfc_data_len s.t.
-!  pcfc_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
-!                  - model_year + data_year
-!  Note that data_ind is always strictly less than pcfc_data_len.
-!  To enable OpenMP parallelism, duplicating data_ind for each block
-!-----------------------------------------------------------------------
-
-   integer (int_kind), dimension(:), allocatable :: &
-      data_ind
 
 !-----------------------------------------------------------------------
 !  timers
@@ -188,7 +167,6 @@ contains
    use constants, only: char_blank, delim_fmt
    use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, n_topo_smooth, fill_points
-   use grid, only: REGION_MASK
    use io_types, only: nml_in, nml_filename
    use timers, only: get_timer
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
@@ -224,7 +202,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'cfc_mod:cfc_init'
+   character(*), parameter :: subname = 'cfc_mod:cfc_init'
 
    character(char_len) :: &
       init_cfc_option,        & ! option for initialization of bgc
@@ -334,9 +312,9 @@ contains
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call document(sub_name, 'cfc_nml not found')
+      call document(subname, 'cfc_nml not found')
       call exit_POP(sigAbort, 'stopping in ' /&
-                           &/ sub_name)
+                           &/ subname)
    endif
 
 !-----------------------------------------------------------------------
@@ -417,9 +395,9 @@ contains
 
       if (init_cfc_init_file == 'same_as_TS') then
          if (read_restart_filename == 'undefined') then
-            call document(sub_name, 'no restart file to read CFCs from')
+            call document(subname, 'no restart file to read CFCs from')
             call exit_POP(sigAbort, 'stopping in ' /&
-                                 &/ sub_name)
+                                 &/ subname)
          endif
          cfc_restart_filename = read_restart_filename
          init_cfc_init_file_fmt = init_ts_file_fmt
@@ -438,7 +416,7 @@ contains
 
    case ('file')
 
-      call document(sub_name, 'CFCs being read from separate file')
+      call document(subname, 'CFCs being read from separate file')
 
       call file_read_tracer_block(init_cfc_init_file_fmt, &
                                   init_cfc_init_file,     &
@@ -463,7 +441,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'init_cfc_option', init_cfc_option)
+      call document(subname, 'init_cfc_option', init_cfc_option)
       call exit_POP(sigAbort, 'unknown init_cfc_option')
 
    end select
@@ -616,6 +594,7 @@ contains
 ! !USES:
 
    use forcing_tools, only: find_forcing_times
+   use forcing_timeseries_mod, only: forcing_timeseries_init_dataset
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for cfc tracer module.
@@ -628,20 +607,24 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   character(*), parameter :: sub_name = 'cfc_mod:cfc_init_sflux'
+   character(*), parameter :: subname = 'cfc_mod:cfc_init_sflux'
 
    integer (int_kind) :: &
       n,                 & ! index for looping over tracers
       iblock               ! index for looping over blocks
-
-   real (r8), dimension (nx_block,ny_block) :: WORK
 
    real (r8), dimension (nx_block,ny_block,12,max_blocks_clinic), target :: &
       WORK_READ            ! temporary space to read in fields
 
 !-----------------------------------------------------------------------
 
-   call read_pcfc_data
+   call forcing_timeseries_init_dataset(pcfc_file, &
+      varnames      = (/ 'pcfc11_nh', 'pcfc11_sh', 'pcfc12_nh', 'pcfc12_sh' /), &
+      model_year    = model_year, &
+      data_year     = data_year, &
+      taxmode_start = 'endpoint', &
+      taxmode_end   = 'extrapolate', &
+      dataset       = pcfc_atm_forcing_dataset)
 
 !-----------------------------------------------------------------------
 !  read gas flux forcing (if required)
@@ -749,7 +732,7 @@ contains
       endif
 
    case default
-      call document(sub_name, 'cfc_formulation', cfc_formulation)
+      call document(subname, 'cfc_formulation', cfc_formulation)
 
       call exit_POP(sigAbort, &
                     'cfc_init_sflux: Unknown value for cfc_formulation')
@@ -760,247 +743,6 @@ contains
 !EOC
 
  end subroutine cfc_init_sflux
-
-!***********************************************************************
-!BOP
-! !IROUTINE: read_pcfc_data
-! !INTERFACE:
-
- subroutine read_pcfc_data
-
-! !DESCRIPTION:
-!  subroutine to read in atmospheric pcfc data
-!
-!  Have the master_task do the following :
-!     1) get length of data
-!     2) allocate memory for data
-!     3) read in data, checking for consistent lengths
-!  Then, outside master_task conditional
-!     1) broadcast length of data
-!     2) have non-mastertasks allocate memory for data
-!     3) broadcast data
-
-! !USES:
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   character(*), parameter :: sub_name = 'cfc_mod:read_pcfc_data'
-
-   character (len=char_len) :: &
-      varname           ! name of variable being processed
-
-   integer (int_kind) :: &
-      stat,           & ! status of netCDF call
-      ncid,           & ! netCDF file id
-      varid,          & ! netCDF variable id
-      ndims             ! number of dimensions for varid
-
-   integer (int_kind), dimension(1) :: &
-      data_dimid        ! netCDF dimension id that all data should have
-
-!-----------------------------------------------------------------------
-!  perform netCDF I/O on master_task
-!  jump out of master_task conditional if an error is encountered
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-
-      stat = nf90_open(pcfc_file, 0, ncid)
-      if (stat /= 0) then
-         write(stdout,*) 'error from nf_open: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-!-----------------------------------------------------------------------
-!  get length of data by examining pcfc11_nh
-!  keep track of dimid for later comparison when reading in data
-!-----------------------------------------------------------------------
-
-      varname = 'pcfc11_nh'
-
-      stat = nf90_inq_varid(ncid, varname, varid)
-
-      if (stat /= 0) then
-         write(stdout,*) 'error from nf_inq_varid for pcfc11_nh: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      stat = nf90_inquire_variable(ncid, varid, ndims=ndims)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_varndims for pcfc11_nh: ', nf90_strerror(stat)
-         go to 99
-      endif
-      if (ndims /= 1) then
-         write(stdout,*) 'ndims /= 1 for pcfc11_nh'
-         go to 99
-      endif
-
-      stat = nf90_inquire_variable(ncid, varid, dimids=data_dimid)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_vardimid for pcfc11_nh: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      stat = nf90_inquire_dimension(ncid, data_dimid(1), len=pcfc_data_len)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_dimlen for pcfc11_nh: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      call document(sub_name, 'pcfc_data_len', pcfc_data_len)
-
-      allocate(pcfc_date(pcfc_data_len))
-      allocate(pcfc11_nh(pcfc_data_len))
-      allocate(pcfc11_sh(pcfc_data_len))
-      allocate(pcfc12_nh(pcfc_data_len))
-      allocate(pcfc12_sh(pcfc_data_len))
-
-      stat = nf90_inquire_dimension(ncid, data_dimid(1), name=varname)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_inq_dimname for dim of pcfc11_nh: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      call read_1dvar_cdf(ncid, data_dimid, varname,     pcfc_date, stat)
-      if (stat /= 0) go to 99
-      call read_1dvar_cdf(ncid, data_dimid, 'pcfc11_nh', pcfc11_nh, stat)
-      if (stat /= 0) go to 99
-      call read_1dvar_cdf(ncid, data_dimid, 'pcfc11_sh', pcfc11_sh, stat)
-      if (stat /= 0) go to 99
-      call read_1dvar_cdf(ncid, data_dimid, 'pcfc12_nh', pcfc12_nh, stat)
-      if (stat /= 0) go to 99
-      call read_1dvar_cdf(ncid, data_dimid, 'pcfc12_sh', pcfc12_sh, stat)
-      if (stat /= 0) go to 99
-
-      stat = nf90_close(ncid)
-      if (stat /= 0) then
-         write(stdout,*) 'nf_close: ', nf90_strerror(stat)
-         go to 99
-      endif
-
-      call document(sub_name, 'pcfc_data_len', pcfc_data_len)
-      call document(sub_name, 'pcfc_date(end)', pcfc_date(pcfc_data_len))
-      call document(sub_name, 'pcfc11_nh(end)', pcfc11_nh(pcfc_data_len))
-      call document(sub_name, 'pcfc11_sh(end)', pcfc11_sh(pcfc_data_len))
-      call document(sub_name, 'pcfc12_nh(end)', pcfc12_nh(pcfc_data_len))
-      call document(sub_name, 'pcfc12_sh(end)', pcfc12_sh(pcfc_data_len))
-
-   endif ! my_task == master_task
-
-99 call broadcast_scalar(stat, master_task)
-   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
-                                                          &/ sub_name)
-
-   call broadcast_scalar(pcfc_data_len, master_task)
-
-   if (my_task /= master_task) then
-      allocate(pcfc_date(pcfc_data_len))
-      allocate(pcfc11_nh(pcfc_data_len))
-      allocate(pcfc11_sh(pcfc_data_len))
-      allocate(pcfc12_nh(pcfc_data_len))
-      allocate(pcfc12_sh(pcfc_data_len))
-   endif
-
-   call broadcast_array(pcfc_date, master_task)
-   call broadcast_array(pcfc11_nh, master_task)
-   call broadcast_array(pcfc11_sh, master_task)
-   call broadcast_array(pcfc12_nh, master_task)
-   call broadcast_array(pcfc12_sh, master_task)
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine read_pcfc_data
-
-!***********************************************************************
-!BOP
-! !IROUTINE: read_1dvar_cdf
-! !INTERFACE:
-
- subroutine read_1dvar_cdf(ncid, data_dimid, varname, data, stat)
-
-! !DESCRIPTION:
-!  Subroutine to read in a single 1D variable from a netCDF file
-!  that is supposed to be on a particular dimension
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !USES:
-
-! !INPUT PARAMETERS:
-
-   integer (int_kind), intent(in) :: &
-      ncid              ! netCDF file id
-
-   integer (int_kind), dimension(1), intent(in) :: &
-      data_dimid        ! netCDF dimension id that all data should have
-
-   character (len=*), intent(in) :: &
-      varname           ! name of variable being read
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(:), intent(out) :: &
-      data              ! where data is going
-
-   integer (int_kind), intent(out) :: &
-      stat              ! status of netCDF call
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      varid,          & ! netCDF variable id
-      ndims             ! number of dimensions for varid
-
-   integer (int_kind), dimension(1) :: &
-      dimid             ! netCDF dimension id
-
-!-----------------------------------------------------------------------
-
-   stat = nf90_inq_varid(ncid, varname, varid)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_inq_varid for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-
-   stat = nf90_inquire_variable(ncid, varid, ndims=ndims)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_inq_varndims for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-   if (ndims /= 1) then
-      write(stdout,*) 'ndims /= 1 for ', trim(varname)
-      return
-   endif
-
-   stat = nf90_inquire_variable(ncid, varid, dimids=dimid)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_inq_vardimid for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-   if (dimid(1) /= data_dimid(1)) then
-      write(stdout,*) 'dimid mismatch for ', trim(varname)
-      return
-   endif
-
-   stat = nf90_get_var(ncid, varid, data)
-   if (stat /= 0) then
-      write(stdout,*) 'nf_get_var_double for ', trim(varname), ' : ', nf90_strerror(stat)
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine read_1dvar_cdf
 
 !***********************************************************************
 !BOP
@@ -1023,6 +765,7 @@ contains
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset_update_data
 
 ! !INPUT PARAMETERS:
 
@@ -1049,8 +792,6 @@ contains
 
    integer (int_kind) :: &
       iblock             ! block index
-
-   integer (int_kind) :: i, j
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       IFRAC_USED,      & ! used ice fraction (non-dimensional)
@@ -1079,18 +820,9 @@ contains
       tracer_bndy_loc,          &! location and field type for ghost
       tracer_bndy_type           !    cell updates
 
-   logical (log_kind), save :: &
-      first = .true.
-
 !-----------------------------------------------------------------------
 
    call timer_start(cfc_sflux_timer)
-
-   if (first) then
-      allocate( data_ind(max_blocks_clinic) )
-      data_ind = -1
-      first = .false.
-   endif
 
    do iblock = 1, nblocks_clinic
       IFRAC_USED(:,:,iblock) = c0
@@ -1101,6 +833,8 @@ contains
 !-----------------------------------------------------------------------
 !  Interpolate gas flux forcing data if necessary
 !-----------------------------------------------------------------------
+
+   call forcing_timeseries_dataset_update_data(pcfc_atm_forcing_dataset)
 
    if (cfc_formulation == 'ocmip') then
        if (thour00 >= fice_file%data_update) then
@@ -1206,8 +940,7 @@ contains
 
       AP_USED(:,:,iblock) = AP_USED(:,:,iblock) * (c1 / 1013.25e+3_r8)
 
-      call comp_pcfc(iblock, LAND_MASK(:,:,iblock), data_ind(iblock), &
-                     pCFC11, pCFC12)
+      call comp_pcfc(iblock, LAND_MASK(:,:,iblock), pCFC11, pCFC12)
 
       call comp_cfc_schmidt(LAND_MASK(:,:,iblock), SST(:,:,iblock), &
                             CFC11_SCHMIDT, CFC12_SCHMIDT)
@@ -1263,7 +996,7 @@ contains
 ! !IROUTINE: comp_pcfc
 ! !INTERFACE:
 
- subroutine comp_pcfc(iblock, LAND_MASK, data_ind, pCFC11, pCFC12)
+ subroutine comp_pcfc(iblock, LAND_MASK, pCFC11, pCFC12)
 
 ! !DESCRIPTION:
 !  Compute atmospheric mole fractions of CFCs
@@ -1280,6 +1013,7 @@ contains
 
    use grid, only : TLATD
    use constants, only : c10
+   use forcing_timeseries_mod, only: forcing_timeseries_dataset_get_var
 
 ! !INPUT PARAMETERS:
 
@@ -1288,16 +1022,6 @@ contains
 
    integer (int_kind) :: &
       iblock          ! block index
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer (int_kind) :: &
-      data_ind  ! data_ind is the index into data for current timestep, 
-                ! i.e data_ind is largest integer less than pcfc_data_len s.t.
-                !  pcfc_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
-                !                  - model_year + data_year
-                !  note that data_ind is always strictly less than pcfc_data_len
-                !  and is initialized to -1 before the first call
 
 ! !OUTPUT PARAMETERS:
 
@@ -1315,74 +1039,22 @@ contains
       i, j              ! loop indices
 
    real (r8) :: &
-      mapped_date,    & ! date of current model timestep mapped to data timeline
-      weight,         & ! weighting for temporal interpolation
       pcfc11_nh_curr, & ! pcfc11_nh for current time step (pmol/mol)
       pcfc11_sh_curr, & ! pcfc11_sh for current time step (pmol/mol)
       pcfc12_nh_curr, & ! pcfc12_nh for current time step (pmol/mol)
       pcfc12_sh_curr    ! pcfc12_sh for current time step (pmol/mol)
 
 !-----------------------------------------------------------------------
-!  Generate mapped_date and check to see if it is too large.
-!  The check for mapped_date being too small only needs to be done
-!  on the first time step.
-!-----------------------------------------------------------------------
-
-
-   mapped_date = iyear + (iday_of_year-1+frac_day)/days_in_year &
-                 - model_year + data_year
-
-   if (mapped_date >= pcfc_date(pcfc_data_len) + max_pcfc_extension) &
-      call exit_POP(sigAbort, 'model date maps too far beyond pcfc_date(end)')
-
-!-----------------------------------------------------------------------
-!  Assume atmospheric concentrations are zero before record.
-!-----------------------------------------------------------------------
-
-   if (mapped_date < pcfc_date(1)) then
-      pCFC11 = c0
-      pCFC12 = c0
-      data_ind = 1
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!  On first time step, perform linear search to find data_ind.
-!-----------------------------------------------------------------------
-
-   if (data_ind == -1) then
-      do data_ind = pcfc_data_len-1,1,-1
-         if (mapped_date >= pcfc_date(data_ind)) exit
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!  See if data_ind need to be updated,
-!  but do not set it to pcfc_data_len.
-!-----------------------------------------------------------------------
-
-   if (data_ind < pcfc_data_len-1) then
-      if (mapped_date >= pcfc_date(data_ind+1)) data_ind = data_ind + 1
-   endif
-
-!-----------------------------------------------------------------------
 !  Generate hemisphere values for current time step.
+!
+!  varind in the following calls must match varname ordering in 
+!  call to forcing_timeseries_init_dataset in subroutine cfc_init_sflux
 !-----------------------------------------------------------------------
 
-   weight = (mapped_date - pcfc_date(data_ind)) &
-            / (pcfc_date(data_ind+1) - pcfc_date(data_ind))
-
-   pcfc11_nh_curr = &
-      weight * pcfc11_nh(data_ind+1) + (c1-weight) * pcfc11_nh(data_ind)
-
-   pcfc11_sh_curr = &
-      weight * pcfc11_sh(data_ind+1) + (c1-weight) * pcfc11_sh(data_ind)
-
-   pcfc12_nh_curr = &
-      weight * pcfc12_nh(data_ind+1) + (c1-weight) * pcfc12_nh(data_ind)
-
-   pcfc12_sh_curr = &
-      weight * pcfc12_sh(data_ind+1) + (c1-weight) * pcfc12_sh(data_ind)
+   call forcing_timeseries_dataset_get_var(pcfc_atm_forcing_dataset, varind=1, data_1d=pcfc11_nh_curr)
+   call forcing_timeseries_dataset_get_var(pcfc_atm_forcing_dataset, varind=2, data_1d=pcfc11_sh_curr)
+   call forcing_timeseries_dataset_get_var(pcfc_atm_forcing_dataset, varind=3, data_1d=pcfc12_nh_curr)
+   call forcing_timeseries_dataset_get_var(pcfc_atm_forcing_dataset, varind=4, data_1d=pcfc12_sh_curr)
 
 !-----------------------------------------------------------------------
 !     Merge hemisphere values.

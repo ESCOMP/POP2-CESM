@@ -1,5 +1,47 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    15 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n61_cesm_pop_2_1_20171008
+Tag Summary: Merge latest marbl_dev_klindsay (n94) into marbl_dev
+
+             This merge brings in
+             1) support for phys_cycle
+             2) refactoring of D14C atm forcing in abio and ciso
+             3) introduction and usage of forcing_timeseries_mod
+             4) new CMIP6 D14C and d13C atm forcing datasets
+
+Testing:     aux_pop_MARBL on cheyenne [intel, gnu] and hobart [nag, intel,
+             pgi]; NLCOMP tests pass and baseline comparisons are bit-for-bit
+             EXCEPT for
+             1) abio transisent compsets (different transient dataset)
+             2) ciso transient and non-transient compsets (different transient
+             dataset and different PI value for d13c)
+             3) cfc's and sf6 (different interpolation formula for atm forcing
+             leads to roundoff changes)
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+A  +    cime_config/phys_cycle_postrun
+A  +    cime_config/phys_cycle_prerun
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient_abio_dic_dic14_transient
+M       source/abio_dic_dic14_mod.F90
+A  +    source/c14_atm_forcing_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_forcing_mod.F90
+A  +    source/forcing_timeseries_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/sf6_mod.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    18 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n60_cesm_pop_2_1_20171008
