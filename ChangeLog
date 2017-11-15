@@ -1,10 +1,35 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    15 Nov 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171115
+Tag Summary: Fixed bug when reading r4 restart history file containing
+             variables read via the 3D_TRANSPOSE buffer (missing values were
+             very large and then a unit conversion multiplication caused
+             overflow). Also introduced a new test directory (5day_r4_tavg)
+             that can be used with an ERS test to catch future issues like
+             this; that test is part of aux_pop and aux_pop_MARBL on cheyenne.
+
+             Also fixed a bug in when 5day_tavg test output is written (it was
+             accumulating every 5 months, not every 5 days).
+
+Testing:     aux_pop on yellowstone bit-for-bit (except the new test, which
+             has no baseline for comparison, and the two 5day_tavg tests which
+             are now running the correct baseline comparison)
+
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/5day_r4_tavg
+A       cime_config/testdefs/testmods_dirs/pop/5day_r4_tavg/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/5day_tavg/user_nl_pop
+M       source/tavg.F90
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    17 Oct 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171017
 Tag Summary: Added namelist parameters to specify perturbation and then to do
-             the perturbation (initial.F90). 
+             the perturbation (initial.F90).
 
 Testing:     aux_pop on cheyenne. bit for bit
 
