@@ -1285,7 +1285,8 @@
 <surf_avg_di13c_const>1944.0</surf_avg_di13c_const>
 <surf_avg_di14c_const>1944.0</surf_avg_di14c_const>
 
-<iron_frac_in_dust>0.00035</iron_frac_in_dust>
+<iron_frac_in_fine_dust>0.00035</iron_frac_in_fine_dust>
+<iron_frac_in_coarse_dust>0.00035</iron_frac_in_coarse_dust>
 
 <iron_frac_in_bc>0.06</iron_frac_in_bc>
 
