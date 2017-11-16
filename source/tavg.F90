@@ -2605,7 +2605,7 @@
            do iblock=1,nblocks_clinic
              do k=1,avail_tavg_fields(nfield)%km
                TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,loc) = merge(TAVG_BUF_3D_TEMP(:,:,k,iblock), &
-                                                               c0, k .le. KMT(:,:,iblock))
+                                                               real(0, rtavg), k .le. KMT(:,:,iblock))
              end do
            end do
            call timer_stop(timer_read_transpose)
