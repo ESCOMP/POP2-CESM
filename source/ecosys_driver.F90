@@ -818,16 +818,12 @@ contains
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
 
-             do n = 1, ecosys_tracer_cnt
-                dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
-             end do
-
              !-----------------------------------------------------------
-             ! check if any returned tendencies are NaNs
+             ! before copying tendencies, check to see if any are NaNs
              !-----------------------------------------------------------
 
              do k = 1, KMT(i, c, bid)
-                if (any(shr_infnan_isnan(dtracer_module(i, c, k, :)))) then
+                if (any(shr_infnan_isnan(marbl_instances(bid)%column_dtracers(:, k)))) then
                    write(stdout, *) subname, ': NaN in dtracer_module, (i,j,k)=(', &
                       this_block%i_glob(i), ',', this_block%j_glob(c), ',', k, ')'
                    write(stdout, *) '(lon,lat)=(', TLOND(i,c,bid), ',', TLATD(i,c,bid), ')'
@@ -852,6 +848,10 @@ contains
                    end do
                    call exit_POP(sigAbort, 'Stopping in ' // subname)
                 end if
+             end do
+
+             do n = 1, ecosys_tracer_cnt
+                dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
              end do
 
              ! copy values to be used in computing requested global averages
@@ -1027,16 +1027,11 @@ contains
             marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
        end do
 
-       do n = 1,ecosys_tracer_cnt
-          stf_module(i,j,n) = &
-               marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
-       end do
-
        !-----------------------------------------------------------
-       ! check if any returned surface fluxes are NaNs
+       ! before copying surface fluxes, check to see if any are NaNs
        !-----------------------------------------------------------
 
-       if (any(shr_infnan_isnan(stf_module(i, j, :)))) then
+       if (any(shr_infnan_isnan(marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,:)))) then
           write(stdout, *) subname, ': NaN in stf_module, (i,j)=(', &
              this_block%i_glob(i), ',', this_block%j_glob(j), ')'
           write(stdout, *) '(lon,lat)=(', TLOND(i,j,iblock), ',', TLATD(i,j,iblock), ')'
@@ -1057,6 +1052,11 @@ contains
           end do
           call exit_POP(sigAbort, 'Stopping in ' // subname)
        end if
+
+       do n = 1,ecosys_tracer_cnt
+          stf_module(i,j,n) = &
+               marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
+       end do
 
        do n=1,size(marbl_instances(1)%surface_forcing_diags%diags)
           surface_forcing_diags(i,j,n,iblock) = &

@@ -2,6 +2,27 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    15 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n97_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: revisions from code review of marbl_dev_klindsay_n{95,96}
+
+rearrange NaN checks in marbl_dev_klindsay_n96
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+ERS.T62_g17.G1850ECOIAF.yellowstone_intel.pop-cice_ecosys
+   baseline compare to marbl_dev_klindsay_n96
+   test, including baseline comparison, passed
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/ecosys_driver.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    14 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n96_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: check tracer tendencies and surface fluxes returned from MARBL for NaNs
@@ -10,7 +31,7 @@ Testing:
 MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
 
 aux_pop_MARBL yellowstone/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n95)
-   all tests, including baseine comparisons, pass
+   all tests, including baseline comparisons, pass
 
 Files Modified:
 M       BranchBranchChangeLog
