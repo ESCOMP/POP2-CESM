@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+
+"""pop physics cycle prerun script
+"""
+
+import os, shutil, sys
+
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(_CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.utils import expect
+
+logger = logging.getLogger(__name__)
+
+###############################################################################
+def phys_cycle_prerun(caseroot):
+###############################################################################
+
+    ch = logging.StreamHandler(stream=sys.stdout)
+    ch.setLevel(logging.INFO)
+    logger.addHandler(ch)
+
+    with Case(caseroot) as case:
+        pop_phys_cycle_years_in_cycle = case.get_value("POP_PHYS_CYCLE_YEARS_IN_CYCLE")
+        expect(pop_phys_cycle_years_in_cycle is not None,
+               "POP_PHYS_CYCLE_YEARS_IN_CYCLE should be defined when %s is called" % sys.argv[0])
+        logger.info("pop_phys_cycle_years_in_cycle is %d", pop_phys_cycle_years_in_cycle)
+        if (pop_phys_cycle_years_in_cycle <= 0):
+            return
+
+        # run_type cannot be branch
+        run_type = case.get_value("RUN_TYPE")
+        expect(run_type != "branch",
+               "RUN_TYPE set to branch not implemented for POP physics cycling"
+               " because RUN_STARTDATE cannot be incremented")
+
+        # stop_option must be nmonth, nmonths, nyear or nyears
+        stop_option = case.get_value("STOP_OPTION")
+        expect((stop_option.find("nmonth") == 0) or (stop_option.find("nyear") == 0),
+               "STOP_OPTION=%s not implemented for POP physics cycling" % stop_option)
+
+        # -------------------------------------------------------------------------
+        # Ensure that phys_cycle scripts are in charge of setting CONTINUE_RUN
+        # -------------------------------------------------------------------------
+        case.set_value("RESUBMIT_SETS_CONTINUE_RUN", "FALSE")
+        case.flush()
+
+        # -------------------------------------------------------------------------
+        # Ensure that the current run length will not overshoot the phys_cycle run length
+        # -------------------------------------------------------------------------
+
+        pop_phys_cycle_months_run_since_cycle = case.get_value("POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE")
+        pop_phys_cycle_years_in_cycle = case.get_value("POP_PHYS_CYCLE_YEARS_IN_CYCLE")
+
+        stop_n = case.get_value("STOP_N")
+        if stop_option.find("nmonth") == 0:
+            pop_phys_cycle_months_run_since_cycle_new = pop_phys_cycle_months_run_since_cycle + stop_n
+        elif stop_option.find("nyear") == 0:
+            pop_phys_cycle_months_run_since_cycle_new = pop_phys_cycle_months_run_since_cycle + stop_n * 12
+
+        expect(pop_phys_cycle_months_run_since_cycle_new <= pop_phys_cycle_years_in_cycle * 12,
+               "run will overshoot phys_cycle run length")
+
+        # -------------------------------------------------------------------------
+        # If this is the beginning of a physics cycle, store a copy of POP rpointer
+        # files for resetting of model physics at beginning of next cycle. This
+        # is not necessary for startup runs, since POP does not use restart files
+        # at the beginning of the physics cycle in that situation.
+        # -------------------------------------------------------------------------
+
+        if (run_type != "startup") and (pop_phys_cycle_months_run_since_cycle == 0):
+            logger.info("Beginning of a physics cycle")
+            logger.info("Storing a copy of POP rpointer files for resetting model physics")
+            rundir = case.get_value("RUNDIR")
+            caseroot = case.get_value("CASEROOT")
+
+            for rpointer_filename in [ "rpointer.ocn.restart", "rpointer.ocn.ovf" ]:
+                sfile = os.path.join(rundir, rpointer_filename)
+                dfile = os.path.join(caseroot, "Buildconf", "popconf", rpointer_filename+".orig")
+                expect(os.path.isfile(sfile), "required pop file %s is missing" % sfile)
+                shutil.copy(sfile, dfile)
+
+###############################################################################
+
+if __name__ == "__main__":
+    expect(len(sys.argv) == 2, "caseroot is a required input argument")
+    caseroot = sys.argv[1]
+    phys_cycle_prerun(caseroot)
