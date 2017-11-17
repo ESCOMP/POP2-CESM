@@ -2,6 +2,27 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    17 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n98_marbl_dev_n64_cesm_pop_2_1_20171116
+Tag Summary: merge marbl_dev_n64 tag to this branch
+
+Namelist parm to perturb initial conditions
+Bugfix for reading r4 restart history file
+Bugfix in a couple test definitions (history files weren't written at expected frequency)
+
+Testing:
+MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+
+aux_pop_MARBL yellowstone/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n96)
+   except for tests mentioned below, all tests pass
+      BASELINE failures in new 5day_r4_tavg test
+      all NLCOMP tests fail because of new var init_ts_perturb
+
+Files Modified:
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    15 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n97_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: revisions from code review of marbl_dev_klindsay_n{95,96}

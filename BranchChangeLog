@@ -1,6 +1,120 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n64_cesm_pop_2_1_20171116
+Tag Summary: Merge latest trunk tag into marbl_dev
+
+             This merge brings in
+             1) Namelist parm to perturb initial conditions
+             2) Bugfix for reading r4 restart history file
+             3) Bugfix in a couple test definitions (history files weren't
+                written at expected frequency)
+
+Testing:     aux_pop_MARBL on hobart (nag, intel, pgi) and yellowstone (intel,
+             gnu) all tests fail NLCOMP due to change in dust flux varnames
+             and the ecosys_dust_flux_driver tests fail baseline comparison
+             due to round-off level changes (order of operations changed)
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/5day_r4_tavg
+M       cime_config/testdefs/testmods_dirs/pop/5day_tavg/user_nl_pop
+M       source/initial.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n63_cesm_pop_2_1_20171008
+Tag Summary: Merge latest marbl_dev_klindsay (n97) into marbl_dev
+
+             This merge brings in
+             1) split dust flux into fine and coarse
+             2) check tracer tendencies and surface fluxes from MARBL for NaNs
+                (POP aborts if NaN is returned)
+
+Testing:     aux_pop_MARBL on hobart (nag, intel, pgi) and yellowstone (intel,
+             gnu) all tests fail NLCOMP due to change in dust flux varnames
+             and the ecosys_dust_flux_driver tests fail baseline comparison
+             due to round-off level changes (order of operations changed)
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/cpl/ocn_import_export.F90
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    15 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n62_cesm_pop_2_1_20171008
+Tag Summary: Update MARBL from 0.21.0 to 0.21.2
+
+             Bugfix for PAR threshold
+
+Testing:     aux_pop_MARBL was bit-for-bit (and NLCOMP tests all passed) on hobart
+             (intel, gnu, and pgi*) and yellowstone (intel, gnu).
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    15 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n61_cesm_pop_2_1_20171008
+Tag Summary: Merge latest marbl_dev_klindsay (n94) into marbl_dev
+
+             This merge brings in
+             1) support for phys_cycle
+             2) refactoring of D14C atm forcing in abio and ciso
+             3) introduction and usage of forcing_timeseries_mod
+             4) new CMIP6 D14C and d13C atm forcing datasets
+
+Testing:     aux_pop_MARBL on cheyenne [intel, gnu] and hobart [nag, intel,
+             pgi]; NLCOMP tests pass and baseline comparisons are bit-for-bit
+             EXCEPT for
+             1) abio transisent compsets (different transient dataset)
+             2) ciso transient and non-transient compsets (different transient
+             dataset and different PI value for d13c)
+             3) cfc's and sf6 (different interpolation formula for atm forcing
+             leads to roundoff changes)
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+A  +    cime_config/phys_cycle_postrun
+A  +    cime_config/phys_cycle_prerun
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient_abio_dic_dic14_transient
+M       source/abio_dic_dic14_mod.F90
+A  +    source/c14_atm_forcing_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_forcing_mod.F90
+A  +    source/forcing_timeseries_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/sf6_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    18 Oct 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: Merge latest marbl_dev_levy (n125) into marbl_dev
