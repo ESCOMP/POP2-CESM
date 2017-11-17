@@ -1,4 +1,4 @@
     tavg_freq = 5
-    avg_file_freq = 5
+    tavg_file_freq = 5
     tavg_freq_opt = 'nday'
     tavg_file_freq_opt = 'nday'

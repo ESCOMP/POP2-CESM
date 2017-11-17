@@ -3,6 +3,25 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    17 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n99_marbl_dev_n65_cesm_pop_2_1_20171117
+Tag Summary: merge marbl_dev_n65 tag to this branch
+
+Bug fix for 5day_r4_tavg testmod dir
+
+Testing: none
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       cime_config/testdefs/testmods_dirs/pop/5day_r4_tavg/user_nl_pop
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    17 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n98_marbl_dev_n64_cesm_pop_2_1_20171116
 Tag Summary: merge marbl_dev_n64 tag to this branch
 
@@ -19,6 +38,22 @@ aux_pop_MARBL yellowstone/{intel,gnu}: (baseline comparison to marbl_dev_klindsa
       all NLCOMP tests fail because of new var init_ts_perturb
 
 Files Modified:
+A       testdefs/testmods_dirs/pop/5day_r4_tavg/user_nl_pop
+A       testdefs/testmods_dirs/pop/5day_r4_tavg
+M       testdefs/testmods_dirs/pop/5day_tavg/user_nl_pop
+M       testdefs/testlist_pop.xml
+M       BranchBranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       BranchChangeLog
+M       ChangeLog
+ M      drivers/cpl_none
+ M      drivers/cpl
+M       source/initial.F90
+M       source/tavg.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+
 ===============================================================================
 
 Tag Creator: klindsay
