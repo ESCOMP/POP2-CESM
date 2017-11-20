@@ -1109,9 +1109,11 @@
 <abio_atm_co2_filename>ocn/pop/res_indpt/forcing/splco2_20140912.dat</abio_atm_co2_filename>
 
 <abio_atm_co2_opt>'const'</abio_atm_co2_opt>
-<abio_atm_d14c_opt>'const'</abio_atm_d14c_opt>
+<abio_atm_d14c_opt>'lat_bands'</abio_atm_d14c_opt>
 
 <abio_atm_d14c_const>0.0</abio_atm_d14c_const>
+
+<abio_atm_d14c_lat_band_vals>-2.3, -4.0, -5.8</abio_atm_d14c_lat_band_vals>
 
 <abio_atm_model_year>1</abio_atm_model_year>
 <abio_atm_data_year>1</abio_atm_data_year>
@@ -1248,9 +1250,11 @@
 
 <ciso_atm_d13c_const>-6.610</ciso_atm_d13c_const>
 
-<ciso_atm_d14c_opt>const</ciso_atm_d14c_opt>
+<ciso_atm_d14c_opt>lat_bands</ciso_atm_d14c_opt>
 
 <ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
+
+<ciso_atm_d14c_lat_band_vals>-2.3, -4.0, -5.8</ciso_atm_d14c_lat_band_vals>
 
 <ciso_atm_d13c_filename>lnd/clm2/isotopes/atm_delta_C13_CMIP6_1850-2015_yearly_v2.0_c171012.nc</ciso_atm_d13c_filename>
 

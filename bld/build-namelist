@@ -1393,6 +1393,7 @@ if ($abio_on eq "TRUE") {
     add_default($nl, 'abio_atm_d14c_opt');
     add_default($nl, 'abio_atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'abio_atm_d14c_const');
+    add_default($nl, 'abio_atm_d14c_lat_band_vals');
     add_default($nl, 'abio_atm_model_year');
     add_default($nl, 'abio_atm_data_year');
  }
@@ -1505,9 +1506,9 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
 
   if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d13c_opt');
     add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d14c_opt');
     add_default($nl, 'ciso_atm_d14c_const');
 
     my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
@@ -1516,6 +1517,9 @@ if ($ecosys_on eq "TRUE") {
     }
 
     my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+    if ($ciso_atm_opt eq '\'lat_bands\'') {
+      add_default($nl, 'ciso_atm_d14c_lat_band_vals');
+    }
     if ($ciso_atm_opt eq '\'file\'') {
       add_default($nl, 'ciso_atm_d14c_filename');
     }

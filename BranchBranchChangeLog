@@ -2,6 +2,39 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    20 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n101_marbl_dev_n66_cesm_pop_2_1_20171117b
+Tag Summary: change atm D14C defaults to 1850 CMIP6 lat_band values
+
+introduce 'lat_bands' option for abio_atm_d14c_opt and ciso_atm_d14c_opt and make it the default
+default atm D14C values for this option are 1850 CMIP6 values, taken from datafile
+
+Testing:
+MARBL commit 181798d02f299fda43771f848c45dc0a454a2108 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n100)
+   except for tests mentioned below, all tests pass
+      NLCOMP tests for all abio tests fail because of
+         new nl var abio_atm_d14c_lat_band_vals
+         change in abio_atm_d14c_opt in non-transient cases
+      NLCOMP tests for non-transient ciso tests fail because of
+         change in ciso_atm_d14c_opt in non-transient cases
+      BASELINE tests for non-transient abio and/or ciso fail because of
+         change in ciso_atm_d14c_opt and abio_atm_d14c_opt in non-transient cases
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/abio_dic_dic14_mod.F90
+M       source/c14_atm_forcing_mod.F90
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    19 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n100_marbl_dev_n66_cesm_pop_2_1_20171117b
 Tag Summary: merge marbl_dev_n66 tag to this branch
@@ -48,7 +81,7 @@ Bugfix for reading r4 restart history file
 Bugfix in a couple test definitions (history files weren't written at expected frequency)
 
 Testing:
-MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+MARBL commit 181798d02f299fda43771f848c45dc0a454a2108 master branch
 
 aux_pop_MARBL yellowstone/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n96)
    except for tests mentioned below, all tests pass
@@ -83,7 +116,7 @@ Tag Summary: revisions from code review of marbl_dev_klindsay_n{95,96}
 rearrange NaN checks in marbl_dev_klindsay_n96
 
 Testing:
-MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+MARBL commit 181798d02f299fda43771f848c45dc0a454a2108 master branch
 
 ERS.T62_g17.G1850ECOIAF.yellowstone_intel.pop-cice_ecosys
    baseline compare to marbl_dev_klindsay_n96
@@ -102,7 +135,7 @@ Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n96_mar
 Tag Summary: check tracer tendencies and surface fluxes returned from MARBL for NaNs
 
 Testing:
-MARBL commit 3d63a11e90003a1ace1b69db099848c29cac5888 master branch
+MARBL commit 181798d02f299fda43771f848c45dc0a454a2108 master branch
 
 aux_pop_MARBL yellowstone/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n95)
    all tests, including baseline comparisons, pass
