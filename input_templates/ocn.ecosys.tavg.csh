@@ -22,7 +22,7 @@ set lecosys_tavg_all     = $2
 set lecosys_tavg_alt_co2 = $3
 set ladjust_bury_coeff   = $4
 set lvariable_PtoC       = $5
-set tracer_restore_vars  = $6
+set tracer_restore_vars  = "PO4 NO3 SiO3 ALK"
 
 if ($lecosys_tavg_all == ".false.") then
 

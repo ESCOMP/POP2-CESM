@@ -2519,8 +2519,7 @@ sub module_tavg_script_args() {
     return ($nl->get_value('lecosys_tavg_all'),
             $nl->get_value('lecosys_tavg_alt_co2'),
             $ecosys_cfg{'ladjust_bury_coeff'},
-            $ecosys_cfg{'lvariable_PtoC'},
-            $nl->get_value('tracer_restore_vars'));
+            $ecosys_cfg{'lvariable_PtoC'});
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
