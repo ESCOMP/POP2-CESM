@@ -108,11 +108,11 @@ def buildnml(case, caseroot, compname):
         # output will go to CASEROOT/Buildconf/popconf/marbl_in
         # ------------------------------------------------------------------------------
 
-        # Import marbl_interface, generate MARBL_settings_class object, and write settings file
-        marbl_dir = os.path.join(srcroot,"components","pop","externals","marbl")
+        # Import marbl_settings_wrapper, generate MARBL_settings_class object, and write settings file
+        marbl_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
         marbl_class_dir = os.path.join(srcroot,"components","pop","cime_config")
         sys.path.append(marbl_class_dir)
-        from marbl_interface import MARBL_settings_for_POP_class
+        from marbl_settings_wrapper import MARBL_settings_for_POP_class
         not_startup = (run_type != "startup") or continue_run
         MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, not_startup)
         MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))

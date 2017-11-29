@@ -2,6 +2,37 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    28 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n135_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: More cleanup following code review
+             1) marbl package name change: marbl_interface -> marbl_settings_wrapper
+             2) marbl_class_dir var is not needed, just sys.path.append(os.path.join(...))
+             3) buildcpp cleanup -- no need for ciso -> pass option
+             4) marbl_settings.py -- comment clean up (JSON, not YAML; file name mismatch)
+             5) there is var in marbl_settings.py (settings_class_dir) that shouldn't be
+                duplicated in buildcpp and buildnml
+             6) external/MARBL not external/marbl
+             Requires MARBL d8321ac (on enhancement/YAML_parameter_list)
+
+Testing:     aux_pop_marbl on hobart (nag, intel, pgi) and cheyenne (intel
+             and gnu) bit-for-bit with n134
+
+Files Modified:
+M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+D       cime_config/marbl_interface
+       > moved to cime_config/marbl_settings_wrapper
+D       cime_config/marbl_interface/__init__.py
+D       cime_config/marbl_interface/marbl_settings.py
+A  +    cime_config/marbl_settings_wrapper
+       > moved from cime_config/marbl_interface
+M  +    cime_config/marbl_settings_wrapper/marbl_settings.py
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    28 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n134_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: MARBL can set init_bury_coeff_opt, so lmarbl_rmeans_in_restfile is
              no longer necessary

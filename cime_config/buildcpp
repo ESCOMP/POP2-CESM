@@ -103,24 +103,16 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 NT = NT + 2
             elif module == "ecosys":
                 use_ecosys = "TRUE"
+                # call MARBL's tool to determine tracer count:
+                # (i) Import marbl_settings_wrapper
+                marbl_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
+                sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
+                from marbl_settings_wrapper import MARBL_settings_for_POP_class
+                # (ii) generate MARBL_settings_class object
                 not_startup = (case.get_value("RUN_TYPE") != "startup") or (case.get_value("CONTINUE_RUN") == "TRUE")
-
-                # call MARBL's tool to determine tracer count
-
-                # Is MARBL_settings_file_class.py in SourceMods?
-                settings_class_dir = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_settings_file_class.py")
-                if not os.path.isfile(settings_class_dir):
-                    settings_class_dir = None
-
-                # Import marbl_interface, generate MARBL_settings_class object, and write settings file
-                marbl_dir = os.path.join(srcroot,"components","pop","externals","marbl")
-                marbl_class_dir = os.path.join(srcroot,"components","pop","cime_config")
-                sys.path.append(marbl_class_dir)
-                from marbl_interface import MARBL_settings_for_POP_class
                 MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, not_startup)
+                # (iii) write settings file
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
-            elif module == "ciso":
-                pass
             elif module == "IRF":
                 use_irf = "TRUE"
                 if IRF_NT == 0:
