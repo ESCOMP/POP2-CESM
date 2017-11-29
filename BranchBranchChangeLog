@@ -1,6 +1,27 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    28 Nov 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n134_marbl_dev_n60_cesm_pop_2_1_20171008
+Tag Summary: MARBL can set init_bury_coeff_opt, so lmarbl_rmeans_in_restfile is
+             no longer necessary
+
+             Requires MARBL d8321ac (on enhancement/YAML_parameter_list)
+
+Testing:     aux_pop_marbl on hobart (nag, intel, pgi) and cheyenne (intel
+             and gnu) bit-for-bit with n133; NLCOMP tests all fail due to
+             removal of lmarbl_rmeans_in_restfile variable
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/marbl_interface/marbl_settings.py
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    27 Nov 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n133_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: Two big changes --
@@ -91,7 +112,7 @@ Tag Summary: MARBL now offers JSON version of default_settings.yaml; POP
              should use that file since PyYAML is not a standard library in
              python.
 
-             Also fixed a bug re: how init_coeff_bury_opt is set in MARBL (for
+             Also fixed a bug re: how init_bury_coeff_opt is set in MARBL (for
              the time being, it is up to POP to correctly set this variable
              via a put_setting() call)
 

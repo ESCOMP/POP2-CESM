@@ -4,13 +4,10 @@
 """
 
 class MARBL_settings_for_POP_class(object):
-    def __init__(self, marbl_dir, caseroot, srcroot, ocn_grid, settings_class_dir):
+    def __init__(self, marbl_dir, caseroot, srcroot, ocn_grid, not_startup):
 
         import os
-        # import MARBL_tools
-        self._settings_class_dir = settings_class_dir
         self._marbl_dir = marbl_dir
-        MARBL_settings_class = _get_MARBL_settings_class(self._marbl_dir, self._settings_class_dir)
 
         # Set up arguments for marbl_settings_class constructor
         MARBL_args = dict()
@@ -32,10 +29,19 @@ class MARBL_settings_for_POP_class(object):
         else:
             MARBL_args["grid"] = "CESM_x1"
 
+        # If not a startup run, MARBL may want initial bury coefficient from restart file
+        if not_startup:
+            MARBL_args["saved_state_vars_source"] = "GCM"
+
         # User can put MARBL_parameter_values.py in SourceMods, otherwise use file provided by MARBL
-        MARBL_args["settings_class_dir"] = os.path.join(caseroot, "SourceMods", "src.pop")
-        if not os.path.isfile(os.path.join(MARBL_args["settings_class_dir"], "MARBL_settings_file_class.py")):
-            del MARBL_args["settings_class_dir"]
+        self._settings_class_dir = os.path.join(caseroot, "SourceMods", "src.pop")
+        if os.path.isfile(os.path.join(self._settings_class_dir, "MARBL_settings_file_class.py")):
+            MARBL_args["settings_class_dir"] = self._settings_class_dir
+        else:
+            self._settings_class_dir = None
+
+        # import MARBL_tools
+        MARBL_settings_class = _get_MARBL_settings_class(self._marbl_dir, self._settings_class_dir)
 
         # Generate settings object
         self._marbl_settings = MARBL_settings_class(**MARBL_args)

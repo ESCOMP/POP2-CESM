@@ -216,7 +216,6 @@ contains
     character (char_len)             :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)             :: init_file_fmt                      ! file format for option 'file'
     logical   (log_kind)             :: lmarginal_seas                     ! is ecosystem active in marginal seas?
-    logical   (log_kind)             :: lmarbl_rmeans_in_restfile          ! Should MARBL running means be initialized from restart file?
     integer(int_kind)                :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
     integer (int_kind)               :: glo_avg_field_cnt
     real (r8)                        :: rmean_val
@@ -236,12 +235,11 @@ contains
     !-----------------------------------------------------------------------
 
     namelist /ecosys_driver_nml/ &
-         lmarginal_seas, lmarbl_rmeans_in_restfile, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
+         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
 
     errorCode = POP_Success
 
     lmarginal_seas            = .true.
-    lmarbl_rmeans_in_restfile = .false.
     ecosys_tadvect_ctype      = 'base_model'
     ecosys_qsw_distrb_const   = .true.
 
@@ -414,14 +412,6 @@ contains
        do n=1,size(marbl_nl_buffer)
          call marbl_instances(iblock)%put_setting(marbl_nl_buffer(n))
        end do
-
-       ! Tell MARBL where to find initial burial coefficients (if they are in restart file)
-       ! (This needs to over-ride what comes in from marbl_in; users who want to change
-       !  the default behavior need to change this flag in user_nl_pop rather than changing
-       !  init_bury_coeff_opt directly in user_settings_marbl)
-       if (lmarbl_rmeans_in_restfile) then
-         call marbl_instances(iblock)%put_setting('init_bury_coeff_opt', 'restfile')
-       end if
 
        call marbl_instances(iblock)%init(                                     &
             gcm_num_levels = km,                                              &

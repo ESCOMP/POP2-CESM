@@ -1400,14 +1400,6 @@ if ($ecosys_on eq "TRUE") {
     }
 
     add_default($nl, 'lmarginal_seas');
-    # FIXME : replace following with ladjust_bury_coeff=.true. branch
-    # when "restfile" is implemented for scalar saved state
-    if (($ecosys_cfg{'ladjust_bury_coeff'} eq '.true.') && ($RUN_TYPE ne "startup")) {
-        add_default($nl, 'lmarbl_rmeans_in_restfile', 'val'=>".true.");
-    } else {
-        add_default($nl, 'lmarbl_rmeans_in_restfile', 'val'=>".false.");
-    }
-
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
 }

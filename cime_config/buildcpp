@@ -103,6 +103,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 NT = NT + 2
             elif module == "ecosys":
                 use_ecosys = "TRUE"
+                not_startup = (case.get_value("RUN_TYPE") != "startup") or (case.get_value("CONTINUE_RUN") == "TRUE")
 
                 # call MARBL's tool to determine tracer count
 
@@ -116,7 +117,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 marbl_class_dir = os.path.join(srcroot,"components","pop","cime_config")
                 sys.path.append(marbl_class_dir)
                 from marbl_interface import MARBL_settings_for_POP_class
-                MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, settings_class_dir)
+                MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, not_startup)
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
             elif module == "ciso":
                 pass

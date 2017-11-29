@@ -6416,14 +6416,6 @@ Default: .true.
 </entry>
 
 <entry
-id="lmarbl_rmeans_in_restfile"
-type="logical"
-category="ecosys"
-group="ecosys_driver_nml" >
-Default: .false.
-</entry>
-
-<entry
 id="ecosys_tadvect_ctype"
 type="char*256"
 category="ecosys"

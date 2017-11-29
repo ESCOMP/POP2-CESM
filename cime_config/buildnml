@@ -108,17 +108,13 @@ def buildnml(case, caseroot, compname):
         # output will go to CASEROOT/Buildconf/popconf/marbl_in
         # ------------------------------------------------------------------------------
 
-        # Is MARBL_settings_file_class.py in SourceMods?
-        settings_class_dir = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_settings_file_class.py")
-        if not os.path.isfile(settings_class_dir):
-            settings_class_dir = None
-
         # Import marbl_interface, generate MARBL_settings_class object, and write settings file
         marbl_dir = os.path.join(srcroot,"components","pop","externals","marbl")
         marbl_class_dir = os.path.join(srcroot,"components","pop","cime_config")
         sys.path.append(marbl_class_dir)
         from marbl_interface import MARBL_settings_for_POP_class
-        MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, settings_class_dir)
+        not_startup = (run_type != "startup") or continue_run
+        MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, not_startup)
         MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
 
         # Compare MARBL_NT to value from buildcpp (in config_cache)
@@ -130,7 +126,6 @@ def buildnml(case, caseroot, compname):
           sys.exit(1)
 
         # determine instance string
-
         if ninst > 1:
             inst_string = '_' + '%04d' % inst_counter
 
