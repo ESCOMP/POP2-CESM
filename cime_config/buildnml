@@ -103,27 +103,35 @@ def buildnml(case, caseroot, compname):
     inst_counter = 1;
     inst_string = ""
     while (inst_counter <= ninst):
-        # ------------------------------------------------------------------------------
-        # call MARBL's tool to generate a settings file
-        # output will go to CASEROOT/Buildconf/popconf/marbl_in
-        # ------------------------------------------------------------------------------
-
-        # Import marbl_settings_wrapper, generate MARBL_settings_class object, and write settings file
-        marbl_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
-        marbl_class_dir = os.path.join(srcroot,"components","pop","cime_config")
-        sys.path.append(marbl_class_dir)
-        from marbl_settings_wrapper import MARBL_settings_for_POP_class
-        not_startup = (run_type != "startup") or continue_run
-        MARBL_settings = MARBL_settings_for_POP_class(marbl_dir, caseroot, srcroot, ocn_grid, not_startup)
-        MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
-
-        # Compare MARBL_NT to value from buildcpp (in config_cache)
-        MARBL_NT = MARBL_settings.get_MARBL_NT()
+        # Get use_ecosys from config_cache.xml; only need marbl_in if TRUE
         config_cache_file = GenericXML(infile=os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml"))
-        MARBL_NT_buildcpp = int(config_cache_file.get_optional_node("entry", attributes={"id":"marbl_nt"}).get("value"))
-        if MARBL_NT != MARBL_NT_buildcpp:
-          logger.error("The number of MARBL tracers has changed since POP was built")
-          sys.exit(1)
+        use_ecosys = config_cache_file.get_optional_node("entry", attributes={"id":"use_ecosys"}).get("value")
+
+        if use_ecosys == "TRUE":
+            # ------------------------------------------------------------------------------
+            # call MARBL's tool to generate a settings file
+            # output will go to CASEROOT/Buildconf/popconf/marbl_in
+            # ------------------------------------------------------------------------------
+
+            # (i) Import MARBL_settings_wrapper and generate MARBL_settings_for_POP object
+            MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
+            sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
+            from MARBL_settings_wrapper import MARBL_settings_for_POP
+            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, srcroot, ocn_grid, run_type,
+                                   continue_run)
+
+            # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
+            #      Abort if values do not match
+            MARBL_NT = MARBL_settings.get_MARBL_NT()
+            MARBL_NT_buildcpp = int(config_cache_file.get_optional_node("entry", attributes={"id":"marbl_nt"}).get("value"))
+            if MARBL_NT != MARBL_NT_buildcpp:
+              error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (MARBL_NT_buildcpp, MARBL_NT)
+              error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
+              logger.error(error_msg)
+              sys.exit(1)
+
+            # (iii) write settings file
+            MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
 
         # determine instance string
         if ninst > 1:
@@ -222,11 +230,12 @@ def buildnml(case, caseroot, compname):
             shutil.copy(file_src, file_dest)
 
             # marbl_in
-            file_src  = os.path.join(confdir, "marbl_in")
-            file_dest = os.path.join(rundir, "marbl_in")
-            if inst_string:
-                file_dest += inst_string
-            shutil.copy(file_src, file_dest)
+            if use_ecosys == "TRUE":
+                file_src  = os.path.join(confdir, "marbl_in")
+                file_dest = os.path.join(rundir, "marbl_in")
+                if inst_string:
+                    file_dest += inst_string
+                shutil.copy(file_src, file_dest)
 
             # tavg_contents file
             file_src = os.path.join(confdir, ocn_grid + "_tavg_contents")
