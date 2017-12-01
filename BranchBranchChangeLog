@@ -64,7 +64,10 @@ Tag Summary: Code cleanup following python code review
              Requires MARBL 52fb30c (on enhancement/YAML_parameter_list)
 
 Testing:     aux_pop_marbl on hobart (nag, intel, pgi) and cheyenne (intel
-             and gnu) compared to n136 - all tests pass.
+             and gnu) compared to n136 - all tests pass except NLCOMP, which
+             fails because marbl_in no longer has &marbl_nml line at top or /
+             at bottom not sure if whitespace matters, but old marbl_in had
+             more whitespace before variable names as well)
 
 Files Modified:
 A  +    cime_config/MARBL_settings_wrapper
