@@ -7,7 +7,6 @@ class MARBL_settings_for_POP(object):
     def __init__(self, MARBL_dir, caseroot, srcroot, ocn_grid, run_type, continue_run):
 
         import sys, os
-        self._MARBL_dir = MARBL_dir
 
         # Set up arguments for marbl_settings_class constructor
         # Note that this is a dictionary that will be used to pass named variables to class constructor
@@ -40,23 +39,20 @@ class MARBL_settings_for_POP(object):
         else:
             MARBL_args["saved_state_vars_source"] = "GCM"
 
-        # User can put MARBL_settings_file_class.py in SourceMods, otherwise use file provided by MARBL
-        self._settings_class_dir = os.path.join(caseroot, "SourceMods", "src.pop")
-        if not os.path.isfile(os.path.join(self._settings_class_dir, "MARBL_settings_file_class.py")):
-            self._settings_class_dir = None
-
-        # import MARBL_tools
-        # need MARBL_dir in path for both branches of this if statement because
-        # MARBL_settings_file_class.py in SourceMods needs to import MARBL_tools itself
+        # Import MARBL_settings_file_class, which may come from MARBL_tools or SourceMods/src.pop
+        # (i) need MARBL_dir in path for both branches of this if statement because even if
+        #     MARBL_settings_file_class.py is in SourceMods, it needs to import MARBL_tools itself
         sys.path.append(MARBL_dir)
-        if self._settings_class_dir == None:
+        # (ii) Here's where we import from either MARBL_tools or SourceMods
+        settings_class_dir = os.path.join(caseroot, "SourceMods", "src.pop")
+        if not os.path.isfile(os.path.join(settings_class_dir, "MARBL_settings_file_class.py")):
             from MARBL_tools import MARBL_settings_file_class
         else:
             import imp
             import logging
             logger = logging.getLogger(__name__)
-            logging.info('Importing MARBL_settings_file_class.py from %s' % self._settings_class_dir)
-            settings_class_module = self._settings_class_dir+'/MARBL_settings_file_class.py'
+            logging.info('Importing MARBL_settings_file_class.py from %s' % settings_class_dir)
+            settings_class_module = settings_class_dir+'/MARBL_settings_file_class.py'
             if os.path.isfile(settings_class_module):
                 MARBL_settings_file_class = imp.load_source('MARBL_settings_file_class', settings_class_module)
             else:

@@ -2,6 +2,18 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    1 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n139_marbl_dev_n66_cesm_pop_2_1_20171117b
+Tag Summary: A little cleanup to MARBL_settings.py
+             Requires MARBL 52fb30c (on enhancement/YAML_parameter_list)
+
+Testing:     Made sure preview_namelist does not trigger error
+
+Files Modified:
+M       cime_config/MARBL_settings_wrapper/MARBL_settings.py
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n138_marbl_dev_n66_cesm_pop_2_1_20171117b
 Tag Summary: Merge latest marbl_dev onto branch
              Requires MARBL 52fb30c (on enhancement/YAML_parameter_list)
