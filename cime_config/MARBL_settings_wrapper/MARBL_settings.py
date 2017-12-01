@@ -64,7 +64,7 @@ class MARBL_settings_for_POP(object):
                 sys.exit(1)
 
         # Generate settings object
-        self._marbl_settings = MARBL_settings_file_class.MARBL_settings_class(**MARBL_args)
+        self._MARBL_settings = MARBL_settings_file_class.MARBL_settings_class(**MARBL_args)
 
     ################################################################################
     #                             PUBLIC CLASS METHODS                             #
@@ -73,7 +73,7 @@ class MARBL_settings_for_POP(object):
     def get_MARBL_NT(self):
         """ Return tracer count given MARBL settings
         """
-        return self._marbl_settings.get_tracer_cnt()
+        return self._MARBL_settings.get_tracer_cnt()
 
     #######################################
 
@@ -81,5 +81,5 @@ class MARBL_settings_for_POP(object):
         """ Write a settings file containing all MARBL settings
         """
         from MARBL_tools import generate_settings_file
-        generate_settings_file(self._marbl_settings, settings_file_out)
+        generate_settings_file(self._MARBL_settings, settings_file_out)
 
