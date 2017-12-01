@@ -1226,7 +1226,6 @@ add_default($nl, "lchange_ans");
 add_default($nl, "iage_on");
 add_default($nl, "cfc_on");
 add_default($nl, "sf6_on");
-add_default($nl, "ciso_on");
 add_default($nl, "abio_dic_dic14_on");
 add_default($nl, "ecosys_on");
 add_default($nl, "irf_on");
@@ -1402,9 +1401,16 @@ if ($abio_on eq "TRUE") {
 ##########################################
 
 my $ecosys_on = $cfg->get("use_ecosys");
-my $ciso_on = $cfg->get("use_ciso");
+my %ecosys_cfg; # New hash containing some MARBL settings
 
 if ($ecosys_on eq "TRUE") {
+    # Add some MARBL vars to ecosys_cfg
+    my $marbl_in = "${CASEROOT}/Buildconf/popconf/marbl_in";
+    for my $varname ('ladjust_bury_coeff', 'lvariable_PtoC', 'ciso_on') {
+        $ecosys_cfg{$varname} = `grep $varname $marbl_in | cut -d '=' -f 2 | sed 's/^ //'`;
+        chomp $ecosys_cfg{$varname};
+    }
+
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'ecosys_qsw_distrb_const');
@@ -1504,25 +1510,23 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
   add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
 
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d14c_const');
+  add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d13c_const');
+  add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d14c_const');
 
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d13c_filename');
-    }
-
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d14c_filename');
-    }
-
-    add_default($nl, 'ciso_atm_model_year');
-    add_default($nl, 'ciso_atm_data_year');
+  my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
+  if ($ciso_atm_opt eq '\'file\'') {
+    add_default($nl, 'ciso_atm_d13c_filename');
   }
+
+  my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+  if ($ciso_atm_opt eq '\'file\'') {
+    add_default($nl, 'ciso_atm_d14c_filename');
+  }
+
+  add_default($nl, 'ciso_atm_model_year');
+  add_default($nl, 'ciso_atm_data_year');
 
   add_default($nl, 'restorable_tracer_names');
 
@@ -1576,74 +1580,73 @@ if ($ecosys_on eq "TRUE") {
   # (1) query init_ecosys_init_file
   # (2) add_default('ciso_init_ecosys_init_file', 'val' => '$init_ecosys_init_file')
 
-  if ($ciso_on eq "TRUE") {
-    # By default, we use the same initial condition settings for the base
-    # ecosystem module and the CISO module, but users have the option of
-    # specifying different files if desired.
-    my $init_ecosys_option = $nl->get_value("init_ecosys_option");
-    my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
-    my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
+  # By default, we use the same initial condition settings for the base
+  # ecosystem module and the CISO module, but users have the option of
+  # specifying different files if desired.
+  my $init_ecosys_option = $nl->get_value("init_ecosys_option");
+  my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
+  my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
 
-    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"$init_ecosys_option");
-    add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
-    add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
+  add_default($nl, 'ciso_init_ecosys_option', 'val'=>"$init_ecosys_option");
+  add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
+  add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
 
-    add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
-  }
+  add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
+
 }
 
 ##########################################
@@ -1765,177 +1768,6 @@ if ($OCN_GRID =~ /^gx*/) {
 } elsif ($OCN_GRID =~ /^tx*/) {
     $ltavg_streams_index_present  = ".true.";
     $ltavg_nino_diags_requested   = ".false.";
-}
-
-###################################
-# namelist group: marbl_nml       #
-###################################
-
-if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'pft_defaults');
-
-  my $pft_defaults = $nl->get_value('pft_defaults');
-  # strip quotes
-  $pft_defaults =~ s/[\'\"]//g;
-  add_default($nl, 'autotroph_cnt', 'pft_defaults'=>"$pft_defaults");
-  add_default($nl, 'zooplankton_cnt', 'pft_defaults'=>"$pft_defaults");
-  add_default($nl, 'max_grazer_prey_cnt', 'pft_defaults'=>"$pft_defaults");
-
-  my $ciso_loc = $nl->get_value('ciso_on');
-  add_default($nl, 'ciso_on&marbl_nml', val=>"$ciso_loc");
-  my $ciso_marbl_loc = $nl->get_value('ciso_on&marbl_nml');
-  if ("$ciso_loc" ne "$ciso_marbl_loc") {
-    die << "EOF";
-** MARBL is running with ciso_on = $ciso_marbl_loc
-   POP is expecting ciso_on = $ciso_loc
-EOF
-  }
-
-  add_default($nl, 'lsource_sink');
-  add_default($nl, 'lecovars_full_depth_tavg');
-  add_default($nl, 'lflux_gas_o2');
-  add_default($nl, 'lflux_gas_co2');
-  add_default($nl, 'lcompute_nhx_surface_emis');
-
-  add_default($nl, 'lvariable_PtoC');
-
-  # FIXME : replace following with ladjust_bury_coeff=.true. branch
-  # when "restfile" is implemented for scalar saved state
-  add_default($nl, 'ladjust_bury_coeff');
-  if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-    } else {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
-    }
-  } else {
-    add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-  }
-
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_lsource_sink');
-    add_default($nl, 'ciso_lecovars_full_depth_tavg');
-  }
-
-  add_default($nl, 'parm_Fe_bioavail');
-  add_default($nl, 'parm_o2_min');
-  add_default($nl, 'parm_o2_min_delta');
-  add_default($nl, 'parm_kappa_nitrif_per_day');
-  add_default($nl, 'parm_nitrif_par_lim');
-  add_default($nl, 'parm_labile_ratio');
-  add_default($nl, 'parm_init_POC_bury_coeff');
-  add_default($nl, 'parm_init_POP_bury_coeff');
-  add_default($nl, 'parm_init_bSi_bury_coeff');
-  add_default($nl, 'parm_Fe_scavenge_rate0');
-  add_default($nl, 'parm_Lig_scavenge_rate0');
-  add_default($nl, 'parm_FeLig_scavenge_rate0');
-  add_default($nl, 'parm_Lig_degrade_rate0');
-  add_default($nl, 'parm_Fe_desorption_rate0');
-  add_default($nl, 'parm_f_prod_sp_CaCO3');
-  add_default($nl, 'parm_POC_diss');
-  add_default($nl, 'parm_SiO2_diss');
-  add_default($nl, 'parm_CaCO3_diss');
-  add_default($nl, 'parm_sed_denitrif_coeff');
-  add_default($nl, 'bury_coeff_rmean_timescale_years');
-
-  add_default($nl, 'parm_scalelen_z');
-  add_default($nl, 'parm_scalelen_vals');
-
-  add_default($nl, 'zooplankton(1)%sname');
-  add_default($nl, 'zooplankton(1)%z_mort_0_per_day');
-  add_default($nl, 'zooplankton(1)%z_mort2_0_per_day');
-  add_default($nl, 'zooplankton(1)%loss_thres');
-
-  add_default($nl, 'autotrophs(1)%sname');
-  add_default($nl, 'autotrophs(1)%kFe');
-  add_default($nl, 'autotrophs(1)%kPO4');
-  add_default($nl, 'autotrophs(1)%kDOP');
-  add_default($nl, 'autotrophs(1)%kNO3');
-  add_default($nl, 'autotrophs(1)%kNH4');
-  add_default($nl, 'autotrophs(1)%kSiO3');
-
-  add_default($nl, 'autotrophs(2)%sname');
-  add_default($nl, 'autotrophs(2)%kFe');
-  add_default($nl, 'autotrophs(2)%kPO4');
-  add_default($nl, 'autotrophs(2)%kDOP');
-  add_default($nl, 'autotrophs(2)%kNO3');
-  add_default($nl, 'autotrophs(2)%kNH4');
-  add_default($nl, 'autotrophs(2)%kSiO3');
-
-  add_default($nl, 'autotrophs(3)%sname');
-  add_default($nl, 'autotrophs(3)%kFe');
-  add_default($nl, 'autotrophs(3)%kPO4');
-  add_default($nl, 'autotrophs(3)%kDOP');
-  add_default($nl, 'autotrophs(3)%kNO3');
-  add_default($nl, 'autotrophs(3)%kNH4');
-  add_default($nl, 'autotrophs(3)%kSiO3');
-
-  add_default($nl, 'grazing(1,1)%sname');
-  add_default($nl, 'grazing(1,1)%auto_ind_cnt');
-  my $tot_ind = $nl->get_value('grazing(1,1)%auto_ind_cnt');
-  for (my $ind=1;$ind <= $tot_ind; $ind++) {
-    add_default($nl, "grazing(1,1)%auto_ind($ind)");
-  }
-  add_default($nl, 'grazing(1,1)%zoo_ind_cnt');
-  my $tot_ind = $nl->get_value('grazing(1,1)%zoo_ind_cnt');
-  for (my $ind=1;$ind <= $tot_ind; $ind++) {
-    add_default($nl, "grazing(1,1)%zoo_ind($ind)");
-  }
-  add_default($nl, 'grazing(1,1)%z_umax_0_per_day');
-  add_default($nl, 'grazing(1,1)%z_grz');
-  add_default($nl, 'grazing(1,1)%graze_zoo');
-  add_default($nl, 'grazing(1,1)%graze_poc');
-  add_default($nl, 'grazing(1,1)%graze_doc');
-  add_default($nl, 'grazing(1,1)%f_zoo_detr');
-  add_default($nl, 'grazing(1,1)%grazing_function');
-
-  add_default($nl, 'grazing(2,1)%sname');
-  add_default($nl, 'grazing(2,1)%auto_ind_cnt');
-  my $tot_ind = $nl->get_value('grazing(2,1)%auto_ind_cnt');
-  for (my $ind=1;$ind <= $tot_ind; $ind++) {
-    add_default($nl, "grazing(2,1)%auto_ind($ind)");
-  }
-  add_default($nl, 'grazing(2,1)%zoo_ind_cnt');
-  my $tot_ind = $nl->get_value('grazing(2,1)%zoo_ind_cnt');
-  for (my $ind=1;$ind <= $tot_ind; $ind++) {
-    add_default($nl, "grazing(2,1)%zoo_ind($ind)");
-  }
-  add_default($nl, 'grazing(2,1)%z_umax_0_per_day');
-  add_default($nl, 'grazing(2,1)%z_grz');
-  add_default($nl, 'grazing(2,1)%graze_zoo');
-  add_default($nl, 'grazing(2,1)%graze_poc');
-  add_default($nl, 'grazing(2,1)%graze_doc');
-  add_default($nl, 'grazing(2,1)%f_zoo_detr');
-  add_default($nl, 'grazing(2,1)%grazing_function');
-
-  add_default($nl, 'grazing(3,1)%sname');
-  add_default($nl, 'grazing(3,1)%auto_ind_cnt');
-  my $tot_ind = $nl->get_value('grazing(3,1)%auto_ind_cnt');
-  for (my $ind=1;$ind <= $tot_ind; $ind++) {
-    add_default($nl, "grazing(3,1)%auto_ind($ind)");
-  }
-  add_default($nl, 'grazing(3,1)%zoo_ind_cnt');
-  my $tot_ind = $nl->get_value('grazing(3,1)%zoo_ind_cnt');
-  for (my $ind=1;$ind <= $tot_ind; $ind++) {
-    add_default($nl, "grazing(3,1)%zoo_ind($ind)");
-  }
-  add_default($nl, 'grazing(3,1)%z_umax_0_per_day');
-  add_default($nl, 'grazing(3,1)%z_grz');
-  add_default($nl, 'grazing(3,1)%graze_zoo');
-  add_default($nl, 'grazing(3,1)%graze_poc');
-  add_default($nl, 'grazing(3,1)%graze_doc');
-  add_default($nl, 'grazing(3,1)%f_zoo_detr');
-  add_default($nl, 'grazing(3,1)%grazing_function');
-
-  add_default($nl, 'caco3_bury_thres_opt');
-  add_default($nl, 'caco3_bury_thres_depth');
-  add_default($nl, 'pon_bury_coeff');
-
-  add_default($nl, 'tracer_restore_vars');
-
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_fract_factors');
-  }
 }
 
 ##########################################
@@ -2083,11 +1915,14 @@ my @OCN_TAVG_MODULES = @OCN_TRACER_MODULES;
 if ($lmcog) {
    push(@OCN_TAVG_MODULES, "mcog");
 }
+if ($ecosys_cfg{"ciso_on"} eq ".true.") {
+   push(@OCN_TAVG_MODULES, "ciso");
+}
 for my $module (@OCN_TAVG_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
   my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
-  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg);
+  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg, \%ecosys_cfg);
   if (-f "${my_path}/$file"){
       $sysmod = "$env ${my_path}/${file} $my_stream @tavg_script_args";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
@@ -2221,8 +2056,6 @@ if ($IRF_on eq "TRUE" ) {
     push @groups, qw(irf_nml);
 }
 
-my @marbl_groups = qw(marbl_nml);
-
 # Check for variables in the "derived" group, add them to appropriate group
 for my $var ($nl->get_variable_names('derived')) {
   my @broken = split(/&/,$var);
@@ -2237,11 +2070,6 @@ if (pop_consistency_check($nl, $OCN_ONEDIM)) { exit 1; }
 my $outfile = "./pop_in";
 $nl->write($outfile, 'groups'=>\@groups);
 if ($print>=2) { print "Writing pop ocean component namelist to $outfile $eol"; }
-
-# if ecosys_on, also write marbl_in
-my $outfile = "./marbl_in";
-$nl->write($outfile, 'groups'=>\@marbl_groups);
-if ($print>=2) { print "Writing marbl component namelist to $outfile $eol"; }
 
 # Write  input dataset list.
 check_input_files($nl, $DIN_LOC_ROOT, "../pop.input_data_list");
@@ -2699,15 +2527,16 @@ sub pop_consistency_check() {
 #-------------------------------------------------------------------------------
 
 sub module_tavg_script_args() {
-  my $nl     = shift;
-  my $module = shift;
-  my $cfg    = shift;
+  my $nl         = shift;
+  my $module     = shift;
+  my $cfg        = shift;
+  my $eco_cfg    = shift;
+  my %ecosys_cfg = %$eco_cfg;
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
             $nl->get_value('lecosys_tavg_alt_co2'),
-            $nl->get_value('ladjust_bury_coeff'),
-            $nl->get_value('lvariable_PtoC'),
-            $nl->get_value('tracer_restore_vars'));
+            $ecosys_cfg{'ladjust_bury_coeff'},
+            $ecosys_cfg{'lvariable_PtoC'});
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
@@ -2729,4 +2558,3 @@ sub module_tavg_script_args() {
   }
   return "";
 }
-
