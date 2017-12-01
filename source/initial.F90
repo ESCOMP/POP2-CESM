@@ -858,9 +858,11 @@
       init_ts_outfile,     &! filename for output T,S file
       init_ts_outfile_fmt   ! format for output T,S file (bin or nc)
 
+   real  (r8) :: init_ts_perturb ! namelist i/o error flag
+
    namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
                           init_ts_suboption, init_ts_outfile, &
-		  	  init_ts_outfile_fmt
+		  	  init_ts_outfile_fmt, init_ts_perturb
 
 !-----------------------------------------------------------------------
 !
@@ -874,6 +876,15 @@
       kk,                &! indices for interpolating levitus data
       nu,                &! i/o unit for mean profile file
       iblock              ! local block address
+
+   real   (r8)        :: &
+      pertval             ! perturbation
+
+   integer (int_kind) :: &
+      rndm_seed_sz        ! perturbation
+
+   integer (int_kind), dimension(:), allocatable :: &
+      rndm_seed           ! perturbation
 
    integer (int_kind) :: &
       m,                 &! overflows dummy loop index
@@ -990,6 +1001,7 @@
    init_ts_suboption = 'rest'
    init_ts_outfile   = 'unknown_init_ts_outfile'
    init_ts_outfile_fmt = 'bin'
+   init_ts_perturb = 0.0_r8
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -1042,6 +1054,7 @@
    call broadcast_scalar(init_ts_file_fmt  , master_task)
    call broadcast_scalar(init_ts_outfile      , master_task)
    call broadcast_scalar(init_ts_outfile_fmt  , master_task)
+   call broadcast_scalar(init_ts_perturb  , master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -1582,6 +1595,39 @@
    case default
       call exit_POP(sigAbort,'Unknown t,s initialization option')
    end select
+
+!-----------------------------------------------------------------------
+!
+!  Add random perturbation to temperature if required
+!
+!-----------------------------------------------------------------------
+   if (init_ts_perturb .ne. 0.0_r8) then
+       if (my_task == master_task) then
+             write(stdout,*) 'INITDAT :  Adding random perturbation bounded by +/-', &
+                  init_ts_perturb,' to initial temperature field'
+       end if
+
+       call random_seed(size=rndm_seed_sz)
+       allocate(rndm_seed(rndm_seed_sz))
+
+       do iblock=1,nblocks_clinic
+       do j = 1, ny_block
+       do i = 1, nx_block
+            ! seed random_number generator based on global column index
+            rndm_seed = i + (j-1)*nx_block
+            call random_seed(put=rndm_seed)
+            do k = 1, km
+                call random_number(pertval)
+                pertval = 2.0_r8*init_ts_perturb*(0.5_r8 - pertval)
+                TRACER(i,j,k,1,:,iblock) = TRACER(i,j,k,1,:,iblock)*(1.0_r8 + pertval)
+            end do
+       end do
+       end do
+       end do
+             
+       deallocate(rndm_seed)
+
+   end if
 
 !-----------------------------------------------------------------------
 !

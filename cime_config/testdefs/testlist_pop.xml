@@ -95,7 +95,9 @@
     <grid name="T62_g37">
       <test name="ERS">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_transient_abio_dic_dic14_transient">cheyenne</machine>
       </test>
       <test name="ERS_Ld3">
         <machine compiler="intel" testtype="aux_testsystem" testmods="pop/default">cheyenne</machine>
@@ -106,11 +108,16 @@
         <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_transient">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_transient_abio_dic_dic14_transient">cheyenne</machine>
       </test>
       <test name="ERS_Ld5_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_fixed_PtoC">cheyenne</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
+      </test>
+      <test name="ERS_Ld6_D">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/5day_r4_tavg">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/5day_r4_tavg">cheyenne</machine>
       </test>
       <test name="SMS">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_read_fallback_gx3v7">cheyenne</machine>

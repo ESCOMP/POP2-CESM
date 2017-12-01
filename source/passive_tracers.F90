@@ -544,8 +544,8 @@
       lname = trim(tracer_d(n)%long_name) /&
                                            &/ ' Squared'
       units = '(' /&
-                   &/ tracer_d(n)%units /&
-                                         &/ ')^2'
+                   &/ trim(tracer_d(n)%units) /&
+                                               &/ ')^2'
       call define_tavg_field(tavg_var_sqr(n),                       &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
@@ -942,7 +942,7 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,DUST_FLUX,BLACK_CARBON_FLUX, &
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,FINE_DUST_FLUX,COARSE_DUST_FLUX,BLACK_CARBON_FLUX, &
                                       lvsf_river,MASK_ESTUARY,vsf_river_correction,STF,STF_RIV)
 
 ! !DESCRIPTION:
@@ -957,7 +957,8 @@
       U10_SQR,           & ! 10m wind speed squared
       ICE_FRAC,          & ! sea ice fraction (non-dimensional)
       PRESS,             & ! sea level atmospheric pressure (Pascals)
-      DUST_FLUX,         & ! dust flux (g/cm^2/s)
+      FINE_DUST_FLUX,    & ! fine dust flux (g/cm^2/s)
+      COARSE_DUST_FLUX,  & ! coarse dust flux (g/cm^2/s)
       BLACK_CARBON_FLUX, & ! black carbon flux (g/cm^2/s)
       MASK_ESTUARY         ! mask for estuary model, 1 where it runs and 0 elsewhere
 
@@ -1010,8 +1011,8 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_sflux_forcing(                      &
-         U10_SQR, ICE_FRAC, PRESS, DUST_FLUX, BLACK_CARBON_FLUX, &
+      call ecosys_driver_set_sflux_forcing( &
+         U10_SQR, ICE_FRAC, PRESS, FINE_DUST_FLUX, COARSE_DUST_FLUX, BLACK_CARBON_FLUX, &
          SST_FILT, SSS_FILT)
 
       call ecosys_driver_set_global_scalars('surface')

@@ -1171,7 +1171,7 @@
       allocate(TAVG_BUF_3D_TRANSPOSE(km,nx_block,ny_block,nblocks_clinic,tavg_bufsize_3dt))
       allocate(TAVG_BUF_3D_TEMP(nx_block,ny_block,km,nblocks_clinic))
       allocate(TAVG_BUF_3D_TRANSPOSE_METHOD(tavg_bufsize_3dt))
-      TAVG_BUF_3D = c0
+      TAVG_BUF_3D_TRANSPOSE = c0
      endif
 
      allocate(TAVG_TEMP(nx_block,ny_block,nblocks_clinic))
@@ -2602,8 +2602,11 @@
          if (avail_tavg_fields(nfield)%transpose_field) then
            call timer_start(timer_read_transpose)
            ! Transpose field
-           do k=1,avail_tavg_fields(nfield)%km
-             TAVG_BUF_3D_TRANSPOSE(k,:,:,:,loc) = TAVG_BUF_3D_TEMP(:,:,k,:)
+           do iblock=1,nblocks_clinic
+             do k=1,avail_tavg_fields(nfield)%km
+               TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,loc) = merge(TAVG_BUF_3D_TEMP(:,:,k,iblock), &
+                                                               real(0, rtavg), k .le. KMT(:,:,iblock))
+             end do
            end do
            call timer_stop(timer_read_transpose)
          end if

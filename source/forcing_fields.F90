@@ -83,7 +83,8 @@ module forcing_fields
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       public, target ::  &
-      DUST_FLUX,         &! dust flux from cpl (g/cm2/s)
+      FINE_DUST_FLUX,    &! fine dust flux from cpl (g/cm2/s)
+      COARSE_DUST_FLUX,  &! coarse dust flux from cpl (g/cm2/s)
       BLACK_CARBON_FLUX   ! black carbon flux from cpl (g/cm2/s)
 
 !***********************************************************************

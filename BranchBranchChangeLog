@@ -2,6 +2,51 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    1 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n138_marbl_dev_n66_cesm_pop_2_1_20171117b
+Tag Summary: Merge latest marbl_dev onto branch
+             Requires MARBL 52fb30c (on enhancement/YAML_parameter_list)
+
+Testing:     aux_pop_marbl on hobart (nag, intel, pgi) and cheyenne (intel
+             and gnu) compared to n136 - all tests pass.
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+A  +    cime_config/phys_cycle_postrun
+A  +    cime_config/phys_cycle_prerun
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/5day_r4_tavg
+M       cime_config/testdefs/testmods_dirs/pop/5day_tavg/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient_abio_dic_dic14_transient
+M       drivers/cpl/ocn_import_export.F90
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/abio_dic_dic14_mod.F90
+A  +    source/c14_atm_forcing_mod.F90
+M       source/cfc_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+A  +    source/forcing_timeseries_mod.F90
+M       source/initial.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/sf6_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n137_marbl_dev_n60_cesm_pop_2_1_20171008
 Tag Summary: Code cleanup following python code review
              * marbl -> MARBL where appropriate (everywhere except references to marbl_in and user_nl_marbl)

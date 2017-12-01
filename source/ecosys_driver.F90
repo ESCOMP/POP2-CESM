@@ -26,6 +26,8 @@ module ecosys_driver
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use communicate               , only : my_task, master_task
 
+  use shr_infnan_mod            , only : shr_infnan_isnan
+
   use marbl_interface           , only : marbl_interface_class
 
   use namelist_from_str_mod     , only : namelist_split_by_line
@@ -725,6 +727,7 @@ contains
     use grid               , only : KMT
     use grid               , only : DZT
     use grid               , only : partial_bottom_cells
+    use grid               , only : TLOND, TLATD
     use ecosys_forcing_mod , only : interior_forcing_fields
 
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_OLD ! old tracer values
@@ -741,7 +744,7 @@ contains
     integer (int_kind) :: i   ! nx_block loop index
     integer (int_kind) :: c   ! ny_block / column loop index
     integer (int_kind) :: bid ! local block address for this block
-    integer (int_kind) :: n, d, ncols
+    integer (int_kind) :: n, d, ncols, k
     !-----------------------------------------------------------------------
 
     bid = this_block%local_id
@@ -769,7 +772,7 @@ contains
              ! --- set forcing fields ---
 
              do n = 1, size(interior_forcing_fields)
-               if (allocated(interior_forcing_fields(n)%field_0d)) then
+               if (interior_forcing_fields(n)%rank == 2) then
                  marbl_instances(bid)%interior_input_forcings(n)%field_0d(1) = &
                       interior_forcing_fields(n)%field_0d(i,c,bid)
                else
@@ -815,6 +818,38 @@ contains
                  marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
              end do
 
+             !-----------------------------------------------------------
+             ! before copying tendencies, check to see if any are NaNs
+             !-----------------------------------------------------------
+
+             do k = 1, KMT(i, c, bid)
+                if (any(shr_infnan_isnan(marbl_instances(bid)%column_dtracers(:, k)))) then
+                   write(stdout, *) subname, ': NaN in dtracer_module, (i,j,k)=(', &
+                      this_block%i_glob(i), ',', this_block%j_glob(c), ',', k, ')'
+                   write(stdout, *) '(lon,lat)=(', TLOND(i,c,bid), ',', TLATD(i,c,bid), ')'
+                   do n = 1, ecosys_tracer_cnt
+                      write(stdout, *) trim(marbl_instances(1)%tracer_metadata(n)%short_name), ' ', &
+                         marbl_instances(bid)%column_tracers(n, k), ' ', &
+                         marbl_instances(bid)%column_dtracers(n, k)
+                   end do
+                   do n = 1, size(interior_forcing_fields)
+                      associate (forcing_field => interior_forcing_fields(n))
+                         write(stdout, *) trim(forcing_field%metadata%marbl_varname)
+                         if (forcing_field%rank == 2) then
+                            write(stdout, *) forcing_field%field_0d(i,c,bid)
+                         else
+                            if (forcing_field%ldim3_is_depth) then
+                               write(stdout, *) forcing_field%field_1d(i,c,k,bid)
+                            else
+                               write(stdout, *) forcing_field%field_1d(i,c,:,bid)
+                            end if
+                         end if
+                      end associate
+                   end do
+                   call exit_POP(sigAbort, 'Stopping in ' // subname)
+                end if
+             end do
+
              do n = 1, ecosys_tracer_cnt
                 dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
              end do
@@ -850,7 +885,8 @@ contains
        u10_sqr,                       &
        ifrac,                         &
        press,                         &
-       dust_flux,                     &
+       fine_dust_flux,                &
+       coarse_dust_flux,              &
        black_carbon_flux,             &
        sst,                           &
        sss)
@@ -863,7 +899,8 @@ contains
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: u10_sqr           ! 10m wind speed squared (cm/s)**2
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: ifrac             ! sea ice fraction (non-dimensional)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: press             ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: dust_flux         ! dust flux (g/cm**2/s)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: fine_dust_flux    ! fine dust flux (g/cm**2/s)
+    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: coarse_dust_flux  ! coarse dust flux (g/cm**2/s)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: black_carbon_flux ! black carbon flux (g/cm**2/s)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sst               ! sea surface temperature (c)
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sss               ! sea surface salinity (psu)
@@ -878,7 +915,8 @@ contains
          u10_sqr,                         &
          ifrac,                           &
          press,                           &
-         dust_flux,                       &
+         fine_dust_flux,                  &
+         coarse_dust_flux,                &
          black_carbon_flux,               &
          sst,                             &
          sss)
@@ -900,6 +938,9 @@ contains
 
     use ecosys_forcing_mod   , only : surface_forcing_fields
     use ecosys_forcing_mod   , only : ecosys_forcing_comp_stf_riv
+    use blocks               , only : get_block
+    use domain               , only : blocks_clinic
+    use grid                 , only : TLOND, TLATD
 
     real (r8), dimension(:,:,:), intent(in)    :: surface_vals_old
     real (r8), dimension(:,:,:), intent(in)    :: surface_vals_cur  ! module tracers
@@ -915,6 +956,7 @@ contains
 
     integer (int_kind) :: index_marbl  ! marbl index
     integer (int_kind) :: i, j, n      ! pop loop indices
+    type(block) :: this_block
     !-----------------------------------------------------------------------
 
     !---------------------------------------------------------------------------
@@ -924,6 +966,9 @@ contains
     if (marbl_col_cnt(iblock) .eq. 0) return
 
     call timer_start(ecosys_set_sflux_timer, iblock)
+
+    ! Set up block id
+    this_block = get_block(blocks_clinic(iblock), iblock)
 
     !-----------------------------------------------------------------------
     ! Copy data from slab data structure to column input for marbl
@@ -981,6 +1026,32 @@ contains
          surface_forcing_outputs(i,j,n,iblock) = &
             marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
        end do
+
+       !-----------------------------------------------------------
+       ! before copying surface fluxes, check to see if any are NaNs
+       !-----------------------------------------------------------
+
+       if (any(shr_infnan_isnan(marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,:)))) then
+          write(stdout, *) subname, ': NaN in stf_module, (i,j)=(', &
+             this_block%i_glob(i), ',', this_block%j_glob(j), ')'
+          write(stdout, *) '(lon,lat)=(', TLOND(i,j,iblock), ',', TLATD(i,j,iblock), ')'
+          do n = 1, ecosys_tracer_cnt
+             write(stdout, *) trim(marbl_instances(1)%tracer_metadata(n)%short_name), ' ', &
+                marbl_instances(iblock)%surface_vals(index_marbl,n), ' ', &
+                marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
+          end do
+          do n = 1, size(surface_forcing_fields)
+             associate (forcing_field => surface_forcing_fields(n))
+                write(stdout, *) trim(forcing_field%metadata%marbl_varname)
+                if (forcing_field%rank == 2) then
+                   write(stdout, *) forcing_field%field_0d(i,j,iblock)
+                else
+                   write(stdout, *) forcing_field%field_1d(i,j,:,iblock)
+                end if
+             end associate
+          end do
+          call exit_POP(sigAbort, 'Stopping in ' // subname)
+       end if
 
        do n = 1,ecosys_tracer_cnt
           stf_module(i,j,n) = &
