@@ -40,6 +40,7 @@ D       cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/shell_commands
 A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC/user_nl_marbl
 A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/user_nl_marbl
 D       cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_marbl
 M       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_pop
 M       input_templates/ocn.ecosys.tavg.csh
 A  +    input_templates/user_nl_marbl
