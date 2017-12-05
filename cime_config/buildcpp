@@ -4,7 +4,7 @@
 Set POP cppdefs and config_cache.xml file (the latter is used for namelist generation)
 """
 
-import os, sys 
+import os, sys
 
 CIMEROOT = os.environ.get("CIMEROOT")
 if CIMEROOT is None:
@@ -21,32 +21,28 @@ from CIME.buildnml import parse_input
 import glob, shutil
 logger = logging.getLogger(__name__)
 
-_config_cache_template = """
-<?xml version="1.0"?>
+_config_cache_template = """<?xml version="1.0"?>
 <config_definition>
 <commandline></commandline>
 <entry id="comp_wav" value="{comp_wav}" list="" valid_values="">wave component</entry>
 <entry id="irf_mode" value="{IRF_MODE}" list="" valid_values="NK_precond,offline_transport">IRF tracer module mode</entry>
 <entry id="irf_nt" value="{IRF_NT}" list="" valid_values="">Number of IRF tracers</entry>
+<entry id="marbl_nt" value="{MARBL_NT}" list="" valid_values="">Number of MARBL tracers</entry>
 <entry id="ocn_grid" value="{ocn_grid}" list="" valid_values="">Ocean grid used for POP</entry>
 <entry id="use_abio" value="{use_abio}" list="" valid_values="FALSE,TRUE">Use abio tracer module</entry>
 <entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
 <entry id="use_ecosys" value="{use_ecosys}" list="" valid_values="FALSE,TRUE">Use ecosys tracer module</entry>
-<entry id="lvariable_PtoC" value="{lvariable_PtoC}" list="" valid_values="FALSE,TRUE">control if PtoC ratios in autotrophs vary</entry>
 <entry id="use_iage" value="{use_iage}" list="" valid_values="FALSE,TRUE">Use ideal age tracer module</entry>
-<entry id="use_ciso" value="{use_ciso}" list="" valid_values="FALSE,TRUE">Use ciso tracer module</entry>
 <entry id="use_irf" value="{use_irf}" list="" valid_values="FALSE,TRUE">Use IRF tracer module</entry>
 <entry id="use_sf6" value="{use_sf6}" list="" valid_values="FALSE,TRUE">Use sf6 tracer module</entry>
 </config_definition>
 """
 
 ###############################################################################
-def determine_tracer_count(case, decomp_cppdefs):
+def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
 ###############################################################################
 
-    ECOSYS_BASE_NT      = 32
-    CISO_NT             = 14
-    lvariable_PtoC      = "TRUE"
+    MARBL_NT            = 0
     IRF_NT              = 0
     IRF_MODE            = "NK_precond"
 
@@ -63,13 +59,7 @@ def determine_tracer_count(case, decomp_cppdefs):
         for module_opt in module_opts:
             varname = module_opt.split("=")[0]
             value = module_opt.split("=")[1]
-            if varname == "ECOSYS_BASE_NT":
-                ECOSYS_BASE_NT = int(value)
-            elif varname == "lvariable_PtoC":
-                is_value_valid = (value == "TRUE") or (value == "FALSE")
-                expect(is_value_valid, "%s is not a valid value for %s in OCN_TRACER_MODULES_OPT" % (value, varname))
-                lvariable_PtoC = value
-            elif varname == "IRF_NT":
+            if varname == "IRF_NT":
                 IRF_NT = int(value)
             elif varname == "IRF_MODE":
                 is_valid_value = (value == "offline_transport") or (value == "NK_precond")
@@ -87,16 +77,15 @@ def determine_tracer_count(case, decomp_cppdefs):
     use_cfc    = "FALSE"
     use_sf6    = "FALSE"
     use_abio   = "FALSE"
-    use_ciso   = "FALSE"
     use_ecosys = "FALSE"
     use_irf    = "FALSE"
 
     NT = 2
-    MARBL_NT = 0
 
     # expression on RHS strips leading and trailing whitespace,
     # and replaces multiple whitespace with a single space
     ocn_tracer_modules = " ".join(case.get_value("OCN_TRACER_MODULES").split())
+    ocn_grid=case.get_value("OCN_GRID")
 
     if ocn_tracer_modules:
         for module in ocn_tracer_modules.split(" "):
@@ -112,16 +101,20 @@ def determine_tracer_count(case, decomp_cppdefs):
             elif module == "abio_dic_dic14":
                 use_abio = "TRUE"
                 NT = NT + 2
-            elif module == "ciso":
-                use_ciso = "TRUE"
-                MARBL_NT = MARBL_NT + CISO_NT
             elif module == "ecosys":
                 use_ecosys = "TRUE"
-                MARBL_NT = MARBL_NT + ECOSYS_BASE_NT
+                # call MARBL's tool to determine tracer count:
+                # (i) Import MARBL_settings_wrapper and generate MARBL_settings_for_POP object
+                MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
+                sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
+                from MARBL_settings_wrapper import MARBL_settings_for_POP
+                MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, srcroot, ocn_grid,
+                                       case.get_value("RUN_TYPE"), case.get_value("CONTINUE_RUN"))
+                # (ii) get MARBL_NT
+                MARBL_NT = MARBL_settings.get_MARBL_NT()
             elif module == "IRF":
                 use_irf = "TRUE"
                 if IRF_NT == 0:
-                    ocn_grid=case.get_value("OCN_GRID")
                     if IRF_MODE == "offline_transport" and ocn_grid == "gx3v7":
                         IRF_NT = 156
                     elif IRF_MODE == "offline_transport" and ocn_grid == "gx1v6":
@@ -139,11 +132,10 @@ def determine_tracer_count(case, decomp_cppdefs):
     # Determine tracer cppdefs and update pop_cppdefs
     #----------------------------------------------------
 
-    tracer_cppdefs = " -DNT=%d -DECOSYS_BASE_NT=%d -DCISO_NT=%d -DMARBL_NT=%d -DIRF_NT=%d " \
-                     %(NT, ECOSYS_BASE_NT, CISO_NT, MARBL_NT, IRF_NT)
+    tracer_cppdefs = " -DNT=%d -DMARBL_NT=%d -DIRF_NT=%d " % (NT, MARBL_NT, IRF_NT)
 
     other_cppdefs = ""
-    if "tx0.1" in case.get_value("OCN_GRID"): 
+    if "tx0.1" in case.get_value("OCN_GRID"):
         other_cppdefs = other_cppdefs + " -D_HIRES "
     if case.get_value("OCN_ICE_FORCING") == 'inactive':
         other_cppdefs = other_cppdefs + " -DZERO_SEA_ICE_REF_SAL "
@@ -157,21 +149,19 @@ def determine_tracer_count(case, decomp_cppdefs):
     #----------------------------------------------------
 
     config_cache_text = _config_cache_template.format(
-        comp_wav=case.get_value("COMP_WAV"), 
+        comp_wav=case.get_value("COMP_WAV"),
         cppdefs=pop_cppdefs,
         IRF_MODE=IRF_MODE,
         IRF_NT=IRF_NT,
+        MARBL_NT=MARBL_NT,
         ocn_grid=case.get_value("OCN_GRID"),
         use_abio=use_abio,
         use_cfc=use_cfc,
         use_ecosys=use_ecosys,
-        lvariable_PtoC=lvariable_PtoC,
-        use_ciso=use_ciso,
         use_iage=use_iage,
         use_irf=use_irf,
         use_sf6=use_sf6)
 
-    caseroot = case.get_value("CASEROOT")
     config_cache_path = os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml")
     with open(config_cache_path, 'w') as config_cache_file:
         config_cache_file.write(config_cache_text)
@@ -187,6 +177,8 @@ def buildcpp(case):
     #----------------------------------------------------
 
     caseroot = case.get_value("CASEROOT")
+    srcroot = case.get_value("SRCROOT")
+
     popconf_dir = os.path.join(caseroot,"Buildconf","popconf")
     if not os.path.exists(popconf_dir):
         os.makedirs(popconf_dir)
@@ -195,15 +187,14 @@ def buildcpp(case):
     # determine decomposition xml variables if POP_AUTO_DECOMP is true
     #----------------------------------------------------
 
-    # - invoke generate_pop_decomp.pl and update env_build.xml settings to 
-    # reflect changes in the configuration this will trigger 
+    # - invoke generate_pop_decomp.pl and update env_build.xml settings to
+    # reflect changes in the configuration this will trigger
     pop_auto_decomp = case.get_value("POP_AUTO_DECOMP")
     if pop_auto_decomp:
         nthrds_ocn = case.get_value("NTHRDS_OCN")
         ninst_ocn = case.get_value("NINST_OCN")
         ntasks = case.get_value("NTASKS_PER_INST_OCN")
         ocn_grid = case.get_value("OCN_GRID")
-        srcroot = case.get_value("SRCROOT")
 
         cmd = os.path.join(srcroot, "components", "pop", "bld", "generate_pop_decomp.pl")
         command = "%s -ccsmroot %s -res %s -nproc %s -thrds %s -output %s "  \
@@ -229,14 +220,14 @@ def buildcpp(case):
     pop_blckx   = case.get_value("POP_BLCKX")
     pop_blcky   = case.get_value("POP_BLCKY")
     pop_mxblcks = case.get_value("POP_MXBLCKS")
-    decomp_cppdefs = " -DBLCKX=%d -DBLCKY=%d -DMXBLCKS=%d" %(pop_blckx, pop_blcky, pop_mxblcks) 
+    decomp_cppdefs = " -DBLCKX=%d -DBLCKY=%d -DMXBLCKS=%d" %(pop_blckx, pop_blcky, pop_mxblcks)
 
     #----------------------------------------------------
     # determine the tracer count cpp variables, create_config_cache.xml
     # and update cppdefs accordingly
     #----------------------------------------------------
 
-    pop_cppdefs = determine_tracer_count(case, decomp_cppdefs)
+    pop_cppdefs = determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs)
 
     # Verify that config_cache.xml exists
     if not os.path.isfile(os.path.join(popconf_dir,"config_cache.xml")):

@@ -1,4 +1,3 @@
-tracer_restore_vars = ''
 ltavg_ignore_extra_streams = .true.
 n_tavg_streams = 0
 ldiag_velocity = .false.
