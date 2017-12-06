@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    6 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n140_marbl_dev_n67_cesm_pop_2_1_20171117b
+Tag Summary: Merge marbl_dev (n67) onto marbl_dev_levy
+             (Note fixed a test definition after merging previous
+             marbl_dev_levy tag to marbl_dev)
+
+Testing:     None (no change to source)
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+A  +    cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_marbl
+M       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_pop
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    1 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n139_marbl_dev_n66_cesm_pop_2_1_20171117b
 Tag Summary: A little cleanup to MARBL_settings.py
