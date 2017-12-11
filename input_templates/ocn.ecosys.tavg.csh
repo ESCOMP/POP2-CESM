@@ -24,6 +24,12 @@ set ladjust_bury_coeff   = $4
 set lvariable_PtoC       = $5
 set tracer_restore_vars  = "PO4 NO3 SiO3 ALK"
 
+set MARBL_args = "-i $CASEBUILD/popconf/marbl_diagnostics -o $CASEBUILD/popconf/ecosys_tavg_contents --low_frequency_stream $s3 --medium_frequency_stream $s1 --high_frequency_stream $s2 --append True"
+
+if ($lecosys_tavg_all == ".true.") then
+  set MARBL_args = "$MARBL_args --lMARBL_tavg_all True"
+endif
+
 if ($lecosys_tavg_all == ".false.") then
 
   cat >! $CASEBUILD/popconf/ecosys.tavg.nml << EOF
@@ -50,7 +56,7 @@ endif
 
 if ($lecosys_tavg_all == ".true.") then
 
-  cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+  cat >! $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 #  GENERAL INTERIOR DIAGNOSTICS
 1  zsatcalc
 1  zsatarag
@@ -136,65 +142,35 @@ if ($lecosys_tavg_all == ".true.") then
 1  P_iron_PROD
 1  P_iron_REMIN
 #  FORCING FIELDS
-1  ECOSYS_IFRAC
-1  ECOSYS_XKW
-1  ECOSYS_ATM_PRESS
-1  PV_O2
-1  SCHMIDT_O2
-1  O2SAT
-1  CO2STAR
-1  DCO2STAR
-1  pCO2SURF
-1  DpCO2
-1  PV_CO2
-1  SCHMIDT_CO2
-1  FG_CO2
-1  PH
-1  ATM_CO2
-1  CO2STAR_ALT_CO2
-1  DCO2STAR_ALT_CO2
-1  pCO2SURF_ALT_CO2
-1  DpCO2_ALT_CO2
-1  FG_ALT_CO2
-1  PH_ALT_CO2
 1  ATM_ALT_CO2
-1  IRON_FLUX
-1  DUST_FLUX
 1  FINE_DUST_FLUX_CPL
 1  COARSE_DUST_FLUX_CPL
 1  BLACK_CARBON_FLUX_CPL
-1  NOx_FLUX
-1  NHy_FLUX
-1  NHx_SURFACE_EMIS
-#  DUPLICATE TAVG VARS
-1  ECOSYS_IFRAC_2
-1  ECOSYS_XKW_2
-1  DpCO2_2
-1  FG_CO2_2
+#  DUPLICATE TAVG VAR
 1  STF_O2_2
 EOF
 
-  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 #  bury coefficients (only available if ladjust_bury_coeff==.true.)
 EOF
 if ($ladjust_bury_coeff == ".true.") then
-  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 1  MARBL_rmean_glo_scalar_POC_bury_coeff
 1  MARBL_rmean_glo_scalar_POP_bury_coeff
 1  MARBL_rmean_glo_scalar_bSi_bury_coeff
 EOF
 endif
 
-echo "#  River Fluxes" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+echo "#  River Fluxes" >> $CASEBUILD/popconf/ecosys_tavg_contents
   set tracer_list = ( NO3 PO4 DON DONr DOP DOPr SiO3 Fe DIC ALK DOC DOCr DIC_ALT_CO2 ALK_ALT_CO2 )
   foreach tracer ( $tracer_list )
-    echo "1  ${tracer}_RIV_FLUX" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+    echo "1  ${tracer}_RIV_FLUX" >> $CASEBUILD/popconf/ecosys_tavg_contents
   end
 
   # interior autotroph fields
-echo "#  AUTOTROPH TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+echo "#  AUTOTROPH TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
   foreach autotroph ( sp diat diaz )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 #  ${autotroph} TRACER FIELDS
 1  photoC_${autotroph}_zint
 1  photoC_NO3_${autotroph}_zint
@@ -219,12 +195,12 @@ echo "#  AUTOTROPH TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_con
 1  ${autotroph}_agg
 EOF
 if ($lvariable_PtoC == ".true.") then
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 1  ${autotroph}_Qp
 EOF
 endif
   end
-  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 1  sp_CaCO3_form_zint
 1  sp_CaCO3_form
 1  diat_SiO3_lim
@@ -236,9 +212,9 @@ endif
 1  Nfix
 EOF
 
-echo "#  ZOOPLANKTON TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+echo "#  ZOOPLANKTON TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
   foreach zooplankton ( zoo )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 #  ${zooplankton} TRACER FIELDS
 1  ${zooplankton}_loss
 1  ${zooplankton}_loss_poc
@@ -251,7 +227,7 @@ echo "#  ZOOPLANKTON TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_c
 EOF
   end
 
-echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+echo "#  TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
   set tracer_list = ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK ALK_ALT_CO2 DOC DON DOCr \
                    DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC \
                    diatFe diatSi diazChl diazC diazFe )
@@ -259,7 +235,7 @@ echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
     set tracer_list = ( $tracer_list spP diatP diazP )
   endif
   foreach tracer ( $tracer_list )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 #  ${tracer} TRACER FIELDS
 1  ${tracer}
 1  STF_${tracer}
@@ -267,7 +243,7 @@ echo "#  TRACER FIELDS" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
 1  ${tracer}_RESTORE_TEND
 EOF
   end
-  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 1  FvPER_DIC
 1  FvPER_ALK
 1  FvPER_DIC_ALT_CO2
@@ -277,29 +253,12 @@ EOF
 EOF
 
 else # ecosys not in lecosys_tavg_all mode
-  cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
-$s1  ECOSYS_ATM_PRESS
-$s1  ECOSYS_IFRAC
-$s1  ECOSYS_XKW
-$s1  SCHMIDT_O2
-$s1  SCHMIDT_CO2
-$s1  IRON_FLUX
+  cat >! $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  FINE_DUST_FLUX_CPL
 $s1  COARSE_DUST_FLUX_CPL
 $s1  BLACK_CARBON_FLUX_CPL
-$s1  NOx_FLUX
-$s1  NHy_FLUX
-$s1  NHx_SURFACE_EMIS
 $s1  STF_ALK
-$s1  PH
-$s1  O2SAT
 $s1  STF_O2
-$s1  CO2STAR
-$s1  DCO2STAR
-$s1  pCO2SURF
-$s1  DpCO2
-$s1  FG_CO2
-$s1  ATM_CO2
 $s1  FvPER_DIC
 $s1  FvICE_DIC
 $s1  FvPER_ALK
@@ -403,10 +362,6 @@ $s1  tend_zint_100m_ALK
 $s1  tend_zint_100m_O2
 $s1  tend_zint_100m_DOC
 $s2  CaCO3_form_zint
-$s2  ECOSYS_IFRAC_2
-$s2  ECOSYS_XKW_2
-$s2  DpCO2_2
-$s2  FG_CO2_2
 $s2  STF_O2_2
 $s2  zooC_zint_100m
 $s3  J_NO3
@@ -449,7 +404,7 @@ $s3  HDIFB_Fe
 EOF
 
   if ($ladjust_bury_coeff == ".true.") then
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  MARBL_rmean_glo_scalar_POC_bury_coeff
 $s1  MARBL_rmean_glo_scalar_POP_bury_coeff
 $s1  MARBL_rmean_glo_scalar_bSi_bury_coeff
@@ -462,13 +417,13 @@ EOF
     set tracer_list = ( $tracer_list DIC_ALT_CO2 ALK_ALT_CO2 )
   endif
   foreach tracer ( $tracer_list )
-    echo "$s1  ${tracer}_RIV_FLUX" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+    echo "$s1  ${tracer}_RIV_FLUX" >> $CASEBUILD/popconf/ecosys_tavg_contents
   end
 
   # generic autotroph fields
   # skip N_lim for diaz
   foreach autotroph ( sp diat diaz )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}Chl
 $s1  ${autotroph}C
 $s1  ${autotroph}Fe
@@ -491,13 +446,13 @@ $s2  ${autotroph}C_zint_100m
 $s2  ${autotroph}Chl_SURF
 EOF
 if ($lvariable_PtoC == ".true.") then
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}P
 $s1  ${autotroph}_Qp
 EOF
 endif
     if !($autotroph == diaz) then
-      cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+      cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}_N_lim
 EOF
     endif
@@ -505,14 +460,14 @@ EOF
 
   # Nfix terms from N fixers 
   foreach autotroph ( diaz )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}_Nfix
 EOF
   end
 
   # CaCO3 terms from calcifiers 
   foreach autotroph ( sp )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}CaCO3
 $s2  ${autotroph}CaCO3_zint_100m
 EOF
@@ -520,7 +475,7 @@ EOF
 
   # Si terms from silicifiers
   foreach autotroph ( diat )
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}Si
 $s1  ${autotroph}_SiO3_lim
 EOF
@@ -528,15 +483,11 @@ EOF
 
   # restoring terms for tracers that have restoring enabled
   foreach tracer_restore_var ( `echo $tracer_restore_vars | tr ',' ' '` )
-    echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents
+    echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEBUILD/popconf/ecosys_tavg_contents
   end
 
   if ($lecosys_tavg_alt_co2 == ".true.") then
-cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
-$s1  PH_ALT_CO2
-$s1  DCO2STAR_ALT_CO2
-$s1  DpCO2_ALT_CO2
-$s1  FG_ALT_CO2
+cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ATM_ALT_CO2
 $s1  DIC_ALT_CO2
 $s1  ALK_ALT_CO2
@@ -559,7 +510,7 @@ EOF
 
   # include these budget check fields when doing development
   if ( 1 ) then
-    cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  Jint_Ctot
 $s1  Jint_100m_Ctot
 $s1  Jint_Ntot
@@ -588,4 +539,22 @@ EOF
 #1  Jint_diatC
 #1  Jint_diatChl
 #1  Jint_zooC
+endif
+
+# Add MARBL diagnostics to tavg_contents
+$CASEBUILD/popconf/MARBL_diags_to_tavg.py $MARBL_args
+
+if ($lecosys_tavg_all == ".true.") then
+  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
+1  CO2STAR_ALT_CO2
+1  DCO2STAR_ALT_CO2
+1  DpCO2_2
+1  DpCO2_ALT_CO2
+1  ECOSYS_IFRAC_2
+1  ECOSYS_XKW_2
+1  FG_ALT_CO2
+1  FG_CO2_2
+1  PH_ALT_CO2
+1  pCO2SURF_ALT_CO2
+EOF
 endif

@@ -1,1 +1,2 @@
 from MARBL_settings import MARBL_settings_for_POP
+from MARBL_diagnostics import MARBL_diagnostics_for_POP

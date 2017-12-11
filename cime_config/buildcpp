@@ -108,7 +108,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
                 sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
                 from MARBL_settings_wrapper import MARBL_settings_for_POP
-                MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, srcroot, ocn_grid,
+                MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, ocn_grid,
                                        case.get_value("RUN_TYPE"), case.get_value("CONTINUE_RUN"))
                 # (ii) get MARBL_NT
                 MARBL_NT = MARBL_settings.get_MARBL_NT()

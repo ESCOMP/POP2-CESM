@@ -114,11 +114,10 @@ def buildnml(case, caseroot, compname):
             # ------------------------------------------------------------------------------
 
             # (i) Import MARBL_settings_wrapper and generate MARBL_settings_for_POP object
-            MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
-            sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
+            MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
+            sys.path.append(os.path.join(srcroot, "components", "pop", "cime_config"))
             from MARBL_settings_wrapper import MARBL_settings_for_POP
-            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, srcroot, ocn_grid, run_type,
-                                   continue_run)
+            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, ocn_grid, run_type, continue_run)
 
             # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
             #      Abort if values do not match
@@ -132,6 +131,25 @@ def buildnml(case, caseroot, compname):
 
             # (iii) write settings file
             MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
+
+            # ------------------------------------------------------------------------------
+            # call MARBL's tool to generate a tavg_contents_file
+            # output will go to CASEROOT/Buildconf/popconf/marbl_tavg
+            # (which will then be used by ocn.tavg.ecosys.csh)
+            # ------------------------------------------------------------------------------
+
+            # (i) Import MARBL_diags_wrapper and generate MARBL_diagnostics_for_POP object
+            from MARBL_settings_wrapper import MARBL_diagnostics_for_POP
+            MARBL_diagnostics = MARBL_diagnostics_for_POP(MARBL_dir, caseroot, MARBL_settings)
+
+            # (ii) write diagnostics file
+            MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "marbl_diagnostics"))
+
+            # (iii) copy MARBL_diags_to_tavg.py to popconf
+            MARBL_diags_script = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_diags_to_tavg.py")
+            if not os.path.isfile(MARBL_diags_script):
+                MARBL_diags_script = os.path.join(srcroot, "components", "pop", "cime_config", "MARBL_settings_wrapper", "MARBL_diags_to_tavg.py")
+            shutil.copy(MARBL_diags_script, os.path.join(confdir, "MARBL_diags_to_tavg.py"))
 
         # determine instance string
         if ninst > 1:

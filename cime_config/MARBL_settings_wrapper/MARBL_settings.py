@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-
 """ Interface to the marbl_settings_class object
 """
 
 class MARBL_settings_for_POP(object):
-    def __init__(self, MARBL_dir, caseroot, srcroot, ocn_grid, run_type, continue_run):
+    def __init__(self, MARBL_dir, caseroot, ocn_grid, run_type, continue_run):
 
         import sys, os
 
