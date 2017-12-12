@@ -78,16 +78,27 @@
 
    integer (int_kind) :: &
       tavg_EVAP_F,       &! tavg id for evaporation flux
+      tavg_EVAP_F_2,       &! tavg id for evaporation flux
       tavg_PREC_F,       &! tavg id for precipitation flux (rain + snow)
+      tavg_PREC_F_2,       &! tavg id for precipitation flux (rain + snow)
       tavg_SNOW_F,       &! tavg id for snow          flux
+      tavg_SNOW_F_2,       &! tavg id for snow          flux
       tavg_MELT_F,       &! tavg id for melt          flux
+      tavg_MELT_F_2,       &! tavg id for melt          flux
       tavg_ROFF_F,       &! tavg id for river runoff  flux
+      tavg_ROFF_F_2,       &! tavg id for river runoff  flux
       tavg_IOFF_F,       &! tavg id for ice   runoff  flux due to land-model snow capping
+      tavg_IOFF_F_2,       &! tavg id for ice   runoff  flux due to land-model snow capping
       tavg_SALT_F,       &! tavg id for salt          flux
+      tavg_SALT_F_2,       &! tavg id for salt          flux
       tavg_SENH_F,       &! tavg id for sensible heat flux
+      tavg_SENH_F_2,       &! tavg id for sensible heat flux
       tavg_LWUP_F,       &! tavg id for longwave heat flux up
+      tavg_LWUP_F_2,       &! tavg id for longwave heat flux up
       tavg_LWDN_F,       &! tavg id for longwave heat flux dn
+      tavg_LWDN_F_2,       &! tavg id for longwave heat flux dn
       tavg_MELTH_F,      &! tavg id for melt     heat flux
+      tavg_MELTH_F_2,      &! tavg id for melt     heat flux
       tavg_IFRAC          ! tavg id for ice fraction
 
 #endif
@@ -424,7 +435,15 @@
                           long_name='Evaporation Flux from Coupler',           &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_EVAP_F_2,'EVAP_F_2',2,                              &
+                          long_name='Evaporation Flux from Coupler',           &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_PREC_F,'PREC_F',2,                              &
+                          long_name='Precipitation Flux from Cpl (rain+snow)', &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_PREC_F_2,'PREC_F_2',2,                              &
                           long_name='Precipitation Flux from Cpl (rain+snow)', &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
@@ -432,7 +451,15 @@
                           long_name='Snow Flux from Coupler',                  &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_SNOW_F_2,'SNOW_F_2',2,                              &
+                          long_name='Snow Flux from Coupler',                  &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_MELT_F,'MELT_F',2,                              &
+                          long_name='Melt Flux from Coupler',                  &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_MELT_F_2,'MELT_F_2',2,                              &
                           long_name='Melt Flux from Coupler',                  &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
@@ -440,7 +467,15 @@
                           long_name='Runoff Flux from Coupler',                &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_ROFF_F_2,'ROFF_F_2',2,                              &
+                          long_name='Runoff Flux from Coupler',                &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_IOFF_F,'IOFF_F',2,                              &
+                          long_name='Ice Runoff Flux from Coupler due to Land-Model Snow Capping',            &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_IOFF_F_2,'IOFF_F_2',2,                              &
                           long_name='Ice Runoff Flux from Coupler due to Land-Model Snow Capping',            &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
@@ -448,7 +483,15 @@
                           long_name='Salt Flux from Coupler (kg of salt/m^2/s)',&
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_SALT_F_2,'SALT_F_2',2,                              &
+                          long_name='Salt Flux from Coupler (kg of salt/m^2/s)',&
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_SENH_F,'SENH_F',2,                              &
+                          long_name='Sensible Heat Flux from Coupler',         &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_SENH_F_2,'SENH_F_2',2,                              &
                           long_name='Sensible Heat Flux from Coupler',         &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
@@ -456,11 +499,23 @@
                           long_name='Longwave Heat Flux (up) from Coupler',    &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_LWUP_F_2,'LWUP_F_2',2,                              &
+                          long_name='Longwave Heat Flux (up) from Coupler',    &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_LWDN_F,'LWDN_F',2,                              &
                           long_name='Longwave Heat Flux (dn) from Coupler',    &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_LWDN_F_2,'LWDN_F_2',2,                              &
+                          long_name='Longwave Heat Flux (dn) from Coupler',    &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_MELTH_F,'MELTH_F',2,                            &
+                          long_name='Melt Heat Flux from Coupler',             &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_MELTH_F_2,'MELTH_F_2',2,                            &
                           long_name='Melt Heat Flux from Coupler',             &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
@@ -1080,16 +1135,27 @@
       this_block = get_block(blocks_clinic(iblock),iblock)
 
          call accumulate_tavg_field(EVAP_F(:,:,iblock), tavg_EVAP_F,iblock,1)
+         call accumulate_tavg_field(EVAP_F(:,:,iblock), tavg_EVAP_F_2,iblock,1)
          call accumulate_tavg_field(PREC_F(:,:,iblock), tavg_PREC_F,iblock,1)
+         call accumulate_tavg_field(PREC_F(:,:,iblock), tavg_PREC_F_2,iblock,1)
          call accumulate_tavg_field(SNOW_F(:,:,iblock), tavg_SNOW_F,iblock,1)
+         call accumulate_tavg_field(SNOW_F(:,:,iblock), tavg_SNOW_F_2,iblock,1)
          call accumulate_tavg_field(MELT_F(:,:,iblock), tavg_MELT_F,iblock,1)
+         call accumulate_tavg_field(MELT_F(:,:,iblock), tavg_MELT_F_2,iblock,1)
          call accumulate_tavg_field(ROFF_F(:,:,iblock), tavg_ROFF_F,iblock,1)
+         call accumulate_tavg_field(ROFF_F(:,:,iblock), tavg_ROFF_F_2,iblock,1)
          call accumulate_tavg_field(IOFF_F(:,:,iblock), tavg_IOFF_F,iblock,1)
+         call accumulate_tavg_field(IOFF_F(:,:,iblock), tavg_IOFF_F_2,iblock,1)
          call accumulate_tavg_field(SALT_F(:,:,iblock), tavg_SALT_F,iblock,1)
+         call accumulate_tavg_field(SALT_F(:,:,iblock), tavg_SALT_F_2,iblock,1)
          call accumulate_tavg_field(SENH_F(:,:,iblock), tavg_SENH_F,iblock,1)
+         call accumulate_tavg_field(SENH_F(:,:,iblock), tavg_SENH_F_2,iblock,1)
          call accumulate_tavg_field(LWUP_F(:,:,iblock), tavg_LWUP_F,iblock,1)
+         call accumulate_tavg_field(LWUP_F(:,:,iblock), tavg_LWUP_F_2,iblock,1)
          call accumulate_tavg_field(LWDN_F(:,:,iblock), tavg_LWDN_F,iblock,1)
+         call accumulate_tavg_field(LWDN_F(:,:,iblock), tavg_LWDN_F_2,iblock,1)
          call accumulate_tavg_field(MELTH_F(:,:,iblock),tavg_MELTH_F,iblock,1)
+         call accumulate_tavg_field(MELTH_F(:,:,iblock),tavg_MELTH_F_2,iblock,1)
          call accumulate_tavg_field(IFRAC(:,:,iblock),  tavg_IFRAC,iblock,1)
    end do
 

@@ -66,6 +66,15 @@
      tavg_SU,            &! tavg id for vertically-integrated U
      tavg_SV              ! tavg id for vertically-integrated V
 
+!.. temporary support for model verification runs
+   integer (int_kind) :: &
+     tavg_UBTROP,        &! tavg id for UBTROP
+     tavg_VBTROP          ! tavg id for VBTROP
+
+   integer (int_kind) :: &
+     tavg_GRADPX,        &! tavg id for GRADPX
+     tavg_GRADPY          ! tavg id for GRADPY
+
 !-----------------------------------------------------------------------
 !
 !  nullspace removal
@@ -159,6 +168,33 @@
            long_name='Vertically Integrated Velocity in grid-y direction', &
                           units='centimeter^2/s', grid_loc='2221',         &
                           field_type = field_type_vector,                   &
+                          coordinates='ULONG ULAT time')
+
+!-----------------------------------------------------------------------
+!
+!  define tavg handles for UBTROP,VBTROP,GRADPX, and GRADPY -- used 
+!     in model verification runs
+!
+!-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_UBTROP,'UBTROP',2,                              &
+                          long_name='Barotropic Velocity in grid-x direction', &
+                          units='centimeter/s', grid_loc='2221',               &
+                          coordinates='ULONG ULAT time')
+
+   call define_tavg_field(tavg_VBTROP,'VBTROP',2,                              &
+                          long_name='Barotropic Velocity in grid-y direction', &
+                          units='centimeter/s', grid_loc='2221',               &
+                          coordinates='ULONG ULAT time')
+
+   call define_tavg_field(tavg_GRADPX,'GRADPX',2,                                    &
+                          long_name='Surface Pressure Gradient in grid-x direction', &
+                          units=' ', grid_loc='2221',                     &
+                          coordinates='ULONG ULAT time')
+
+   call define_tavg_field(tavg_GRADPY,'GRADPY',2,                                    &
+                          long_name='Surface Pressure Gradient in grid-y direction', &
+                          units=' ', grid_loc='2221',                     &
                           coordinates='ULONG ULAT time')
 
 !-----------------------------------------------------------------------
@@ -691,6 +727,18 @@
       call accumulate_tavg_field(HU(:,:,iblock)*             &
                                  VBTROP(:,:,curtime,iblock), &
                                  tavg_SV, iblock, 1)
+
+      call accumulate_tavg_field(UBTROP(:,:,curtime,iblock), &
+                                 tavg_UBTROP, iblock, 1)
+
+      call accumulate_tavg_field(VBTROP(:,:,curtime,iblock), &
+                                 tavg_VBTROP, iblock, 1)
+
+      call accumulate_tavg_field(GRADPX(:,:,curtime,iblock), &
+                                 tavg_GRADPX, iblock, 1)
+
+      call accumulate_tavg_field(GRADPY(:,:,curtime,iblock), &
+                                 tavg_GRADPY, iblock, 1)
 
    end do ! block loop
 

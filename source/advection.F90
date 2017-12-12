@@ -142,6 +142,7 @@
 
    integer (int_kind) :: &
       tavg_WVEL,         &! Vertical Velocity
+      tavg_WVEL_2,       &! Vertical Velocity		
       tavg_WVEL2,        &! Vertical Velocity Squared
       tavg_UEU,          &! flux of zonal momentum across east  face
       tavg_VNU,          &! flux of zonal momentum across north face
@@ -713,6 +714,11 @@
 !-----------------------------------------------------------------------
 
    call define_tavg_field(tavg_WVEL,'WVEL',3,                          &
+                          long_name='Vertical Velocity',               &
+                          units='centimeter/s', grid_loc='3112',       &
+                          coordinates='TLONG TLAT z_w time')
+
+   call define_tavg_field(tavg_WVEL_2,'WVEL_2',3,                          &
                           long_name='Vertical Velocity',               &
                           units='centimeter/s', grid_loc='3112',       &
                           coordinates='TLONG TLAT z_w time')
@@ -1688,6 +1694,7 @@
       endif
 
       call accumulate_tavg_field(WTK,tavg_WVEL,bid,k)
+      call accumulate_tavg_field(WTK,tavg_WVEL_2,bid,k)
       call accumulate_tavg_field(WTK**2,tavg_WVEL2,bid,k)
 
       do n=1,nt

@@ -753,6 +753,8 @@
         call ice_flx_to_coupler(TRACER(:,:,:,:,curtime,iblock),iblock)
         call accumulate_tavg_field(QFLUX(:,:,iblock), tavg_id('QFLUX'),  &
                                    iblock,1,const=tlast_ice)
+        call accumulate_tavg_field(QFLUX(:,:,iblock), tavg_id('QFLUX_2'),  &
+                                   iblock,1,const=tlast_ice)
                                    
      end do ! block loop
      !$OMP END PARALLEL DO
