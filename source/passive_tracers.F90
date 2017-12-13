@@ -160,11 +160,11 @@
 
    logical (log_kind) ::  &
       ecosys_on, cfc_on, sf6_on, iage_on,&
-      abio_dic_dic14_on, ciso_on, IRF_on
+      abio_dic_dic14_on, IRF_on
 
    namelist /passive_tracers_on_nml/  &
       ecosys_on, cfc_on, sf6_on, iage_on, &
-      abio_dic_dic14_on, ciso_on, IRF_on
+      abio_dic_dic14_on, IRF_on
 
 
 !-----------------------------------------------------------------------
@@ -259,7 +259,6 @@
    call register_string('init_passive_tracers')
 
    ecosys_on         = .false.
-   ciso_on           = .false.
    cfc_on            = .false.
    sf6_on            = .false.
    iage_on           = .false.
@@ -297,20 +296,11 @@
 
 
    call broadcast_scalar(ecosys_on,         master_task)
-   call broadcast_scalar(ciso_on,           master_task)
    call broadcast_scalar(cfc_on,            master_task)
    call broadcast_scalar(sf6_on,            master_task)
    call broadcast_scalar(iage_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
    call broadcast_scalar(IRF_on,            master_task)
-
-!-----------------------------------------------------------------------
-!  check if ecosys_on = true if ciso_on = true, otherwise abort
-!-----------------------------------------------------------------------
-
-   if (ciso_on .and. .not. ecosys_on) then
-      call exit_POP(sigAbort,'ecosys_ciso (ciso_on) module requires the ecosys module (ecosys_on)')
-   end if
 
 !-----------------------------------------------------------------------
 !  check for modules that require the flux coupler
@@ -402,7 +392,6 @@
    if (ecosys_on) then
       call ecosys_driver_init(                                                           &
            ecosys_driver_ind_begin,                                                      &
-           ciso_on,                                                                      &
            init_ts_file_fmt,                                                             &
            read_restart_filename,                                                        &
            tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end),                      &

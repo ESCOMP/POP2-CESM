@@ -77,12 +77,12 @@ module ecosys_tracers_and_saved_state_mod
   character(char_len), target :: init_ecosys_option           ! namelist option for initialization of bgc
   character(char_len), target :: init_ecosys_init_file        ! filename for option 'file'
   character(char_len), target :: init_ecosys_init_file_fmt    ! file format for option 'file'
-  type(tracer_read),   target :: tracer_init_ext(ECOSYS_BASE_NT) ! namelist variable for initializing tracers
+  type(tracer_read),   target :: tracer_init_ext(MARBL_NT) ! namelist variable for initializing tracers
 
   character(char_len), target :: ciso_init_ecosys_option        ! option for initialization of bgc
   character(char_len), target :: ciso_init_ecosys_init_file     ! filename for option 'file'
   character(char_len), target :: ciso_init_ecosys_init_file_fmt ! file format for option 'file'
-  type(tracer_read),   target :: ciso_tracer_init_ext(CISO_NT) ! namelist variable for initializing tracers
+  type(tracer_read),   target :: ciso_tracer_init_ext(MARBL_NT) ! namelist variable for initializing tracers
 
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: ecosys_tracers_and_saved_state_init

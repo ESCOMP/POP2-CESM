@@ -149,7 +149,6 @@ contains
 
   subroutine ecosys_driver_init( &
        ecosys_driver_ind_begin,  &
-       ciso_active_flag,         &
        init_ts_file_fmt,         &
        read_restart_filename,    &
        tracer_d_module,          &
@@ -185,7 +184,6 @@ contains
 
     integer (int_kind)       , intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
                                                                         ! array, passed through to rest_read_tracer_block
-    logical                  , intent(in)    :: ciso_active_flag      ! set ciso_on
     character (*)            , intent(in)    :: init_ts_file_fmt      ! format (bin or nc) for input file
     character (*)            , intent(in)    :: read_restart_filename ! file name for restart file
     type (tracer_field_type) , intent(inout) :: tracer_d_module(:)    ! descriptors for each tracer
@@ -205,7 +203,7 @@ contains
     integer(int_kind), parameter :: pop_in_tot_len    = 262144
     integer(int_kind), parameter :: pop_in_nl_max_len = 32768
     integer(int_kind), parameter :: pop_in_nl_cnt     = 256
-    integer(int_kind), parameter :: marbl_in_line_cnt = 512
+    integer(int_kind), parameter :: marbl_in_line_cnt = 1024
 
     character(len=*), parameter      :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)              :: log_message
@@ -224,7 +222,7 @@ contains
     integer (int_kind)               :: glo_avg_field_cnt
     real (r8)                        :: rmean_val
     ! Variables for processing namelists
-    character(len=*), parameter      :: marbl_nml_filename='marbl_in'
+    character (char_len)             :: marbl_settings_file                  ! name of file containing MARBL settings
     character(len=pop_in_nl_max_len) :: nl_buffer(pop_in_nl_cnt)
     character(len=pop_in_nl_max_len) :: tmp_nl_buffer
     character(len=256)               :: marbl_nl_buffer(marbl_in_line_cnt)
@@ -239,14 +237,15 @@ contains
     !-----------------------------------------------------------------------
 
     namelist /ecosys_driver_nml/ &
-         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
+         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const, &
+         marbl_settings_file
 
     errorCode = POP_Success
-    ciso_on   = ciso_active_flag
 
-    lmarginal_seas        = .true.
-    ecosys_tadvect_ctype  = 'base_model'
-    ecosys_qsw_distrb_const = .true.
+    lmarginal_seas            = .true.
+    ecosys_tadvect_ctype      = 'base_model'
+    ecosys_qsw_distrb_const   = .true.
+    marbl_settings_file       = 'marbl_in'
 
     ! -----------------------------
     ! Read pop namelist into string
@@ -302,6 +301,28 @@ contains
     ! (e) process namelist string to store in nl_buffer
     call namelist_split_by_nl(nl_str, nl_buffer)
 
+    ! (f) read ecosys_driver_nml
+    tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_driver_nml')
+    read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
+    if (nml_error /= 0) then
+       write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
+       call exit_POP(sigAbort, 'ERROR reading ecosys_driver_nml from buffer.')
+    end if
+
+    ! (g) Output namelist to log
+    if (my_task == master_task) then
+       write(stdout,*)
+       write(stdout,ndelim_fmt)
+       write(stdout,*)
+       write(stdout,*) ' ecosys_driver:'
+       write(stdout,*)
+       write(stdout,*) ' ecosys_driver_nml namelist settings:'
+       write(stdout,*)
+       write(stdout,ecosys_driver_nml)
+       write(stdout,*)
+       write(stdout,delim_fmt)
+    endif
+
     ! ---------------------
     ! Read marbl input file
     ! ---------------------
@@ -313,7 +334,7 @@ contains
     ! (b) Only master task reads
     if (my_task == master_task) then
        ! read the marbl_in into buffer
-       open(unit=nml_in, file=marbl_nml_filename, action='read', access='stream', &
+       open(unit=nml_in, file=marbl_settings_file, action='read', access='stream', &
             form='unformatted', iostat=nml_error)
        if (nml_error == 0) then
           read(unit=nml_in, iostat=nml_error, iomsg=ioerror_msg) nl_str
@@ -324,7 +345,7 @@ contains
                   ": IO ERROR reading namelist file into buffer: ", nml_error
              write(stdout, '(a)') ioerror_msg
           else
-             write(stdout, '(a, a, a)') "Read '", trim(marbl_nml_filename), "' until EOF."
+             write(stdout, '(a, a, a)') "Read '", trim(marbl_settings_file), "' until EOF."
           end if
 
           write(stdout, '(a, a, i7, a)') subname, ": Read buffer of ", &
@@ -336,7 +357,7 @@ contains
           write(stdout, '(a)') "  the buffer size if necessary."
        else
           write(stdout, '(a, a, i8, a, a)') subname, ": IO ERROR ", nml_error, &
-               "opening namelist file : ", trim(marbl_nml_filename)
+               "opening namelist file : ", trim(marbl_settings_file)
        end if
        close(nml_in)
     end if
@@ -358,27 +379,6 @@ contains
 
     ! now every process reads the namelists from the buffer
     ioerror_msg=''
-
-    ! ecosys_driver_nml
-    tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_driver_nml')
-    read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
-    if (nml_error /= 0) then
-       write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
-       call exit_POP(sigAbort, 'ERROR reading ecosys_driver_nml from buffer.')
-    end if
-
-    if (my_task == master_task) then
-       write(stdout,*)
-       write(stdout,ndelim_fmt)
-       write(stdout,*)
-       write(stdout,*) ' ecosys_driver:'
-       write(stdout,*)
-       write(stdout,*) ' ecosys_driver_nml namelist settings:'
-       write(stdout,*)
-       write(stdout,ecosys_driver_nml)
-       write(stdout,*)
-       write(stdout,delim_fmt)
-    endif
 
     !-----------------------------------------------------------------------
     !  timer init
@@ -425,8 +425,7 @@ contains
             gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
-            lgcm_has_global_ops = .true.,                                     &
-            marbl_tracer_cnt = marbl_actual_tracer_cnt)
+            lgcm_has_global_ops = .true.)
 
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, ")%init()"
@@ -435,16 +434,20 @@ contains
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
 
-       ! Make sure MARBL tracer count lines up with what POP expects
-       if (marbl_actual_tracer_cnt.ne.ecosys_tracer_cnt) then
-         write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
-                    marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
-                    ecosys_tracer_cnt
-         call document(subname, log_message)
-         call exit_POP(sigAbort, 'Stopping in ' // subname)
-       end if
-
     end do
+
+    ! Is ciso enabled in this run?
+    call marbl_instances(1)%get_setting('ciso_on', ciso_on)
+    marbl_actual_tracer_cnt = size(marbl_instances(1)%tracer_metadata)
+
+    ! Make sure MARBL tracer count lines up with what POP expects
+    if (marbl_actual_tracer_cnt.ne.ecosys_tracer_cnt) then
+      write(log_message,"(A,I0,A,I0)") 'MARBL is computing tendencies for ', &
+                 marbl_actual_tracer_cnt, ' tracers, but POP is expecting ', &
+                 ecosys_tracer_cnt
+      call document(subname, log_message)
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
 
     !--------------------------------------------------------------------
     !  Initialize ecosys tracers and saved state
