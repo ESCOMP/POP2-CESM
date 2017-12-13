@@ -103,6 +103,11 @@ def buildnml(case, caseroot, compname):
     inst_counter = 1;
     inst_string = ""
     while (inst_counter <= ninst):
+        # determine instance string
+        if ninst > 1:
+            inst_string = '_' + '%04d' % inst_counter
+
+
         # Get use_ecosys from config_cache.xml; only need marbl_in if TRUE
         config_cache_file = GenericXML(infile=os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml"))
         use_ecosys = config_cache_file.get_optional_node("entry", attributes={"id":"use_ecosys"}).get("value")
@@ -117,7 +122,7 @@ def buildnml(case, caseroot, compname):
             MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
             sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
             from MARBL_settings_wrapper import MARBL_settings_for_POP
-            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, srcroot, ocn_grid, run_type,
+            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, srcroot, ocn_grid, run_type,
                                    continue_run)
 
             # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
@@ -132,10 +137,6 @@ def buildnml(case, caseroot, compname):
 
             # (iii) write settings file
             MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
-
-        # determine instance string
-        if ninst > 1:
-            inst_string = '_' + '%04d' % inst_counter
 
         # If multi-instance = case does not have restart file,
         # use single-= case restart for each instance
