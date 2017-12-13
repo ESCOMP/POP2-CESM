@@ -211,16 +211,17 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances)
+  subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, STF, marbl_instances)
 
     ! Accumulate diagnostics for surface fluxes
 
-    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
+    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt, o2_ind
     use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
 
     implicit none
 
     real (r8)                  , intent(in) :: surface_forcing_diags (:, :, :, :)
+    real (r8)                  , intent(in) :: STF(:,:,:,:)
     type(marbl_interface_class), intent(in) :: marbl_instances(:)
 
     !-----------------------------------------------------------------------
@@ -248,8 +249,7 @@ contains
        call accumulate_tavg_field(surface_forcing_diags(:,:,ind%ECOSYS_XKW,iblock),   &
             tavg_ECOSYS_XKW_2, iblock, 1)
 
-       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%O2_GAS_FLUX,iblock),  &
-            tavg_O2_GAS_FLUX_2, iblock, 1)
+       call accumulate_tavg_field(STF(:,:,o2_ind,iblock), tavg_O2_GAS_FLUX_2, iblock, 1)
 
        call accumulate_tavg_field(surface_forcing_diags(:,:,ind%DpCO2,iblock),        &
             tavg_DpCO2_2, iblock, 1)

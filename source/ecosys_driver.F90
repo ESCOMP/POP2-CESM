@@ -52,7 +52,7 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
-  use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
+  use ecosys_tracers_and_saved_state_mod, only : o2_ind, no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
   ! Provide marbl_tracer_cnt to passive_tracers.F90 (as ecosys_tracer_cnt)
@@ -502,6 +502,7 @@ contains
     di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
     di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
 
+    o2_ind    = marbl_instances(1)%get_tracer_index('O2')
     no3_ind   = marbl_instances(1)%get_tracer_index('NO3')
     po4_ind   = marbl_instances(1)%get_tracer_index('PO4')
     don_ind   = marbl_instances(1)%get_tracer_index('DON')
@@ -1306,12 +1307,13 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_tavg_forcing()
+  subroutine ecosys_driver_tavg_forcing(stf_module)
 
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
+    real (r8), dimension(:,:,:,:), intent(in) :: stf_module
 
-    call ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances(:))
+    call ecosys_tavg_accumulate_surface(surface_forcing_diags, stf_module(:,:,:,:), marbl_instances(:))
 
   end subroutine ecosys_driver_tavg_forcing
 
