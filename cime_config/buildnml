@@ -120,7 +120,7 @@ def buildnml(case, caseroot, compname):
 
             # (i) Import MARBL_wrappers and generate MARBL_settings_for_POP object
             MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
-            sys.path.append(os.path.join(srcroot, "components", "pop", "cime_config"))
+            sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
             from MARBL_wrappers import MARBL_settings_for_POP
             MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
                                                     run_type, continue_run)
@@ -154,7 +154,7 @@ def buildnml(case, caseroot, compname):
             # (iii) copy MARBL_diags_to_tavg.py to popconf
             MARBL_diags_script = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_diags_to_tavg.py")
             if not os.path.isfile(MARBL_diags_script):
-                MARBL_diags_script = os.path.join(srcroot, "components", "pop", "cime_config", "MARBL_wrappers", "MARBL_diags_to_tavg.py")
+                MARBL_diags_script = os.path.join(srcroot, "components", "pop", "MARBL_scripts", "MARBL_diags_to_tavg.py")
             shutil.copy(MARBL_diags_script, os.path.join(confdir, "MARBL_diags_to_tavg.py"))
 
         # If multi-instance = case does not have restart file,
