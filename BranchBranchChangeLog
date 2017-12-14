@@ -1,6 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    14 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n144_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Merge in marbl_dev_n69
+
+Testing:     aux_pop_MARBL on hobart (nag, intel, pgi), all tests pass except
+             NLCOMP tests fail (new variable in pop_in) and new SMS_N2_Ld3
+             test does not have baseline for comparison.
+
+Files Modified:
+M       BranchChangeLog
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/MARBL_wrappers/MARBL_settings.py
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_multiinst_lsource_sink
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n143_marbl_dev_n67_cesm_pop_2_1_20171117b
 Tag Summary: No longer receiving STF_O2 from marbl_diags, what also affects

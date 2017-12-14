@@ -138,6 +138,12 @@
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso_daily_r4_tavg">cheyenne</machine>
         <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso">hobart</machine>
       </test>
+      <test name="SMS_N2_Ld3">
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_multiinst_lsource_sink">hobart</machine>
+      </test>
+      <test name="SMS_N2_Ld3_P144x1">
+        <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_multiinst_lsource_sink">cheyenne</machine>
+      </test>
       <test name="SMS_P15x1_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
       </test>

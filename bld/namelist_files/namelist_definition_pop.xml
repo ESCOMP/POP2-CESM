@@ -6462,6 +6462,14 @@ group="ecosys_driver_nml" >
 Default:
 </entry>
 
+<entry
+id="marbl_settings_file"
+type="char*256"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 'marbl_in' for single instance, 'marbl_in_####' for multi-instance.
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: irf_nml                  - -->
 <!-- - - - - - - - - - - - - - - - - - -->

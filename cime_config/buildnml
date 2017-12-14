@@ -103,6 +103,11 @@ def buildnml(case, caseroot, compname):
     inst_counter = 1;
     inst_string = ""
     while (inst_counter <= ninst):
+        # determine instance string
+        if ninst > 1:
+            inst_string = '_' + '%04d' % inst_counter
+
+
         # Get use_ecosys from config_cache.xml; only need marbl_in if TRUE
         config_cache_file = GenericXML(infile=os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml"))
         use_ecosys = config_cache_file.get_optional_node("entry", attributes={"id":"use_ecosys"}).get("value")
@@ -117,7 +122,8 @@ def buildnml(case, caseroot, compname):
             MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
             sys.path.append(os.path.join(srcroot, "components", "pop", "cime_config"))
             from MARBL_wrappers import MARBL_settings_for_POP
-            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, caseroot, ocn_grid, run_type, continue_run)
+            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
+                                                    run_type, continue_run)
 
             # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
             #      Abort if values do not match
@@ -150,10 +156,6 @@ def buildnml(case, caseroot, compname):
             if not os.path.isfile(MARBL_diags_script):
                 MARBL_diags_script = os.path.join(srcroot, "components", "pop", "cime_config", "MARBL_wrappers", "MARBL_diags_to_tavg.py")
             shutil.copy(MARBL_diags_script, os.path.join(confdir, "MARBL_diags_to_tavg.py"))
-
-        # determine instance string
-        if ninst > 1:
-            inst_string = '_' + '%04d' % inst_counter
 
         # If multi-instance = case does not have restart file,
         # use single-= case restart for each instance
