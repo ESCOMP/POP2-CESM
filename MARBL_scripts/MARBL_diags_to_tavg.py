@@ -55,14 +55,23 @@ def _parse_line(line_in):
     line_loc = line_in.split('#')[0].strip()
     # Return None, None if line is empty
     if len(line_loc) == 0:
-        return None, None
+        return None, None, None
 
     logger = logging.getLogger("__name__")
     line_split = line_loc.split(':')
     if len(line_split) == 1:
-        logger.error("Can not determine frequency from following line: '%s'" % line_in)
+        logger.error("Can not determine frequency and operator from following line: '%s'" % line_in)
         sys.exit(1)
-    return line_split[0].strip(), line_split[1].split(',')
+    freq = []
+    op = []
+    for freq_op in line_split[1].split(','):
+        freq_op_split = freq_op.strip().split('_')
+        if len(freq_op_split) != 2:
+            logger.error("Can not determine frequency and operator from following entry: '%s'" % line_split[1])
+            return None, None, None
+        freq.append(freq_op_split[0])
+        op.append(freq_op_split[1])
+    return line_split[0].strip(), freq, op
 
 #######################################
 
@@ -121,7 +130,7 @@ def diagnostics_to_tavg(MARBL_diagnostics_in, tavg_contents_out, lMARBL_tavg_all
     with open(MARBL_diagnostics_in, 'r') as file_in:
         all_lines = file_in.readlines()
     for line in all_lines:
-        varname, frequency = _parse_line(line.strip())
+        varname, frequency, operator = _parse_line(line.strip())
         if varname != None:
             if lMARBL_tavg_all:
                 outstream.write('1  %s\n' % varname)
