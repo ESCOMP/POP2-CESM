@@ -229,7 +229,6 @@ contains
     character(len=256)               :: marbl_var, marbl_type, marbl_val
     character(len=pop_in_tot_len)    :: nl_str
     character(char_len_long)         :: ioerror_msg
-    integer(int_kind)                :: marbl_nml_in
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
