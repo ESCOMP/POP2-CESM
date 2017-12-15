@@ -24,7 +24,7 @@ set ladjust_bury_coeff   = $4
 set lvariable_PtoC       = $5
 set tracer_restore_vars  = "PO4 NO3 SiO3 ALK"
 
-set MARBL_args = "-i $CASEBUILD/popconf/marbl_diagnostics -o $CASEBUILD/popconf/ecosys_tavg_contents --low_frequency_stream $s3 --medium_frequency_stream $s1 --high_frequency_stream $s2 --append True"
+set MARBL_args = "-i $CASEBUILD/popconf/marbl_diagnostics -t $CASEBUILD/popconf/ecosys_tavg_contents -o $CASEBUILD/popconf/marbl_diagnostics_operators --low_frequency_stream $s3 --medium_frequency_stream $s1 --high_frequency_stream $s2 --append True"
 
 if ($lecosys_tavg_all == ".true.") then
   set MARBL_args = "$MARBL_args --lMARBL_tavg_all True"
@@ -548,10 +548,7 @@ if ($lecosys_tavg_all == ".true.") then
   cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 1  CO2STAR_ALT_CO2
 1  DCO2STAR_ALT_CO2
-1  DpCO2_2
 1  DpCO2_ALT_CO2
-1  ECOSYS_IFRAC_2
-1  ECOSYS_XKW_2
 1  FG_ALT_CO2
 1  FG_CO2_2
 1  PH_ALT_CO2

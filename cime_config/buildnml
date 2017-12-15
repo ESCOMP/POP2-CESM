@@ -265,6 +265,11 @@ def buildnml(case, caseroot, compname):
             file_dest = os.path.join(rundir, ocn_grid + "_tavg_contents")
             shutil.copy(file_src, file_dest)
 
+            # marbl_diagnostics_operators
+            file_src = os.path.join(confdir, "marbl_diagnostics_operators")
+            file_dest = os.path.join(rundir, "marbl_diagnostics_operators")
+            shutil.copy(file_src, file_dest)
+
             # increment instance counter
             inst_counter = inst_counter + 1
 
