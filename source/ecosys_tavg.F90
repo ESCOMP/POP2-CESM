@@ -1,3 +1,4 @@
+
 ! -*- mode: f90; indent-tabs-mode: nil; f90-do-indent:3; f90-if-indent:3; f90-type-indent:3; f90-program-indent:2; f90-associate-indent:0; f90-continuation-indent:5  -*-
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
@@ -25,7 +26,7 @@
   use tavg                  , only : accumulate_tavg_field
   use shr_sys_mod           , only : shr_sys_abort
   use marbl_interface       , only : marbl_interface_class
-  use marbl_diagnostics_mod , only : marbl_diagnostics_type
+  use marbl_interface_public_types , only : marbl_diagnostics_type
 
   use ecosys_diagnostics_operators_mod, only : max_marbl_streams
 
@@ -81,7 +82,7 @@ contains
     character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
     character(*), parameter :: marbl_diag_file = 'marbl_diagnostics_operators'
     character(char_len) :: sname, lname
-    integer (int_kind) :: n, num_interior_diags, num_surface_diags
+    integer (int_kind) :: n
     integer (int_kind) :: rmean_var_cnt
     !-----------------------------------------------------------------------
 
@@ -96,12 +97,10 @@ contains
          surface_forcing => marbl_instance%surface_forcing_diags    &
          )
 
-      num_interior_diags = size(interior_forcing%diags)
-      num_surface_diags  = size(surface_forcing%diags)
-      allocate(tavg_ids_interior_forcing(num_interior_diags, max_marbl_streams))
-      allocate(tavg_ids_surface_forcing(num_surface_diags, max_marbl_streams))
+      allocate(tavg_ids_interior_forcing(size(interior_forcing%diags), max_marbl_streams))
+      allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_streams))
 
-      call ecosys_diagnostics_operators_init(marbl_diag_file, num_surface_diags + num_interior_diags)
+      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_forcing, interior_forcing)
 
       call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing, &
            tavg_ids=tavg_ids_interior_forcing)
@@ -372,5 +371,4 @@ contains
 end module ecosys_tavg
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
 

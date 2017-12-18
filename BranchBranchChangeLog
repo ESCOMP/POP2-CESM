@@ -1,6 +1,25 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    18 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n149_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Clean up ecosys_diagnostics_operators_mod, introduce check to make sure
+             diagnostics in file are being passed from MARBL via interface
+
+Testing:     aux_pop_MARBL on hobart (nag, intel, pgi); all tests pass except the
+             multi-instance test introduced in 144 (BASELINE failure only in the
+             second instance). It turns out that the test suite assumes both
+             instances are identical so it compares 0002 (lsource_sink = .false.)
+             to a baseline of 0001 (lsource_sink = .true.); asking CIME folks if
+             there's a way to get both baselines saved.
+
+Files Modified:
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_diagnostics_operators_mod.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    15 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n148_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Introduce ecosys_diagnostics_operators_mod to parse the

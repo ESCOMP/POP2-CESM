@@ -22,46 +22,61 @@ module ecosys_diagnostics_operators_mod
   use exit_mod,  only : sigAbort, exit_POP
 
   implicit none
-  public
+  private
 
   !-----------------------------------------------------------------------
   !  Variables used to help define / accumulate tavg_fields in ecosys_tavg
   !-----------------------------------------------------------------------
 
   integer(int_kind),       parameter   :: max_marbl_streams = 2
-  integer(int_kind)                    :: marbl_diag_cnt
-  integer(int_kind),       allocatable :: marbl_diags_stream_cnt(:)
-  integer(int_kind),       allocatable :: marbl_diags_operators(:,:)
-  character(len=char_len), allocatable :: marbl_diags_sname(:)
+  integer(int_kind),       allocatable :: marbl_diags_surface_stream_cnt(:), marbl_diags_interior_stream_cnt(:)
+  integer(int_kind),       allocatable :: marbl_diags_surface_operators(:,:), marbl_diags_interior_operators(:,:)
 
-  private :: parse_op
-  private :: get_varname_and_operators
+  public :: ecosys_diagnostics_operators_init
+  public :: max_marbl_streams
+  public :: marbl_diags_surface_stream_cnt
+  public :: marbl_diags_interior_stream_cnt
+  public :: marbl_diags_surface_operators
+  public :: marbl_diags_interior_operators
 
 contains
 
   !-----------------------------------------------------------------------
 
-  subroutine ecosys_diagnostics_operators_init(file_in, diag_cnt_in)
+  subroutine ecosys_diagnostics_operators_init(file_in, surface_diags, interior_diags)
     ! Initializes module variables based on contents of marbl_diagnostics_operators file
-    use io_types,    only : nml_in
-    use communicate, only : my_task, master_task
-    use broadcast,   only : broadcast_scalar, broadcast_array
+    ! (Indexing in marbl_diags_surface_* and marbl_diags_interior_* should match the
+    ! indexing in surface_diags and interior_diags, respectively)
+    use io_types,                     only : nml_in
+    use communicate,                  only : my_task, master_task
+    use broadcast,                    only : broadcast_scalar, broadcast_array
+    use marbl_interface_public_types, only : marbl_diagnostics_type
 
-    character(len=*),  intent(in) :: file_in
-    integer(int_kind), intent(in) :: diag_cnt_in
+
+    character(len=*),             intent(in) :: file_in
+    type(marbl_diagnostics_type), intent(in) :: surface_diags
+    type(marbl_diagnostics_type), intent(in) :: interior_diags
 
     ! Local variables
     character(len=char_len) :: single_line, single_diag, single_op, err_msg
-    integer :: io_err, diag_cnt
+    integer :: io_err, diag_cnt, diag_cnt_in
+    integer :: surface_diag_ind, interior_diag_ind
 
-    allocate(marbl_diags_stream_cnt(diag_cnt_in))
-    allocate(marbl_diags_sname(diag_cnt_in))
-    allocate(marbl_diags_operators(diag_cnt_in, max_marbl_streams))
+    ! Set up surface diag variables
+    diag_cnt_in = size(surface_diags%diags)
+    allocate(marbl_diags_surface_stream_cnt(diag_cnt_in))
+    allocate(marbl_diags_surface_operators(diag_cnt_in, max_marbl_streams))
+
+    ! Set up interior diag variables
+    diag_cnt_in = size(interior_diags%diags)
+    allocate(marbl_diags_interior_stream_cnt(diag_cnt_in))
+    allocate(marbl_diags_interior_operators(diag_cnt_in, max_marbl_streams))
 
     ! Intialize module variables / arrays
-    marbl_diags_stream_cnt = 0
-    marbl_diags_sname = ''
-    marbl_diags_operators = tavg_method_unknown
+    marbl_diags_surface_stream_cnt = 0
+    marbl_diags_surface_operators = tavg_method_unknown
+    marbl_diags_interior_stream_cnt = 0
+    marbl_diags_interior_operators = tavg_method_unknown
 
     if (my_task .eq. master_task) then
       open(unit=nml_in, file=file_in, iostat=io_err)
@@ -96,6 +111,16 @@ contains
         call get_varname_and_operators(single_line, single_diag, single_op)
 
         ! (b) If single_diag is not a valid diagnostic name, abort
+        surface_diag_ind = get_diag_ind(single_diag, surface_diags)
+        if (surface_diag_ind .eq. -1) then
+          interior_diag_ind = get_diag_ind(single_diag, interior_diags)
+          if (interior_diag_ind .eq. -1) then
+            write(err_msg, "(3A)") "Can not find ", trim(single_diag), " in list of diagnostics from MARBL"
+            call exit_POP(sigAbort, err_msg)
+          end if
+        else
+          interior_diag_ind = -1
+        end if
 
         ! (c) Increase diag_cnt, make sure this does not exceed max allowable number
         !     - In POP, this max will be the total number of diagnostics returned from MARBL,
@@ -109,8 +134,13 @@ contains
 
         ! (d) Save the diagnostic name as well as all operators associated with it
         !     - parse_op() will abort if the operator count exceeds max_marbl_streams
-        marbl_diags_sname(diag_cnt)  = single_diag
-        call parse_op(single_op, marbl_diags_operators(diag_cnt,:), marbl_diags_stream_cnt(diag_cnt))
+        if (surface_diag_ind .ne. 0) then
+          call parse_op(single_op, marbl_diags_surface_operators(surface_diag_ind,:), &
+                        marbl_diags_surface_stream_cnt(surface_diag_ind))
+        else
+          call parse_op(single_op, marbl_diags_interior_operators(interior_diag_ind,:), &
+                        marbl_diags_interior_stream_cnt(interior_diag_ind))
+        end if
       end if
 
       ! (4) Read next line on master, iostat value out (that's how loop ends)
@@ -125,6 +155,29 @@ contains
     if (my_task .eq. master_task) close(nml_in)
 
   end subroutine ecosys_diagnostics_operators_init
+
+  !-----------------------------------------------------------------------
+
+  function get_diag_ind(diag_name, marbl_diags)
+    ! Return index of diags such that diags%short_name == diag_name
+    ! (Return -1 if no match is found)
+    use marbl_interface_public_types, only : marbl_diagnostics_type
+
+    character(len=*), intent(in) :: diag_name
+    type(marbl_diagnostics_type), intent(in) :: marbl_diags
+    integer :: get_diag_ind
+
+    integer :: n
+
+    get_diag_ind = -1
+    do n=1,size(marbl_diags%diags)
+      if (trim(diag_name) .eq. trim(marbl_diags%diags(n)%short_name)) then
+        get_diag_ind = n
+        return
+      end if
+    end do
+
+  end function get_diag_ind
 
   !-----------------------------------------------------------------------
 
