@@ -40,6 +40,10 @@ def _parse_args():
     parser.add_argument('--lMARBL_tavg_all', action='store', dest='lMARBL_tavg_all',
                         type=bool, default=False, help="Put all MARBL diagnostics in stream number 1")
 
+    # Should MARBL's ALT_CO2 diagnostics be included in the tavg streams?
+    parser.add_argument('--lMARBL_tavg_alt_co2', action='store', dest='lMARBL_tavg_alt_co2',
+                        type=bool, default=False, help="Include ALT_CO2 diagnostics in streams")
+
     # Should lines be appended to tavg_contents_out instead of clobbering?
     parser.add_argument('--append', action='store', dest='append', default=False,
                         type=bool, help='Append output to tavg_contents_out instead of clobbering')
@@ -100,7 +104,7 @@ def _get_freq(frequency, frequency_streams):
 #######################################
 
 def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, MARBL_diagnostics_operator_out,
-                                      lMARBL_tavg_all, frequency_streams, append=False):
+                                      lMARBL_tavg_all, lMARBL_tavg_alt_co2, frequency_streams, append=False):
     import os, sys, logging
     logger = logging.getLogger("__name__")
     labort = False
@@ -142,6 +146,10 @@ def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, M
     for line in all_lines:
         varname, frequency, operator = _parse_line(line.strip())
         if varname != None:
+            # Skip ALT_CO2 vars unless explicitly requested
+            if (not lMARBL_tavg_alt_co2) and ("ALT_CO2" in varname):
+                continue
+
             # tavg_contents
             for n, freq in enumerate(frequency):
                 if lMARBL_tavg_all:
@@ -152,6 +160,7 @@ def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, M
                     outstream1.write('%s  %s\n' % (use_freq, varname))
                 else:
                     outstream1.write('%s  %s_%d\n' % (use_freq, varname, n+1))
+
             # MARBL_diagnostics_operator
             if lMARBL_tavg_all:
                 use_op = ', '.join(['average']*len(operator))
@@ -179,5 +188,6 @@ if __name__ == "__main__":
     # call diagnostics_to_tavg()
     diagnostics_to_tavg_and_operators(args.MARBL_diagnostics_in, args.tavg_contents_out,
                                       args.MARBL_diagnostics_operator_out, args.lMARBL_tavg_all,
+                                      args.lMARBL_tavg_alt_co2,
                                       [args.low_frequency_stream, args.medium_frequency_stream,
                                        args.high_frequency_stream], args.append)

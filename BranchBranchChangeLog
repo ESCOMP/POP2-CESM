@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    19 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n150_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Update scripts to skip MARBL diagnostics that have ALT_CO2 in their
+             name unless alt_co2 tavg contents are explicitly requested
+
+Testing:     aux_pop_MARBL on hobart (nag, intel, pgi); all tests pass except the
+             multi-instance test introduced in 144 (expected BASELINE failure due
+             to poor test design in CIME)
+             Tested with MARBL 797c760 (on enhancement/YAML-diagnostics branch).
+
+Files Modified:
+M       MARBL_scripts/MARBL_diags_to_tavg.py
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    18 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n149_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Clean up ecosys_diagnostics_operators_mod, introduce check to make sure

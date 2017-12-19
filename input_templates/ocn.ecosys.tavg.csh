@@ -27,7 +27,9 @@ set tracer_restore_vars  = "PO4 NO3 SiO3 ALK"
 set MARBL_args = "-i $CASEBUILD/popconf/marbl_diagnostics -t $CASEBUILD/popconf/ecosys_tavg_contents -o $CASEBUILD/popconf/marbl_diagnostics_operators --low_frequency_stream $s3 --medium_frequency_stream $s1 --high_frequency_stream $s2 --append True"
 
 if ($lecosys_tavg_all == ".true.") then
-  set MARBL_args = "$MARBL_args --lMARBL_tavg_all True"
+  set MARBL_args = "$MARBL_args --lMARBL_tavg_all True --lMARBL_tavg_alt_co2 True"
+else if ($lecosys_tavg_alt_co2 == ".true.") then
+  set MARBL_args = "$MARBL_args --lMARBL_tavg_alt_co2 True"
 endif
 
 if ($lecosys_tavg_all == ".false.") then
@@ -546,12 +548,6 @@ $CASEBUILD/popconf/MARBL_diags_to_tavg.py $MARBL_args
 
 if ($lecosys_tavg_all == ".true.") then
   cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-1  CO2STAR_ALT_CO2
-1  DCO2STAR_ALT_CO2
-1  DpCO2_ALT_CO2
-1  FG_ALT_CO2
 1  FG_CO2_2
-1  PH_ALT_CO2
-1  pCO2SURF_ALT_CO2
 EOF
 endif
