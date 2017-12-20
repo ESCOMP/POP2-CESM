@@ -104,10 +104,12 @@ def _get_freq(frequency, frequency_streams):
 #######################################
 
 def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, MARBL_diagnostics_operator_out,
-                                      lMARBL_tavg_all, lMARBL_tavg_alt_co2, frequency_streams, append=False):
+                                      append, lMARBL_tavg_all, lMARBL_tavg_alt_co2, frequency_streams):
+
     import os, sys, logging
     logger = logging.getLogger("__name__")
     labort = False
+
     # 1. Check arguments:
     #    MARBL_diagnostics_in can not be None and must be path of an existing file
     if MARBL_diagnostics_in == None:
@@ -145,29 +147,32 @@ def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, M
         all_lines = file_in.readlines()
     for line in all_lines:
         varname, frequency, operator = _parse_line(line.strip())
-        if varname != None:
-            # Skip ALT_CO2 vars unless explicitly requested
-            if (not lMARBL_tavg_alt_co2) and ("ALT_CO2" in varname):
-                continue
+        # Continue to next line in the following circumstances
+        # i.  varname = None
+        if varname == None:
+            continue
+        # ii. Skip ALT_CO2 vars unless explicitly requested
+        if (not lMARBL_tavg_alt_co2) and ("ALT_CO2" in varname):
+            continue
 
-            # tavg_contents
-            for n, freq in enumerate(frequency):
-                if lMARBL_tavg_all:
-                    use_freq = '1'
-                else:
-                    use_freq = _get_freq(freq, frequency_streams)
-                if n == 0:
-                    outstream1.write('%s  %s\n' % (use_freq, varname))
-                else:
-                    outstream1.write('%s  %s_%d\n' % (use_freq, varname, n+1))
-
-            # MARBL_diagnostics_operator
+        # tavg_contents
+        for n, freq in enumerate(frequency):
             if lMARBL_tavg_all:
-                use_op = ', '.join(['average']*len(operator))
+                use_freq = '1'
             else:
-                use_op = ', '.join(operator)
-            if use_op != 'none':
-                outstream2.write('%s : %s\n' % (varname, use_op))
+                use_freq = _get_freq(freq, frequency_streams)
+            if n == 0:
+                outstream1.write('%s  %s\n' % (use_freq, varname))
+            else:
+                outstream1.write('%s  %s_%d\n' % (use_freq, varname, n+1))
+
+        # MARBL_diagnostics_operator
+        if lMARBL_tavg_all:
+            use_op = ', '.join(['average']*len(operator))
+        else:
+            use_op = ', '.join(operator)
+        if use_op != 'none':
+            outstream2.write('%s : %s\n' % (varname, use_op))
 
     # File footer
     outstream1.write('#  end of MARBL-generated diagnostics\n')
@@ -187,7 +192,7 @@ if __name__ == "__main__":
 
     # call diagnostics_to_tavg()
     diagnostics_to_tavg_and_operators(args.MARBL_diagnostics_in, args.tavg_contents_out,
-                                      args.MARBL_diagnostics_operator_out, args.lMARBL_tavg_all,
-                                      args.lMARBL_tavg_alt_co2,
+                                      args.MARBL_diagnostics_operator_out, args.append,
+                                      args.lMARBL_tavg_all, args.lMARBL_tavg_alt_co2,
                                       [args.low_frequency_stream, args.medium_frequency_stream,
-                                       args.high_frequency_stream], args.append)
+                                       args.high_frequency_stream])

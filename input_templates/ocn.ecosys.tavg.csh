@@ -60,7 +60,6 @@ if ($lecosys_tavg_all == ".true.") then
 
   cat >! $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 #  GENERAL INTERIOR DIAGNOSTICS
-1  zsatcalc
 1  zsatarag
 1  O2_ZMIN
 1  O2_ZMIN_DEPTH
@@ -144,7 +143,6 @@ if ($lecosys_tavg_all == ".true.") then
 1  P_iron_PROD
 1  P_iron_REMIN
 #  FORCING FIELDS
-1  ATM_ALT_CO2
 1  FINE_DUST_FLUX_CPL
 1  COARSE_DUST_FLUX_CPL
 1  BLACK_CARBON_FLUX_CPL
@@ -285,7 +283,6 @@ $s1  HCO3
 $s1  CO3
 $s1  pH_3D
 $s1  co3_sat_calc
-$s1  zsatcalc
 $s1  co3_sat_arag
 $s1  zsatarag
 $s1  DOC
@@ -490,7 +487,6 @@ EOF
 
   if ($lecosys_tavg_alt_co2 == ".true.") then
 cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-$s1  ATM_ALT_CO2
 $s1  DIC_ALT_CO2
 $s1  ALK_ALT_CO2
 $s1  calcToSed_ALT_CO2

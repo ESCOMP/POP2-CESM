@@ -28,8 +28,6 @@ $s1  CISO_DIC_d14C
 $s1  CISO_zooC_d13C       
 $s1  CISO_DOC_d13C         
 $s1  CISO_DIC_d13C  
-$s1  CISO_D14C_atm
-$s1  CISO_D13C_atm
 $s1  DI14C
 $s1  DI13C
 $s1  DO14C
@@ -37,9 +35,6 @@ $s1  zoo14C
 $s1  DO13C
 $s1  zoo13C
 #less important fields (depends on application)
-$s1  CISO_FG_14CO2
-$s1  CISO_FG_as_14CO2
-$s1  CISO_FG_sa_14CO2
 $s1  CISO_PO14C_FLUX_IN
 $s1  CISO_PO14C_PROD
 $s1  CISO_PO14C_REMIN
@@ -52,9 +47,6 @@ $s1  CISO_photo14C_TOT
 $s1  CISO_photo14C_TOT_zint
 $s1  CISO_Jint_14Ctot
 $s1  CISO_Jint_100m_14Ctot
-$s1  CISO_FG_13CO2
-$s1  CISO_FG_as_13CO2
-$s1  CISO_FG_sa_13CO2
 $s1  CISO_eps_aq_g
 $s1  CISO_eps_dic_g
 $s1  CISO_PO13C_FLUX_IN
@@ -123,5 +115,4 @@ EOF
 end
  
    
-
 

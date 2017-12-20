@@ -58,7 +58,7 @@ contains
     type(marbl_diagnostics_type), intent(in) :: interior_diags
 
     ! Local variables
-    character(len=char_len) :: single_line, single_diag, single_op, err_msg
+    character(len=char_len) :: single_line, diag_name, diag_ops, err_msg
     integer :: io_err, diag_cnt, diag_cnt_in
     integer :: surface_diag_ind, interior_diag_ind
 
@@ -106,20 +106,20 @@ contains
       ! (3) process non-empty lines
       if (len_trim(single_line) .gt. 0) then
         ! (a) get the diagnostic name and (all) operators
-        !     - get_varname_and_operators() will abort if the line is formatted incorrectly
+        !     - get_diag_name_and_operators() will abort if the line is formatted incorrectly
         !       (at this point, that just means "there is no ':' separating diag_name from operators")
-        call get_varname_and_operators(single_line, single_diag, single_op)
+        call get_diag_name_and_operators(single_line, diag_name, diag_ops)
 
-        ! (b) If single_diag is not a valid diagnostic name, abort
-        surface_diag_ind = get_diag_ind(single_diag, surface_diags)
-        if (surface_diag_ind .eq. -1) then
-          interior_diag_ind = get_diag_ind(single_diag, interior_diags)
-          if (interior_diag_ind .eq. -1) then
-            write(err_msg, "(3A)") "Can not find ", trim(single_diag), " in list of diagnostics from MARBL"
+        ! (b) If diag_name is not a valid diagnostic name, abort
+        surface_diag_ind = get_diag_ind(diag_name, surface_diags)
+        if (surface_diag_ind .eq. 0) then
+          interior_diag_ind = get_diag_ind(diag_name, interior_diags)
+          if (interior_diag_ind .eq. 0) then
+            write(err_msg, "(3A)") "Can not find ", trim(diag_name), " in list of diagnostics from MARBL"
             call exit_POP(sigAbort, err_msg)
           end if
         else
-          interior_diag_ind = -1
+          interior_diag_ind = 0
         end if
 
         ! (c) Increase diag_cnt, make sure this does not exceed max allowable number
@@ -133,13 +133,13 @@ contains
         end if
 
         ! (d) Save the diagnostic name as well as all operators associated with it
-        !     - parse_op() will abort if the operator count exceeds max_marbl_streams
+        !     - parse_diag_ops() will abort if the operator count exceeds max_marbl_streams
         if (surface_diag_ind .ne. 0) then
-          call parse_op(single_op, marbl_diags_surface_operators(surface_diag_ind,:), &
-                        marbl_diags_surface_stream_cnt(surface_diag_ind))
+          call parse_diag_ops(diag_ops, marbl_diags_surface_operators(surface_diag_ind,:), &
+                              marbl_diags_surface_stream_cnt(surface_diag_ind))
         else
-          call parse_op(single_op, marbl_diags_interior_operators(interior_diag_ind,:), &
-                        marbl_diags_interior_stream_cnt(interior_diag_ind))
+          call parse_diag_ops(diag_ops, marbl_diags_interior_operators(interior_diag_ind,:), &
+                              marbl_diags_interior_stream_cnt(interior_diag_ind))
         end if
       end if
 
@@ -160,7 +160,7 @@ contains
 
   function get_diag_ind(diag_name, marbl_diags)
     ! Return index of diags such that diags%short_name == diag_name
-    ! (Return -1 if no match is found)
+    ! (Return 0 if no match is found)
     use marbl_interface_public_types, only : marbl_diagnostics_type
 
     character(len=*), intent(in) :: diag_name
@@ -169,7 +169,7 @@ contains
 
     integer :: n
 
-    get_diag_ind = -1
+    get_diag_ind = 0
     do n=1,size(marbl_diags%diags)
       if (trim(diag_name) .eq. trim(marbl_diags%diags(n)%short_name)) then
         get_diag_ind = n
@@ -181,63 +181,72 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine parse_op(op_in, ops_out, op_cnt)
+  subroutine parse_diag_ops(diag_ops, diag_ops_array, num_ops)
     ! Split "operator1, operator2, ..., operatorN" into the N elements of a string array
 
-    character(len=*),  intent(in)  :: op_in
-    integer(int_kind), intent(out) :: ops_out(:)
-    integer(int_kind), intent(out) :: op_cnt
+    character(len=*),  intent(in)  :: diag_ops
+    integer(int_kind), intent(out) :: diag_ops_array(:)
+    integer(int_kind), intent(out) :: num_ops
 
     character(len=char_len) :: err_msg
-    integer :: n, last_comma
+    integer :: str_pos, comma_pos, str_len
 
-    op_cnt = 1
-    last_comma = 0
-    do n=1,len_trim(op_in)
-      if (op_in(n:n) .eq. ',') then
-        ops_out(op_cnt) = get_tavg_method(adjustl(op_in(last_comma+1:n-1)))
-        last_comma = n
-        op_cnt = op_cnt + 1
-        if (op_cnt .gt. max_marbl_streams) then
-          write(err_msg,"(3A,I0,A,I0)") "ERROR: '", trim(op_in), "' contains at least ", op_cnt, &
-                                        " operators but memory only provided for ", size(ops_out)
-          call exit_POP(sigAbort, err_msg)
-        end if
+    num_ops = 0
+    str_pos = 1
+    str_len = len(diag_ops)
+    do while (len_trim(diag_ops(str_pos:str_len)) .gt. 0)
+      ! Update operator count
+      num_ops = num_ops + 1
+      if (num_ops .gt. max_marbl_streams) then
+        write(err_msg,"(3A,I0,A,I0)") "ERROR: '", trim(diag_ops), "' contains at least ", num_ops, &
+                                      " operators but memory only provided for ", size(diag_ops_array)
+        call exit_POP(sigAbort, err_msg)
       end if
-    end do
-    ops_out(op_cnt) = get_tavg_method(adjustl(op_in(last_comma+1:len_trim(op_in))))
 
-  end subroutine parse_op
+      ! Find first comma after str_pos
+      comma_pos = index(diag_ops(str_pos:str_len), ',')
+      if (comma_pos .eq. 0) comma_pos = str_len - str_pos + 2 ! imaginary comma after last character
+      diag_ops_array(num_ops) = get_tavg_method(adjustl(diag_ops(str_pos:str_pos+comma_pos-2)))
+      str_pos = str_pos + comma_pos
+    end do
+
+  end subroutine parse_diag_ops
 
   !-----------------------------------------------------------------------
 
-  subroutine get_varname_and_operators(line_in, var_out, op_out)
+  subroutine get_diag_name_and_operators(line_in, diag_name, diag_ops)
     ! Split a "DIAGNOSTIC_NAME : operator1, operator2, ..., operatorN" into
     ! strings containing "DIAGNOSTIC_NAME" and "operator1, operator2, ..., operatorN"
 
     character(len=*), intent(in)  :: line_in
-    character(len=*), intent(out) :: var_out, op_out
+    character(len=*), intent(out) :: diag_name, diag_ops
 
     character(len=char_len) :: err_msg
     integer :: n
 
-    do n=1,len_trim(line_in)
-      if (line_in(n:n) .eq. ':') then
-        var_out = adjustl(line_in(1:n-1))
-        op_out = adjustl(line_in(n+1:len(line_in)))
-        ! This return is only called if a ':' is found
-        return
+    n = index(line_in, ':')
+    if (n .ne. 0) then
+      diag_name = adjustl(line_in(1:n-1))
+      diag_ops  = adjustl(line_in(n+1:len(line_in)))
+      ! Make sure neither string is empty
+      if (len_trim(diag_name) .eq. 0) then
+        write(err_msg, "(3A)") "ERROR: the line '", trim(line_in), "' does not contain a diagnostic"
+        call exit_POP(sigAbort, err_msg)
       end if
-    end do
-    ! Exiting the loop implies no ':' found
-    write(err_msg,"(3A)") "ERROR: could not parse the line '", trim(line_in), "'"
-    call exit_POP(sigAbort, err_msg)
+      if (len_trim(diag_ops) .eq. 0) then
+        write(err_msg, "(3A)") "ERROR: the line '", trim(line_in), "' does not contain an operator"
+        call exit_POP(sigAbort, err_msg)
+      end if
+    else
+      write(err_msg,"(3A)") "ERROR: could not parse the line '", trim(line_in), "'"
+      call exit_POP(sigAbort, err_msg)
+    end if
 
-  end subroutine get_varname_and_operators
+  end subroutine get_diag_name_and_operators
 
   !-----------------------------------------------------------------------
 
-  function get_tavg_method(op_in)
+  function get_tavg_method(diag_ops)
     ! Convert a string (such as 'average' to tavg_method integer)
 
     use tavg, only : tavg_method_avg
@@ -245,16 +254,18 @@ contains
     use tavg, only : tavg_method_max
     use tavg, only : tavg_method_constant
 
-    character(len=*), intent(in) :: op_in
+    character(len=*), intent(in) :: diag_ops
     integer(int_kind) :: get_tavg_method
 
-    select case(trim(op_in))
+    select case(trim(diag_ops))
       case ('average')
         get_tavg_method = tavg_method_avg
       case ('minimum')
         get_tavg_method = tavg_method_min
       case ('maximum')
         get_tavg_method = tavg_method_max
+      case ('instantaneous')
+        get_tavg_method = tavg_method_constant
       case DEFAULT
         get_tavg_method = tavg_method_unknown
     end select
