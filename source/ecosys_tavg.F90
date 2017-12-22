@@ -97,10 +97,10 @@ contains
          surface_forcing => marbl_instance%surface_forcing_diags    &
          )
 
+      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_forcing, interior_forcing)
+
       allocate(tavg_ids_interior_forcing(size(interior_forcing%diags), max_marbl_streams))
       allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_streams))
-
-      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_forcing, interior_forcing)
 
       call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing, &
            tavg_ids=tavg_ids_interior_forcing)

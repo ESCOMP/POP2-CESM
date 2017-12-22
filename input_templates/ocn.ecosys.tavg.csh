@@ -24,7 +24,12 @@ set ladjust_bury_coeff   = $4
 set lvariable_PtoC       = $5
 set tracer_restore_vars  = "PO4 NO3 SiO3 ALK"
 
-set MARBL_args = "-i $CASEBUILD/popconf/marbl_diagnostics -t $CASEBUILD/popconf/ecosys_tavg_contents -o $CASEBUILD/popconf/marbl_diagnostics_operators --low_frequency_stream $s3 --medium_frequency_stream $s1 --high_frequency_stream $s2 --append True"
+if ( -f $CASEROOT/SourceMods/src.pop/marbl_diagnostics ) then
+  set MARBL_args = "-i $CASEROOT/SourceMods/src.pop/marbl_diagnostics"
+else
+  set MARBL_args = "-i $CASEBUILD/popconf/marbl_diagnostics"
+endif
+set MARBL_args = "$MARBL_args -t $CASEBUILD/popconf/ecosys_tavg_contents -o $CASEBUILD/popconf/marbl_diagnostics_operators --low_frequency_stream $s3 --medium_frequency_stream $s1 --high_frequency_stream $s2 --append True"
 
 if ($lecosys_tavg_all == ".true.") then
   set MARBL_args = "$MARBL_args --lMARBL_tavg_all True --lMARBL_tavg_alt_co2 True"
@@ -541,6 +546,10 @@ endif
 
 # Add MARBL diagnostics to tavg_contents
 $CASEBUILD/popconf/MARBL_diags_to_tavg.py $MARBL_args
+if ($status != 0) then
+  echo "ERROR in MARBL_diags_to_tavg.py"
+  exit 1
+endif
 
 if ($lecosys_tavg_all == ".true.") then
   cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF

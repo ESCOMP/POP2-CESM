@@ -20,6 +20,7 @@ module ecosys_diagnostics_operators_mod
   use kinds_mod, only : char_len
   use tavg,      only : tavg_method_unknown
   use exit_mod,  only : sigAbort, exit_POP
+  use io_tools,  only : document
 
   implicit none
   private
@@ -28,9 +29,9 @@ module ecosys_diagnostics_operators_mod
   !  Variables used to help define / accumulate tavg_fields in ecosys_tavg
   !-----------------------------------------------------------------------
 
-  integer(int_kind),       parameter   :: max_marbl_streams = 2
-  integer(int_kind),       allocatable :: marbl_diags_surface_stream_cnt(:), marbl_diags_interior_stream_cnt(:)
-  integer(int_kind),       allocatable :: marbl_diags_surface_operators(:,:), marbl_diags_interior_operators(:,:)
+  integer(int_kind)              :: max_marbl_streams
+  integer(int_kind), allocatable :: marbl_diags_surface_stream_cnt(:), marbl_diags_interior_stream_cnt(:)
+  integer(int_kind), allocatable :: marbl_diags_surface_operators(:,:), marbl_diags_interior_operators(:,:)
 
   public :: ecosys_diagnostics_operators_init
   public :: max_marbl_streams
@@ -58,19 +59,51 @@ contains
     type(marbl_diagnostics_type), intent(in) :: interior_diags
 
     ! Local variables
-    character(len=char_len) :: single_line, diag_name, diag_ops, err_msg
-    integer :: io_err, diag_cnt, diag_cnt_in
+    character(len=*), parameter :: subname = 'ecosys_diagnostics_operators_mod:ecosys_diagnostics_operators_init'
+    character(len=char_len) :: single_line, diag_name, diag_ops, doc_msg, err_msg
+    integer :: io_err, marbl_streams
     integer :: surface_diag_ind, interior_diag_ind
 
+    ! Determine max_marbl_streams
+    max_marbl_streams = 0
+    if (my_task .eq. master_task) then
+      open(unit=nml_in, file=file_in, iostat=io_err)
+      if (io_err .ne. 0) then
+        call exit_POP(sigAbort, "Error opening marbl_diagnostics_operators file")
+      end if
+      ! Read file line by line
+      do
+        read(nml_in, "(A)", iostat=io_err) single_line
+        if (io_err .ne. 0) exit
+
+        ! For each line, determine number of streams required
+        ! (i.e. how many operators are acting on a given diagnostic)
+        ! i. skip blank / comment lines
+        single_line = adjustl(single_line)
+        if ((len_trim(single_line) .eq. 0) .or. (single_line(1:1) .eq. '#')) cycle
+        ! ii. number of streams = number of commas plus one
+        !     note that transfer() returns array of characters rather than string
+        !     (converts 'len' property to 'dimension')
+        marbl_streams = count(transfer(single_line, 'a', len(single_line)) == ",")+1
+        max_marbl_streams = max(marbl_streams, max_marbl_streams)
+      end do
+      call document(subname, "max_marbl_streams", max_marbl_streams)
+
+      ! Rewind back to beginning of file
+      rewind(nml_in, iostat=io_err)
+      if (io_err .ne. 0) then
+        call exit_POP(sigAbort, "Error rewinding marbl_diagnostics_operators file")
+      end if
+    end if
+    call broadcast_scalar(max_marbl_streams, master_task)
+
     ! Set up surface diag variables
-    diag_cnt_in = size(surface_diags%diags)
-    allocate(marbl_diags_surface_stream_cnt(diag_cnt_in))
-    allocate(marbl_diags_surface_operators(diag_cnt_in, max_marbl_streams))
+    allocate(marbl_diags_surface_stream_cnt(size(surface_diags%diags)))
+    allocate(marbl_diags_surface_operators(size(surface_diags%diags), max_marbl_streams))
 
     ! Set up interior diag variables
-    diag_cnt_in = size(interior_diags%diags)
-    allocate(marbl_diags_interior_stream_cnt(diag_cnt_in))
-    allocate(marbl_diags_interior_operators(diag_cnt_in, max_marbl_streams))
+    allocate(marbl_diags_interior_stream_cnt(size(interior_diags%diags)))
+    allocate(marbl_diags_interior_operators(size(interior_diags%diags), max_marbl_streams))
 
     ! Intialize module variables / arrays
     marbl_diags_surface_stream_cnt = 0
@@ -78,76 +111,57 @@ contains
     marbl_diags_interior_stream_cnt = 0
     marbl_diags_interior_operators = tavg_method_unknown
 
-    if (my_task .eq. master_task) then
-      open(unit=nml_in, file=file_in, iostat=io_err)
-      if (io_err .ne. 0) then
-        call exit_POP(sigAbort, "Error opening marbl_diagnostics_operators file")
-      end if
-    end if
-    ! Set io_err on non-master tasks as well
-    io_err = 0
-
-    ! Initialize local variables used for reading file / error-checking
-    diag_cnt = 0
-    single_line = ''
-
     ! Read file
-    do while (io_err .eq. 0)
-      ! (1) Broadcast line just read in on master_task to all tasks
-      !     (Initial entry to this loop will broadcast blank line which will be ignored)
-      call broadcast_scalar(single_line, master_task)
-
-      ! (2) Remove leading spaces from line just read, and treat lines beginning with '#' as empty
-      single_line = adjustl(single_line)
-      if (single_line(1:1) .eq. '#') then
-        single_line = ''
-      end if
-
-      ! (3) process non-empty lines
-      if (len_trim(single_line) .gt. 0) then
-        ! (a) get the diagnostic name and (all) operators
-        !     - get_diag_name_and_operators() will abort if the line is formatted incorrectly
-        !       (at this point, that just means "there is no ':' separating diag_name from operators")
-        call get_diag_name_and_operators(single_line, diag_name, diag_ops)
-
-        ! (b) If diag_name is not a valid diagnostic name, abort
-        surface_diag_ind = get_diag_ind(diag_name, surface_diags)
-        if (surface_diag_ind .eq. 0) then
-          interior_diag_ind = get_diag_ind(diag_name, interior_diags)
-          if (interior_diag_ind .eq. 0) then
-            write(err_msg, "(3A)") "Can not find ", trim(diag_name), " in list of diagnostics from MARBL"
-            call exit_POP(sigAbort, err_msg)
-          end if
-        else
-          interior_diag_ind = 0
-        end if
-
-        ! (c) Increase diag_cnt, make sure this does not exceed max allowable number
-        !     - In POP, this max will be the total number of diagnostics returned from MARBL,
-        !       so exceeding this cap will indicate a formatting error (diagnostics appearing
-        !       multiple times or an unknown diagnostic being included in the file)
-        diag_cnt = diag_cnt+1
-        if (diag_cnt .gt. diag_cnt_in) then
-          write(err_msg,"(A,I0,A)") "ERROR: read in line number ", diag_cnt, " but no memory to store it in array!"
-          call exit_POP(sigAbort, err_msg)
-        end if
-
-        ! (d) Save the diagnostic name as well as all operators associated with it
-        !     - parse_diag_ops() will abort if the operator count exceeds max_marbl_streams
-        if (surface_diag_ind .ne. 0) then
-          call parse_diag_ops(diag_ops, marbl_diags_surface_operators(surface_diag_ind,:), &
-                              marbl_diags_surface_stream_cnt(surface_diag_ind))
-        else
-          call parse_diag_ops(diag_ops, marbl_diags_interior_operators(interior_diag_ind,:), &
-                              marbl_diags_interior_stream_cnt(interior_diag_ind))
-        end if
-      end if
-
-      ! (4) Read next line on master, iostat value out (that's how loop ends)
+    do
+      ! (1) Read next line on master, iostat value out
+      !     (Exit loop if read is not successful; either read error or end of file)
       if (my_task .eq. master_task) then
         read(nml_in, "(A)", iostat=io_err) single_line
       end if
       call broadcast_scalar(io_err, master_task)
+      if (io_err .ne. 0) exit
+
+      ! (2) Broadcast line just read in on master_task to all tasks
+      !     (Initial entry to this loop will broadcast blank line which will be ignored)
+      call broadcast_scalar(single_line, master_task)
+
+      ! (3) Skip empty lines and lines beginning with '#'
+      single_line = adjustl(single_line)
+      if ((len_trim(single_line) .eq. 0) .or. (single_line(1:1) .eq. '#')) cycle
+
+      ! (4) process non-empty lines
+      ! (a) get the diagnostic name and (all) operators
+      !     - get_diag_name_and_operators() will abort if the line is formatted incorrectly
+      !       (at this point, that just means "there is no ':' separating diag_name from operators")
+      call get_diag_name_and_operators(single_line, diag_name, diag_ops)
+
+      ! (b) If diag_name is not a valid diagnostic name, abort
+      surface_diag_ind = get_diag_ind(diag_name, surface_diags)
+      if (surface_diag_ind .eq. 0) then
+        interior_diag_ind = get_diag_ind(diag_name, interior_diags)
+        if (interior_diag_ind .eq. 0) then
+          write(err_msg, "(3A)") "Can not find ", trim(diag_name), " in list of diagnostics from MARBL"
+          call exit_POP(sigAbort, err_msg)
+        end if
+      else
+        interior_diag_ind = 0
+      end if
+
+      ! (c) Save operators associated with this diagnostics
+      !     - parse_diag_ops() will abort if the operator count exceeds max_marbl_streams
+      if (surface_diag_ind .ne. 0) then
+        call parse_diag_ops(diag_ops, marbl_diags_surface_operators(surface_diag_ind,:), &
+                            marbl_diags_surface_stream_cnt(surface_diag_ind))
+        write(doc_msg, "(2A,I0,A)") trim(diag_name), ' will be written to ',  &
+                                    marbl_diags_surface_stream_cnt(surface_diag_ind), ' streams.'
+      else
+        call parse_diag_ops(diag_ops, marbl_diags_interior_operators(interior_diag_ind,:), &
+                            marbl_diags_interior_stream_cnt(interior_diag_ind))
+        write(doc_msg, "(2A,I0,A)") trim(diag_name), ' will be written to ',  &
+                                    marbl_diags_interior_stream_cnt(interior_diag_ind), ' streams.'
+      end if
+      call document(subname, doc_msg)
+
     end do
     ! Abort if iostat did not return "End of File" status code
 

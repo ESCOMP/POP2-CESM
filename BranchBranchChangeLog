@@ -1,6 +1,27 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    22 Dec 2017
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n152_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Code clean-up following quick review of ecosys_diagnostics_operators_mod.F90
+             1. max_marbl_streams in computed on the fly rather set as parameter
+             2. Allow marbl_diagnostics_operators to be edited in SourceMods, but the
+                MARBL_diags_to_tavg.py script was edited to ensure variables do not
+                occur multiple times.
+
+Testing:     aux_pop_MARBL on hobart (nag, intel, pgi); all tests pass except the
+             multi-instance test introduced in 144 (expected BASELINE failure due
+             to poor test design in CIME)
+             Tested with MARBL 1961b95 (on enhancement/YAML-diagnostics branch).
+
+Files Modified:
+M       MARBL_scripts/MARBL_diags_to_tavg.py
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_diagnostics_operators_mod.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    20 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n151_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Code clean-up following quick review of ecosys_diagnostics_operators_mod.F90

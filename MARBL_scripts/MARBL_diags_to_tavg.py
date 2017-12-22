@@ -109,6 +109,7 @@ def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, M
     import os, sys, logging
     logger = logging.getLogger("__name__")
     labort = False
+    processed_vars = []
 
     # 1. Check arguments:
     #    MARBL_diagnostics_in can not be None and must be path of an existing file
@@ -154,6 +155,12 @@ def diagnostics_to_tavg_and_operators(MARBL_diagnostics_in, tavg_contents_out, M
         # ii. Skip ALT_CO2 vars unless explicitly requested
         if (not lMARBL_tavg_alt_co2) and ("ALT_CO2" in varname):
             continue
+
+        # Abort if varname has already appeared in file
+        if varname in processed_vars:
+            logger.error("'%s' appears in %s multiple times" % (varname, MARBL_diagnostics_in))
+            sys.exit(1)
+        processed_vars.append(varname)
 
         # tavg_contents
         for n, freq in enumerate(frequency):
