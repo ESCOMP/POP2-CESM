@@ -1,6 +1,30 @@
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
+Tag Date:    29 Dec 2017
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171229
+Tag Summary: Incorporated the changes from branches/cesm_pop_2_1_20171214_marblbld
+             The change is because "the way that marbl_nt is currently handled in 
+             pop's buildcpp and buildnml is incompatible with a new version of CIME..."
+             -jedwards. Also, added the following tavg fields for gx1v7 (for CMIP6):
+             SSS2, HMXL_DR_2, XMXL_DR, and TMXL_DR, and removed HMXL_2.
+             Replaced kind=8 in time_management with POP_i8. 
+
+Testing:     aux_pop. bit for bit
+
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+X       externals
+M       input_templates/gx1v7_tavg_contents
+M       source/baroclinic.F90
+X       source/cvmix
+M       source/diagnostics.F90
+M       source/time_management.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
 Tag Date:    14 Dec 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171214
 Tag Summary: Added tx01.v3 grid. Added GIAF_JRA and GIAF_JRA_HR compsets. Fixed

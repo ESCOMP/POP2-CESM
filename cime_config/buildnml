@@ -107,12 +107,8 @@ def buildnml(case, caseroot, compname):
         if ninst > 1:
             inst_string = '_' + '%04d' % inst_counter
 
-
-        # Get use_ecosys from config_cache.xml; only need marbl_in if TRUE
-        config_cache_file = GenericXML(infile=os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml"))
-        use_ecosys = config_cache_file.get_optional_node("entry", attributes={"id":"use_ecosys"}).get("value")
-
-        if use_ecosys == "TRUE":
+        marbl_nt_build = case.get_value("MARBL_NT")
+        if marbl_nt_build > 0:
             # ------------------------------------------------------------------------------
             # call MARBL's tool to generate a settings file
             # output will go to CASEROOT/Buildconf/popconf/marbl_in
@@ -128,9 +124,8 @@ def buildnml(case, caseroot, compname):
             # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
             #      Abort if values do not match
             MARBL_NT = MARBL_settings.get_MARBL_NT()
-            MARBL_NT_buildcpp = int(config_cache_file.get_optional_node("entry", attributes={"id":"marbl_nt"}).get("value"))
-            if MARBL_NT != MARBL_NT_buildcpp:
-              error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (MARBL_NT_buildcpp, MARBL_NT)
+            if MARBL_NT != marbl_nt_build:
+              error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (marbl_nt_build, MARBL_NT)
               error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
               logger.error(error_msg)
               sys.exit(1)
@@ -234,7 +229,7 @@ def buildnml(case, caseroot, compname):
             shutil.copy(file_src, file_dest)
 
             # marbl_in
-            if use_ecosys == "TRUE":
+            if marbl_nt_build > 0:
                 file_src  = os.path.join(confdir, "marbl_in")
                 file_dest = os.path.join(rundir, "marbl_in")
                 if inst_string:
@@ -258,4 +253,3 @@ def _main_func():
 
 if __name__ == "__main__":
     _main_func()
-
