@@ -1,4 +1,19 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 Jan 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180103
+Tag Summary: Instead of bringing in just src/shared from CVMix (as
+             source/cvmix), svn:externals brings in full CVMix repository (as
+             externals/CVMix). This means the buildlib script needs to look in
+             new location to copy CVMix files to bld/ directory.
+
+Testing:     Ensure code still builds and runs with CVMix in new location
+
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       cime_config/buildlib
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    29 Dec 2017
