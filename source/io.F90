@@ -46,7 +46,8 @@ contains
 ! !IROUTINE: data_set
 ! !INTERFACE:
 
- subroutine data_set (data_file, operation, io_field, fieldname, field_exists)
+ subroutine data_set (data_file, operation, io_field, fieldname, field_exists, &
+                      fill_value_i, fill_value_r, fill_value_d)
 
 ! !DESCRIPTION:
 !  This routine is the main interface for array and file io functions,
@@ -55,10 +56,17 @@ contains
 ! !REVISION HISTORY:
 !  same as module
 
+   use io_read_fallback_mod, only: io_read_fallback_is_field_registered
+   use io_read_fallback_mod, only: define_field_fallback
+   use io_read_fallback_mod, only: read_field_fallback
+
 ! !INPUT PARAMETERS:
 
    character (*), intent (in)   :: operation
    character (*), intent (in), optional :: fieldname
+   integer (int_kind), intent(in), optional :: fill_value_i
+   real (r4), intent(in), optional :: fill_value_r
+   real (r8), intent(in), optional :: fill_value_d
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -77,6 +85,9 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   logical (log_kind)   :: define_field_fallback_called
+   logical (log_kind)   :: define_field_exists
+   logical (log_kind)   :: read_field_exists
 
 !-----------------------------------------------------------------------
 !
@@ -181,7 +192,17 @@ contains
       if (data_file%data_format=='bin') then
          call define_field_binary(data_file,io_field)
       else if (data_file%data_format=='nc') then
-         call define_field_netcdf(data_file,io_field)
+         define_field_fallback_called = .false.
+         if (data_file%readonly) then
+            call field_exists_netcdf(data_file,io_field%short_name,define_field_exists)
+            if (.not. define_field_exists .and. io_read_fallback_is_field_registered(io_field%short_name)) then
+               call define_field_fallback(data_file,io_field)
+               define_field_fallback_called = .true.
+            endif
+         endif
+         if (.not. define_field_fallback_called) then
+            call define_field_netcdf(data_file,io_field)
+         endif
       endif
 
 !-----------------------------------------------------------------------
@@ -199,7 +220,7 @@ contains
       if (data_file%data_format=='bin') then
          call write_field_binary(data_file,io_field)
       else if (data_file%data_format=='nc') then
-         call write_field_netcdf(data_file,io_field)
+         call write_field_netcdf(data_file,io_field,fill_value_i,fill_value_r,fill_value_d)
       endif
 
 !-----------------------------------------------------------------------
@@ -217,7 +238,12 @@ contains
       if (data_file%data_format=='bin') then
          call read_field_binary(data_file,io_field)
       else if (data_file%data_format=='nc') then
-         call read_field_netcdf(data_file,io_field)
+         call field_exists_netcdf(data_file,io_field%short_name,read_field_exists)
+         if (.not. read_field_exists .and. io_read_fallback_is_field_registered(io_field%short_name)) then
+            call read_field_fallback(data_file,io_field)
+         else
+            call read_field_netcdf(data_file,io_field)
+         endif
       endif
 
 !-----------------------------------------------------------------------

@@ -29,9 +29,10 @@ module ocn_import_export
    use forcing_fields,    only: SALT_F
    use forcing_fields,    only: SENH_F, LWUP_F, LWDN_F, MELTH_F
    use forcing_fields,    only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
+   use forcing_fields,    only: ATM_NHx_nf_ind, ATM_NOy_nf_ind
    use forcing_fields,    only: IFRAC, U10_SQR, ATM_PRESS
    use forcing_fields,    only: LAMULT, USTOKES, VSTOKES
-   use forcing_fields,    only: DUST_FLUX, BLACK_CARBON_FLUX
+   use forcing_fields,    only: FINE_DUST_FLUX, COARSE_DUST_FLUX, BLACK_CARBON_FLUX
    use mcog,              only: lmcog, mcog_ncols, import_mcog
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
@@ -257,12 +258,13 @@ contains
          VSTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
 
          ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
-         DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
-            x2o(index_x2o_Faxa_dstwet1,n) + x2o(index_x2o_Faxa_dstwet2,n) + &
-            x2o(index_x2o_Faxa_dstwet3,n) + x2o(index_x2o_Faxa_dstwet4,n) + &
-            x2o(index_x2o_Faxa_dstdry1,n) + x2o(index_x2o_Faxa_dstdry2,n) + &
-            x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n) + &
-            x2o(index_x2o_Fioi_flxdst,n))
+         FINE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Faxa_dstwet1,n) + x2o(index_x2o_Faxa_dstdry1,n) + x2o(index_x2o_Fioi_flxdst,n))
+
+         ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+         COARSE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Faxa_dstwet2,n) + x2o(index_x2o_Faxa_dstwet3,n) + x2o(index_x2o_Faxa_dstwet4,n) + &
+            x2o(index_x2o_Faxa_dstdry2,n) + x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n))
 
          ! convert black carbon flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
          BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
@@ -406,6 +408,67 @@ contains
       call named_field_set(ATM_CO2_DIAG_nf_ind, WORK1)
    endif
  
+   if (index_x2o_Faxa_nhx > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         ! Note - the input units are kgN/m2/s to nmolN/cm2/s
+         ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
+         ! consistency when bringing in N isotopes into the code
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            WORK1(i,j,iblock) = x2o(index_x2o_Faxa_nhx,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) 
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(WORK1,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'ocn_import_mct: error updating DIAG NHx halo')
+         return
+      endif
+
+      call named_field_set(ATM_NHx_nf_ind, WORK1)
+   endif
+
+   if (index_x2o_Faxa_noy > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         ! Note - the input units are kgN/m2/s to nmolN/cm2/s
+         ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
+         ! consistency when bringing in N isotopes into the code
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            WORK1(i,j,iblock) = x2o(index_x2o_Faxa_noy,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8)
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(WORK1,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'ocn_import_mct: error updating DIAG NOy halo')
+         return
+      endif
+
+      call named_field_set(ATM_NOy_nf_ind, WORK1)
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  diagnostics

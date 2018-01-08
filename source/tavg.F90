@@ -122,7 +122,7 @@
 !BOC
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 500+29*nt   ! limit on available fields - can
+      max_avail_tavg_fields = 500+30*nt   ! limit on available fields - can
                                           !   be pushed as high as necessary practical
                                           !   (total of all fields in all streams)
 
@@ -488,6 +488,10 @@
 ! !REVISION HISTORY:
 !  same as module
 
+! !USES:
+
+   use var_consistency_mod, only: var_consistency_check
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -706,30 +710,29 @@
       case ('nyear')
          tavg_freq_iopt(ns) = freq_opt_nyear
          write(stdout,freq_fmt) ns, tavg_freq(ns),' years  '
-         write(time_period_freq(ns),'(a,i0)') 'year_',tavg_freq_iopt(ns)
+         write(time_period_freq(ns),'(a,i0)') 'year_',tavg_file_freq(ns)
       case ('nmonth')
          tavg_freq_iopt(ns) = freq_opt_nmonth
          write(stdout,freq_fmt) ns, tavg_freq(ns),' months '
-	 write(time_period_freq(ns),'(a,i0)') 'month_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'month_',tavg_file_freq(ns)
       case ('nday')
          tavg_freq_iopt(ns) = freq_opt_nday
          write(stdout,freq_fmt) ns, tavg_freq(ns),' days   '
-	 write(time_period_freq(ns),'(a,i0)') 'day_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'day_',tavg_file_freq(ns)
       case ('nhour')
          tavg_freq_iopt(ns) = freq_opt_nhour
          write(stdout,freq_fmt) ns, tavg_freq(ns),' hours  '
-	 write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_file_freq(ns)
       case ('nsecond')
          tavg_freq_iopt(ns) = freq_opt_nsecond
          write(stdout,freq_fmt) ns, tavg_freq(ns),' seconds'
-	 write(time_period_freq(ns),'(a,i0)') 'second_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'second_',tavg_file_freq(ns)
       case ('nstep')
          tavg_freq_iopt(ns) = freq_opt_nstep
          write(stdout,freq_fmt) ns, tavg_freq(ns),' steps  '
-	 write(time_period_freq(ns),'(a,i0)') 'step_',tavg_freq_iopt(ns)
+	 write(time_period_freq(ns),'(a,i0)') 'step_',tavg_file_freq(ns)
       case default
          tavg_freq_iopt(ns) = -1000
-	 write(time_period_freq(ns),'(a)') 'undefined'
       end select
 
       if (tavg_freq_iopt(ns) /= freq_opt_never) then
@@ -780,6 +783,7 @@
            write(stdout,freq_fmt) ns, tavg_file_freq(ns),' steps  '
         case default
            tavg_file_freq_iopt(ns) = -1000
+	   write(time_period_freq(ns),'(a)') 'undefined'
         end select
       endif
 
@@ -1046,7 +1050,7 @@
            exit_string = 'WARNING: you have requested a stream number > n_tavg_streams in tavg_contents file'
            call document ('init_tavg', exit_string)
         else
-           write(exit_string,'(a,i2,2x,a,2x,a)') ' stream requested = ', ns, 'field requested = ', char_temp
+           write(exit_string,'(a,i2,2x,a,2x,a)') ' stream requested = ', ns, 'field requested = ', trim(char_temp)
            call document ('init_tavg', exit_string)
            exit_string = 'FATAL ERROR: you have requested a stream number > n_tavg_streams in tavg_contents file'
            call document ('init_tavg', exit_string)
@@ -1061,6 +1065,7 @@
         !*** inactive field; skip the rest of this block
         ignored = ignored + 1
         call document ('init_tavg', 'inactive tavg_contents field: ',  trim(char_temp))
+        tavg_contents_request(n) = ' '
       else
         char_temp = adjustl(char_temp)
         cindex = index(char_temp,' ')
@@ -1122,6 +1127,13 @@
    !*** adjust tavg_num_requested_fields to account for rejected duplicate requests:
    tavg_num_requested_fields = tavg_num_contents_lines - duplicate - ignored
 
+   ! check vars related to tavg var count for consistency across tasks
+   ! do this for all vars in one call, so that all mismatches are caught
+
+   call var_consistency_check('tavg_var_cnt', &
+     (/ tavg_bufsize_0d, tavg_bufsize_2d, tavg_bufsize_3d, tavg_bufsize_3dt, &
+        tavg_num_contents_lines, duplicate, ignored /))
+
    call document ('init_tavg', 'Total number of tavg fields requested ',  tavg_num_requested_fields)
 
    !*** ensure that there are no empty streams
@@ -1159,7 +1171,7 @@
       allocate(TAVG_BUF_3D_TRANSPOSE(km,nx_block,ny_block,nblocks_clinic,tavg_bufsize_3dt))
       allocate(TAVG_BUF_3D_TEMP(nx_block,ny_block,km,nblocks_clinic))
       allocate(TAVG_BUF_3D_TRANSPOSE_METHOD(tavg_bufsize_3dt))
-      TAVG_BUF_3D = c0
+      TAVG_BUF_3D_TRANSPOSE = c0
      endif
 
      allocate(TAVG_TEMP(nx_block,ny_block,nblocks_clinic))
@@ -2169,7 +2181,12 @@
            end do
            call timer_stop(timer_write_transpose)
          end if
-         call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter))
+         call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter), &
+#ifdef TAVG_R8
+                        fill_value_d=avail_tavg_fields(nfield)%fill_value)
+#else
+                        fill_value_r=avail_tavg_fields(nfield)%fill_value)
+#endif
          if (time_to_close) call destroy_io_field(tavg_streams(ns)%tavg_fields(field_counter))
         endif ! tavg_in_this_stream
       endif ! tavg_requested
@@ -2585,8 +2602,11 @@
          if (avail_tavg_fields(nfield)%transpose_field) then
            call timer_start(timer_read_transpose)
            ! Transpose field
-           do k=1,avail_tavg_fields(nfield)%km
-             TAVG_BUF_3D_TRANSPOSE(k,:,:,:,loc) = TAVG_BUF_3D_TEMP(:,:,k,:)
+           do iblock=1,nblocks_clinic
+             do k=1,avail_tavg_fields(nfield)%km
+               TAVG_BUF_3D_TRANSPOSE(k,:,:,iblock,loc) = merge(TAVG_BUF_3D_TEMP(:,:,k,iblock), &
+                                                               real(0, rtavg), k .le. KMT(:,:,iblock))
+             end do
            end do
            call timer_stop(timer_read_transpose)
          end if
@@ -2741,7 +2761,7 @@
             end do
 !njn01      !$OMP END PARALLEL DO
 
-            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
+            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc, tag=20000+nfield)
 
             select case(field_loc)
             case(field_loc_center)
@@ -2803,7 +2823,7 @@
             end do
 !njn01      !$OMP END PARALLEL DO
 
-            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
+            tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc, tag=30000+nfield)
 
             select case(field_loc)
             case(field_loc_center)
@@ -3011,7 +3031,7 @@
 
    denom_u = tavg_norm*area_u
 
-   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc)
+   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc, tag=id)
 
    select case(field_loc)
      case(field_loc_center)
@@ -3381,7 +3401,7 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    end if
 
-   kmax = avail_tavg_fields(field_id)%km
+   kmax = min(avail_tavg_fields(field_id)%km, KMT(i,j,block))
 
 !-----------------------------------------------------------------------
 !
@@ -6310,7 +6330,18 @@
       n, ndims             ! local index
 
    do n=1,nvars
-      call data_set (tavg_file_desc, 'write', ccsm_vars(n))
+      if (associated(ccsm_vars(n)%field_r_2d) .or. &
+          associated(ccsm_vars(n)%field_r_3d)) then
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n), fill_value_r=undefined_nf_r4)
+      else if (associated(ccsm_vars(n)%field_d_2d) .or. &
+               associated(ccsm_vars(n)%field_d_3d)) then
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n), fill_value_d=undefined_nf_r8)
+      else if (associated(ccsm_vars(n)%field_i_2d) .or. &
+               associated(ccsm_vars(n)%field_i_3d)) then
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n), fill_value_i=undefined_nf_int)
+      else
+         call data_set (tavg_file_desc, 'write', ccsm_vars(n))
+      endif
    enddo
 
 !-----------------------------------------------------------------------
@@ -7778,7 +7809,7 @@
 
    do n_reg=1,n_reg_0D
      SAVG_0D(n_reg) = global_sum ( WORK(:,:,:),distrb_clinic,  &
-                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg))  &
+                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg), tag=n_reg)  &
                          / SAVG_0D_AREA(n_reg)
    enddo ! n_reg
 

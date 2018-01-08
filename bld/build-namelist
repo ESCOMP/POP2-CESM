@@ -350,8 +350,9 @@ my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
 my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
 my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
-my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
+my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
+my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -498,7 +499,6 @@ add_default($nl, 'num_iotasks');
 add_default($nl, 'lredirect_stdout');
 add_default($nl, 'log_filename', 'val'=>"${RUNDIR}/ocn${inst_string}.log.$LID");
 add_default($nl, 'luse_pointer_files');
-add_default($nl, 'luse_nf_64bit_offset');
 
 ####################################
 # namelist group: time_manager_nml #
@@ -614,6 +614,7 @@ if ($OCN_ONEDIM eq 'TRUE' && $RUN_TYPE eq 'startup') {
 add_default($nl, 'init_ts_outfile'     , 'val'=>"${output_h}.ts_ic");
 add_default($nl, 'init_ts_outfile_fmt');
 add_default($nl, 'init_ts_suboption');
+add_default($nl, 'init_ts_perturb');
 
 ##########################################
 # namelist group: diagnostics_nml        #
@@ -1065,6 +1066,7 @@ add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'lfw_as_salt_flx');
+add_default($nl,'precip_fact_const');
 
 ##########################################
 # namelist group: forcing_pt_interior_nml#
@@ -1175,6 +1177,7 @@ add_default($nl,'lcoupled');
 add_default($nl,'lccsm');
 add_default($nl,'b4b_flag');
 add_default($nl,'lccsm_control_compatible');
+add_default($nl,'ldebug', 'DEBUG'=>"$DEBUG");
 
 ##########################################
 # namelist group: overflows_nml          #
@@ -1223,7 +1226,6 @@ add_default($nl, "lchange_ans");
 add_default($nl, "iage_on");
 add_default($nl, "cfc_on");
 add_default($nl, "sf6_on");
-add_default($nl, "ciso_on");
 add_default($nl, "abio_dic_dic14_on");
 add_default($nl, "ecosys_on");
 add_default($nl, "irf_on");
@@ -1254,8 +1256,14 @@ add_default($nl, 'h_lower');
 
 my $iage_on = $cfg->get("use_iage");
 if ($iage_on eq "TRUE") {
-    add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
-    add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
+    if ($POP_PASSIVE_TRACER_RESTART_OVERRIDE eq "none") {
+      add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
+      add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
+    } else {
+      add_default($nl, 'init_iage_option',    'val'=>"ccsm_hybrid");
+      add_default($nl, 'init_iage_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
+      add_default($nl, 'init_iage_init_file_fmt', 'val'=>'nc');
+    }
 }
 
 ##########################################
@@ -1264,48 +1272,38 @@ if ($iage_on eq "TRUE") {
 
 my $cfc_on = $cfg->get("use_cfc");
 if ($cfc_on eq "TRUE") {
+    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'pcfc_first_nonzero_year');
 
-#===============================================================================
-#  values of init_cfc_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set in $CASEROOT/env_run.xml
-#
-#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_cfc_option
-#  TRUE           any             any             continue    ccsm_continue
-#  FALSE          <= 1930         any             $RUN_TYPE   zero
-#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
-#  FALSE          > 1930          startup         $RUN_TYPE   abort
-#===============================================================================
+    # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective cfc year >= pcfc_first_nonzero_year
+    # then make the user specify init_cfc_option.
 
-    my $init_cfc_option;
-    $init_cfc_option = "ccsm_${RUN_TYPE}";
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      if ($RUN_TYPE ne "continue") {
-        my $RUN_DAY_ONE = $RUN_STARTDATE;
-        if ($RUN_TYPE eq "branch") {
-          $RUN_DAY_ONE = $RUN_REFDATE;
-        }
-        my @START_ARRAY = split('-',$RUN_DAY_ONE);
-        my $START_YEAR = @START_ARRAY[0];
-        print "Setting initial CFCs based on starting the run in $START_YEAR\n";
-        if ($START_YEAR le 1930) {
-          $init_cfc_option = "zero";
-        } else {
-          if ($RUN_TYPE eq "startup") {
-            # Check to see if init_cfc_option was set in user_nl_pop
-            $init_cfc_option = $nl->get_variable_value("cfc_nml", "init_cfc_option");
-            if ($init_cfc_option eq "") {
-              # If not, error out with message saying value must be specified 
-              print "ERROR: CFCs cannot be automatically initializd post 1930 in a startup run! Set init_cfc_option in user_nl_pop before building pop_in.\n";
-              die;
-            }
-          }
+    if ($RUN_TYPE eq "startup") {
+      # RUN_TYPE gets changed to continue if CONTINUE_RUN eq "TRUE",
+      # so we may assume here that CONTINUE_RUN eq "FALSE"
+
+      my @START_ARRAY = split('-',$RUN_STARTDATE);
+      my $START_YEAR = @START_ARRAY[0];
+
+      my $cfc_model_year = $nl->get_value("model_year&cfc_nml");
+      my $cfc_data_year  = $nl->get_value("data_year&cfc_nml");
+      my $START_YEAR_adj = $START_YEAR - $cfc_model_year + $cfc_data_year;
+      my $pcfc_first_nonzero_year = $nl->get_value("pcfc_first_nonzero_year");
+
+      if ($START_YEAR_adj ge $pcfc_first_nonzero_year) {
+        # Abort if init_cfc_option was not set in user_nl_pop
+        if ($nl->get_variable_value("cfc_nml", "init_cfc_option") eq "") {
+          print "RUN_TYPE=startup\n",
+                "START_YEAR_adj=$START_YEAR_adj ge pcfc_first_nonzero_year=$pcfc_first_nonzero_year\n",
+                "ERROR: CFCs cannot be automatically initialized post $pcfc_first_nonzero_year in a startup run\n",
+                "Set init_cfc_option or change pcfc_first_nonzero_year in user_nl_pop.\n";
+          die;
         }
       }
     }
-    add_default($nl, 'init_cfc_option', 'val'=>"$init_cfc_option");
 
-    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'init_cfc_option', 'val'=>"ccsm_$RUN_TYPE");
 
     add_default($nl, 'cfc_formulation');
     add_default($nl, 'pcfc_file');
@@ -1318,48 +1316,38 @@ if ($cfc_on eq "TRUE") {
 
 my $sf6_on = $cfg->get("use_sf6");
 if ($sf6_on eq "TRUE") {
+    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'psf6_first_nonzero_year');
 
-#===============================================================================
-#  values of init_sf6_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set in $CASEROOT/env_run.xml
-#
-#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_sf6_option
-#  TRUE           any             any             continue    ccsm_continue
-#  FALSE          <= 1930         any             $RUN_TYPE   zero
-#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
-#  FALSE          > 1930          startup         $RUN_TYPE   abort
-#===============================================================================
+    # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective sf6 year >= psf6_first_nonzero_year
+    # then make the user specify init_sf6_option.
 
-    my $init_sf6_option;
-    $init_sf6_option = "ccsm_${RUN_TYPE}";
-    if ($OCN_TRANSIENT eq "1850-2000") {
-      if ($RUN_TYPE ne "continue") {
-        my $RUN_DAY_ONE = $RUN_STARTDATE;
-        if ($RUN_TYPE eq "branch") {
-          $RUN_DAY_ONE = $RUN_REFDATE;
-        }
-        my @START_ARRAY = split('-',$RUN_DAY_ONE);
-        my $START_YEAR = @START_ARRAY[0];
-        print "Setting initial SF6 based on starting the run in $START_YEAR\n";
-        if ($START_YEAR le 1930) {
-          $init_sf6_option = "zero";
-        } else {
-          if ($RUN_TYPE eq "startup") {
-            # Check to see if init_sf6_option was set in user_nl_pop
-            $init_sf6_option = $nl->get_variable_value("sf6_nml", "init_sf6_option");
-            if ($init_sf6_option eq "") {
-              # If not, error out with message saying value must be specified 
-              print "ERROR: SF6 cannot be automatically initializd post 1930 in a startup run! Set init_sf6_option in user_nl_pop before building pop_in.\n";
-              die;
-            }
-          }
+    if ($RUN_TYPE eq "startup") {
+      # RUN_TYPE gets changed to continue if CONTINUE_RUN eq "TRUE",
+      # so we may assume here that CONTINUE_RUN eq "FALSE"
+
+      my @START_ARRAY = split('-',$RUN_STARTDATE);
+      my $START_YEAR = @START_ARRAY[0];
+
+      my $sf6_model_year = $nl->get_value("model_year&sf6_nml");
+      my $sf6_data_year  = $nl->get_value("data_year&sf6_nml");
+      my $START_YEAR_adj = $START_YEAR - $sf6_model_year + $sf6_data_year;
+      my $psf6_first_nonzero_year = $nl->get_value("psf6_first_nonzero_year");
+
+      if ($START_YEAR_adj ge $psf6_first_nonzero_year) {
+        # Abort if init_sf6_option was not set in user_nl_pop
+        if ($nl->get_variable_value("sf6_nml", "init_sf6_option") eq "") {
+          print "RUN_TYPE=startup\n",
+                "START_YEAR_adj=$START_YEAR_adj ge psf6_first_nonzero_year=$psf6_first_nonzero_year\n",
+                "ERROR: sf6s cannot be automatically initialized post $psf6_first_nonzero_year in a startup run\n",
+                "Set init_sf6_option or change psf6_first_nonzero_year in user_nl_pop.\n";
+          die;
         }
       }
     }
-    add_default($nl, 'init_sf6_option', 'val'=>"$init_sf6_option");
 
-    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'init_sf6_option', 'val'=>"ccsm_$RUN_TYPE");
 
     add_default($nl, 'sf6_formulation');
     add_default($nl, 'psf6_file');
@@ -1372,16 +1360,21 @@ if ($sf6_on eq "TRUE") {
 
 my $abio_on = $cfg->get("use_abio");
 if ($abio_on eq "TRUE") {
-	
-    add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
-	
-    if ($RUN_TYPE eq "startup") {
-     add_default($nl, 'init_abio_dic_dic14_init_file');
+
+    if ($POP_PASSIVE_TRACER_RESTART_OVERRIDE eq "none") {
+      add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
+      if ($RUN_TYPE eq "startup") {
+        add_default($nl, 'init_abio_dic_dic14_init_file');
+      } else {
+        add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+      }
+      add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
     } else {
-     add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+      add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_hybrid");
+      add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
+      add_default($nl, 'init_abio_dic_dic14_init_file_fmt', 'val'=>'nc');
     }
-  
-    add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
+
     add_default($nl, 'abio_tracer_init_ext(1)%mod_varname');
     add_default($nl, 'abio_tracer_init_ext(1)%file_varname');
     add_default($nl, 'abio_tracer_init_ext(1)%scale_factor');
@@ -1393,80 +1386,54 @@ if ($abio_on eq "TRUE") {
     add_default($nl, 'abio_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
     add_default($nl, 'abio_comp_surf_avg_freq_opt');
     add_default($nl, 'abio_comp_surf_avg_freq');
-    add_default($nl, 'abio_atm_d14c_filename(1)');
-    add_default($nl, 'abio_atm_d14c_filename(2)');
-    add_default($nl, 'abio_atm_d14c_filename(3)');
+    add_default($nl, 'abio_atm_d14c_filename');
     add_default($nl, 'abio_atm_co2_filename');
-    add_default($nl, 'abio_atm_co2_d14c_opt');
+    add_default($nl, 'abio_atm_co2_opt');
+    add_default($nl, 'abio_atm_d14c_opt');
     add_default($nl, 'abio_atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'abio_atm_d14c_const');
-    add_default($nl, 'abio_dic_dic14_model_year');
-    add_default($nl, 'abio_dic_dic14_data_year');
+    add_default($nl, 'abio_atm_model_year');
+    add_default($nl, 'abio_atm_data_year');
  }
 
 ##########################################
-# namelist group: ecosys derived vars    #
+# namelist group: ecosys_driver_nml      #
 ##########################################
 
 my $ecosys_on = $cfg->get("use_ecosys");
-if ($ecosys_on eq "TRUE") {
-    add_default($nl, 'lecosys_debug');
-}
-
-##########################################
-# namelist group: marbl_config_nml       #
-##########################################
-
-my $ciso_on = $cfg->get("use_ciso");
+my %ecosys_cfg; # New hash containing some MARBL settings
 
 if ($ecosys_on eq "TRUE") {
-  my $ciso_loc = $nl->get_value('ciso_on');
-  add_default($nl, 'ciso_on&marbl_config_nml', val=>"$ciso_loc");
-  my $ciso_marbl_loc = $nl->get_value('ciso_on&marbl_config_nml');
-  if ("$ciso_loc" ne "$ciso_marbl_loc") {
-    die << "EOF";
-** MARBL is running with ciso_on = $ciso_marbl_loc
-   POP is expecting ciso_on = $ciso_loc
-EOF
-  }
-
-  add_default($nl, 'lsource_sink');
-  add_default($nl, 'lecovars_full_depth_tavg');
-  add_default($nl, 'lflux_gas_o2');
-  add_default($nl, 'lflux_gas_co2');
-  add_default($nl, 'lapply_nhx_surface_emis');
-
-  # FIXME : replace following with ladjust_bury_coeff=.true. branch
-  # when "restfile" is implemented for scalar saved state
-  if ($nl->get_value('ladjust_bury_coeff') eq '.true.') {
-    if ($RUN_TYPE eq "startup") {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-    } else {
-      add_default($nl, 'init_bury_coeff_opt', 'val'=>"restfile");
+    # Add marbl_settings_file to POP namelist
+    my $marbl_settings_file = "marbl_in";
+    my $user_nl_pop   = "user_nl_pop";
+    my $user_nl_marbl = "user_nl_marbl";
+    if ($inst_string) {
+      # append inst_string if multi-instance case
+      $marbl_settings_file .= $inst_string;
+      $user_nl_pop   .= $inst_string;
+      $user_nl_marbl .= $inst_string;
     }
-  } else {
-    add_default($nl, 'init_bury_coeff_opt', 'val'=>"nml");
-  }
-  add_default($nl, 'ladjust_bury_coeff');
 
-  add_default($nl, 'autotrophs_config(1)%sname');
-  add_default($nl, 'autotrophs_config(2)%sname');
-  add_default($nl, 'autotrophs_config(3)%sname');
-  add_default($nl, 'zooplankton_config(1)%sname');
-  add_default($nl, 'grazing_config(1,1)%sname');
-  add_default($nl, 'grazing_config(1,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(1,1)%zoo_ind_cnt');
-  add_default($nl, 'grazing_config(2,1)%sname');
-  add_default($nl, 'grazing_config(2,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(2,1)%zoo_ind_cnt');
-  add_default($nl, 'grazing_config(3,1)%sname');
-  add_default($nl, 'grazing_config(3,1)%auto_ind_cnt');
-  add_default($nl, 'grazing_config(3,1)%zoo_ind_cnt');
+    # Abort if marbl_settings_file was set in user_nl_pop
+    if ($nl->get_variable_value("ecosys_driver_nml", "marbl_settings_file") ne "") {
+      print "ERROR: Do not set marbl_settings_file in ${user_nl_pop}.\n",
+            "To change values in ${marbl_settings_file} you may override variables via ${user_nl_marbl},\n",
+            "but POP relies on ${marbl_settings_file} for determining tracer counts and other\n",
+            "configuration details that may not be consistent with an alternate file.\n";
+      die;
+    }
+    add_default($nl, 'marbl_settings_file', 'val'=>"$marbl_settings_file");
 
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_lsource_sink');
-    add_default($nl, 'ciso_lecovars_full_depth_tavg');
-  }
+    # Add some MARBL vars to ecosys_cfg
+    for my $varname ('ladjust_bury_coeff', 'lvariable_PtoC', 'ciso_on') {
+        $ecosys_cfg{$varname} = `grep $varname $marbl_settings_file | cut -d '=' -f 2 | sed 's/^ //'`;
+        chomp $ecosys_cfg{$varname};
+    }
+
+    add_default($nl, 'lmarginal_seas');
+    add_default($nl, 'ecosys_tadvect_ctype');
+    add_default($nl, 'ecosys_qsw_distrb_const');
 }
 
 ############################################
@@ -1474,13 +1441,13 @@ EOF
 ############################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'dust_flux_source');
+  add_default($nl, 'dust_flux_source','ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'dust_flux_input%filename');
   add_default($nl, 'dust_flux_input%file_fmt');
   add_default($nl, 'dust_flux_input%file_varname');
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
-  add_default($nl, 'iron_flux_source');
+  add_default($nl, 'iron_flux_source','ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'iron_flux_input%filename');
   add_default($nl, 'iron_flux_input%file_fmt');
   add_default($nl, 'iron_flux_input%file_varname');
@@ -1491,44 +1458,58 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'fesedflux_input%file_fmt');
   add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  add_default($nl, 'din_riv_flux_input%filename');
-  add_default($nl, 'dip_riv_flux_input%filename');
-  add_default($nl, 'don_riv_flux_input%filename');
-  add_default($nl, 'dop_riv_flux_input%filename');
-  add_default($nl, 'dsi_riv_flux_input%filename');
-  add_default($nl, 'dfe_riv_flux_input%filename');
-  add_default($nl, 'dic_riv_flux_input%filename');
-  add_default($nl, 'alk_riv_flux_input%filename');
-  add_default($nl, 'doc_riv_flux_input%filename');
-
-  my $lapply_nhx_surface_emis = $nl->get_value('lapply_nhx_surface_emis');
+  add_default($nl, 'feventflux_input%filename');
+  add_default($nl, 'feventflux_input%file_varname');
+  add_default($nl, 'feventflux_input%file_fmt');
+  add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
   add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
-  if ($OCN_TRANSIENT eq "unset") {
-    add_default($nl, 'nox_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
+  my $ndep_data_type = $nl->get_value('ndep_data_type');
+  # Need to strip the quotes
+  $ndep_data_type =~ s/['"]//g;
+  if ($ndep_data_type eq "monthly-calendar") {
+    add_default($nl, 'nox_flux_monthly_input%filename');
     add_default($nl, 'nox_flux_monthly_input%file_fmt');
     add_default($nl, 'nox_flux_monthly_input%file_varname');
     add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    add_default($nl, 'nhy_flux_monthly_input%filename', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
+    add_default($nl, 'nhy_flux_monthly_input%filename');
     add_default($nl, 'nhy_flux_monthly_input%file_fmt');
     add_default($nl, 'nhy_flux_monthly_input%file_varname');
     add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-  } elsif ($OCN_TRANSIENT eq "1850-2000") {
-    add_default($nl, 'ndep_shr_stream_year_first');
-    add_default($nl, 'ndep_shr_stream_year_last');
-    add_default($nl, 'ndep_shr_stream_year_align');
-    add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-    add_default($nl, 'ndep_shr_stream_file', 'lapply_nhx_surface_emis'=>$lapply_nhx_surface_emis);
-  } elsif (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
+  } elsif ($ndep_data_type eq "shr_stream") {
     add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
-  } else {
-    print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosys module\n";
+  } elsif ($ndep_data_type ne "driver") {
+    print " ndep_data_type=$ndep_data_type not supported by ecosys module\n";
     die;
   }
+
+  my $estuary_type = $nl->get_value('estuary_type');
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type);
+  add_default($nl, 'riv_flux_shr_stream_year_first');
+  add_default($nl, 'riv_flux_shr_stream_year_align');
+  add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
+  add_default($nl, 'riv_flux_din_file_varname');
+  add_default($nl, 'riv_flux_din_scale_factor');
+  add_default($nl, 'riv_flux_dip_file_varname');
+  add_default($nl, 'riv_flux_dip_scale_factor');
+  add_default($nl, 'riv_flux_don_file_varname');
+  add_default($nl, 'riv_flux_don_scale_factor');
+  add_default($nl, 'riv_flux_dop_file_varname');
+  add_default($nl, 'riv_flux_dop_scale_factor');
+  add_default($nl, 'riv_flux_dsi_file_varname');
+  add_default($nl, 'riv_flux_dsi_scale_factor');
+  add_default($nl, 'riv_flux_dfe_file_varname');
+  add_default($nl, 'riv_flux_dfe_scale_factor');
+  add_default($nl, 'riv_flux_dic_file_varname');
+  add_default($nl, 'riv_flux_dic_scale_factor');
+  add_default($nl, 'riv_flux_alk_file_varname');
+  add_default($nl, 'riv_flux_alk_scale_factor');
+  add_default($nl, 'riv_flux_doc_file_varname');
+  add_default($nl, 'riv_flux_doc_scale_factor');
 
   add_default($nl, 'gas_flux_forcing_opt');
 
@@ -1549,45 +1530,51 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
   add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
 
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
-    add_default($nl, 'ciso_atm_d14c_const');
+  add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d13c_const');
+  add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d14c_const');
 
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d13c_filename');
-    }
-
-    my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
-    if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d14c_filename(1)');
-      add_default($nl, 'ciso_atm_d14c_filename(2)');
-      add_default($nl, 'ciso_atm_d14c_filename(3)');
-    }
-
-    add_default($nl, 'ciso_atm_model_year');
-    add_default($nl, 'ciso_atm_data_year');
+  my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
+  if ($ciso_atm_opt eq '\'file\'') {
+    add_default($nl, 'ciso_atm_d13c_filename');
   }
 
-  add_default($nl, 'restoreable_tracer_names');
-  add_default($nl, 'restore_data_file_varnames');
+  my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+  if ($ciso_atm_opt eq '\'file\'') {
+    add_default($nl, 'ciso_atm_d14c_filename');
+  }
+
+  add_default($nl, 'ciso_atm_model_year');
+  add_default($nl, 'ciso_atm_data_year');
+
+  add_default($nl, 'restorable_tracer_names');
 
   # The size of the array restore_data_filenames depends on the size of
-  # restoreable_tracer_names
-  my @tracer_names = split(/,/,$nl->get_value('restoreable_tracer_names'));
+  # restorable_tracer_names
+  my @tracer_names = split(/,/,$nl->get_value('restorable_tracer_names'));
   my $tracer_cnt =$#tracer_names+1;
   add_default($nl, 'restore_data_filenames_derived');
   my $restore_data_file= "$tracer_cnt*" . $nl->get_value('restore_data_filenames_derived');
   add_default($nl, 'restore_data_filenames', 'val'=>"$restore_data_file", 'quote'=>'FALSE');
+  add_default($nl, 'restore_data_file_varnames');
+
   add_default($nl, 'restore_inv_tau_opt');
   add_default($nl, 'restore_inv_tau_const');
+
+  add_default($nl, 'restore_inv_tau_input%filename');
+  add_default($nl, 'restore_inv_tau_input%file_varname');
+  add_default($nl, 'restore_inv_tau_input%file_fmt');
+  add_default($nl, 'restore_inv_tau_input%scale_factor');
 
   add_default($nl, 'surf_avg_dic_const');
   add_default($nl, 'surf_avg_alk_const');
   add_default($nl, 'surf_avg_di13c_const');
   add_default($nl, 'surf_avg_di14c_const');
+
+  add_default($nl, 'iron_frac_in_fine_dust');
+  add_default($nl, 'iron_frac_in_coarse_dust');
+  add_default($nl, 'iron_frac_in_bc');
 }
 
 ##########################################
@@ -1595,187 +1582,128 @@ if ($ecosys_on eq "TRUE") {
 ##########################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
-  if ($RUN_TYPE eq "startup") {
-    add_default($nl, 'init_ecosys_init_file');
+  if ($POP_PASSIVE_TRACER_RESTART_OVERRIDE eq "none") {
+    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+    if ($RUN_TYPE eq "startup") {
+      add_default($nl, 'init_ecosys_init_file');
+    } else {
+      add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    }
+    add_default($nl, 'init_ecosys_init_file_fmt');
   } else {
-    add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_hybrid");
+    add_default($nl, 'init_ecosys_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
+    add_default($nl, 'init_ecosys_init_file_fmt', 'val'=>'nc');
   }
-  add_default($nl, 'init_ecosys_init_file_fmt');
 
 # init_ecosys_init_file is set
   # (1) query init_ecosys_init_file
   # (2) add_default('ciso_init_ecosys_init_file', 'val' => '$init_ecosys_init_file')
 
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+  # By default, we use the same initial condition settings for the base
+  # ecosystem module and the CISO module, but users have the option of
+  # specifying different files if desired.
+  my $init_ecosys_option = $nl->get_value("init_ecosys_option");
+  my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
+  my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
 
-    # By default, we use the same initial condition file for the base
-    # ecosystem module and the CISO module, but users have the option of
-    # specifying different files if desired.
-    my $init_ecosys_init_file = $nl->get_value("init_ecosys_init_file");
-    my $init_ecosys_init_file_fmt = $nl->get_value("init_ecosys_init_file_fmt");
-    add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
-    add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
+  add_default($nl, 'ciso_init_ecosys_option', 'val'=>"$init_ecosys_option");
+  add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"$init_ecosys_init_file");
+  add_default($nl, 'ciso_init_ecosys_init_file_fmt', 'val'=>"$init_ecosys_init_file_fmt");
 
-    add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
+  add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
 
-    add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
-    add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
-    add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
-  }
+  add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
+  add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
+  add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
+
 }
 
 ##########################################
-# namelist group: marbl_parms_nml        #
+# namelist group: ecosys derived vars    #
 ##########################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'parm_Fe_bioavail');
-  add_default($nl, 'parm_o2_min');
-  add_default($nl, 'parm_o2_min_delta');
-  add_default($nl, 'parm_kappa_nitrif');
-  add_default($nl, 'parm_nitrif_par_lim');
-  add_default($nl, 'parm_labile_ratio');
-  add_default($nl, 'parm_init_POC_bury_coeff');
-  add_default($nl, 'parm_init_POP_bury_coeff');
-  add_default($nl, 'parm_init_bSi_bury_coeff');
-  add_default($nl, 'parm_fe_scavenge_rate0');
-  add_default($nl, 'parm_f_prod_sp_CaCO3');
-  add_default($nl, 'parm_POC_diss');
-  add_default($nl, 'parm_SiO2_diss');
-  add_default($nl, 'parm_CaCO3_diss');
-  add_default($nl, 'fe_max_scale2');
-  add_default($nl, 'bury_coeff_rmean_timescale_years');
+    add_default($nl, 'lecosys_tavg_all');
 
-  add_default($nl, 'parm_scalelen_z');
-  add_default($nl, 'parm_scalelen_vals');
+    # Set lecosys_tavg_alt_co2=.true. unless
+    # atm_co2 and atm_alt_co2 forcing options are equivalent
+    my $lecosys_tavg_alt_co2 = '.true.';
 
-  add_default($nl, 'zooplankton(1)%z_mort_0');
-  add_default($nl, 'zooplankton(1)%z_mort2_0');
-  add_default($nl, 'zooplankton(1)%loss_thres');
+    my $atm_co2_opt     = $nl->get_value('atm_co2_opt');
+    my $atm_alt_co2_opt = $nl->get_value('atm_alt_co2_opt');
 
-  add_default($nl, 'autotrophs(1)%kFe');
-  add_default($nl, 'autotrophs(1)%kPO4');
-  add_default($nl, 'autotrophs(1)%kDOP');
-  add_default($nl, 'autotrophs(1)%kNO3');
-  add_default($nl, 'autotrophs(1)%kNH4');
-  add_default($nl, 'autotrophs(1)%kSiO3');
+    # strip quotes
+    $atm_co2_opt     =~ s/[\'\"]//g;
+    $atm_alt_co2_opt =~ s/[\'\"]//g;
 
-  add_default($nl, 'autotrophs(2)%kFe');
-  add_default($nl, 'autotrophs(2)%kPO4');
-  add_default($nl, 'autotrophs(2)%kDOP');
-  add_default($nl, 'autotrophs(2)%kNO3');
-  add_default($nl, 'autotrophs(2)%kNH4');
-  add_default($nl, 'autotrophs(2)%kSiO3');
-
-  add_default($nl, 'autotrophs(3)%kFe');
-  add_default($nl, 'autotrophs(3)%kPO4');
-  add_default($nl, 'autotrophs(3)%kDOP');
-  add_default($nl, 'autotrophs(3)%kNO3');
-  add_default($nl, 'autotrophs(3)%kNH4');
-  add_default($nl, 'autotrophs(3)%kSiO3');
-
-  add_default($nl, 'grazing(1,1)%auto_ind');
-  add_default($nl, 'grazing(1,1)%zoo_ind');
-  add_default($nl, 'grazing(1,1)%z_umax_0');
-  add_default($nl, 'grazing(1,1)%z_grz');
-  add_default($nl, 'grazing(1,1)%graze_zoo');
-  add_default($nl, 'grazing(1,1)%graze_poc');
-  add_default($nl, 'grazing(1,1)%graze_doc');
-  add_default($nl, 'grazing(1,1)%f_zoo_detr');
-  add_default($nl, 'grazing(1,1)%grazing_function');
-
-  add_default($nl, 'grazing(2,1)%auto_ind');
-  add_default($nl, 'grazing(2,1)%zoo_ind');
-  add_default($nl, 'grazing(2,1)%z_umax_0');
-  add_default($nl, 'grazing(2,1)%z_grz');
-  add_default($nl, 'grazing(2,1)%graze_zoo');
-  add_default($nl, 'grazing(2,1)%graze_poc');
-  add_default($nl, 'grazing(2,1)%graze_doc');
-  add_default($nl, 'grazing(2,1)%f_zoo_detr');
-  add_default($nl, 'grazing(2,1)%grazing_function');
-
-  add_default($nl, 'grazing(3,1)%auto_ind');
-  add_default($nl, 'grazing(3,1)%zoo_ind');
-  add_default($nl, 'grazing(3,1)%z_umax_0');
-  add_default($nl, 'grazing(3,1)%z_grz');
-  add_default($nl, 'grazing(3,1)%graze_zoo');
-  add_default($nl, 'grazing(3,1)%graze_poc');
-  add_default($nl, 'grazing(3,1)%graze_doc');
-  add_default($nl, 'grazing(3,1)%f_zoo_detr');
-  add_default($nl, 'grazing(3,1)%grazing_function');
-
-  add_default($nl, 'iron_frac_in_dust');
-  add_default($nl, 'iron_frac_in_bc');
-  add_default($nl, 'caco3_bury_thres_opt');
-  add_default($nl, 'caco3_bury_thres_depth');
-  add_default($nl, 'pon_bury_coeff');
-
-  if ($ciso_on eq "TRUE") {
-    add_default($nl, 'ciso_fract_factors');
-  }
-}
-
-##########################################
-# namelist group: ecosys_driver_nml      #
-##########################################
-
-if ($ecosys_on eq "TRUE") {
-    add_default($nl, 'lmarginal_seas');
-    add_default($nl, 'ecosys_tadvect_ctype');
-    add_default($nl, 'ecosys_qsw_distrb_const');
+    if ($atm_co2_opt eq $atm_alt_co2_opt) {
+      # If both are set to 'const', then equivalence depends on the const value.
+      #   Currently atm_co2_opt=atm_alt_co2_opt implies atm_co2_opt=const,
+      #   because const is the only valid value for atm_alt_co2_opt. But leave
+      #   the check in, in case more valid values are added to atm_alt_co2_opt.
+      if ($atm_co2_opt eq 'const') {
+        my $atm_co2_const     = $nl->get_value('atm_co2_const');
+        my $atm_alt_co2_const = $nl->get_value('atm_alt_co2_const');
+        if ($atm_co2_const eq $atm_alt_co2_const) {
+          $lecosys_tavg_alt_co2 = '.false.';
+        }
+      } else {
+        $lecosys_tavg_alt_co2 = '.false.';
+      }
     }
+    add_default($nl, 'lecosys_tavg_alt_co2', 'val'=>"$lecosys_tavg_alt_co2");
+}
  
 ##########################################
 # namelist group: irf_nml                #
@@ -2007,11 +1935,14 @@ my @OCN_TAVG_MODULES = @OCN_TRACER_MODULES;
 if ($lmcog) {
    push(@OCN_TAVG_MODULES, "mcog");
 }
+if ($ecosys_cfg{"ciso_on"} eq ".true.") {
+   push(@OCN_TAVG_MODULES, "ciso");
+}
 for my $module (@OCN_TAVG_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
   my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
-  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg);
+  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg, \%ecosys_cfg);
   if (-f "${my_path}/$file"){
       $sysmod = "$env ${my_path}/${file} $my_stream @tavg_script_args";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
@@ -2136,9 +2067,7 @@ if ($sf6_on eq "TRUE" ) {
 if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_driver_nml
                      ecosys_forcing_data_nml
-                     ecosys_tracer_init_nml
-                     marbl_config_nml
-                     marbl_parms_nml);
+                     ecosys_tracer_init_nml);
 }    
 if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
@@ -2618,11 +2547,16 @@ sub pop_consistency_check() {
 #-------------------------------------------------------------------------------
 
 sub module_tavg_script_args() {
-  my $nl     = shift;
-  my $module = shift;
-  my $cfg    = shift;
+  my $nl         = shift;
+  my $module     = shift;
+  my $cfg        = shift;
+  my $eco_cfg    = shift;
+  my %ecosys_cfg = %$eco_cfg;
   if ($module eq "ecosys") {
-    return ($nl->get_value('lecosys_debug'));
+    return ($nl->get_value('lecosys_tavg_all'),
+            $nl->get_value('lecosys_tavg_alt_co2'),
+            $ecosys_cfg{'ladjust_bury_coeff'},
+            $ecosys_cfg{'lvariable_PtoC'});
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
@@ -2638,8 +2572,9 @@ sub module_tavg_script_args() {
     my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
     my $mcog_ncols = @mcog_col_to_bin;
     my $mcog_nbins = max @mcog_col_to_bin;
-    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"), $mcog_ncols, $mcog_nbins);
+    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"),
+            $mcog_ncols,
+            $mcog_nbins);
   }
   return "";
 }
-

@@ -36,6 +36,7 @@
        tmix_iopt, ice_ts, access_time_flag,tmix_avgfit,tmix_avg, lrobert_filter
    use exit_mod, only: sigAbort, exit_pop, flushm
    use prognostic
+   use forcing_fields, only : lhas_vflux
    use passive_tracers, only: tracer_ref_val
    use grid, only: sfc_layer_varthick, sfc_layer_type
    use qflux_mod
@@ -504,10 +505,9 @@
          endif
        else
           do n=2,nt
-             ref_val = salref - salice
-             if (n > 2)  &
-                ref_val = ref_val * (tracer_ref_val(n) / salref)
-             if (ref_val /= c0)  then
+             if (lhas_vflux(n)) then
+                ref_val = salref - salice
+                if (n > 2) ref_val = ref_val * (tracer_ref_val(n) / salref)
                 if (partial_bottom_cells) then
                   TNEW(:,:,k,n) = TNEW(:,:,k,n) &
                   + ref_val*POTICE*cp_over_lhfusion/DZT(:,:,k,bid)
@@ -557,11 +557,12 @@
            salice*QICE(:,:,bid)*cp_over_lhfusion )/WORK1
      else
         do n=2,nt 
-           ref_val = salref - salice
-           if (n > 2) ref_val = ref_val * (tracer_ref_val(n) / salref)
-           if (ref_val /= c0)  &
+           if (lhas_vflux(n)) then
+              ref_val = salref - salice
+              if (n > 2) ref_val = ref_val * (tracer_ref_val(n) / salref)
               TNEW(:,:,k,n) = TNEW(:,:,k,n)  &
-              + ref_val * POTICE * cp_over_lhfusion / WORK1
+                 + ref_val * POTICE * cp_over_lhfusion / WORK1
+           endif
         end do
      endif
 
@@ -601,11 +602,12 @@
                   * cp_over_lhfusion / dt(k)
      else
        do n=2,nt
-          ref_val = salref - salice
-          if (n > 2) ref_val = ref_val * (tracer_ref_val(n)/salref)
-          if (ref_val /= c0) &
+          if (lhas_vflux(n)) then
+             ref_val = salref - salice
+             if (n > 2) ref_val = ref_val * (tracer_ref_val(n)/salref)
              TNEW(:,:,k,n) = TNEW(:,:,k,n)  &
-             + ref_val*POTICE*cp_over_lhfusion/WORK1 
+                + ref_val*POTICE*cp_over_lhfusion/WORK1 
+          endif
        end do
      endif
 

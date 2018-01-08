@@ -1,0 +1,8 @@
+!----------------------------------------------------------------------------------
+! To use non-default parameter values in MARBL
+! 1. Copy this file to $CASEROOT/
+! 2. Append lines of the form
+!        parmeter = value
+!    To the SourceMods version (note that '!' is treated as a comment)
+!----------------------------------------------------------------------------------
+

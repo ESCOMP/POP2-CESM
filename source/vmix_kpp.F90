@@ -1564,8 +1564,8 @@
                                  CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8, &
                                  tidal_mix_max)
             end if
-            KVMIX(i,j,:) = DIFF_COL(1:nlev)
-            KVMIX_M(i,j,:) = VISC_COL(1:nlev)
+            KVMIX(i,j,1:nlev) = DIFF_COL(1:nlev)
+            KVMIX_M(i,j,1:nlev) = VISC_COL(1:nlev)
             KVMIX(i,j,km) = c0
             KVMIX_M(i,j,km) = c0
             if (lrich) then
@@ -3674,7 +3674,7 @@
 
    if ( overwrite_hblt  .and.  .not.use_hmxl ) then
 
-     HBLT = WORK2
+     HBLT = max(WORK2, -zgrid(1))
 
      do k=1,km
        do j=2,ny_block-1
@@ -3689,7 +3689,7 @@
 
            if ( KMT(i,j,bid) /= 0            .and.  &
                 ( HBLT(i,j) >  -zgrid(k-1) ) .and.  &
-                ( HBLT(i,j) <= ztmp        ) ) KBL(i,j) = k
+                ( HBLT(i,j) <= ztmp        ) ) KBL(i,j) = max(k,2)
      
          enddo
        enddo

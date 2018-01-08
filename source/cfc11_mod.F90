@@ -149,7 +149,7 @@ contains
 ! !IROUTINE: cfc11_init
 ! !INTERFACE:
 
- subroutine cfc11_init(init_ts_file_fmt, read_restart_filename, &
+ subroutine cfc11_init(cfc11_ind_begin, init_ts_file_fmt, read_restart_filename, &
                        tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
@@ -171,6 +171,10 @@ contains
    use time_management, only: freq_opt_nyear, freq_opt_nmonth
 
 ! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      cfc11_ind_begin        ! starting index of cfc11 tracers in global tracer array
+                             ! passed through to rest_read_tracer_block
 
    character (*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
@@ -382,7 +386,8 @@ contains
 
        end if
 
-       call rest_read_tracer_block(init_cfc11_init_file_fmt, &
+       call rest_read_tracer_block(cfc11_ind_begin,          &
+                                   init_cfc11_init_file_fmt, &
                                    cfc11_restart_filename,   &
                                    tracer_d_module,          &
                                    TRACER_MODULE)
@@ -859,7 +864,7 @@ contains
 ! !USES:
 
    use constants, only: field_loc_center, field_type_scalar, &
-       mpercm, eps, p5, cmperm
+       mpercm, eps, p5, cmperm, xkw_coeff
    use time_management, only: thour00, check_time_flag, iyear,  &
        seconds_this_year, seconds_in_year, tday
    use broadcast, only: broadcast_scalar
@@ -937,14 +942,6 @@ contains
     real(r8), dimension(nx_block,ny_block) :: &
          WORK1, WORK2 ! temporaries for averages
 
-    !---------------------------------------------------------------------------
-    !   local parameters
-    !---------------------------------------------------------------------------
-
-    real(r8), parameter :: &
-         xkw_coeff = 8.6e-9_r8       ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
-
-    !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
 
     STF_MODULE = c0

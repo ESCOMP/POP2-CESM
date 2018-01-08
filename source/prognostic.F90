@@ -12,7 +12,7 @@
 
 ! !USES:
 
-   use kinds_mod             , only : char_len, r8, int_kind
+   use kinds_mod             , only : char_len, r8, int_kind, log_kind
    use blocks                , only : nx_block, ny_block
    use domain_size           , only : max_blocks_clinic, km, nt
    use constants
@@ -67,7 +67,8 @@
       mixtime             ! set to oldtime on leafrog steps
                           ! and to curtime on matsuno steps
 
-    public :: tracer_field ! used from marbl_interface_types
+   logical (log_kind) :: &
+      ldebug             ! T ==> various internal consistency checks are enabled
 
 !EOP
 !BOC

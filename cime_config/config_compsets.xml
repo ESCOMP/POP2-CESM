@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 
-<compsets>
+<compsets version="2.0">
 
   <help>
     =========================================
-    compset naming convention 
+    compset naming convention
     =========================================
-    The compset longname below has the specified order 
+    The compset longname below has the specified order
     atm, lnd, ice, ocn, river, glc wave cesm-options
 
     The notation for the compset longname is
@@ -20,18 +20,17 @@
     ROF  = [RTM, SROF]
     GLC  = [CISM1, CISM2, SGLC]
     WAV  = [SWAV]
-    BGC  = optional BGC scenario 
+    BGC  = optional BGC scenario
 
     The OPTIONAL %phys attributes specify submodes of the given system
     For example DOCN%DOM is the data ocean model for DOCN
-    ALL the possible %phys choices for each component are listed 
+    ALL the possible %phys choices for each component are listed
     with the -list command for create_newcase
-    ALL data models must have a %phys option that corresponds to the data  model mode 
+    ALL data models must have a %phys option that corresponds to the data  model mode
 
     Each compset node is associated with the following elements
-    - lname      
-    - alias        
-    - support  (optional description of the support level for this compset)
+    - lname
+    - alias
     Each compset node can also have the following attributes
     - grid  (optional regular expression match for grid to work with the compset)
   </help>
@@ -39,30 +38,29 @@
   <!-- C compsets -->
 
   <compset>
-    <alias>C</alias>    
+    <alias>C</alias>
     <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <compset>
-    <alias>CIAF</alias> 
-    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_WW3</lname>
+    <alias>CIAF</alias>
+    <lname>2000_DATM%IAF_SLND_DICE%IAF_POP2_DROF%IAF_SGLC_WW3</lname>
   </compset>
 
   <compset>
-    <alias>CECO</alias> 
+    <alias>C1850ECO</alias>
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <compset>
-    <alias>CMPAS</alias> 
+    <alias>CMPAS</alias>
     <lname>2000_DATM%NYF_SLND_DICE%SSMI_MPAS_SROF%NYF_SGLC_SWAV</lname>
-    <support>Experimental, under development</support> 
   </compset>
 
   <!-- G compsets -->
 
   <compset>
-    <alias>G</alias>   
+    <alias>G</alias>
     <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
@@ -72,36 +70,51 @@
   </compset>
 
   <compset>
-    <alias>GECO</alias>
+    <alias>G1850ECO</alias>
     <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>G1850ECOIAF</alias>
+    <lname>1850_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>G1850ECO_CPLHIST</alias>
+    <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO_DROF%CPLHIST_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>G1850ECO_CPLHIST_PHYS_CYCLE</alias>
+    <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO%PHYS-CYCLE_DROF%CPLHIST_SGLC_WW3</lname>
   </compset>
 
   <!-- Single Column POP -->
 
   <compset>
-    <alias>C1D</alias>    
+    <alias>C1D</alias>
     <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2%1D_DROF%NYF_SGLC_SWAV</lname>
   </compset>
 
   <compset>
-    <alias>C1DECO</alias> 
+    <alias>C1DECO</alias>
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%1D_POP2%ECO_DROF%NYF_SGLC_SWAV</lname>
   </compset>
 
   <compset>
-    <alias>G1D</alias>    
+    <alias>G1D</alias>
     <lname>2000_DATM%NYF_SLND_CICE_POP2%1D_DROF%NYF_SGLC_SWAV</lname>
   </compset>
 
   <!-- Prognostic wave -->
 
-  <compset> 
+  <compset>
     <alias>C_WAV</alias>
     <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_WW3</lname>
   </compset>
   <compset>
     <alias>CIAF_WAV</alias>
-    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_WW3</lname>
+    <lname>2000_DATM%IAF_SLND_DICE%IAF_POP2_DROF%IAF_SGLC_WW3</lname>
   </compset>
   <compset>
     <alias>G_WAV</alias>
@@ -120,7 +133,7 @@
   </compset>
   <compset>
     <alias>CIAF_DWAV</alias>
-    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
+    <lname>2000_DATM%IAF_SLND_DICE%IAF_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
   </compset>
   <compset>
     <alias>G_DWAV</alias>
@@ -130,5 +143,32 @@
     <alias>GIAF_DWAV</alias>
     <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
   </compset>
+
+  <!-- ENTRIES -->
+
+  <entries>
+
+    <entry id="PRERUN_SCRIPT">
+      <values>
+	<value compset="POP2%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
+	<value compset="POP2%ECO%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
+      </values>
+    </entry>
+
+    <entry id="POSTRUN_SCRIPT">
+      <values>
+	<value compset="POP2%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
+	<value compset="POP2%ECO%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
+      </values>
+    </entry>
+
+    <entry id="RESUBMIT_SETS_CONTINUE_RUN">
+      <values>
+	<value compset="POP2%PHYS-CYCLE">FALSE</value>
+	<value compset="POP2%ECO%PHYS-CYCLE">FALSE</value>
+      </values>
+    </entry>
+
+  </entries>
 
 </compsets>

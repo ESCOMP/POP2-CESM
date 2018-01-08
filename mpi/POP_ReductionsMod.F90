@@ -19,7 +19,9 @@
    use POP_BlocksMod
    use POP_DistributionMod
    use POP_GridHorzMod
-   use registry
+   use registry,            only : registry_match
+   use prognostic,          only : ldebug
+   use var_consistency_mod, only : var_consistency_check
 
    implicit none
    private
@@ -140,7 +142,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSum2DR8(array, dist, fieldLoc, errorCode, &
-                            mMask, lMask)                      &
+                            mMask, lMask, tag)                &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -171,6 +173,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -213,6 +219,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSum2DR8:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -382,7 +394,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSum2DR4(array, dist, fieldLoc, errorCode, &
-                            mMask, lMask)                      &
+                            mMask, lMask, tag)                &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -411,6 +423,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -450,6 +466,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSum2DR4:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -597,7 +619,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSum2DI4(array, dist, fieldLoc, errorCode, &
-                            mMask, lMask)                      &
+                            mMask, lMask, tag)                &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -626,6 +648,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -658,6 +684,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSum2DI4:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -789,7 +821,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSumNfields2DR8(array, dist, fieldLoc, errorCode, &
-                                   mMask, lMask)                     &
+                                   mMask, lMask, tag)                &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -821,6 +853,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -864,6 +900,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumNfields2DR8:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1046,7 +1088,7 @@
 ! !IROUTINE: POP_GlobalSum
 ! !INTERFACE:
 
- function POP_GlobalSumScalarR8(scalar, dist, errorCode) &
+ function POP_GlobalSumScalarR8(scalar, dist, errorCode, tag) &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -1067,6 +1109,10 @@
 
    type (POP_distrb), intent(in) :: &
       dist                 ! block distribution 
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -1094,6 +1140,12 @@
    real (POP_r16) :: &
       scalarTmp, globalSumTmp  ! higher precision for reproducibility
 #endif
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumScalarR8:tag', tag)
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -1143,7 +1195,7 @@
 ! !IROUTINE: POP_GlobalSum
 ! !INTERFACE:
 
- function POP_GlobalSumScalarR4(scalar, dist, errorCode) &
+ function POP_GlobalSumScalarR4(scalar, dist, errorCode, tag) &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -1164,6 +1216,10 @@
 
    type (POP_distrb), intent(in) :: &
       dist                 ! block distribution 
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -1190,6 +1246,12 @@
    real (POP_r8) :: &
       scalarTmp, globalSumTmp  ! higher precision for reproducibility
 #endif
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumScalarR4:tag', tag)
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -1238,7 +1300,7 @@
 ! !IROUTINE: POP_GlobalSum
 ! !INTERFACE:
 
- function POP_GlobalSumScalarI4(scalar, dist, errorCode) &
+ function POP_GlobalSumScalarI4(scalar, dist, errorCode, tag) &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -1260,6 +1322,10 @@
    type (POP_distrb), intent(in) :: &
       dist                 ! block distribution 
 
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
+
 ! !OUTPUT PARAMETERS:
 
    integer (POP_i4), intent(out) :: &
@@ -1280,6 +1346,12 @@
       ierr,            &! mpi error flag
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumScalarI4:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1321,7 +1393,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSumProd2DR8(array1, array2, dist, fieldLoc, &
-                                errorCode, mMask, lMask)        &
+                                errorCode, mMask, lMask, tag)   &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -1352,6 +1424,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -1391,6 +1467,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumProd2DR8:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1541,7 +1623,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSumProd2DR4(array1, array2, dist, fieldLoc, &
-                                errorCode, mMask, lMask)        &
+                                errorCode, mMask, lMask, tag)   &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -1572,6 +1654,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -1611,6 +1697,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumProd2DR4:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 
@@ -1761,7 +1853,7 @@
 ! !INTERFACE:
 
  function POP_GlobalSumProd2DI4(array1, array2, dist, fieldLoc, &
-                                errorCode, mMask, lMask)        &
+                                errorCode, mMask, lMask, tag)   &
           result(globalSum)
 
 ! !DESCRIPTION:
@@ -1791,6 +1883,10 @@
 
    logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
       lMask                ! optional logical mask
+
+   integer (POP_i4), intent(in), optional :: &
+      tag                  ! if ldebug is true, then verify that tag is
+                           ! consistent across all tasks
 
 ! !OUTPUT PARAMETERS:
 
@@ -1823,6 +1919,12 @@
 
    type (POP_Block) :: &
       thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   if (ldebug .and. present(tag)) then
+      call var_consistency_check('POP_GlobalSumProd2DI4:tag', tag)
+   endif
 
 !-----------------------------------------------------------------------
 

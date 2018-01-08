@@ -45,6 +45,9 @@ module forcing_fields
       ATM_CO2_PROG_nf_ind = 0, & ! bottom atm level prognostic co2
       ATM_CO2_DIAG_nf_ind = 0    ! bottom atm level diagnostic co2
 
+  integer(kind=int_kind), public :: &
+       ATM_NHx_nf_ind = 0, & ! bottom atm level NHx flux
+       ATM_NOy_nf_ind = 0    ! bottom atm level NOy flux
 
    real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
       public, target :: &
@@ -53,9 +56,16 @@ module forcing_fields
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       public, target :: &
-      STF,  &!  surface tracer fluxes
-      TFW    ! tracer content in freshwater flux
+      STF,      &! surface tracer fluxes
+      STF_RIV,  &! riverine tracer fluxes
+      TFW        ! tracer content in freshwater flux
 
+   logical (log_kind), dimension(nt), public :: &
+      lhas_vflux,   & ! true if a tracer uses virtual fluxes
+      lhas_riv_flux   ! true if a tracer has a riverine flux
+
+   integer(kind=int_kind), public :: &
+      vflux_tracer_cnt ! number of tracers for which lhas_vflux is .true.
 
    logical (log_kind), public :: &
       lsmft_avail   ! true if SMFT is an available field
@@ -73,7 +83,8 @@ module forcing_fields
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       public, target ::  &
-      DUST_FLUX,         &! dust flux from cpl (g/cm2/s)
+      FINE_DUST_FLUX,    &! fine dust flux from cpl (g/cm2/s)
+      COARSE_DUST_FLUX,  &! coarse dust flux from cpl (g/cm2/s)
       BLACK_CARBON_FLUX   ! black carbon flux from cpl (g/cm2/s)
 
 !***********************************************************************

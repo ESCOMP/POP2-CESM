@@ -1,6 +1,119 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    8 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n11_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Mirror latest marbl_dev for more developments orthogonal to work
+             already on marbl_dev_levy
+
+Testing:     stand-alone test on hobart
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+ M      cime_config
+A  +    cime_config/MARBL_settings_wrapper
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+A  +    cime_config/phys_cycle_postrun
+A  +    cime_config/phys_cycle_prerun
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/5day_r4_tavg
+M       cime_config/testdefs/testmods_dirs/pop/5day_tavg/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cfc_sf6
+D       cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/user_nl_marbl
+D       cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_daily_r4_tavg/user_nl_marbl
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient_abio_dic_dic14_transient
+M       cime_config/testdefs/testmods_dirs/pop/default/user_nl_pop
+M       cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_apply_nhx_surface_emis/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_fixed_PtoC
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/user_nl_marbl
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_ladjust_bury_coeff/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_multiinst_lsource_sink
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_read_fallback_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_shr_stream/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/performance_eval
+ M      drivers/cpl
+M       drivers/cpl/POP_CplIndices.F90
+D       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/ocn_comp_mct.F90
+M       drivers/cpl/ocn_import_export.F90
+ M      drivers/cpl_none
+M       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+A  +    input_templates/user_nl_marbl
+M       mpi/POP_ReductionsMod.F90
+M       mpi/global_reductions.F90
+M       source/abio_dic_dic14_mod.F90
+M       source/baroclinic.F90
+A  +    source/c14_atm_forcing_mod.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/constants.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/forcing_sfwf.F90
+M       source/forcing_shf.F90
+A  +    source/forcing_timeseries_mod.F90
+M       source/grid.F90
+M       source/hmix_aniso.F90
+M       source/iage_mod.F90
+M       source/ice.F90
+M       source/initial.F90
+M       source/io.F90
+M       source/io_binary.F90
+M       source/io_netcdf.F90
+M       source/io_pio.F90
+A  +    source/io_read_fallback_mod.F90
+M       source/io_types.F90
+A  +    source/namelist_from_str_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+M       source/restart.F90
+M       source/running_mean_mod.F90
+M       source/schmidt_number.F90
+M       source/sf6_mod.F90
+M       source/state_mod.F90
+M       source/step_mod.F90
+M       source/strdata_interface_mod.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+M       source/time_management.F90
+A  +    source/var_consistency_mod.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 Apr 2017
 Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n10_marbl_dev_n35_cesm_pop_2_1_20170323
 Tag Summary: Code clean-up following review

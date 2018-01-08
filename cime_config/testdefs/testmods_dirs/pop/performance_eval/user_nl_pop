@@ -1,0 +1,11 @@
+ltavg_ignore_extra_streams = .true.
+n_tavg_streams = 0
+ldiag_velocity = .false.
+ldiag_global_tracer_budgets = .false.
+ldiag_bsf = .false.
+ltavg_nino_diags_requested = .false.
+moc_requested = .false.
+n_heat_trans_requested = .false.
+n_salt_trans_requested = .false.
+diag_gm_bolus = .false.
+ldebug = .false.

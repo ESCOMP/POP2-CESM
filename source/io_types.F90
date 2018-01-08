@@ -8,7 +8,7 @@
 !
 ! !DESCRIPTION:
 !  This module contains the declarations for all required io
-!  data types and several operators for those data types. It also 
+!  data types and several operators for those data types. It also
 !  contains several global parameters used by various io operations
 !  and an io unit manager.
 !
@@ -86,7 +86,7 @@
       real(r8),    dimension(:,:,:,:), pointer    :: field_d_3d
       type (VAR_desc_t) :: varDesc
       type (IO_desc_t), pointer :: ioDesc
-      logical :: set_ioDesc   
+      logical :: set_ioDesc
       logical :: set_ioFrame
    end type
 
@@ -106,14 +106,19 @@
       character(char_len)                        :: conventions
       character(char_len), dimension(:), pointer :: add_attrib_cname
       character(char_len), dimension(:), pointer :: add_attrib_cval
+      logical  (log_kind), dimension(:), pointer :: add_attrib_cval_from_file
       character(char_len), dimension(:), pointer :: add_attrib_lname
       logical  (log_kind), dimension(:), pointer :: add_attrib_lval
+      logical  (log_kind), dimension(:), pointer :: add_attrib_lval_from_file
       character(char_len), dimension(:), pointer :: add_attrib_iname
       integer  (i4),       dimension(:), pointer :: add_attrib_ival
+      logical  (log_kind), dimension(:), pointer :: add_attrib_ival_from_file
       character(char_len), dimension(:), pointer :: add_attrib_rname
       real     (r4),       dimension(:), pointer :: add_attrib_rval
+      logical  (log_kind), dimension(:), pointer :: add_attrib_rval_from_file
       character(char_len), dimension(:), pointer :: add_attrib_dname
       real     (r8),       dimension(:), pointer :: add_attrib_dval
+      logical  (log_kind), dimension(:), pointer :: add_attrib_dval_from_file
       integer(i4)                                :: num_iotasks
       integer(i4)                                :: record_length
       integer(i4)                                :: current_record ! bin
@@ -195,9 +200,6 @@
    logical (log_kind), private :: &
       lredirect_stdout          ! redirect stdout to log file
 
-   logical (log_kind), public  :: &
-      luse_nf_64bit_offset      ! use 64-bit offset in netCDF files
-
    character (char_len), private :: &
       log_filename          ! root name for log file
 
@@ -213,7 +215,7 @@
                        add_attrib_file_int,  &
                        add_attrib_file_real, &
                        add_attrib_file_dbl
-   end interface 
+   end interface
 
    interface extract_attrib_file
       module procedure extract_attrib_file_char, &
@@ -221,7 +223,7 @@
                        extract_attrib_file_int,  &
                        extract_attrib_file_real, &
                        extract_attrib_file_dbl
-   end interface 
+   end interface
 
    interface add_attrib_io_field
       module procedure add_attrib_io_field_char, &
@@ -229,7 +231,7 @@
                        add_attrib_io_field_int,  &
                        add_attrib_io_field_real, &
                        add_attrib_io_field_dbl
-   end interface 
+   end interface
 
    interface extract_attrib_io_field
       module procedure extract_attrib_io_field_char, &
@@ -237,7 +239,7 @@
                        extract_attrib_io_field_int,  &
                        extract_attrib_io_field_real, &
                        extract_attrib_io_field_dbl
-   end interface 
+   end interface
 
 !EOC
 !***********************************************************************
@@ -505,14 +507,19 @@ contains
 
    nullify (descriptor%add_attrib_cname)
    nullify (descriptor%add_attrib_cval)
+   nullify (descriptor%add_attrib_cval_from_file)
    nullify (descriptor%add_attrib_lname)
    nullify (descriptor%add_attrib_lval)
+   nullify (descriptor%add_attrib_lval_from_file)
    nullify (descriptor%add_attrib_iname)
    nullify (descriptor%add_attrib_ival)
+   nullify (descriptor%add_attrib_ival_from_file)
    nullify (descriptor%add_attrib_rname)
    nullify (descriptor%add_attrib_rval)
+   nullify (descriptor%add_attrib_rval_from_file)
    nullify (descriptor%add_attrib_dname)
    nullify (descriptor%add_attrib_dval)
+   nullify (descriptor%add_attrib_dval_from_file)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -524,7 +531,7 @@ contains
 ! !IROUTINE: add_attrib_file_char
 ! !INTERFACE:
 
- subroutine add_attrib_file_char(file_descr, att_name, att_value)
+ subroutine add_attrib_file_char(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine adds a global file attribute to an io file.  This
@@ -539,6 +546,9 @@ contains
    character (*), intent(in) :: &
       att_name,       &! name  of attribute to be added
       att_value        ! value of attribute to be added
+
+   logical (log_kind), optional, intent(in) :: &
+      from_file        ! is att_value known to be from a file?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -561,8 +571,17 @@ contains
       name_tmp,            &! temp space for resizing attrib name  array
       val_tmp               ! temp space for resizing attrib value array
 
+   logical (log_kind), dimension(:), allocatable :: &
+      val_from_file_tmp     ! temp space for resizing attrib val_from_file array
+
    logical (log_kind) :: &
-      att_exists         ! attribute already defined
+      att_exists,       &! attribute already defined
+      from_file_loc      ! local value of from_file
+
+!-----------------------------------------------------------------------
+
+   from_file_loc = .false.
+   if (present(from_file)) from_file_loc = from_file
 
 !-----------------------------------------------------------------------
 !
@@ -573,17 +592,19 @@ contains
    if (.not. associated(file_descr%add_attrib_cval)) then
 
       allocate(file_descr%add_attrib_cval(1), &
-               file_descr%add_attrib_cname(1))
+               file_descr%add_attrib_cname(1), &
+               file_descr%add_attrib_cval_from_file(1))
 
       file_descr%add_attrib_cval (1) = char_blank
       file_descr%add_attrib_cname(1) = char_blank
       file_descr%add_attrib_cval (1) = trim(att_value)
       file_descr%add_attrib_cname(1) = trim(att_name)
+      file_descr%add_attrib_cval_from_file(1) = from_file_loc
 
 !-----------------------------------------------------------------------
 !
 !  if not the first, see if it already exists and over-write value
-!  if does not exist, resize the attribute array and store the 
+!  if does not exist, resize the attribute array and store the
 !  attributes
 !
 !-----------------------------------------------------------------------
@@ -596,6 +617,7 @@ contains
          if (trim(file_descr%add_attrib_cname(n)) == trim(att_name)) then
             file_descr%add_attrib_cval(n) = char_blank
             file_descr%add_attrib_cval(n) = trim(att_value)
+            file_descr%add_attrib_cval_from_file(n) = from_file_loc
             att_exists = .true.
             exit att_search
          endif
@@ -603,26 +625,31 @@ contains
 
       if (.not. att_exists) then
 
-         allocate(name_tmp(num_attribs), val_tmp(num_attribs))
+         allocate(name_tmp(num_attribs), val_tmp(num_attribs), val_from_file_tmp(num_attribs))
          name_tmp(:) = file_descr%add_attrib_cname(:)
          val_tmp (:) = file_descr%add_attrib_cval (:)
+         val_from_file_tmp(:) = file_descr%add_attrib_cval_from_file(:)
 
          deallocate(file_descr%add_attrib_cname)
          deallocate(file_descr%add_attrib_cval )
+         deallocate(file_descr%add_attrib_cval_from_file)
          num_attribs = num_attribs + 1
          allocate(file_descr%add_attrib_cname(num_attribs), &
-                  file_descr%add_attrib_cval (num_attribs))
+                  file_descr%add_attrib_cval (num_attribs), &
+                  file_descr%add_attrib_cval_from_file(num_attribs))
 
          file_descr%add_attrib_cname(:) = char_blank
          file_descr%add_attrib_cval (:) = char_blank
          do n=1,num_attribs-1
             file_descr%add_attrib_cname(n) = trim(name_tmp(n))
             file_descr%add_attrib_cval (n) = trim( val_tmp(n))
+            file_descr%add_attrib_cval_from_file(n) = val_from_file_tmp(n)
          end do
          file_descr%add_attrib_cname(num_attribs) = trim(att_name)
          file_descr%add_attrib_cval (num_attribs) = trim(att_value)
+         file_descr%add_attrib_cval_from_file(num_attribs) = from_file_loc
 
-         deallocate(name_tmp,val_tmp)
+         deallocate(name_tmp,val_tmp,val_from_file_tmp)
       endif
 
    endif
@@ -637,7 +664,7 @@ contains
 ! !IROUTINE: add_attrib_file_log
 ! !INTERFACE:
 
- subroutine add_attrib_file_log(file_descr, att_name, att_value)
+ subroutine add_attrib_file_log(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine adds a global file attribute to an io file.  This
@@ -654,6 +681,9 @@ contains
 
    logical (log_kind), intent(in) :: &
       att_value        ! value of attribute to be added
+
+   logical (log_kind), optional, intent(in) :: &
+      from_file        ! is att_value known to be from a file?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -676,10 +706,17 @@ contains
       name_tmp              ! temp space for resizing attrib name  array
 
    logical (log_kind), dimension(:), allocatable :: &
-      val_tmp               ! temp space for resizing attrib value array
+      val_tmp,             &! temp space for resizing attrib value array
+      val_from_file_tmp     ! temp space for resizing attrib val_from_file array
 
    logical (log_kind) :: &
-      att_exists         ! attribute already defined
+      att_exists,       &! attribute already defined
+      from_file_loc      ! local value of from_file
+
+!-----------------------------------------------------------------------
+
+   from_file_loc = .false.
+   if (present(from_file)) from_file_loc = from_file
 
 !-----------------------------------------------------------------------
 !
@@ -690,16 +727,18 @@ contains
    if (.not. associated(file_descr%add_attrib_lval)) then
 
       allocate(file_descr%add_attrib_lval(1), &
-               file_descr%add_attrib_lname(1))
+               file_descr%add_attrib_lname(1), &
+               file_descr%add_attrib_lval_from_file(1))
 
       file_descr%add_attrib_lval (1) = att_value
       file_descr%add_attrib_lname(1) = char_blank
       file_descr%add_attrib_lname(1) = trim(att_name)
+      file_descr%add_attrib_lval_from_file(1) = from_file_loc
 
 !-----------------------------------------------------------------------
 !
 !  if not the first, see if it already exists and over-write value
-!  if does not exist, resize the attribute array and store the 
+!  if does not exist, resize the attribute array and store the
 !  attributes
 !
 !-----------------------------------------------------------------------
@@ -711,6 +750,7 @@ contains
       att_search: do n=1,num_attribs
          if (trim(file_descr%add_attrib_lname(n)) == trim(att_name)) then
             file_descr%add_attrib_lval(n) = att_value
+            file_descr%add_attrib_lval_from_file(n) = from_file_loc
             att_exists = .true.
             exit att_search
          endif
@@ -718,28 +758,33 @@ contains
 
       if (.not. att_exists) then
 
-         allocate(name_tmp(num_attribs), val_tmp(num_attribs))
+         allocate(name_tmp(num_attribs), val_tmp(num_attribs), val_from_file_tmp(num_attribs))
 
          name_tmp(:) = file_descr%add_attrib_lname(:)
          val_tmp (:) = file_descr%add_attrib_lval (:)
+         val_from_file_tmp(:) = file_descr%add_attrib_lval_from_file(:)
 
          deallocate(file_descr%add_attrib_lname, &
-                    file_descr%add_attrib_lval )
+                    file_descr%add_attrib_lval, &
+                    file_descr%add_attrib_lval_from_file )
 
          num_attribs = num_attribs + 1
 
          allocate(file_descr%add_attrib_lname(num_attribs), &
-                  file_descr%add_attrib_lval (num_attribs))
+                  file_descr%add_attrib_lval (num_attribs), &
+                  file_descr%add_attrib_lval_from_file (num_attribs))
 
          file_descr%add_attrib_lname(:) = char_blank
          do n=1,num_attribs-1
             file_descr%add_attrib_lname(n) = trim(name_tmp(n))
             file_descr%add_attrib_lval (n) =       val_tmp(n)
+            file_descr%add_attrib_lval_from_file(n) = val_from_file_tmp(n)
          end do
          file_descr%add_attrib_lname(num_attribs) = trim(att_name)
          file_descr%add_attrib_lval (num_attribs) = att_value
+         file_descr%add_attrib_lval_from_file(num_attribs) = from_file_loc
 
-         deallocate(name_tmp,val_tmp)
+         deallocate(name_tmp,val_tmp,val_from_file_tmp)
       endif
 
    endif
@@ -754,7 +799,7 @@ contains
 ! !IROUTINE: add_attrib_file_int
 ! !INTERFACE:
 
- subroutine add_attrib_file_int(file_descr, att_name, att_value)
+ subroutine add_attrib_file_int(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine adds a global file attribute to an io file.  This
@@ -771,6 +816,9 @@ contains
 
    integer (i4), intent(in) :: &
       att_value        ! value of attribute to be added
+
+   logical (log_kind), optional, intent(in) :: &
+      from_file        ! is att_value known to be from a file?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -795,8 +843,17 @@ contains
    integer (i4), dimension(:), allocatable :: &
       val_tmp               ! temp space for resizing attrib value array
 
+   logical (log_kind), dimension(:), allocatable :: &
+      val_from_file_tmp     ! temp space for resizing attrib val_from_file array
+
    logical (log_kind) :: &
-      att_exists         ! attribute already defined
+      att_exists,       &! attribute already defined
+      from_file_loc      ! local value of from_file
+
+!-----------------------------------------------------------------------
+
+   from_file_loc = .false.
+   if (present(from_file)) from_file_loc = from_file
 
 !-----------------------------------------------------------------------
 !
@@ -807,16 +864,18 @@ contains
    if (.not. associated(file_descr%add_attrib_ival)) then
 
       allocate(file_descr%add_attrib_ival(1), &
-               file_descr%add_attrib_iname(1))
+               file_descr%add_attrib_iname(1), &
+               file_descr%add_attrib_ival_from_file(1))
 
       file_descr%add_attrib_ival (1) = att_value
       file_descr%add_attrib_iname(1) = char_blank
       file_descr%add_attrib_iname(1) = trim(att_name)
+      file_descr%add_attrib_ival_from_file(1) = from_file_loc
 
 !-----------------------------------------------------------------------
 !
 !  if not the first, see if it already exists and over-write value
-!  if does not exist, resize the attribute array and store the 
+!  if does not exist, resize the attribute array and store the
 !  attributes
 !
 !-----------------------------------------------------------------------
@@ -828,6 +887,7 @@ contains
       att_search: do n=1,num_attribs
          if (trim(file_descr%add_attrib_iname(n)) == trim(att_name)) then
             file_descr%add_attrib_ival(n) = att_value
+            file_descr%add_attrib_ival_from_file(n) = from_file_loc
             att_exists = .true.
             exit att_search
          endif
@@ -835,28 +895,33 @@ contains
 
       if (.not. att_exists) then
 
-         allocate(name_tmp(num_attribs), val_tmp(num_attribs))
+         allocate(name_tmp(num_attribs), val_tmp(num_attribs), val_from_file_tmp(num_attribs))
 
          name_tmp(:) = file_descr%add_attrib_iname(:)
          val_tmp (:) = file_descr%add_attrib_ival (:)
+         val_from_file_tmp(:) = file_descr%add_attrib_ival_from_file(:)
 
          deallocate(file_descr%add_attrib_iname, &
-                    file_descr%add_attrib_ival )
+                    file_descr%add_attrib_ival, &
+                    file_descr%add_attrib_ival_from_file )
 
          num_attribs = num_attribs + 1
 
          allocate(file_descr%add_attrib_iname(num_attribs), &
-                  file_descr%add_attrib_ival (num_attribs))
+                  file_descr%add_attrib_ival (num_attribs), &
+                  file_descr%add_attrib_ival_from_file(num_attribs))
 
          file_descr%add_attrib_iname(:) = char_blank
          do n=1,num_attribs-1
             file_descr%add_attrib_iname(n) = trim(name_tmp(n))
             file_descr%add_attrib_ival (n) =       val_tmp(n)
+            file_descr%add_attrib_ival_from_file(n) = val_from_file_tmp(n)
          end do
          file_descr%add_attrib_iname(num_attribs) = trim(att_name)
          file_descr%add_attrib_ival (num_attribs) = att_value
+         file_descr%add_attrib_ival_from_file(num_attribs) = from_file_loc
 
-         deallocate(name_tmp,val_tmp)
+         deallocate(name_tmp,val_tmp,val_from_file_tmp)
       endif
 
    endif
@@ -871,7 +936,7 @@ contains
 ! !IROUTINE: add_attrib_file_real
 ! !INTERFACE:
 
- subroutine add_attrib_file_real(file_descr, att_name, att_value)
+ subroutine add_attrib_file_real(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine adds a global file attribute to an io file.  This
@@ -888,6 +953,9 @@ contains
 
    real (r4), intent(in) :: &
       att_value        ! value of attribute to be added
+
+   logical (log_kind), optional, intent(in) :: &
+      from_file        ! is att_value known to be from a file?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -912,8 +980,17 @@ contains
    real (r4), dimension(:), allocatable :: &
       val_tmp               ! temp space for resizing attrib value array
 
+   logical (log_kind), dimension(:), allocatable :: &
+      val_from_file_tmp     ! temp space for resizing attrib val_from_file array
+
    logical (log_kind) :: &
-      att_exists         ! attribute already defined
+      att_exists,       &! attribute already defined
+      from_file_loc      ! local value of from_file
+
+!-----------------------------------------------------------------------
+
+   from_file_loc = .false.
+   if (present(from_file)) from_file_loc = from_file
 
 !-----------------------------------------------------------------------
 !
@@ -924,16 +1001,18 @@ contains
    if (.not. associated(file_descr%add_attrib_rval)) then
 
       allocate(file_descr%add_attrib_rval(1), &
-               file_descr%add_attrib_rname(1))
+               file_descr%add_attrib_rname(1), &
+               file_descr%add_attrib_rval_from_file(1))
 
       file_descr%add_attrib_rval (1) = att_value
       file_descr%add_attrib_rname(1) = char_blank
       file_descr%add_attrib_rname(1) = trim(att_name)
+      file_descr%add_attrib_rval_from_file(1) = from_file_loc
 
 !-----------------------------------------------------------------------
 !
 !  if not the first, see if it already exists and over-write value
-!  if does not exist, resize the attribute array and store the 
+!  if does not exist, resize the attribute array and store the
 !  attributes
 !
 !-----------------------------------------------------------------------
@@ -945,6 +1024,7 @@ contains
       att_search: do n=1,num_attribs
          if (trim(file_descr%add_attrib_rname(n)) == trim(att_name)) then
             file_descr%add_attrib_rval(n) = att_value
+            file_descr%add_attrib_rval_from_file(n) = from_file_loc
             att_exists = .true.
             exit att_search
          endif
@@ -952,28 +1032,33 @@ contains
 
       if (.not. att_exists) then
 
-         allocate(name_tmp(num_attribs), val_tmp(num_attribs))
+         allocate(name_tmp(num_attribs), val_tmp(num_attribs), val_from_file_tmp(num_attribs))
 
          name_tmp(:) = file_descr%add_attrib_rname(:)
          val_tmp (:) = file_descr%add_attrib_rval (:)
+         val_from_file_tmp(:) = file_descr%add_attrib_rval_from_file(:)
 
          deallocate(file_descr%add_attrib_rname, &
-                    file_descr%add_attrib_rval )
+                    file_descr%add_attrib_rval, &
+                    file_descr%add_attrib_rval_from_file)
 
          num_attribs = num_attribs + 1
 
          allocate(file_descr%add_attrib_rname(num_attribs), &
-                  file_descr%add_attrib_rval (num_attribs))
+                  file_descr%add_attrib_rval (num_attribs), &
+                  file_descr%add_attrib_rval_from_file(num_attribs))
 
          file_descr%add_attrib_rname(:) = char_blank
          do n=1,num_attribs-1
             file_descr%add_attrib_rname(n) = trim(name_tmp(n))
             file_descr%add_attrib_rval (n) =       val_tmp(n)
+            file_descr%add_attrib_rval_from_file(n) = val_from_file_tmp(n)
          end do
          file_descr%add_attrib_rname(num_attribs) = trim(att_name)
          file_descr%add_attrib_rval (num_attribs) = att_value
+         file_descr%add_attrib_rval_from_file(num_attribs) = from_file_loc
 
-         deallocate(name_tmp,val_tmp)
+         deallocate(name_tmp,val_tmp,val_from_file_tmp)
       endif
 
    endif
@@ -988,11 +1073,11 @@ contains
 ! !IROUTINE: add_attrib_file_dbl
 ! !INTERFACE:
 
- subroutine add_attrib_file_dbl(file_descr, att_name, att_value)
+ subroutine add_attrib_file_dbl(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine adds a global file attribute to an io file.  This
-!  particular instantiation adds a double precision attribute, but is 
+!  particular instantiation adds a double precision attribute, but is
 !  aliased to the generic routine name add\_attrib\_file.
 !
 ! !REVISION HISTORY:
@@ -1005,6 +1090,9 @@ contains
 
    real (r8), intent(in) :: &
       att_value        ! value of attribute to be added
+
+   logical (log_kind), optional, intent(in) :: &
+      from_file        ! is att_value known to be from a file?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1029,8 +1117,17 @@ contains
    real (r8), dimension(:), allocatable :: &
       val_tmp               ! temp space for resizing attrib value array
 
+   logical (log_kind), dimension(:), allocatable :: &
+      val_from_file_tmp     ! temp space for resizing attrib val_from_file array
+
    logical (log_kind) :: &
-      att_exists         ! attribute already defined
+      att_exists,       &! attribute already defined
+      from_file_loc      ! local value of from_file
+
+!-----------------------------------------------------------------------
+
+   from_file_loc = .false.
+   if (present(from_file)) from_file_loc = from_file
 
 !-----------------------------------------------------------------------
 !
@@ -1041,16 +1138,18 @@ contains
    if (.not. associated(file_descr%add_attrib_dval)) then
 
       allocate(file_descr%add_attrib_dval(1), &
-               file_descr%add_attrib_dname(1))
+               file_descr%add_attrib_dname(1), &
+               file_descr%add_attrib_dval_from_file(1))
 
       file_descr%add_attrib_dval (1) = att_value
       file_descr%add_attrib_dname(1) = char_blank
       file_descr%add_attrib_dname(1) = trim(att_name)
+      file_descr%add_attrib_dval_from_file(1) = from_file_loc
 
 !-----------------------------------------------------------------------
 !
 !  if not the first, see if it already exists and over-write value
-!  if does not exist, resize the attribute array and store the 
+!  if does not exist, resize the attribute array and store the
 !  attributes
 !
 !-----------------------------------------------------------------------
@@ -1062,6 +1161,7 @@ contains
       att_search: do n=1,num_attribs
          if (trim(file_descr%add_attrib_dname(n)) == trim(att_name)) then
             file_descr%add_attrib_dval(n) = att_value
+            file_descr%add_attrib_dval_from_file(n) = from_file_loc
             att_exists = .true.
             exit att_search
          endif
@@ -1069,28 +1169,33 @@ contains
 
       if (.not. att_exists) then
 
-         allocate(name_tmp(num_attribs), val_tmp(num_attribs))
+         allocate(name_tmp(num_attribs), val_tmp(num_attribs), val_from_file_tmp(num_attribs))
 
          name_tmp(:) = file_descr%add_attrib_dname(:)
          val_tmp (:) = file_descr%add_attrib_dval (:)
+         val_from_file_tmp(:) = file_descr%add_attrib_dval_from_file(:)
 
          deallocate(file_descr%add_attrib_dname, &
-                    file_descr%add_attrib_dval )
+                    file_descr%add_attrib_dval, &
+                    file_descr%add_attrib_dval_from_file)
 
          num_attribs = num_attribs + 1
 
          allocate(file_descr%add_attrib_dname(num_attribs), &
-                  file_descr%add_attrib_dval (num_attribs))
+                  file_descr%add_attrib_dval (num_attribs), &
+                  file_descr%add_attrib_dval_from_file(num_attribs))
 
          file_descr%add_attrib_dname(:) = char_blank
          do n=1,num_attribs-1
             file_descr%add_attrib_dname(n) = trim(name_tmp(n))
             file_descr%add_attrib_dval (n) =       val_tmp(n)
+            file_descr%add_attrib_dval_from_file(n) =  val_from_file_tmp(n)
          end do
          file_descr%add_attrib_dname(num_attribs) = trim(att_name)
          file_descr%add_attrib_dval (num_attribs) = att_value
+         file_descr%add_attrib_dval_from_file(num_attribs) = from_file_loc
 
-         deallocate(name_tmp,val_tmp)
+         deallocate(name_tmp,val_tmp,val_from_file_tmp)
       endif
 
    endif
@@ -1105,11 +1210,11 @@ contains
 ! !IROUTINE: extract_attrib_file_char
 ! !INTERFACE:
 
- subroutine extract_attrib_file_char(file_descr, att_name, att_value)
+ subroutine extract_attrib_file_char(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine extracts a global file attribute from an io file
-!  descriptor based on the attribute name.  This particular 
+!  descriptor based on the attribute name.  This particular
 !  instantiation extracts a character attribute, but is aliased
 !  to the generic routine name extract\_attrib\_file.
 !
@@ -1128,6 +1233,9 @@ contains
 
    character (*), intent(out) :: &
       att_value        ! value of attribute to be extracted
+
+   logical (log_kind), optional, intent(out) :: &
+      from_file        ! is att_value known to be from a file?
 
 !EOP
 !BOC
@@ -1198,6 +1306,7 @@ contains
             !*** found the attribute - assign the value
 
             att_value = file_descr%add_attrib_cval(n)
+            if (present(from_file)) from_file = file_descr%add_attrib_cval_from_file(n)
             att_exists = .true.
             exit att_search
          endif
@@ -1227,11 +1336,11 @@ contains
 ! !IROUTINE: extract_attrib_file_log
 ! !INTERFACE:
 
- subroutine extract_attrib_file_log(file_descr, att_name, att_value)
+ subroutine extract_attrib_file_log(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine extracts a global file attribute from an io file
-!  descriptor based on the attribute name.  This particular 
+!  descriptor based on the attribute name.  This particular
 !  instantiation extracts a logical attribute, but is aliased
 !  to the generic routine name extract\_attrib\_file.
 !
@@ -1250,6 +1359,9 @@ contains
 
    logical (log_kind), intent(out) :: &
       att_value        ! value of attribute to be extracted
+
+   logical (log_kind), optional, intent(out) :: &
+      from_file        ! is att_value known to be from a file?
 
 !EOP
 !BOC
@@ -1300,6 +1412,7 @@ contains
             !*** found the attribute - assign the value
 
             att_value = file_descr%add_attrib_lval(n)
+            if (present(from_file)) from_file = file_descr%add_attrib_lval_from_file(n)
             att_exists = .true.
             exit att_search
          endif
@@ -1329,11 +1442,11 @@ contains
 ! !IROUTINE: extract_attrib_file_int
 ! !INTERFACE:
 
- subroutine extract_attrib_file_int(file_descr, att_name, att_value)
+ subroutine extract_attrib_file_int(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine extracts a global file attribute from an io file
-!  descriptor based on the attribute name.  This particular 
+!  descriptor based on the attribute name.  This particular
 !  instantiation extracts an integer attribute, but is aliased
 !  to the generic routine name extract\_attrib\_file.
 !
@@ -1352,6 +1465,9 @@ contains
 
    integer (i4), intent(out) :: &
       att_value        ! value of attribute to be extracted
+
+   logical (log_kind), optional, intent(out) :: &
+      from_file        ! is att_value known to be from a file?
 
 !EOP
 !BOC
@@ -1410,6 +1526,7 @@ contains
             !*** found the attribute - assign the value
 
             att_value = file_descr%add_attrib_ival(n)
+            if (present(from_file)) from_file = file_descr%add_attrib_ival_from_file(n)
             att_exists = .true.
             exit att_search
          endif
@@ -1439,11 +1556,11 @@ contains
 ! !IROUTINE: extract_attrib_file_real
 ! !INTERFACE:
 
- subroutine extract_attrib_file_real(file_descr, att_name, att_value)
+ subroutine extract_attrib_file_real(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine extracts a global file attribute from an io file
-!  descriptor based on the attribute name.  This particular 
+!  descriptor based on the attribute name.  This particular
 !  instantiation extracts a real attribute, but is aliased
 !  to the generic routine name extract\_attrib\_file.
 !
@@ -1462,6 +1579,9 @@ contains
 
    real (r4), intent(out) :: &
       att_value        ! value of attribute to be extracted
+
+   logical (log_kind), optional, intent(out) :: &
+      from_file        ! is att_value known to be from a file?
 
 !EOP
 !BOC
@@ -1503,6 +1623,7 @@ contains
             !*** found the attribute - assign the value
 
             att_value = file_descr%add_attrib_rval(n)
+            if (present(from_file)) from_file = file_descr%add_attrib_rval_from_file(n)
             att_exists = .true.
             exit att_search
          endif
@@ -1532,11 +1653,11 @@ contains
 ! !IROUTINE: extract_attrib_file_dbl
 ! !INTERFACE:
 
- subroutine extract_attrib_file_dbl(file_descr, att_name, att_value)
+ subroutine extract_attrib_file_dbl(file_descr, att_name, att_value, from_file)
 
 ! !DESCRIPTION:
 !  This routine extracts a global file attribute from an io file
-!  descriptor based on the attribute name.  This particular 
+!  descriptor based on the attribute name.  This particular
 !  instantiation extracts a double precision attribute, but is aliased
 !  to the generic routine name extract\_attrib\_file.
 !
@@ -1555,6 +1676,9 @@ contains
 
    real (r8), intent(out) :: &
       att_value        ! value of attribute to be extracted
+
+   logical (log_kind), optional, intent(out) :: &
+      from_file        ! is att_value known to be from a file?
 
 !EOP
 !BOC
@@ -1596,6 +1720,7 @@ contains
             !*** found the attribute - assign the value
 
             att_value = file_descr%add_attrib_dval(n)
+            if (present(from_file)) from_file = file_descr%add_attrib_dval_from_file(n)
             att_exists = .true.
             exit att_search
          endif
@@ -1684,11 +1809,17 @@ contains
    if (associated(descriptor%add_attrib_cval)) &
       deallocate(descriptor%add_attrib_cval)
 
+   if (associated(descriptor%add_attrib_cval_from_file)) &
+      deallocate(descriptor%add_attrib_cval_from_file)
+
    if (associated(descriptor%add_attrib_lname)) &
       deallocate(descriptor%add_attrib_lname)
 
    if (associated(descriptor%add_attrib_lval)) &
       deallocate(descriptor%add_attrib_lval)
+
+   if (associated(descriptor%add_attrib_lval_from_file)) &
+      deallocate(descriptor%add_attrib_lval_from_file)
 
    if (associated(descriptor%add_attrib_iname)) &
       deallocate(descriptor%add_attrib_iname)
@@ -1696,11 +1827,17 @@ contains
    if (associated(descriptor%add_attrib_ival)) &
       deallocate(descriptor%add_attrib_ival)
 
+   if (associated(descriptor%add_attrib_ival_from_file)) &
+      deallocate(descriptor%add_attrib_ival_from_file)
+
    if (associated(descriptor%add_attrib_rname)) &
       deallocate(descriptor%add_attrib_rname)
 
    if (associated(descriptor%add_attrib_rval)) &
       deallocate(descriptor%add_attrib_rval)
+
+   if (associated(descriptor%add_attrib_rval_from_file)) &
+      deallocate(descriptor%add_attrib_rval_from_file)
 
    if (associated(descriptor%add_attrib_dname)) &
       deallocate(descriptor%add_attrib_dname)
@@ -1708,16 +1845,24 @@ contains
    if (associated(descriptor%add_attrib_dval)) &
       deallocate(descriptor%add_attrib_dval)
 
+   if (associated(descriptor%add_attrib_dval_from_file)) &
+      deallocate(descriptor%add_attrib_dval_from_file)
+
    nullify (descriptor%add_attrib_cname)
    nullify (descriptor%add_attrib_cval)
+   nullify (descriptor%add_attrib_cval_from_file)
    nullify (descriptor%add_attrib_lname)
    nullify (descriptor%add_attrib_lval)
+   nullify (descriptor%add_attrib_lval_from_file)
    nullify (descriptor%add_attrib_iname)
    nullify (descriptor%add_attrib_ival)
+   nullify (descriptor%add_attrib_ival_from_file)
    nullify (descriptor%add_attrib_rname)
    nullify (descriptor%add_attrib_rval)
+   nullify (descriptor%add_attrib_rval_from_file)
    nullify (descriptor%add_attrib_dname)
    nullify (descriptor%add_attrib_dval)
+   nullify (descriptor%add_attrib_dval_from_file)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1825,7 +1970,7 @@ contains
 !BOC
 !-----------------------------------------------------------------------
 !
-!  local variables 
+!  local variables
 !
 !-----------------------------------------------------------------------
 
@@ -1905,7 +2050,7 @@ contains
    ! If true, call pio_set_ioFRAME
    if (lactive_time_dim) then
       descriptor%set_ioFrame = .true.
-   else	
+   else
       descriptor%set_ioFrame = .false.
    end if
 
@@ -1982,10 +2127,10 @@ contains
          descriptor%nfield_dims = 1
          descriptor%field_dim(1) = time_dim
       else
-         ! field_dim is not used for time-invariant scalars 
+         ! field_dim is not used for time-invariant scalars
          descriptor%nfield_dims = 0
       endif
-     
+
    end if
 
    nullify (descriptor%field_i_1d)
@@ -2208,7 +2353,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  if not the first, see if it exists and over-write value
-!  if does not exist, resize the attribute array and store the 
+!  if does not exist, resize the attribute array and store the
 !  attributes
 !
 !-----------------------------------------------------------------------
@@ -2600,7 +2745,7 @@ contains
 
 ! !DESCRIPTION:
 !  This routine adds a field attribute to an io field.  This
-!  particular instantiation adds a double precision attribute, but is 
+!  particular instantiation adds a double precision attribute, but is
 !  aliased to the generic routine name add\_attrib\_io\_field.
 !
 ! !REVISION HISTORY:
@@ -2713,7 +2858,7 @@ contains
 
 ! !DESCRIPTION:
 !  This routine extracts an attribute from an io field.  This
-!  particular instantiation extracts a character attribute, but is 
+!  particular instantiation extracts a character attribute, but is
 !  aliased to the generic routine name extract\_attrib\_io\_field.
 !
 ! !REVISION HISTORY:
@@ -2821,7 +2966,7 @@ contains
 
 ! !DESCRIPTION:
 !  This routine extracts an attribute from an io field.  This
-!  particular instantiation extracts a logical attribute, but is 
+!  particular instantiation extracts a logical attribute, but is
 !  aliased to the generic routine name extract\_attrib\_io\_field.
 !
 ! !REVISION HISTORY:
@@ -2908,7 +3053,7 @@ contains
 
 ! !DESCRIPTION:
 !  This routine extracts an attribute from an io field.  This
-!  particular instantiation extracts an integer attribute, but is 
+!  particular instantiation extracts an integer attribute, but is
 !  aliased to the generic routine name extract\_attrib\_io\_field.
 !
 ! !REVISION HISTORY:
@@ -3004,7 +3149,7 @@ contains
 
 ! !DESCRIPTION:
 !  This routine extracts an attribute from an io field.  This
-!  particular instantiation extracts a real attribute, but is 
+!  particular instantiation extracts a real attribute, but is
 !  aliased to the generic routine name extract\_attrib\_io\_field.
 !
 ! !REVISION HISTORY:
@@ -3288,8 +3433,7 @@ contains
 
    namelist /io_nml/ num_iotasks,                          &
                      lredirect_stdout, log_filename,       &
-                     luse_pointer_files, pointer_filename, &
-                     luse_nf_64bit_offset
+                     luse_pointer_files, pointer_filename
 
 !-----------------------------------------------------------------------
 !
@@ -3312,7 +3456,6 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   luse_nf_64bit_offset = .false.
    lredirect_stdout = .false.
    log_filename = 'pop.out'
    luse_pointer_files = .false.
@@ -3352,7 +3495,6 @@ contains
    call broadcast_scalar(lredirect_stdout,     master_task)
    call broadcast_scalar(log_filename,         master_task)
    call broadcast_scalar(luse_pointer_files,   master_task)
-   call broadcast_scalar(luse_nf_64bit_offset, master_task)
    call broadcast_scalar(pointer_filename,     master_task)
 
 
@@ -3480,7 +3622,7 @@ contains
 !-----------------------------------------------------------------------
 
 #ifdef CCSMCOUPLED
-   call shr_file_freeUnit(iunit)	
+   call shr_file_freeUnit(iunit)
 #else
    in_use(iunit) = .false.  !  that was easy...
 #endif

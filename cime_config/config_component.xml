@@ -1,8 +1,12 @@
 <?xml version="1.0"?>
 
-<?xml-stylesheet type="text/xsl" href="definitions_variables.xsl" ?>
-
-<definitions_variables>
+<entry_id version="3.0">
+  <description modifier_mode="*">
+    <desc ocn="POP2[%1D][%ECO][%DAR]"    >POP2 </desc>
+    <desc option="1D" >Single column </desc>
+    <desc option="ECO">Ecosystem</desc>
+    <desc option="DAR">diagnostic</desc>
+  </description>
 
   <entry id="COMP_OCN">
     <type>char</type>
@@ -20,7 +24,7 @@
     <group>case_comp</group>
     <file>env_case.xml</file>
     <desc>This component requires a clean build if the pelayout changes, if this variable is
-                not defined for a component it is assumed false
+                not defined for a component it is assumed FALSE
     </desc>
   </entry>
 
@@ -31,7 +35,7 @@
     <values>
       <value compset="_POP2%ECO"             >prognostic</value>
       <value compset="_DATM.*CICE.*_POP2%ECO">diagnostic</value>
-      <value compset="_POP2%DAR"             >diagnostic</value>
+      <value compset="_DATM%CPLHIST.*CICE.*_POP2%ECO">prognostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -77,8 +81,8 @@
     <valid_values></valid_values>
     <default_value>iage</default_value>
     <values modifier='merge'>
-      <value compset="HIST">cfc</value>
-      <value compset="5505">cfc</value>
+      <value compset="^HIST">cfc sf6</value>
+      <value compset="^5505">cfc sf6</value>
       <value compset="_POP2%ECO">ecosys</value>
     </values>
     <group>build_component_pop</group>
@@ -100,6 +104,7 @@
     <valid_values>full,partial</valid_values>
     <default_value>full</default_value>
     <values>
+      <value compset="_DATM%CPLHIST.*_POP2">full</value>
       <value compset="_DATM.*_POP2">partial</value>
     </values>
     <group>build_pop</group>
@@ -115,9 +120,10 @@
 
   <entry id="OCN_TRANSIENT">
     <type>char</type>
-    <valid_values>unset,1850-2000,rcp4.5,rcp8.5</valid_values>
+    <valid_values>unset,CORE2,1850-2000,rcp4.5,rcp8.5</valid_values>
     <default_value>unset</default_value>
     <values>
+      <value compset="DATM%IAF">CORE2</value>
       <value compset="^5505_CAM">1850-2000</value>
       <value compset="^HIST_CAM">1850-2000</value>
       <value compset="^RCP4_CAM">rcp4.5</value>
@@ -157,6 +163,7 @@
     <values>
       <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%ECO.*_BGC%BDRD">diagnostic</value>
+      <value compset="_DATM%CPLHIST.*_POP2%ECO">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -176,11 +183,11 @@
 
   <entry id="POP_AUTO_DECOMP">
     <type>logical</type>
-    <valid_values>true,false</valid_values>
-    <default_value>true</default_value>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>TRUE</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>if false, user must set the POP decomp, otherwise cesm_setup script sets it</desc>
+    <desc>if FALSE, user must set the POP decomp, otherwise cesm_setup script sets it</desc>
   </entry>
 
   <entry id="POP_BLCKX">
@@ -189,7 +196,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Size of pop block in first horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Size of pop block in first horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_BLCKY">
@@ -198,7 +205,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Size of pop block in second horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Size of pop block in second horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_NX_BLOCKS">
@@ -207,7 +214,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Number of pop blocks in first horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Number of pop blocks in first horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_NY_BLOCKS">
@@ -216,7 +223,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Number of pop blocks in second horiz dimension (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>Number of pop blocks in second horiz dimension (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_MXBLCKS">
@@ -225,7 +232,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Max number of pop blocks per processor (do not edit if POP_AUTO_DECOMP is true</desc>
+    <desc>Max number of pop blocks per processor (do not edit if POP_AUTO_DECOMP is TRUE</desc>
   </entry>
 
   <entry id="POP_DECOMPTYPE">
@@ -234,7 +241,7 @@
     <default_value>0</default_value>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>pop block distribution type (do not edit if POP_AUTO_DECOMP is true)</desc>
+    <desc>pop block distribution type (do not edit if POP_AUTO_DECOMP is TRUE)</desc>
   </entry>
 
   <entry id="POP_CPPDEFS">
@@ -246,11 +253,32 @@
     <desc>POP cpp definitions (for diagnostic use only, setup automatically, overwritten by configure_pop.py - DO NOT EDIT)</desc>
   </entry>
 
-  <description>
-    <desc compset="_POP2"    >POP2 default:</desc>
-    <desc compset="_POP2%1D" >Single column POP2:</desc>
-    <desc compset="_POP2%ECO">POP2/Ecosystem:</desc>
-  </description>
+  <entry id="POP_PHYS_CYCLE_YEARS_IN_CYCLE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>number of years to run before cycling POP physics
+    POP physics cycling only occurs if POP_PHYS_CYCLE_YEARS_IN_CYCLE>0
+    and pre- and post-run scripts are specified in env vars
+    PRERUN_SCRIPT and POSTRUN_SCRIPT</desc>
+  </entry>
+    
+  <entry id="POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE">
+    <type>integer</type>
+    <default_value>0</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>number of months run since most recent cycling of POP physics</desc>
+  </entry>
+
+  <entry id="POP_PASSIVE_TRACER_RESTART_OVERRIDE">
+    <type>char</type>
+    <default_value>none</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>if not equal to none, then passive tracers modules use this as their restart file</desc>
+  </entry>
 
   <help>
     =========================================
@@ -258,4 +286,4 @@
     =========================================
   </help>
 
-</definitions_variables>
+</entry_id>

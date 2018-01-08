@@ -59,7 +59,7 @@
    ! FIXME(mnl,2016-01) -- moved from init -> module level for use by cvmix
    !                       branch of vmix_kpp; refactoring CVMix will let
    !                       this go back to init (and get deallocated there)
-   real (r8), dimension(:,:,:), allocatable, public ::  &
+   real (r8), dimension(:,:,:), allocatable, target, public ::  &
       TIDAL_ENERGY_FLUX      ! input tidal energy flux at T-grid points 
                              ! (W/m^2)
    real (r8),public ::  &

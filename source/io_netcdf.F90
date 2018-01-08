@@ -136,7 +136,7 @@
    path = trim(data_file%full_name)
 
    call io_pio_init('read', path, data_file%File)
-   
+
 !-----------------------------------------------------------------------
 !
 !  determine number of global file attributes
@@ -188,7 +188,7 @@
          endif
 
       case('history')
-         
+
          data_file%history = char_blank
          iostat = pio_inq_attlen(data_file%File, PIO_GLOBAL, 'history', nsize)
 
@@ -235,7 +235,7 @@
          !***
 
          iostat = pio_inq_att(data_file%File, PIO_GLOBAL, trim(att_name), &
-              itype,  nsize) 
+              itype,  nsize)
 
          select case (itype)
 
@@ -255,7 +255,7 @@
                                   &/ trim(path)
                endif
             endif
-            call add_attrib_file(data_file, trim(att_name), trim(work_line))
+            call add_attrib_file(data_file, trim(att_name), trim(work_line), from_file=.true.)
 
          case (PIO_INT)
             iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
@@ -271,20 +271,20 @@
                else
                   att_lval = .false.
                endif
-               call add_attrib_file(data_file, trim(att_name), att_lval)
+               call add_attrib_file(data_file, trim(att_name), att_lval, from_file=.true.)
             else
-               call add_attrib_file(data_file, trim(att_name), att_ival)
+               call add_attrib_file(data_file, trim(att_name), att_ival, from_file=.true.)
             endif
 
-         case (PIO_REAL) 
+         case (PIO_REAL)
             iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
                                   att_rval)
-            call add_attrib_file(data_file, trim(att_name), att_rval)
+            call add_attrib_file(data_file, trim(att_name), att_rval, from_file=.true.)
 
-         case (PIO_DOUBLE) 
+         case (PIO_DOUBLE)
             iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
                                   att_dval)
-            call add_attrib_file(data_file, trim(att_name), att_dval)
+            call add_attrib_file(data_file, trim(att_name), att_dval, from_file=.true.)
 
          end select
 
@@ -351,8 +351,8 @@
    path = trim(data_file%full_name)
 
    call io_pio_init(mode='write', filename=path, File=data_file%File, &
-        clobber=.true., cdf64=luse_nf_64bit_offset)
-   
+        clobber=.true.)
+
    data_file%ldefine = .true.  ! file in netCDF define mode
 
 !-----------------------------------------------------------------------
@@ -589,7 +589,7 @@
 
 ! !DESCRIPTION:
 !  This routine defines an io field for a netCDF file.
-!  When reading a file, the define routine will attempt to fill an 
+!  When reading a file, the define routine will attempt to fill an
 !  io field structure with meta-data information from the netCDF file.
 !  When writing a file, it calls the appropriate netCDF routines
 !  to define all the field attributes and assign a field id.
@@ -651,7 +651,7 @@
    integer (i4) :: xtype
 
    define_error = .false.
-   
+
    data_file%ldefine = .true.  ! file in netCDF define mode
 
 !-----------------------------------------------------------------------
@@ -665,16 +665,16 @@
 
    if (data_file%readonly) then
 
-      ! Note that currently a lot of pio inquire functions need a 
-      ! netcdf varid and not a pio vardesc. Currently pio_inq_varnatts 
-      ! can only be accessed through a pio vardesc.  
+      ! Note that currently a lot of pio inquire functions need a
+      ! netcdf varid and not a pio vardesc. Currently pio_inq_varnatts
+      ! can only be accessed through a pio vardesc.
 
-      iostat = pio_inq_varid(data_file%File, io_field%short_name, io_field%id) 
+      iostat = pio_inq_varid(data_file%File, io_field%short_name, io_field%id)
       if (iostat /= pio_noerr) &
            call exit_POP(sigAbort,'Error in getting varid for netCDF field ' /&
                                   &/ trim(io_field%short_name))
 
-      iostat = pio_inq_varid(data_file%File, io_field%short_name, io_field%varDesc) 
+      iostat = pio_inq_varid(data_file%File, io_field%short_name, io_field%varDesc)
       if (iostat /= pio_noerr) &
            call exit_POP(sigAbort,'Error in getting varDesc for netCDF field ' /&
                                   &/ trim(io_field%short_name))
@@ -699,7 +699,7 @@
          iostat = pio_inq_attname(data_file%File, io_field%id, n, att_name)
          if (iostat /= pio_noerr) &
             call exit_POP(sigAbort,'Error getting netCDF field attribute name')
-   
+
          !***
          !*** check to see if name matches any of the standard field
          !*** attributes
@@ -832,13 +832,13 @@
             !***
 
             iostat = pio_inq_att(data_file%File, io_field%id, trim(att_name), &
-                                 itype,  nsize) 
+                                 itype,  nsize)
 
             if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading netCDF file attribute')
             endif
-   
+
             select case (itype)
 
             case (PIO_CHAR)
@@ -874,7 +874,7 @@
                   call exit_POP(sigAbort, &
                                 'Error reading netCDF file attribute')
                endif
-   
+
                if (att_name(1:4) == 'LOG_') then !*** attribute logical
                   work_line = att_name
                   work_line(1:4) = '    '
@@ -885,12 +885,12 @@
                   else
                      att_lval = .false.
                   endif
-                  call add_attrib_file(data_file, trim(att_name), &
-                                                  att_lval)
+                  call add_attrib_io_field(io_field, trim(att_name), &
+                                                     att_lval)
 
                else
-                  call add_attrib_file(data_file, trim(att_name), &
-                                                  att_ival)
+                  call add_attrib_io_field(io_field, trim(att_name), &
+                                                     att_ival)
                endif
 
             case (PIO_REAL)
@@ -911,10 +911,10 @@
                   call exit_POP(sigAbort, &
                                 'Error reading netCDF file attribute')
                endif
-   
+
                call add_attrib_io_field(io_field, trim(att_name), &
                                                   att_dval)
-   
+
             end select
 
          end select
@@ -946,7 +946,7 @@
          dimid = 0
 
          !*** check to see whether already defined
-         
+
          iostat = pio_inq_dimid(data_file%file,                                 &
                                 name=trim(io_field%field_dim(n)%name),&
                                 dimid=dimid)
@@ -968,12 +968,12 @@
 !-----------------------------------------------------------------------
 
       !*** check to see whether field of this name already defined.
-      
+
       iostat = pio_inq_varid(data_file%File, trim(io_field%short_name), varid)
-      
+
       if (iostat /= PIO_NOERR) then ! variable was not yet defined
 
-         if (associated (io_field%field_r_0d) .and. ndims==0) then 
+         if (associated (io_field%field_r_0d) .and. ndims==0) then
             ! do not supply optional dimids for time-invariant scalars
             iostat = pio_def_var (data_file%File,                           &
                                   name=trim(io_field%short_name), &
@@ -988,7 +988,7 @@
                                   type=PIO_REAL,                 &
                 dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
                                   varDesc=io_field%varDesc)
-         else if (associated (io_field%field_d_0d) .and. ndims==0) then 
+         else if (associated (io_field%field_d_0d) .and. ndims==0) then
             ! do not supply optional dimids for time-invariant scalars
             iostat = pio_def_var (data_file%File,                           &
                                   name=trim(io_field%short_name), &
@@ -1018,8 +1018,8 @@
 
       end if
 
-      ! Now get a valid netcdf varid for the variable and fill in 
-      ! the io_field%id setting 
+      ! Now get a valid netcdf varid for the variable and fill in
+      ! the io_field%id setting
 
       iostat = pio_inq_varid(data_file%File, trim(io_field%short_name), varid)
       io_field%id = varid
@@ -1177,13 +1177,20 @@
 ! !IROUTINE: write_field_netcdf
 ! !INTERFACE:
 
- subroutine write_field_netcdf(data_file, io_field)
+ subroutine write_field_netcdf(data_file, io_field, &
+                               fill_value_i, fill_value_r, fill_value_d)
 
 ! !DESCRIPTION:
 !  This routine writes a field to a netCDF data file.
 !
 ! !REVISION HISTORY:
 !  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in), optional :: fill_value_i
+   real (r4), intent(in), optional :: fill_value_r
+   real (r8), intent(in), optional :: fill_value_d
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1203,7 +1210,7 @@
 
    integer (i4) :: &
       iostat,       &! netCDF status flag
-      ndims,        &! dimension index 	
+      ndims,        &! dimension index
       k,n            ! loop counters
 
    logical (log_kind) :: &
@@ -1219,7 +1226,7 @@
 !-----------------------------------------------------------------------
 
    write_error = .false.
-   
+
 
    if (data_file%ldefine) then
       iostat = pio_enddef(data_file%File)
@@ -1245,9 +1252,9 @@
    if (trim(io_field%short_name) == 'time') then
       ndims    = io_field%nfield_dims
       start(1) = io_field%field_dim(ndims)%start
-      count(1) = 1	
+      count(1) = 1
       iostat = pio_put_var(data_file%File, varid=io_field%id, start=start(:), count=count(:), &
-                           ival=io_field%field_d_1d) 
+                           ival=io_field%field_d_1d)
       if (iostat /= pio_noerr) then
          call document('write_field_netcdf', 'short_name', io_field%short_name)
          call exit_POP(sigAbort,'Error writing field time to netCDF file')
@@ -1276,8 +1283,8 @@
       end if
       io_field%set_iodesc = .false.
    end if
-   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)      
-   if (io_field%set_ioFrame) then	
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
+   if (io_field%set_ioFrame) then
       ndims = io_field%nfield_dims
       call pio_setframe(data_file%File, io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET_KIND))
 !   else
@@ -1286,21 +1293,21 @@
    if (associated(io_field%field_r_3d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_r_3d, iostat)
+                            io_field%field_r_3d, iostat, fillval=fill_value_r)
 
    else if (associated(io_field%field_r_2d)) then
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_r_2d, iostat)
+                            io_field%field_r_2d, iostat, fillval=fill_value_r)
    else if (associated(io_field%field_r_1d)) then
 
       ! 1d vectors are not distributed to blocks
       iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_r_1d)
- 
+
    else if (associated(io_field%field_r_0d)) then
 
       ! scalars are not distributed to blocks; no need for gather_global
 
-      if (io_field%nfield_dims == 1) then	
+      if (io_field%nfield_dims == 1) then
          iostat = pio_put_var(data_file%File, io_field%vardesc, &
                               start = (/ io_field%field_dim(ndims)%start /), &
                               count = (/ io_field%field_dim(ndims)%stop &
@@ -1313,23 +1320,23 @@
    else if (associated(io_field%field_d_3d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_d_3d, iostat)
+                            io_field%field_d_3d, iostat, fillval=fill_value_d)
 
    else if (associated(io_field%field_d_2d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_d_2d, iostat)
+                            io_field%field_d_2d, iostat, fillval=fill_value_d)
 
    else if (associated(io_field%field_d_1d)) then
 
       ! 1d vectors are not distributed to blocks; no need for gather_global
       iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_d_1d)
- 
+
    else if (associated(io_field%field_d_0d)) then
 
       ! scalars are not distributed to blocks; no need for gather_global
 
-      if (io_field%nfield_dims == 1) then	
+      if (io_field%nfield_dims == 1) then
          iostat = pio_put_var(data_file%File, io_field%vardesc, &
                               start = (/ io_field%field_dim(ndims)%start /), &
                               count = (/ io_field%field_dim(ndims)%stop &
@@ -1342,12 +1349,12 @@
    else if (associated(io_field%field_i_3d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_i_3d, iostat)
+                            io_field%field_i_3d, iostat, fillval=fill_value_i)
 
    else if (associated(io_field%field_i_2d)) then
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_i_2d, iostat)
+                            io_field%field_i_2d, iostat, fillval=fill_value_i)
 
    else if (associated(io_field%field_i_1d)) then
 
@@ -1389,7 +1396,7 @@
 !
 ! !USES
 
-   use POP_FieldMod	           
+   use POP_FieldMod
    use POP_GridHorzMod
    use Pop_HaloMod
 
@@ -1412,7 +1419,7 @@
    integer (i4) :: &
       iostat,      &! netCDF status flag
       k,n           ! loop counters
- 
+
    character(len=8) :: fieldtype, fieldloc
 
    integer (POP_i4) ::  errorCode           ! returned error code
@@ -1425,7 +1432,7 @@
 !
 !-----------------------------------------------------------------------
 
-   
+
    iostat = pio_inq_varid(data_file%File, trim(io_field%short_name), io_field%varDesc)
 
 !-----------------------------------------------------------------------
@@ -1497,7 +1504,7 @@
       else
          lhalo_update = .true.
       end if
-   else 
+   else
       if (io_field%field_loc == field_loc_noupdate .or. &
 	  io_field%field_loc == field_loc_unknown) then
     	 lhalo_update = .false.
@@ -1684,14 +1691,14 @@
       coordinates,                 &
       nftype,                      &
       method_string
-    
+
 ! !INPUT/OUTPUT PARAMETERS:
 
    type (io_dim), dimension(:), intent (inout) :: &
-      io_dims         
+      io_dims
 
    integer (i4), intent (inout) :: &
-      field_id                      ! variable id 
+      field_id                      ! variable id
 
    optional :: coordinates,fill_value,nftype,method_string
 
@@ -1707,23 +1714,23 @@
       iostat,         &! status flag for netCDF calls
       n,              &! loop index
       dimid,          &! dimension id
-      xtype          
-   integer(pio_offset_kind)::      len	
+      xtype
+   integer(pio_offset_kind)::      len
 
 
    logical (log_kind) :: &
       define_error        ! error flag
 
-   ! Note this is a local variable since it is only used to satisfy 
-   ! pio_def_var interface needs. Only pio_put_var is used for 
+   ! Note this is a local variable since it is only used to satisfy
+   ! pio_def_var interface needs. Only pio_put_var is used for
    ! non-standard variablesand all output is from the master processor.
    ! So vardesc is never directly.
 
-   type(var_desc_t) :: &  
-      vardesc	
+   type(var_desc_t) :: &
+      vardesc
 
    define_error = .false.
-   
+
 
 !-----------------------------------------------------------------------
 !
@@ -1773,7 +1780,7 @@
         case ('char','CHAR','character', 'CHARACTER')
           xtype = PIO_CHAR
         case default
-          call exit_POP(sigAbort,'unknown nftype') 
+          call exit_POP(sigAbort,'unknown nftype')
       end select
    else
     xtype = PIO_REAL
@@ -1783,7 +1790,7 @@
 
    iostat = PIO_INQ_VARID(data_file%File, trim(short_name), field_id)
    if (iostat /= PIO_NOERR) then ! variable was not yet defined
-      ! Note currently must use vardesc to define var 
+      ! Note currently must use vardesc to define var
       iostat = PIO_DEF_VAR (data_file%File,name=trim(short_name), type=xtype,&
                              dimids=(/ (io_dims(n)%id, n=1,ndims) /),&
                              vardesc=vardesc)
@@ -1806,7 +1813,7 @@
 
     !*** long_name
     iostat = pio_inq_att(data_file%File, field_id, 'long_name', &
-	                  xtype, len)  
+	                  xtype, len)
     if (iostat /= PIO_NOERR) then ! attrib probably not defined
        iostat = pio_put_att(data_file%File, varid=field_id, &
                              name='long_name',    &
@@ -1816,7 +1823,7 @@
 
     !*** units
     iostat = pio_inq_att(data_file%File, field_id, 'units', &
-	                  xtype, len)  
+	                  xtype, len)
     if (iostat /= PIO_NOERR) then ! attrib probably not defined
        iostat = pio_put_att(data_file%File, varid=field_id, &
                              name='units',        &
@@ -1827,7 +1834,7 @@
     !*** coordinates
     if (present(coordinates)) then
        iostat = pio_inq_att(data_file%File, field_id, 'coordinates', &
-                             xtype, len)  
+                             xtype, len)
        if (iostat /= PIO_NOERR) then ! attrib probably not defined
           iostat = pio_put_att(data_file%File, varid=field_id,    &
                                 name='coordinates',     &
@@ -1839,7 +1846,7 @@
     !*** cell_methods
     if (present(method_string)) then
        iostat = pio_inq_att(data_file%File, field_id, 'cell_methods', &
-                             xtype, len)  
+                             xtype, len)
        if (iostat /= PIO_NOERR) then ! attrib probably not defined
           iostat = pio_put_att(data_file%File, varid=field_id,    &
                                 name='cell_methods',     &
@@ -1874,7 +1881,7 @@
 
 !
 !  Reset PIO to handle errors internally
-! 
+!
    call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
 
 !-----------------------------------------------------------------------
@@ -1891,7 +1898,7 @@
 	                        time_bound_dims, time_bound_data)
 
 ! !INPUT PARAMETERS:
-   integer (i4), intent (in)                ::  time_bound_id  
+   integer (i4), intent (in)                ::  time_bound_id
    type (io_dim), dimension(:), intent (in) ::  time_bound_dims
    real (r8), dimension(2,1),intent (in)    ::  time_bound_data
 
@@ -1926,7 +1933,7 @@
 !-----------------------------------------------------------------------
 
    write_error = .false.
-   
+
 
    if (data_file%ldefine) then
       iostat = pio_enddef(data_file%File)
@@ -1957,9 +1964,9 @@
       start (n) = time_bound_dims(n)%start
       length(n) = time_bound_dims(n)%stop - start(n) + 1
    end do
-   
+
    iostat = pio_put_var(data_file%File, varid=time_bound_id, start=start(:), count=length(:), &
-                        ival=time_bound_data) 
+                        ival=time_bound_data)
 
  end subroutine write_time_bounds
 
@@ -1983,14 +1990,14 @@
 ! !DESCRIPTION:
 !  This is a specialized, CCSM-speicific routine to write any desired
 !  output field that cannot presently be defined through construct_io_field
-!  to the CCSM version of the netCDF time-averaged history output files 
+!  to the CCSM version of the netCDF time-averaged history output files
 !
 ! !REVISION HISTORY:
 !  same as module
 !  USES
    use shr_pio_mod, only : shr_pio_getioroot
 ! !INPUT PARAMETERS:
-   
+
    character (*), intent (in) ::  &
        nftype
 
@@ -2007,7 +2014,7 @@
       indata_2d_r8
    real (r8), dimension(:),  intent (in) ::  &
       indata_1d_r8
-         
+
    real (r4), dimension(:,:,:,:), intent (in) ::  &
       indata_4d_r4
    real (r4), dimension(:,:,:),   intent (in) ::  &
@@ -2065,16 +2072,16 @@
 
    real (r4), allocatable, dimension (:,:,:,:,:)  ::  &
       outdata_5d_r4
-   
+
    real (r4), allocatable, dimension (:,:,:,:)    ::  &
       outdata_4d_r4
 
    real (r4), allocatable, dimension (:,:,:)      ::  &
       outdata_3d_r4
-   
+
    real (r4), allocatable, dimension (:,:)        ::  &
       outdata_2d_r4
-   
+
    real (r8), allocatable, dimension (:)          ::  &
       outdata_1d_r8
    real (r8), allocatable, dimension (:,:)        ::  &
@@ -2101,7 +2108,7 @@
       iostat = pio_enddef(data_file%File)
       data_file%ldefine = .false.
    endif
-   
+
 !-----------------------------------------------------------------------
 !
 !  make sure field has been defined
@@ -2114,7 +2121,7 @@
           '(write_nstd_netcdf) Attempt to write undefined field in netCDF write')
 
    supported = .true.
-   
+
    ioroot = shr_pio_getioroot(inst_name)
 
 !-----------------------------------------------------------------------
@@ -2148,7 +2155,7 @@
                      iostat = pio_put_var (data_file%File, field_id, outdata_2d_r8 )
                      deallocate (outdata_2d_r8)
                   case default
-                   supported = .false. 
+                   supported = .false.
               end select ! ndims
            case (.false.)
               select case (ndims)
@@ -2157,18 +2164,18 @@
                   case(2)
                      iostat = pio_put_var (data_file%File, field_id, indata_2d_r8 )
                   case default
-                   supported = .false. 
+                   supported = .false.
               End select ! ndims
            end select ! lactive_time_dim
 
-      case('float','FLOAT') 
+      case('float','FLOAT')
          select case (lactive_time_dim)
            case (.true.)
               select case (ndims)
                   case(1)
-                     supported = .false. 
+                     supported = .false.
                   case(2)
-                     supported = .false. 
+                     supported = .false.
                   case(3)
                      if (my_task == ioroot) then
                        do n=1,ndims-1
@@ -2212,12 +2219,12 @@
                                            start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_5d_r4)
                   case default
-                   supported = .false. 
+                   supported = .false.
               end select ! ndims
            case (.false.)
               select case (ndims)
                   case(1)
-                     supported = .false. 
+                     supported = .false.
                   case(2)
                      iostat = pio_put_var (data_file%File, field_id, indata_2d_r4 )
                   case(3)
@@ -2225,16 +2232,16 @@
                   case(4)
                      iostat = pio_put_var (data_file%File, field_id, indata_4d_r4 )
                   case default
-                   supported = .false. 
+                   supported = .false.
               end select ! ndims
          end select ! lactive_time_dim
 
-      case('char','character','CHAR','CHARACTER') 
+      case('char','character','CHAR','CHARACTER')
          select case (lactive_time_dim)
            case (.true.)
               select case (ndims)
                   case default
-                   supported = .false. 
+                   supported = .false.
               end select ! ndims
            case (.false.)
               select case (ndims)
@@ -2252,7 +2259,7 @@
                      enddo
 
                   case default
-                   supported = .false. 
+                   supported = .false.
               end select ! ndims
          end select ! lactive_time_dim
 
@@ -2281,7 +2288,7 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: check_definemode 
+! !IROUTINE: check_definemode
 ! !INTERFACE:
 
  subroutine check_definemode (data_file, name)
@@ -2295,7 +2302,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 
    type (datafile), target, intent (inout)  :: &
-      data_file                        
+      data_file
 
    character(*),intent (in):: name
 

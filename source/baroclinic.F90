@@ -65,7 +65,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
-   use estuary_mod 
+   use estuary_vsf_mod   
    use running_mean_mod, only: running_mean_test_update_var
 
    implicit none
@@ -81,6 +81,14 @@
 
 
    integer (int_kind), public :: &
+      tavg_ADVU,         &! tavg id for nonlinear advection + metric
+      tavg_ADVV,         &! tavg id for nonlinear advection + metric
+      tavg_GRADX,        &! tavg id for horizontal pressure gradient
+      tavg_GRADY,        &! tavg id for horizontal pressure gradient
+      tavg_HDIFFU,       &! tavg id for horizontal momentum stress
+      tavg_HDIFFV,       &! tavg id for horizontal momentum stress
+      tavg_VDIFFU,       &! tavg id for vertical momentum stress
+      tavg_VDIFFV,       &! tavg id for vertical momentum stress
       tavg_TEMP,         &! tavg id for temperature
       tavg_TEMP_MAX,     &! tavg id for maximum temperature
       tavg_TEMP_MIN,     &! tavg id for maximum temperature
@@ -264,6 +272,46 @@
                           long_name='Salinity lvls 1-8',               &
                           scale_factor=1000.0_r8,                      &
                           units='gram/kilogram', grid_loc='2111')
+
+   call define_tavg_field(tavg_ADVU,'ADVU',3,                          &
+                          long_name='Advection in grid-x direction',    &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_ADVV,'ADVV',3,                          &
+                          long_name='Advection in grid-y direction',    &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_GRADX,'GRADX',3,                          &
+                          long_name='Horizontal press. grad. in grid-x direction',    &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_GRADY,'GRADY',3,                          &
+                          long_name='Horizontal press. grad. in grid-y direction',    &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_HDIFFU,'HDIFFU',3,                          &
+                          long_name='Horizontal diffusion in grid-x direction', &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_HDIFFV,'HDIFFV',3,                          &
+                          long_name='Horizontal diffusion in grid-y direction', &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_VDIFFU,'VDIFFU',3,                          &
+                          long_name='Vertical diffusion in grid-x direction', &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
+
+   call define_tavg_field(tavg_VDIFFV,'VDIFFV',3,                          &
+                          long_name='Vertical diffusion in grid-y direction', &
+                          units='centimeter/s^2', grid_loc='3221',       &
+                          coordinates='ULONG ULAT z_t time')
 
    call define_tavg_field(tavg_UVEL,'UVEL',3,                          &
                           long_name='Velocity in grid-x direction',    &
@@ -1482,6 +1530,9 @@
      FX =  -WORKX   ! advu returns WORKX = +L(U) 
      FY =  -WORKY   ! advu returns WORKY = +L(V)
 
+     call accumulate_tavg_field(WORKX,tavg_ADVU,bid,k)
+     call accumulate_tavg_field(WORKY,tavg_ADVV,bid,k)
+
    else
 
      FX = c0
@@ -1542,6 +1593,9 @@
      FX = FX - WORKX   ! gradp returns WORKX as +Gradx(p)
      FY = FY - WORKY   ! gradp returns WORKY as +Grady(p)
 
+     call accumulate_tavg_field(WORKX,tavg_GRADX,bid,k)
+     call accumulate_tavg_field(WORKY,tavg_GRADY,bid,k)
+
    else
 
      WORKX = c0
@@ -1576,6 +1630,9 @@
      FX = FX + WORKX
      FY = FY + WORKY
 
+     call accumulate_tavg_field(WORKX,tavg_HDIFFU,bid,k)
+     call accumulate_tavg_field(WORKY,tavg_HDIFFV,bid,k)
+
    else
 
      WORKX = c0
@@ -1605,6 +1662,9 @@
 
    FX = FX + WORKX
    FY = FY + WORKY
+
+   call accumulate_tavg_field(WORKX,tavg_VDIFFU,bid,k)
+   call accumulate_tavg_field(WORKY,tavg_VDIFFV,bid,k)
 
    if (ldiag_global) then
       if (partial_bottom_cells) then
