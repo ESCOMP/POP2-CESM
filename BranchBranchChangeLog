@@ -2,6 +2,21 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    8 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n12_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Want to apply restoring to ALK_ALT_CO2 as well
+
+Testing:     aux_pop_MARBL on hobart and cheyenne; expect all NLCOMP and baseline
+             comparisons to fail because this is not a bit-for-bit tag (but the
+             comparisons are the only failures reported)
+             Tested with 37dc086 (on bugfix/apply_restoring branch)
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 Jan 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy2_tags/marbl_dev_levy2_n11_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Mirror latest marbl_dev for more developments orthogonal to work
              already on marbl_dev_levy
