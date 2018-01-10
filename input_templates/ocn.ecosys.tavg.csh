@@ -64,89 +64,6 @@ endif
 if ($lecosys_tavg_all == ".true.") then
 
   cat >! $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-#  GENERAL INTERIOR DIAGNOSTICS
-1  zsatarag
-1  O2_ZMIN
-1  O2_ZMIN_DEPTH
-1  photoC_TOT_zint
-1  photoC_NO3_TOT_zint
-1  Jint_Ctot
-1  Jint_100m_Ctot
-1  Jint_Ntot
-1  Jint_100m_Ntot
-1  Jint_Ptot
-1  Jint_100m_Ptot
-1  Jint_Sitot
-1  Jint_100m_Sitot
-1  Jint_Fetot
-1  Jint_100m_Fetot
-1  CO3
-1  HCO3
-1  H2CO3
-1  pH_3D
-1  CO3_ALT_CO2
-1  HCO3_ALT_CO2
-1  H2CO3_ALT_CO2
-1  pH_3D_ALT_CO2
-1  co3_sat_calc
-1  co3_sat_arag
-1  NITRIF
-1  DENITRIF
-1  O2_PRODUCTION
-1  O2_CONSUMPTION
-1  AOU
-1  PAR_avg
-1  graze_auto_TOT
-1  photoC_TOT
-1  photoC_NO3_TOT
-1  DOC_prod
-1  DOC_remin
-1  DOCr_remin
-1  DON_prod
-1  DON_remin
-1  DONr_remin
-1  DOP_prod
-1  DOP_remin
-1  DOPr_remin
-1  Fe_scavenge
-1  Fe_scavenge_rate
-1  Lig_prod
-1  Lig_loss
-1  Lig_scavenge
-1  Fefree
-1  Lig_photochem
-1  Lig_deg
-#  PARTICULATE
-1  calcToSed
-1  calcToSed_ALT_CO2
-1  pocToSed
-1  ponToSed
-1  SedDenitrif
-1  OtherRemin
-1  popToSed
-1  bsiToSed
-1  dustToSed
-1  pfeToSed
-1  POC_FLUX_IN
-1  POC_PROD
-1  POC_REMIN
-1  POC_REMIN_DIC
-1  POP_FLUX_IN
-1  POP_PROD
-1  POP_REMIN
-1  POP_REMIN_PO4
-1  PON_REMIN_NH4
-1  CaCO3_FLUX_IN
-1  CaCO3_PROD
-1  CaCO3_REMIN
-1  SiO2_FLUX_IN
-1  SiO2_PROD
-1  SiO2_REMIN
-1  dust_FLUX_IN
-1  dust_REMIN
-1  P_iron_FLUX_IN
-1  P_iron_PROD
-1  P_iron_REMIN
 #  FORCING FIELDS
 1  FINE_DUST_FLUX_CPL
 1  COARSE_DUST_FLUX_CPL
@@ -211,10 +128,6 @@ endif
 1  diat_SiO3_lim
 1  diat_bSi_form
 1  diaz_Nfix
-1  CaCO3_form_zint
-1  bSi_form
-1  CaCO3_form
-1  Nfix
 EOF
 
 echo "#  ZOOPLANKTON TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
@@ -275,77 +188,16 @@ $s1  NH4
 $s1  Fe
 $s1  Lig
 $s1  O2
-$s1  O2_ZMIN
-$s1  O2_ZMIN_DEPTH
-$s1  O2_PRODUCTION
-$s1  O2_CONSUMPTION
-$s1  AOU
 $s1  DIC
 $s1  J_DIC
 $s1  ALK
-$s1  H2CO3
-$s1  HCO3
-$s1  CO3
-$s1  pH_3D
-$s1  co3_sat_calc
-$s1  co3_sat_arag
-$s1  zsatarag
 $s1  DOC
-$s1  DOC_prod
-$s1  DOC_remin
-$s1  DOCr_remin
 $s1  zooC
 $s1  DON
-$s1  DON_remin
-$s1  DONr_remin
 $s1  DOP
-$s1  DOP_remin
-$s1  DOPr_remin
 $s1  DONr
 $s1  DOPr
 $s1  DOCr
-$s1  calcToSed
-$s1  pocToSed
-$s1  ponToSed
-$s1  popToSed
-$s1  pfeToSed
-$s1  dustToSed
-$s1  SedDenitrif
-$s1  bsiToSed
-$s1  CaCO3_form
-$s1  Fe_scavenge
-$s1  Fe_scavenge_rate
-$s1  Lig_prod
-$s1  Lig_loss
-$s1  Lig_scavenge
-$s1  Fefree
-$s1  Lig_photochem
-$s1  Lig_deg
-$s1  bSi_form
-$s1  NITRIF
-$s1  DENITRIF
-$s1  CaCO3_FLUX_IN
-$s1  CaCO3_PROD
-$s1  CaCO3_REMIN
-$s1  dust_FLUX_IN
-$s1  dust_REMIN
-$s1  P_iron_FLUX_IN
-$s1  P_iron_PROD
-$s1  P_iron_REMIN
-$s1  POC_FLUX_IN
-$s1  POC_PROD
-$s1  POC_REMIN
-$s1  POC_REMIN_DIC
-$s1  PON_REMIN_NH4
-$s1  POP_FLUX_IN
-$s1  POP_PROD
-$s1  POP_REMIN
-$s1  POP_REMIN_PO4
-$s1  SiO2_FLUX_IN
-$s1  SiO2_PROD
-$s1  PAR_avg
-$s1  DON_prod
-$s1  DOP_prod
 $s1  zoo_loss
 $s1  Jint_100m_DIC
 $s1  Jint_100m_NO3
@@ -365,7 +217,6 @@ $s1  tend_zint_100m_SiO3
 $s1  tend_zint_100m_ALK
 $s1  tend_zint_100m_O2
 $s1  tend_zint_100m_DOC
-$s2  CaCO3_form_zint
 $s2  STF_O2_2
 $s2  zooC_zint_100m
 $s3  J_NO3
@@ -494,11 +345,6 @@ EOF
 cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  DIC_ALT_CO2
 $s1  ALK_ALT_CO2
-$s1  calcToSed_ALT_CO2
-$s1  CaCO3_ALT_CO2_REMIN
-$s1  CaCO3_ALT_CO2_FLUX_IN
-!  CO3_ALT_CO2
-!  pH_3D_ALT_CO2
 $s1  tend_zint_100m_DIC_ALT_CO2
 $s3  UE_DIC_ALT_CO2
 $s3  VN_DIC_ALT_CO2
@@ -511,37 +357,6 @@ $s3  HDIFB_DIC_ALT_CO2
 EOF
   endif
 
-  # include these budget check fields when doing development
-  if ( 1 ) then
-    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-$s1  Jint_Ctot
-$s1  Jint_100m_Ctot
-$s1  Jint_Ntot
-$s1  Jint_100m_Ntot
-$s1  Jint_Ptot
-$s1  Jint_100m_Ptot
-$s1  Jint_Sitot
-$s1  Jint_100m_Sitot
-$s1  Jint_Fetot
-$s1  Jint_100m_Fetot
-EOF
-  endif
-
-#1  Jint_PO4
-#1  Jint_NO3
-#1  Jint_SiO3
-#1  Jint_NH4
-#1  Jint_Fe
-#1  Jint_O2
-#1  Jint_DIC
-#1  Jint_ALK
-#1  Jint_DOC
-#1  Jint_spC
-#1  Jint_spChl
-#1  Jint_spCaCO3
-#1  Jint_diatC
-#1  Jint_diatChl
-#1  Jint_zooC
 endif
 
 # Add MARBL diagnostics to tavg_contents
@@ -549,10 +364,4 @@ $CASEBUILD/popconf/MARBL_diags_to_tavg.py $MARBL_args
 if ($status != 0) then
   echo "ERROR in MARBL_diags_to_tavg.py"
   exit 1
-endif
-
-if ($lecosys_tavg_all == ".true.") then
-  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-1  FG_CO2_2
-EOF
 endif
