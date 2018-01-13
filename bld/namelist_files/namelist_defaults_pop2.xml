@@ -79,7 +79,7 @@
 <topography_file ocn_grid="gx1v6"  >ocn/pop/gx1v6/grid/topography_20090204.ieeei4</topography_file>
 <topography_file ocn_grid="gx3v7"  >ocn/pop/gx3v7/grid/topography_20100105.ieeei4</topography_file>
 <topography_file ocn_grid="tx1v1"  >ocn/pop/tx1v1/grid/topography_20050510.ieeei4</topography_file>
-<topography_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/grid/topography_200709.ieeei4</topography_file>
+<topography_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/grid/topography_km62_201209.ieeei4</topography_file>
 
 <region_mask_file ocn_grid="gx3v7"  >ocn/pop/gx3v7/grid/region_mask_20090831.ieeei4</region_mask_file>
 <region_mask_file ocn_grid="gx1v6"  >ocn/pop/gx1v6/grid/region_mask_20090205.ieeei4</region_mask_file> 
@@ -91,7 +91,7 @@
 <partial_bottom_cells>.false.</partial_bottom_cells>
 <partial_bottom_cells ocn_grid="tx0.1v2">.true.</partial_bottom_cells>
 
-<bottom_cell_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/grid/dzbc_pbc_s2.0_200709.ieeer8</bottom_cell_file>
+<bottom_cell_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/grid/dzbc_km62_201209.ieeer8</bottom_cell_file>
 
 <n_topo_smooth>0</n_topo_smooth>
 
@@ -128,11 +128,9 @@
 <init_ts_file ocn_grid="gx3v7">  ocn/pop/gx3v7/ic/ts_PHC2_jan_ic_gx3v7_20100107.ieeer8</init_ts_file>
 <init_ts_file ocn_grid="gx1v6">  ocn/pop/gx1v6/ic/ts_PHC2_jan_ic_gx1v6_20090205.ieeer8</init_ts_file>
 <init_ts_file ocn_grid="tx1v1">  ocn/pop/tx1v1/ic/ts_jan_ic_20050510.ieeer8</init_ts_file>
-<init_ts_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/ic/GC007v3.pop.r.0001-01-16-00000</init_ts_file>
-<init_ts_hdr_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/ic/GC007v3.pop.r.0001-01-16-00000.hdr</init_ts_hdr_file>
+<init_ts_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/ic/ts_WOA13v2_jan_ic_tx0.1v2_62L_20171222.ieeer8</init_ts_file>
 
 <init_ts_suboption>'null'</init_ts_suboption>
-<init_ts_suboption ocn_grid="tx0.1v2">'spunup'</init_ts_suboption>
 
 <init_ts_outfile_fmt>'nc'</init_ts_outfile_fmt>
 <init_ts_outfile_fmt ocn_grid="tx0.1v2">'bin'</init_ts_outfile_fmt>

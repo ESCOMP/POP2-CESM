@@ -3,6 +3,20 @@ SVN $URL$
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
+Tag Date:    13 Jan 2017
+Tag Name:    pop2/branch_tags/sehires_pop_tags/n04
+Tag Summary: Made tx0.1v2 grid 62 levels OTB
+             This branch tag is based on sehires_pop_2_1_20171004 branch.
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       input_templates/tx0.1v2_POP_DomainSizeMod.F90
+M       input_templates/tx0.1v2_domain_size.F90
+M       input_templates/tx0.1v2_vert_grid
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
 Tag Date:    10 Oct 2017
 Tag Name:    pop2/branches/sehires_pop_2_1_20171004/
 Tag Summary: Applied the new barotropic solver changes in:

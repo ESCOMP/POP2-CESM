@@ -26,7 +26,7 @@
    integer (int_kind), parameter, public ::  &  ! model size parameters
       nx_global =  3600 ,&! extent of horizontal axis in i direction
       ny_global =  2400 ,&! extent of horizontal axis in j direction
-      km = 42          ,&! number of vertical levels
+      km = 62          ,&! number of vertical levels
       nt = NT            ! total number of tracers
 
    integer (int_kind), parameter, public :: &

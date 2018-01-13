@@ -28,7 +28,7 @@
    integer (POP_i4), parameter, public ::  &  ! model size parameters
       POP_nxGlobal = 3600 ,&! extent of horizontal axis in i direction
       POP_nyGlobal = 2400,&! extent of horizontal axis in j direction
-      POP_km = 42          ,&! number of vertical levels
+      POP_km = 62          ,&! number of vertical levels
       POP_nt = NT            ! total number of tracers
 
    integer (POP_i4), parameter, public :: &
