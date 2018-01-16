@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n70_cesm_pop_2_1_20171213
+Tag Summary: Update version of MARBL to fix bug in restoring and also restore
+             ALK_ALT_CO2 (to same field as ALK)
+
+Testing:     aux_pop_MARBL on hobart and cheyenne -- this tag introduces
+             namelist changes and also changes answers so all tests fail
+             NLCOMP and BASELINE tests but no other failures reported.
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Merge POP trunk onto MARBL
