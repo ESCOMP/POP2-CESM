@@ -2,6 +2,49 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    17 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n104_marbl_dev_n70_cesm_pop_2_1_20171213b
+Tag Summary: merge marbl_dev_n70 tag to this branch
+
+see BranchChangeLog for more details
+   Fix multi-instance support in ecosys_driver.F90
+   Merge POP trunk onto MARBL
+   Update version of MARBL to fix bug in restoring and also restore
+      ALK_ALT_CO2 (to same field as ALK)
+
+Testing:
+MARBL commit 63244b4dc66e395a83dc3e123834881b92da1035 bugfix/217 branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n103)
+   except for tests mentioned below, all tests pass
+      all NLCOMP comparisons fail, because ALK_ALT_CO2 now has restoring enabled
+      all BASELINE comparisons fail, because ALK_ALT_CO2 now has restoring enabled
+         and ALK and ALK_ALT_CO2 source-sink terms no longer include NO3 restoring
+      some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+M       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/MARBL_settings_wrapper/MARBL_settings.py
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_multiinst_lsource_sink
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_driver.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    16 Jan 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n103_marbl_dev_n67_cesm_pop_2_1_20171117b
 Tag Summary: add insitu_temp diagnostic to ocn.ecosys.tavg.csh

@@ -1405,10 +1405,30 @@ my $ecosys_on = $cfg->get("use_ecosys");
 my %ecosys_cfg; # New hash containing some MARBL settings
 
 if ($ecosys_on eq "TRUE") {
+    # Add marbl_settings_file to POP namelist
+    my $marbl_settings_file = "marbl_in";
+    my $user_nl_pop   = "user_nl_pop";
+    my $user_nl_marbl = "user_nl_marbl";
+    if ($inst_string) {
+      # append inst_string if multi-instance case
+      $marbl_settings_file .= $inst_string;
+      $user_nl_pop   .= $inst_string;
+      $user_nl_marbl .= $inst_string;
+    }
+
+    # Abort if marbl_settings_file was set in user_nl_pop
+    if ($nl->get_variable_value("ecosys_driver_nml", "marbl_settings_file") ne "") {
+      print "ERROR: Do not set marbl_settings_file in ${user_nl_pop}.\n",
+            "To change values in ${marbl_settings_file} you may override variables via ${user_nl_marbl},\n",
+            "but POP relies on ${marbl_settings_file} for determining tracer counts and other\n",
+            "configuration details that may not be consistent with an alternate file.\n";
+      die;
+    }
+    add_default($nl, 'marbl_settings_file', 'val'=>"$marbl_settings_file");
+
     # Add some MARBL vars to ecosys_cfg
-    my $marbl_in = "${CASEROOT}/Buildconf/popconf/marbl_in";
     for my $varname ('ladjust_bury_coeff', 'lvariable_PtoC', 'ciso_on') {
-        $ecosys_cfg{$varname} = `grep $varname $marbl_in | cut -d '=' -f 2 | sed 's/^ //'`;
+        $ecosys_cfg{$varname} = `grep $varname $marbl_settings_file | cut -d '=' -f 2 | sed 's/^ //'`;
         chomp $ecosys_cfg{$varname};
     }
 
