@@ -3,6 +3,26 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    17 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n105_marbl_dev_n70_cesm_pop_2_1_20171213b
+Tag Summary: change varname in forcing metadata for potemp to 'Potential Temperature'
+
+also change temperature_ind to potemp_ind in source/ecosys_forcing_mod.F90
+
+Testing:
+MARBL commit b3815df18d4604e89916a52dc58daed85e35a7d8 bugfix/217 branch
+
+ERS.T62_g17.G1850ECOIAF.cheyenne_gnu.pop-cice_ecosys
+passed test, along with baseline comparison to previous tag/commit
+
+Files Modified:
+M       BranchBranchChangeLog
+M       source/ecosys_forcing_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    17 Jan 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n104_marbl_dev_n70_cesm_pop_2_1_20171213b
 Tag Summary: merge marbl_dev_n70 tag to this branch
 

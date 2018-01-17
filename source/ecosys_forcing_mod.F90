@@ -272,7 +272,7 @@ module ecosys_forcing_mod
   integer(int_kind), public :: dustflux_ind       = 0, &
                        PAR_col_frac_ind   = 0, &
                        surf_shortwave_ind = 0, &
-                       temperature_ind    = 0, &
+                       potemp_ind         = 0, &
                        salinity_ind       = 0, &
                        pressure_ind       = 0, &
                        fesedflux_ind      = 0
@@ -930,8 +930,8 @@ contains
                           marbl_varname=marbl_varname, field_units=units,               &
                           driver_varname='surf_shortwave', rank=3, dim3_len=mcog_nbins, &
                           ldim3_is_depth=.false., id=n)
-          case ('Temperature')
-            temperature_ind = n
+          case ('Potential Temperature')
+            potemp_ind = n
             call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='temperature', rank=3, dim3_len=km, id=n)
@@ -1525,7 +1525,7 @@ contains
                 else
                   interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
                 end if
-              else if (field_index .eq. temperature_ind) then
+              else if (field_index .eq. potemp_ind) then
                 ! --- average 2 time levels into 1 ---
                 interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,1,oldtime,iblock) + TRACER(:,:,:,1,curtime,iblock))
