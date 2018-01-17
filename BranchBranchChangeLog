@@ -2,6 +2,28 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    16 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n103_marbl_dev_n67_cesm_pop_2_1_20171117b
+Tag Summary: add insitu_temp diagnostic to ocn.ecosys.tavg.csh
+
+Testing:
+MARBL commit bbcb9ba7ac046f4290caa3ea34e8ef634682fe23 bugfix/217 branch
+
+the POP changes are bit-for-bit, but the MARBL changes are answer changing
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n102)
+   except for tests mentioned below, all tests pass
+      all BASELINE comparisons fail, as expected
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    5 Dec 2017
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n102_marbl_dev_n67_cesm_pop_2_1_20171117b
 Tag Summary: merge marbl_dev_n67 tag to this branch
