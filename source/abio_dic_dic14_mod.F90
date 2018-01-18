@@ -129,6 +129,9 @@ module abio_dic_dic14_mod
    real (r8) :: &
       abio_atm_d14c_const           !  atmospheric 14CO2 constant [permil]
 
+   real (r8), dimension(3) :: &
+      abio_atm_d14c_lat_band_vals   !  atmospheric 14CO2 constant [permil]
+
    character(char_len) :: &
       abio_atm_d14c_filename        ! filename for varying atm D14C
 
@@ -326,8 +329,8 @@ contains
       init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
       abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
       abio_atm_co2_opt, abio_atm_co2_const, abio_atm_co2_filename, &
-      abio_atm_d14c_opt, abio_atm_d14c_const, abio_atm_d14c_filename, &
-      abio_atm_model_year, abio_atm_data_year
+      abio_atm_d14c_opt, abio_atm_d14c_const, abio_atm_d14c_lat_band_vals, &
+      abio_atm_d14c_filename, abio_atm_model_year, abio_atm_data_year
 
 !-----------------------------------------------------------------------
 !  initialize tracer_d values
@@ -371,8 +374,9 @@ contains
    abio_atm_co2_const                = 280.0_r8
    abio_atm_co2_filename             = 'unknown'
 
-   abio_atm_d14c_opt                 = 'const'
+   abio_atm_d14c_opt                 = 'lat_bands'
    abio_atm_d14c_const               = c0
+   abio_atm_d14c_lat_band_vals(:)    = (/ -2.3_r8, -4.0_r8, -5.8_r8 /)
    abio_atm_d14c_filename            = 'unknown'
 
    abio_atm_model_year               = 1
@@ -444,6 +448,7 @@ contains
 
    call broadcast_scalar(abio_atm_d14c_opt, master_task)
    call broadcast_scalar(abio_atm_d14c_const, master_task)
+   call broadcast_array(abio_atm_d14c_lat_band_vals, master_task)
    call broadcast_scalar(abio_atm_d14c_filename, master_task)
 
    call broadcast_scalar(abio_atm_model_year, master_task)
@@ -877,8 +882,8 @@ contains
 !-------------------------------------------------------------------------
 
   call c14_atm_forcing_init('abio_dic_dic14', abio_atm_d14c_opt, &
-      abio_atm_d14c_const, abio_atm_d14c_filename, &
-      abio_atm_model_year, abio_atm_data_year)
+      abio_atm_d14c_const, abio_atm_d14c_lat_band_vals, &
+      abio_atm_d14c_filename, abio_atm_model_year, abio_atm_data_year)
 
 !-----------------------------------------------------------------------
 !EOC

@@ -27,6 +27,9 @@ module c14_atm_forcing_mod
   real (r8) :: &
     c14_atm_forcing_const           ! atmospheric 14CO2 constant [permil]
 
+  real (r8), dimension(3) :: &
+    c14_atm_forcing_lat_band_vals   ! atmospheric 14CO2 constant [permil]
+
   character (char_len) :: &
     c14_atm_forcing_filename        ! filename for varying atm D14C
 
@@ -44,8 +47,8 @@ contains
   !*****************************************************************************
 
   subroutine c14_atm_forcing_init(caller, c14_atm_forcing_opt_in, &
-      c14_atm_forcing_const_in, c14_atm_forcing_filename_in, &
-      c14_atm_forcing_model_year_in, c14_atm_forcing_data_year_in)
+      c14_atm_forcing_const_in, c14_atm_forcing_lat_band_vals_in, &
+      c14_atm_forcing_filename_in, c14_atm_forcing_model_year_in, c14_atm_forcing_data_year_in)
 
     use kinds_mod,              only: log_kind
     use forcing_timeseries_mod, only: forcing_timeseries_init_dataset
@@ -57,6 +60,9 @@ contains
 
     real (r8), intent(in) :: &
       c14_atm_forcing_const_in           ! atmospheric 14CO2 constant [permil]
+
+    real (r8), dimension(3), intent(in) :: &
+      c14_atm_forcing_lat_band_vals_in   ! atmospheric 14CO2 constant [permil]
 
     character (*), intent(in) :: &
       c14_atm_forcing_filename_in        ! filename for varying atm D14C
@@ -73,6 +79,7 @@ contains
 
     logical(log_kind)            :: first_call = .true.
     logical(log_kind)            :: val_mismatch
+    integer(int_kind)            :: lat_ind
 
     !-----------------------------------------------------------------------
 
@@ -98,6 +105,15 @@ contains
             call document(subname, 'c14_atm_forcing_const_in', c14_atm_forcing_const_in)
             val_mismatch = .true.
           end if
+        case ('lat_bands')
+          do lat_ind = 1, 3
+            if (c14_atm_forcing_lat_band_vals(lat_ind) /= c14_atm_forcing_lat_band_vals_in(lat_ind)) then
+              call document(subname, 'lat_ind', lat_ind)
+              call document(subname, 'c14_atm_forcing_lat_band_vals(lat_ind)', c14_atm_forcing_lat_band_vals(lat_ind))
+              call document(subname, 'c14_atm_forcing_lat_band_vals_in(lat_ind)', c14_atm_forcing_lat_band_vals_in(lat_ind))
+              val_mismatch = .true.
+            end if
+          end do
         case ('file')
           if (trim(c14_atm_forcing_filename) /= trim(c14_atm_forcing_filename_in)) then
             call document(subname, 'c14_atm_forcing_filename', c14_atm_forcing_filename)
@@ -122,11 +138,12 @@ contains
       return
     end if
 
-    c14_atm_forcing_opt         = c14_atm_forcing_opt_in
-    c14_atm_forcing_const       = c14_atm_forcing_const_in
-    c14_atm_forcing_filename    = c14_atm_forcing_filename_in
-    c14_atm_forcing_model_year  = c14_atm_forcing_model_year_in
-    c14_atm_forcing_data_year   = c14_atm_forcing_data_year_in
+    c14_atm_forcing_opt           = c14_atm_forcing_opt_in
+    c14_atm_forcing_const         = c14_atm_forcing_const_in
+    c14_atm_forcing_lat_band_vals = c14_atm_forcing_lat_band_vals_in
+    c14_atm_forcing_filename      = c14_atm_forcing_filename_in
+    c14_atm_forcing_model_year    = c14_atm_forcing_model_year_in
+    c14_atm_forcing_data_year     = c14_atm_forcing_data_year_in
 
     call document(subname, 'c14_atm_forcing_opt', c14_atm_forcing_opt)
 
@@ -135,6 +152,13 @@ contains
     case ('const')
 
       call document(subname, 'c14_atm_forcing_const', c14_atm_forcing_const)
+
+    case ('lat_bands')
+
+      do lat_ind = 1, 3
+        call document(subname, 'lat_ind', lat_ind)
+        call document(subname, 'c14_atm_forcing_lat_band_vals(lat_ind)', c14_atm_forcing_lat_band_vals(lat_ind))
+      end do
 
     case ('file')
 
@@ -187,6 +211,8 @@ contains
 
   subroutine c14_atm_forcing_get_data(iblock, D14C)
 
+    use forcing_timeseries_mod, only: forcing_timeseries_dataset_get_var
+
     integer (int_kind), intent(in) :: iblock
 
     real (r8), dimension(nx_block, ny_block), intent(out) :: D14C
@@ -197,6 +223,8 @@ contains
 
     character(*), parameter :: subname = 'c14_atm_forcing_mod:c14_atm_forcing_get_data'
 
+    real (r8) :: D14C_curr(3)
+
     !-----------------------------------------------------------------------
 
     select case (trim(c14_atm_forcing_opt))
@@ -205,9 +233,19 @@ contains
 
       D14C = c14_atm_forcing_const
 
+    case ('lat_bands')
+
+      call c14_atm_forcing_comp_D14C_bands(iblock, c14_atm_forcing_lat_band_vals, D14C)
+
     case ('file')
 
-      call c14_atm_forcing_comp_varying_D14C(iblock, D14C)
+      !-----------------------------------------------------------------------
+      !  Generate hemisphere values for current time step.
+      !-----------------------------------------------------------------------
+
+      call forcing_timeseries_dataset_get_var(c14_atm_forcing_dataset, varind=1, data_2d=D14C_curr)
+
+      call c14_atm_forcing_comp_D14C_bands(iblock, D14C_curr, D14C)
 
     end select
 
@@ -215,22 +253,22 @@ contains
 
   !*****************************************************************************
 
-  subroutine c14_atm_forcing_comp_varying_D14C(iblock, D14C)
+  subroutine c14_atm_forcing_comp_D14C_bands(iblock, D14C_curr, D14C)
 
 ! !DESCRIPTION:
-!  Compute atmospheric D14C when temporally varying data is read from files
-!  1. Linearly interpolate hemispheric values to current time step
-!  2. Make global field of D14C, determined by:
+!  Set atmospheric D14C to values based on latitude band
+!  Global field of D14C is determined by:
 !   -Northern Hemisphere value is used for 30N - 90 N
+!   -Equator value is used for 30 S - 30 N
 !   -Southern Hemisphere value is used for 30 S - 90 S
-!   -Equator value is used for 30 S- 30 N
 
 ! !USES:
 
-    use forcing_timeseries_mod, only: forcing_timeseries_dataset_get_var
     use grid,                   only: TLATD
 
     integer (int_kind), intent(in) :: iblock
+
+    real (r8), intent(in) :: D14C_curr(3)
 
     real (r8), dimension(nx_block, ny_block), intent(out) :: D14C
 
@@ -238,23 +276,10 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'c14_atm_forcing_mod:c14_atm_forcing_comp_varying_D14C'
+    character(*), parameter :: subname = 'c14_atm_forcing_mod:c14_atm_forcing_comp_D14C_bands'
 
     integer (int_kind) :: i, j
 
-    real (r8) :: D14C_curr(3)
-
-    !-----------------------------------------------------------------------
-    !  Generate hemisphere values for current time step.
-    !-----------------------------------------------------------------------
-
-    call forcing_timeseries_dataset_get_var(c14_atm_forcing_dataset, varind=1, data_2d=D14C_curr)
-
-    !-----------------------------------------------------------------------
-    !  Merge hemisphere values for D14C
-    !      -Northern Hemisphere value is used for >30N - 90 N
-    !      -Equatorial value is used for 30 S to 30 N
-    !      -Southern Hemisphere value is used for >30 S - 90 S
     !-----------------------------------------------------------------------
 
     do j = 1, ny_block
@@ -271,7 +296,7 @@ contains
 
     !-----------------------------------------------------------------------
 
-  end subroutine c14_atm_forcing_comp_varying_D14C
+  end subroutine c14_atm_forcing_comp_D14C_bands
 
   !*****************************************************************************
 

@@ -71,6 +71,7 @@ if ($lecosys_tavg_all == ".true.") then
 1  Jint_100m_Sitot
 1  Jint_Fetot
 1  Jint_100m_Fetot
+1  insitu_temp
 1  CO3
 1  HCO3
 1  H2CO3
