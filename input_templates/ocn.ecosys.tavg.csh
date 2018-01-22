@@ -22,7 +22,6 @@ set lecosys_tavg_all     = $2
 set lecosys_tavg_alt_co2 = $3
 set ladjust_bury_coeff   = $4
 set lvariable_PtoC       = $5
-set tracer_restore_vars  = "PO4 NO3 SiO3 ALK"
 
 if ( -f $CASEROOT/SourceMods/src.pop/marbl_diagnostics ) then
   set MARBL_args = "-i $CASEROOT/SourceMods/src.pop/marbl_diagnostics"
@@ -158,7 +157,6 @@ echo "#  TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
 1  ${tracer}
 1  STF_${tracer}
 1  J_${tracer}
-1  ${tracer}_RESTORE_TEND
 EOF
   end
   cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
@@ -334,11 +332,6 @@ EOF
 $s1  ${autotroph}Si
 $s1  ${autotroph}_SiO3_lim
 EOF
-  end
-
-  # restoring terms for tracers that have restoring enabled
-  foreach tracer_restore_var ( `echo $tracer_restore_vars | tr ',' ' '` )
-    echo "$s1  ${tracer_restore_var}_RESTORE_TEND" >> $CASEBUILD/popconf/ecosys_tavg_contents
   end
 
   if ($lecosys_tavg_alt_co2 == ".true.") then

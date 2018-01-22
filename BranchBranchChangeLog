@@ -1,6 +1,20 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    22 Jan 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n155_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Move [tracer]_RESTORE_TEND from ocn.ecosys.tavg.csh
+             to MARBL's default_diagnostics.yaml (and .json)
+
+Testing:     Code still builds, single ciso test runs (now with CISO
+             tracer_RESTORE_TEND variables in output)
+             Tested with MARBL 2c1f2f9 (on enhancement/YAML-diagnostics branch).
+
+Files Modified:
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    10 Jan 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n154_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Move more diagnostics from ocn.ecosys.tavg.csh and ocn.ciso.tavg.csh
