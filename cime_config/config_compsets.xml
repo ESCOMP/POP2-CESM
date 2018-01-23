@@ -86,7 +86,7 @@
 
   <compset>
     <alias>G1850ECO_CPLHIST_PHYS_CYCLE</alias>
-    <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO%PHYS-CYCLE_DROF%CPLHIST_SGLC_WW3</lname>
+    <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO-PHYS-CYCLE_DROF%CPLHIST_SGLC_WW3</lname>
   </compset>
 
   <!-- Single Column POP -->
@@ -150,22 +150,19 @@
 
     <entry id="PRERUN_SCRIPT">
       <values>
-	<value compset="POP2%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
-	<value compset="POP2%ECO%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
+	<value compset="POP2%[^_]*PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_prerun</value>
       </values>
     </entry>
 
     <entry id="POSTRUN_SCRIPT">
       <values>
-	<value compset="POP2%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
-	<value compset="POP2%ECO%PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
+	<value compset="POP2%[^_]*PHYS-CYCLE">$SRCROOT/components/pop/cime_config/phys_cycle_postrun</value>
       </values>
     </entry>
 
     <entry id="RESUBMIT_SETS_CONTINUE_RUN">
       <values>
-	<value compset="POP2%PHYS-CYCLE">FALSE</value>
-	<value compset="POP2%ECO%PHYS-CYCLE">FALSE</value>
+	<value compset="POP2%[^_]*PHYS-CYCLE">FALSE</value>
       </values>
     </entry>
 

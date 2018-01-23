@@ -2,9 +2,11 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%DAR]"    >POP2 </desc>
+    <desc ocn="POP2[%1D][%ECO][%PHYS-CYCLE][%ECO-PHYS-CYCLE][%DAR]">POP2 </desc>
     <desc option="1D" >Single column </desc>
     <desc option="ECO">Ecosystem</desc>
+    <desc option="PHYS-CYCLE">phys cycle option</desc>
+    <desc option="ECO-PHYS-CYCLE">Ecosystem with phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
   </description>
 
@@ -263,7 +265,7 @@
     and pre- and post-run scripts are specified in env vars
     PRERUN_SCRIPT and POSTRUN_SCRIPT</desc>
   </entry>
-    
+
   <entry id="POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE">
     <type>integer</type>
     <default_value>0</default_value>
