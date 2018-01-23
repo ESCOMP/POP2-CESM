@@ -172,9 +172,9 @@ module ecosys_forcing_mod
   real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
   real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
   real(r8),dimension(3)::ciso_atm_d14c_lat_band_vals    ! atmospheric D14C constant [permil]
-  character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and d13C varying or constant forcing
+  character(char_len) :: ciso_atm_d13c_opt              ! option for d13C (varying or constant forcing)
   character(char_len) :: ciso_atm_d13c_filename         ! filename for varying atm d13C
-  character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and d14C varying or constant forcing
+  character(char_len) :: ciso_atm_d14c_opt              ! option for d14C (varying or constant forcing)
   character(char_len) :: ciso_atm_d14c_filename         ! filename for varying atm D14C
 
   type (forcing_timeseries_dataset) :: &
