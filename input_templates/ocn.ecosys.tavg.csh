@@ -88,62 +88,6 @@ echo "#  River Fluxes" >> $CASEBUILD/popconf/ecosys_tavg_contents
     echo "1  ${tracer}_RIV_FLUX" >> $CASEBUILD/popconf/ecosys_tavg_contents
   end
 
-  # interior autotroph fields
-echo "#  AUTOTROPH TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
-  foreach autotroph ( sp diat diaz )
-    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-#  ${autotroph} TRACER FIELDS
-1  photoC_${autotroph}_zint
-1  photoC_NO3_${autotroph}_zint
-1  ${autotroph}_N_lim
-1  ${autotroph}_P_lim
-1  ${autotroph}_Fe_lim
-1  ${autotroph}_light_lim
-1  photoC_${autotroph}
-1  photoC_NO3_${autotroph}
-1  photoFe_${autotroph}
-1  photoNO3_${autotroph}
-1  photoNH4_${autotroph}
-1  DOP_${autotroph}_uptake
-1  PO4_${autotroph}_uptake
-1  graze_${autotroph}
-1  graze_${autotroph}_poc
-1  graze_${autotroph}_doc
-1  graze_${autotroph}_zoo
-1  ${autotroph}_loss
-1  ${autotroph}_loss_poc
-1  ${autotroph}_loss_doc
-1  ${autotroph}_agg
-EOF
-if ($lvariable_PtoC == ".true.") then
-    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-1  ${autotroph}_Qp
-EOF
-endif
-  end
-  cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-1  sp_CaCO3_form_zint
-1  sp_CaCO3_form
-1  diat_SiO3_lim
-1  diat_bSi_form
-1  diaz_Nfix
-EOF
-
-echo "#  ZOOPLANKTON TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
-  foreach zooplankton ( zoo )
-    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-#  ${zooplankton} TRACER FIELDS
-1  ${zooplankton}_loss
-1  ${zooplankton}_loss_poc
-1  ${zooplankton}_loss_doc
-1  graze_${zooplankton}
-1  graze_${zooplankton}_poc
-1  graze_${zooplankton}_doc
-1  graze_${zooplankton}_zoo
-1  x_graze_${zooplankton}
-EOF
-  end
-
 echo "#  TRACER FIELDS" >> $CASEBUILD/popconf/ecosys_tavg_contents
   set tracer_list = ( PO4 NO3 SiO3 NH4 Fe Lig O2 DIC DIC_ALT_CO2 ALK ALK_ALT_CO2 DOC DON DOCr \
                    DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC \
@@ -196,7 +140,6 @@ $s1  DOP
 $s1  DONr
 $s1  DOPr
 $s1  DOCr
-$s1  zoo_loss
 $s1  Jint_100m_DIC
 $s1  Jint_100m_NO3
 $s1  Jint_100m_NH4
@@ -280,42 +223,14 @@ EOF
 $s1  ${autotroph}Chl
 $s1  ${autotroph}C
 $s1  ${autotroph}Fe
-$s1  graze_${autotroph}
-$s1  ${autotroph}_agg
-$s1  photoC_${autotroph}
-$s1  photoC_NO3_${autotroph}
-$s1  photoNO3_${autotroph}
-$s1  photoNH4_${autotroph}
-$s1  photoFe_${autotroph}
-$s1  DOP_${autotroph}_uptake
-$s1  PO4_${autotroph}_uptake
-$s1  ${autotroph}_Fe_lim
-$s1  ${autotroph}_P_lim
-$s1  ${autotroph}_light_lim
-$s1  ${autotroph}_loss
-$s2  photoC_${autotroph}_zint
-$s1  photoC_NO3_${autotroph}_zint
 $s2  ${autotroph}C_zint_100m
 $s2  ${autotroph}Chl_SURF
 EOF
 if ($lvariable_PtoC == ".true.") then
     cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}P
-$s1  ${autotroph}_Qp
 EOF
 endif
-    if !($autotroph == diaz) then
-      cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-$s1  ${autotroph}_N_lim
-EOF
-    endif
-  end
-
-  # Nfix terms from N fixers 
-  foreach autotroph ( diaz )
-    cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
-$s1  ${autotroph}_Nfix
-EOF
   end
 
   # CaCO3 terms from calcifiers 
@@ -330,7 +245,6 @@ EOF
   foreach autotroph ( diat )
     cat >> $CASEBUILD/popconf/ecosys_tavg_contents << EOF
 $s1  ${autotroph}Si
-$s1  ${autotroph}_SiO3_lim
 EOF
   end
 
