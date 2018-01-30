@@ -1935,9 +1935,6 @@ my @OCN_TAVG_MODULES = @OCN_TRACER_MODULES;
 if ($lmcog) {
    push(@OCN_TAVG_MODULES, "mcog");
 }
-if ($ecosys_cfg{"ciso_on"} eq ".true.") {
-   push(@OCN_TAVG_MODULES, "ciso");
-}
 for my $module (@OCN_TAVG_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
