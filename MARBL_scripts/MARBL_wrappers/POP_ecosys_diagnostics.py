@@ -62,12 +62,8 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         else:
             fout.write("J_%s : never_average\n" % tracer_short_name)
 
-        # Jint / Jint_100m
-        if tracer_short_name in ['DIC', 'NO3', 'NH4', 'PO4', 'Fe', 'SiO3', 'ALK', 'O2', 'DOC']:
-            fout.write("Jint_%s : medium_average\n" % tracer_short_name)
-        else:
-            fout.write("Jint_%s : never_average\n" % tracer_short_name)
-        if tracer_short_name in ['DI13C', 'DI14C', 'DO13C', 'DO14C']:
+        # Jint_100m
+        if tracer_short_name in ['DIC', 'NO3', 'NH4', 'PO4', 'Fe', 'SiO3', 'ALK', 'O2', 'DOC','DI13C', 'DI14C', 'DO13C', 'DO14C']:
             fout.write("Jint_100m_%s : medium_average\n" % tracer_short_name)
         else:
             fout.write("Jint_100m_%s : never_average\n" % tracer_short_name)
