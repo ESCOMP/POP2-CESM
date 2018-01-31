@@ -10,8 +10,9 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
 
     fout = open(ecosys_diag_filename,"w")
     # Sort variables by subcategory
-    fout.write("# This file contains a list of all diagnostics POP can compute for a given MARBL configuration,\n")
+    fout.write("# This file contains a list of all ecosystem-related diagnostics POP output for a given MARBL configuration,\n")
     fout.write("# as well as the recommended frequency and operator for outputting each diagnostic.\n")
+    fout.write("# Some diagnostics are computed in POP, while others are provided by MARBL.\n")
     fout.write("# The format of this file is:\n")
     fout.write("#\n")
     fout.write("# DIAGNOSTIC_NAME : frequency_operator\n")
@@ -22,24 +23,28 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     fout.write("#\n")
     fout.write("# Frequencies are never, low, medium, and high.\n")
     fout.write("# Operators are instantaneous, average, minimum, and maximum.\n")
-
+    fout.write("#\n")
+    fout.write("# To change BGC-related diagnostic output, copy this file to SourceMods/src.pop/\n")
+    fout.write("# and edit as desired.\n")
+    fout.write("#\n########################################\n")
+    fout.write("#       POP-generated diagnostics      #\n")
+    fout.write("########################################\n#\n")
     # Add forcing fields
+    fout.write("# River Fluxes from the Coupler\n#\n")
     fout.write("FINE_DUST_FLUX_CPL : medium_average\n")
     fout.write("COARSE_DUST_FLUX_CPL : medium_average\n")
     fout.write("BLACK_CARBON_FLUX_CPL : medium_average\n")
 
-    # Add duplicate of passive_tracer tavg field
-    fout.write("STF_O2_2 : high_average\n")
-
     # Running means
     if ladjust_bury_coeff:
+        fout.write("#\n# Running means computed for MARBL\n#\n")
         fout.write("MARBL_rmean_glo_scalar_POC_bury_coeff : medium_average\n")
         fout.write("MARBL_rmean_glo_scalar_POP_bury_coeff : medium_average\n")
         fout.write("MARBL_rmean_glo_scalar_bSi_bury_coeff : medium_average\n")
 
     # Per-tracer diagnostics
     for tracer_short_name in active_tracers:
-        fout.write("# Diagnostics for tracer %s\n" % tracer_short_name)
+        fout.write("#\n# Diagnostics for tracer %s\n#\n" % tracer_short_name)
         # Tracer state
         fout.write("%s : medium_average\n" % tracer_short_name)
 
@@ -48,8 +53,10 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
             fout.write("%s_RIV_FLUX : medium_average\n" % tracer_short_name)
 
         # STF
-        if tracer_short_name in ['O2', 'ALK']:
+        if tracer_short_name in ['ALK']:
             fout.write("STF_%s : medium_average\n" % tracer_short_name)
+        elif tracer_short_name in ['O2']:
+            fout.write("STF_%s : medium_average, high_average\n" % tracer_short_name)
         else:
             # Now includes CISO
             fout.write("STF_%s : never_average\n" % tracer_short_name)
@@ -61,6 +68,9 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
             fout.write("J_%s : low_average\n" % tracer_short_name)
         else:
             fout.write("J_%s : never_average\n" % tracer_short_name)
+
+        # Jint
+        fout.write("Jint_%s : never_average\n" % tracer_short_name)
 
         # Jint_100m
         if tracer_short_name in ['DIC', 'NO3', 'NH4', 'PO4', 'Fe', 'SiO3', 'ALK', 'O2', 'DOC','DI13C', 'DI14C', 'DO13C', 'DO14C']:
@@ -101,7 +111,22 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
             fout.write("HDIFE_%s : low_average\n" % tracer_short_name)
             fout.write("HDIFN_%s : low_average\n" % tracer_short_name)
             fout.write("HDIFB_%s : low_average\n" % tracer_short_name)
+        else:
+            fout.write("UE_%s : never_average\n" % tracer_short_name)
+            fout.write("VN_%s : never_average\n" % tracer_short_name)
+            fout.write("WT_%s : never_average\n" % tracer_short_name)
+            fout.write("DIA_IMPVF_%s : never_average\n" % tracer_short_name)
+            fout.write("HDIFE_%s : never_average\n" % tracer_short_name)
+            fout.write("HDIFN_%s : never_average\n" % tracer_short_name)
+            fout.write("HDIFB_%s : never_average\n" % tracer_short_name)
 
         # KPP_SRC
         if tracer_short_name in ['O2', 'DIC', 'DIC_ALT_CO2', 'Fe']:
             fout.write("KPP_SRC_%s : low_average\n" % tracer_short_name)
+        else:
+            fout.write("KPP_SRC_%s : never_average\n" % tracer_short_name)
+
+    # Footer before MARBL diagnostics
+    fout.write("#\n########################################\n")
+    fout.write("#      MARBL-generated diagnostics     #\n")
+    fout.write("########################################\n#\n")

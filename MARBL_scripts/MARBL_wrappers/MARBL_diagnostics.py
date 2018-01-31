@@ -48,10 +48,10 @@ class MARBL_diagnostics_for_POP(object):
     #                             PUBLIC CLASS METHODS                             #
     ################################################################################
 
-    def write_diagnostics_file(self, diagnostics_file_out):
+    def write_diagnostics_file(self, diagnostics_file_out, append):
         """ Write a diagnostics file containing all MARBL diagnostics
         """
         from MARBL_tools import generate_diagnostics_file
-        generate_diagnostics_file(self._MARBL_diagnostics, diagnostics_file_out)
+        generate_diagnostics_file(self._MARBL_diagnostics, diagnostics_file_out, append)
 
 

@@ -152,23 +152,23 @@ def buildnml(case, caseroot, compname):
             from MARBL_wrappers import MARBL_diagnostics_for_POP
             MARBL_diagnostics = MARBL_diagnostics_for_POP(MARBL_dir, caseroot, MARBL_settings)
 
-            # (ii) write diagnostics file
-            MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "marbl_diagnostics"))
-
-            # (iii) copy MARBL_diags_to_tavg.py to popconf
-            MARBL_diags_script = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_diags_to_tavg.py")
-            if not os.path.isfile(MARBL_diags_script):
-                MARBL_diags_script = os.path.join(srcroot, "components", "pop", "MARBL_scripts", "MARBL_diags_to_tavg.py")
-            shutil.copy(MARBL_diags_script, os.path.join(confdir, "MARBL_diags_to_tavg.py"))
-
-            # (iv) Generate pop_ecosys_diagnostics
+            # (ii) Generate ecosys_diagnostics
             from MARBL_wrappers import write_ecosys_diagnostics_file
             write_ecosys_diagnostics_file(MARBL_settings.get_tracer_names(),
                                           MARBL_settings.get_autotroph_names(),
                                           MARBL_settings.get_zooplankton_names(),
                                           MARBL_settings.get_autotroph_names(calcifier_only=True),
                                           MARBL_settings.ladjust_bury_coeff(),
-                                          os.path.join(confdir, "pop_ecosys_diagnostics"))
+                                          os.path.join(confdir, "ecosys_diagnostics"))
+
+            # (iii) append MARBL diagnostics to ecosys_diagnostics
+            MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "ecosys_diagnostics"), append=True)
+
+            # (iv) copy MARBL_diags_to_tavg.py to popconf
+            MARBL_diags_script = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_diags_to_tavg.py")
+            if not os.path.isfile(MARBL_diags_script):
+                MARBL_diags_script = os.path.join(srcroot, "components", "pop", "MARBL_scripts", "MARBL_diags_to_tavg.py")
+            shutil.copy(MARBL_diags_script, os.path.join(confdir, "MARBL_diags_to_tavg.py"))
 
         # If multi-instance = case does not have restart file,
         # use single-= case restart for each instance
@@ -295,4 +295,3 @@ def _main_func():
 
 if __name__ == "__main__":
     _main_func()
-
