@@ -14,7 +14,7 @@ Tag Summary: Code clean-up following discussion at MARBL meeting
 Testing:     aux_pop_MARBL on hobart (nag, intel, pgi) and cheyenne (intel and
              gnu). All tests pass because additional output fields don't trigger
              BASELINE failures.
-             Tested with MARBL eab53e9 (on enhancement/YAML-diagnostics branch).
+             Tested with MARBL 389e1bc (on enhancement/YAML-diagnostics branch).
 
 Files Modified:
 M       MARBL_scripts/MARBL_diags_to_tavg.py
