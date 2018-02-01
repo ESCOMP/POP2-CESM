@@ -9,7 +9,7 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     """
 
     fout = open(ecosys_diag_filename,"w")
-    # Sort variables by subcategory
+    # File header with information on how to use generated file
     fout.write("# This file contains a list of all ecosystem-related diagnostics POP output for a given MARBL configuration,\n")
     fout.write("# as well as the recommended frequency and operator for outputting each diagnostic.\n")
     fout.write("# Some diagnostics are computed in POP, while others are provided by MARBL.\n")
@@ -26,33 +26,42 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     fout.write("#\n")
     fout.write("# To change BGC-related diagnostic output, copy this file to SourceMods/src.pop/\n")
     fout.write("# and edit as desired.\n")
+
+    # File will contain POP and MARBL diagnostics, so we provide header to make
+    # the provenance of each diagnostic clear
     fout.write("#\n########################################\n")
     fout.write("#       POP-generated diagnostics      #\n")
     fout.write("########################################\n#\n")
-    # Add forcing fields
-    fout.write("# River Fluxes from the Coupler\n#\n")
+
+    # Add tracer-agnostic forcing fields to requested diagnostics
+    fout.write("# Dust and Carbon Fluxes from the Coupler\n#\n")
     fout.write("FINE_DUST_FLUX_CPL : medium_average\n")
     fout.write("COARSE_DUST_FLUX_CPL : medium_average\n")
     fout.write("BLACK_CARBON_FLUX_CPL : medium_average\n")
 
-    # Running means
+    # If adjusting bury coefficients, add running means to requested diagnostics
     if ladjust_bury_coeff:
         fout.write("#\n# Running means computed for MARBL\n#\n")
         fout.write("MARBL_rmean_glo_scalar_POC_bury_coeff : medium_average\n")
         fout.write("MARBL_rmean_glo_scalar_POP_bury_coeff : medium_average\n")
         fout.write("MARBL_rmean_glo_scalar_bSi_bury_coeff : medium_average\n")
 
+    # 1. Create dictionary with default tracer output for all tracers
+    #    - This dictionary also stores some tracer properties (currently just for budget-specific diagnostics)
+    #    NOTE: using OrderedDict to maintain alphabetical listing of tracers in keys()
     from collections import OrderedDict
     full_diag_dict = OrderedDict()
-
-    # Default tracer output
     for tracer_short_name in sorted(active_tracers):
         per_tracer_dict = dict()
+
         # Properties used to determine frequency of budget terms
         per_tracer_dict['properties'] = dict()
         per_tracer_dict['properties']['include budget terms'] = False
         per_tracer_dict['properties']['has surface flux'] = False
-        # Default frequencies for many per-tracer diagnostics
+
+        # Default frequencies for per-tracer diagnostics
+        # - tracer state should be output monthly
+        # - everything else is off by default
         per_tracer_dict['diags'] = OrderedDict()
         per_tracer_dict['diags'][tracer_short_name] = 'medium_average'
         per_tracer_dict['diags']['STF_%s' % tracer_short_name] = 'never_average'
@@ -61,12 +70,17 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         per_tracer_dict['diags']['Jint_%s' % tracer_short_name] = 'never_average'
         per_tracer_dict['diags']['%s_zint_100m' % tracer_short_name] = 'never_average'
         per_tracer_dict['diags']['tend_zint_100m_%s' % tracer_short_name] = 'never_average'
-        # Some diagnostics are not defined for all tracers
+
+        # Some diagnostics are not defined for all tracers; diagnostics with 'none'
+        # are not added to diagnostics file and will not show up in tavg_contents
         per_tracer_dict['diags']['%s_RIV_FLUX' % tracer_short_name] = 'none'
         per_tracer_dict['diags']['FvPER_%s' % tracer_short_name] = 'none'
         per_tracer_dict['diags']['FvICE_%s' % tracer_short_name] = 'none'
         full_diag_dict[tracer_short_name] = dict(per_tracer_dict)
 
+    # 2. Update dictionary for tracers that don't just rely on default diagnostic output
+    #    This is organized per-tracer, and specific blocks are ignored if MARBL is not
+    #    configured to run with that particular tracer
     # PO4
     if 'PO4' in full_diag_dict.keys():
         full_diag_dict['PO4']['diags']['PO4_RIV_FLUX'] = 'medium_average'
@@ -187,7 +201,7 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['DO14C']['diags']['Jint_100m_DO14C'] = 'medium_average'
         full_diag_dict['DO14C']['diags']['tend_zint_100m_DO14C'] = 'medium_average'
 
-    # Per-autotroph diagnostics
+    # 3. Per-autotroph diagnostics
     for autotroph_name in autotroph_list:
         tracer_short_name = autotroph_name+'C'
         if tracer_short_name in full_diag_dict.keys():
@@ -199,21 +213,22 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         if tracer_short_name in full_diag_dict.keys():
             full_diag_dict[tracer_short_name]['diags']['%s_SURF' % tracer_short_name] = 'high_average'
 
-    # Per-zooplankton diagnostics
+    # 4. Per-zooplankton diagnostics
     for zooplankton_name in zooplankton_list:
         tracer_short_name = zooplankton_name+'C'
         if tracer_short_name in full_diag_dict.keys():
             full_diag_dict[tracer_short_name]['diags']['%s_zint_100m' % tracer_short_name] = 'high_average'
 
-    # Per-tracer diagnostics
+    # 5. Write tracer-specific diagnostics to file
     for tracer_short_name in full_diag_dict.keys():
         fout.write("#\n# Diagnostics for tracer %s\n#\n" % tracer_short_name)
+        # Loop through ['diags'] dictionary
         for diag in full_diag_dict[tracer_short_name]['diags'].keys():
             per_tracer_dict = full_diag_dict[tracer_short_name]['diags']
             if per_tracer_dict[diag] != 'none':
                 fout.write("%s : %s\n" % (diag, per_tracer_dict[diag]))
 
-        # Buget terms
+        # Process ['properties'] dictionary for budget terms
         per_tracer_dict = full_diag_dict[tracer_short_name]['properties']
         if per_tracer_dict['include budget terms']:
             fout.write("UE_%s : low_average\n" % tracer_short_name)
@@ -237,7 +252,8 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         else:
             fout.write("KPP_SRC_%s : never_average\n" % tracer_short_name)
 
-    # Footer before MARBL diagnostics (appended to this file!)
+    # 6. Add section header for MARBL diagnostics
+    #    (Another tool appends MARBL diagnostics to this file)
     fout.write("#\n########################################\n")
     fout.write("#      MARBL-generated diagnostics     #\n")
     fout.write("########################################\n#\n")

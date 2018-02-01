@@ -2,6 +2,20 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    1 Feb 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n160_marbl_dev_n69_cesm_pop_2_1_20171213
+Tag Summary: Cleaner python code / better comments
+
+Testing:     one-off test on hobart and cheyenne to make sure python code
+             still works as expected (no benefit from full test suite for
+             these mods)
+
+Files Modified:
+M       MARBL_scripts/MARBL_diags_to_tavg.py
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 Feb 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n159_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: More code clean-up
              1. POP now creates Buildconf/popconf/marbl_diagnostics_list to track
