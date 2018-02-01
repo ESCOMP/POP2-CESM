@@ -54,6 +54,7 @@ rm -f $CASEBUILD/popconf/ecosys_tavg_contents
 # Command line arguments for call to MARBL_diags_to_tavg.py
 # Which will read ecosys_diagnostics and produce ecosys_tavg_contents
 set MARBL_args = "-t $CASEBUILD/popconf/ecosys_tavg_contents"
+set MARBL_args = "$MARBL_args -d $CASEBUILD/popconf/marbl_diagnostics_list"
 set MARBL_args = "$MARBL_args -o $CASEBUILD/popconf/marbl_diagnostics_operators"
 # MARBL recommends one of three temporal averaging frequencies: low, medium, or high
 # By default, POP uses low -> annual, medium -> monthly, and high -> daily

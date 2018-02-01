@@ -148,11 +148,7 @@ def buildnml(case, caseroot, compname):
             # diagnostics (tracer diagnostics MARBL expects the GCM to compute).
             # ------------------------------------------------------------------------------
 
-            # (i) Import MARBL_wrappers and generate MARBL_diagnostics_for_POP object
-            from MARBL_wrappers import MARBL_diagnostics_for_POP
-            MARBL_diagnostics = MARBL_diagnostics_for_POP(MARBL_dir, caseroot, MARBL_settings)
-
-            # (ii) Generate ecosys_diagnostics
+            # (i) Create ecosys_diagnostics with POP-generated diagnostics
             from MARBL_wrappers import write_ecosys_diagnostics_file
             write_ecosys_diagnostics_file(MARBL_settings.get_tracer_names(),
                                           MARBL_settings.get_autotroph_names(),
@@ -161,8 +157,16 @@ def buildnml(case, caseroot, compname):
                                           MARBL_settings.ladjust_bury_coeff(),
                                           os.path.join(confdir, "ecosys_diagnostics"))
 
+            # (ii) Import MARBL_wrappers and generate MARBL_diagnostics_for_POP object
+            from MARBL_wrappers import MARBL_diagnostics_for_POP
+            MARBL_diagnostics = MARBL_diagnostics_for_POP(MARBL_dir, caseroot, MARBL_settings)
+
             # (iii) append MARBL diagnostics to ecosys_diagnostics
-            MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "ecosys_diagnostics"), append=True)
+            #       This also creates marbl_diagnostics_list to help track which
+            #       diagnostics came from MARBL
+            MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "ecosys_diagnostics"),
+                                                     os.path.join(confdir, "marbl_diagnostics_list"),
+                                                      append=True)
 
             # (iv) copy MARBL_diags_to_tavg.py to popconf
             MARBL_diags_script = os.path.join(caseroot, "SourceMods", "src.pop", "MARBL_diags_to_tavg.py")
