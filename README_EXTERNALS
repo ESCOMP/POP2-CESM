@@ -1,0 +1,12 @@
+POP is released via subversion, but it includes external code that is released
+via git. Rather than relying on subversion's svn:externals property, POP now
+uses the manage_externals utility from
+
+https://github.com/NCAR/manage_externals
+
+Since this is not tied to subversion, after checking out POP users must run
+
+    $ ./externals/manage_externals/checkout_externals
+
+Note that CESM also uses manage_externals and will run checkout_externals when
+checking out POP, so this step is only necessary for non-CESM checkouts of POP.
