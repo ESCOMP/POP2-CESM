@@ -868,8 +868,7 @@ contains
 
              call timer_start(ecosys_interior_marbl_tavg, block_id=bid)
 
-             call ecosys_tavg_accumulate_interior((/i/), (/c/), bid, &
-                  marbl_instances(bid)%interior_forcing_diags)
+             call ecosys_tavg_accumulate_interior(i, c, marbl_instances(bid), bid)
 
              call timer_stop(ecosys_interior_marbl_tavg, block_id=bid)
 
@@ -1309,13 +1308,15 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_tavg_forcing(stf_module)
+  subroutine ecosys_driver_tavg_forcing(stf_module, bid)
 
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
-    real (r8), dimension(:,:,:,:), intent(in) :: stf_module
+    real (r8), dimension(:,:,:), intent(in) :: stf_module
+    integer,                     intent(in) :: bid
 
-    call ecosys_tavg_accumulate_surface(surface_forcing_diags, stf_module(:,:,:,:), marbl_instances(:))
+    call ecosys_tavg_accumulate_surface(marbl_col_to_pop_i(:,bid), marbl_col_to_pop_j(:,bid), &
+         stf_module(:,:,:), marbl_instances(bid), bid)
 
   end subroutine ecosys_driver_tavg_forcing
 

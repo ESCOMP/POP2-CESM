@@ -87,23 +87,27 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['PO4']['diags']['J_PO4'] = 'low_average'
         full_diag_dict['PO4']['diags']['Jint_100m_PO4'] = 'medium_average'
         full_diag_dict['PO4']['diags']['tend_zint_100m_PO4'] = 'medium_average'
+        full_diag_dict['PO4']['properties']['has surface flux'] = True
     # NO3
     if 'NO3' in full_diag_dict.keys():
         full_diag_dict['NO3']['diags']['NO3_RIV_FLUX'] = 'medium_average'
         full_diag_dict['NO3']['diags']['J_NO3'] = 'low_average'
         full_diag_dict['NO3']['diags']['Jint_100m_NO3'] = 'medium_average'
         full_diag_dict['NO3']['diags']['tend_zint_100m_NO3'] = 'medium_average'
+        full_diag_dict['NO3']['properties']['has surface flux'] = True
     # SiO3
     if 'SiO3' in full_diag_dict.keys():
         full_diag_dict['SiO3']['diags']['SiO3_RIV_FLUX'] = 'medium_average'
         full_diag_dict['SiO3']['diags']['J_SiO3'] = 'low_average'
         full_diag_dict['SiO3']['diags']['Jint_100m_SiO3'] = 'medium_average'
         full_diag_dict['SiO3']['diags']['tend_zint_100m_SiO3'] = 'medium_average'
+        full_diag_dict['SiO3']['properties']['has surface flux'] = True
     # NH4
     if 'NH4' in full_diag_dict.keys():
         full_diag_dict['NH4']['diags']['J_NH4'] = 'low_average'
         full_diag_dict['NH4']['diags']['Jint_100m_NH4'] = 'medium_average'
         full_diag_dict['NH4']['diags']['tend_zint_100m_NH4'] = 'medium_average'
+        full_diag_dict['NH4']['properties']['has surface flux'] = True
     # Fe
     if 'Fe' in full_diag_dict.keys():
         full_diag_dict['Fe']['diags']['Fe_RIV_FLUX'] = 'medium_average'
@@ -148,32 +152,39 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['ALK']['diags']['tend_zint_100m_ALK'] = 'medium_average'
         full_diag_dict['ALK']['diags']['FvPER_ALK'] = 'medium_average'
         full_diag_dict['ALK']['diags']['FvICE_ALK'] = 'medium_average'
+        full_diag_dict['ALK']['properties']['has surface flux'] = True
     # ALK_ALT_CO2
     if 'ALK_ALT_CO2' in full_diag_dict.keys():
         full_diag_dict['ALK_ALT_CO2']['diags']['ALK_ALT_CO2_RIV_FLUX'] = 'medium_average'
         full_diag_dict['ALK_ALT_CO2']['diags']['FvPER_ALK_ALT_CO2'] = 'medium_average'
+        full_diag_dict['ALK_ALT_CO2']['properties']['has surface flux'] = True
     # DOC
     if 'DOC' in full_diag_dict.keys():
         full_diag_dict['DOC']['diags']['DOC_RIV_FLUX'] = 'medium_average'
         full_diag_dict['DOC']['diags']['Jint_100m_DOC'] = 'medium_average'
         full_diag_dict['DOC']['diags']['tend_zint_100m_DOC'] = 'medium_average'
         full_diag_dict['DOC']['properties']['include budget terms'] = True
-        full_diag_dict['DOC']['properties']['has surface flux'] = False
+        full_diag_dict['DOC']['properties']['has surface flux'] = False # REALLY? STF_DOC has non-zero values
     # DON
     if 'DON' in full_diag_dict.keys():
         full_diag_dict['DON']['diags']['DON_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DON']['properties']['has surface flux'] = True
     # DOP
     if 'DOP' in full_diag_dict.keys():
         full_diag_dict['DOP']['diags']['DOP_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DOP']['properties']['has surface flux'] = True
     # DOPr
     if 'DOPr' in full_diag_dict.keys():
         full_diag_dict['DOPr']['diags']['DOPr_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DOPr']['properties']['has surface flux'] = True
     # DONr
     if 'DONr' in full_diag_dict.keys():
         full_diag_dict['DONr']['diags']['DONr_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DONr']['properties']['has surface flux'] = True
     # DOCr
     if 'DOCr' in full_diag_dict.keys():
         full_diag_dict['DOCr']['diags']['DOCr_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DOCr']['properties']['has surface flux'] = True
     # DI13C
     if 'DI13C' in full_diag_dict.keys():
         full_diag_dict['DI13C']['diags']['DI13C_RIV_FLUX'] = 'medium_average'
@@ -182,11 +193,13 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['DI13C']['diags']['tend_zint_100m_DI13C'] = 'medium_average'
         full_diag_dict['DI13C']['diags']['FvPER_DI13C'] = 'medium_average'
         full_diag_dict['DI13C']['diags']['FvICE_DI13C'] = 'medium_average'
+        full_diag_dict['DI13C']['properties']['has surface flux'] = True
     # DO13C
     if 'DO13C' in full_diag_dict.keys():
         full_diag_dict['DO13C']['diags']['DO13C_RIV_FLUX'] = 'medium_average'
         full_diag_dict['DO13C']['diags']['Jint_100m_DO13C'] = 'medium_average'
         full_diag_dict['DO13C']['diags']['tend_zint_100m_DO13C'] = 'medium_average'
+        full_diag_dict['DO13C']['properties']['has surface flux'] = True
     # DI14C
     if 'DI14C' in full_diag_dict.keys():
         full_diag_dict['DI14C']['diags']['DI14C_RIV_FLUX'] = 'medium_average'
@@ -195,11 +208,13 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['DI14C']['diags']['tend_zint_100m_DI14C'] = 'medium_average'
         full_diag_dict['DI14C']['diags']['FvPER_DI14C'] = 'medium_average'
         full_diag_dict['DI14C']['diags']['FvICE_DI14C'] = 'medium_average'
+        full_diag_dict['DI14C']['properties']['has surface flux'] = True
     # DO14C
     if 'DO14C' in full_diag_dict.keys():
         full_diag_dict['DO14C']['diags']['DO14C_RIV_FLUX'] = 'medium_average'
         full_diag_dict['DO14C']['diags']['Jint_100m_DO14C'] = 'medium_average'
         full_diag_dict['DO14C']['diags']['tend_zint_100m_DO14C'] = 'medium_average'
+        full_diag_dict['DO14C']['properties']['has surface flux'] = True
 
     # 3. Per-autotroph diagnostics
     for autotroph_name in autotroph_list:
@@ -221,36 +236,38 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
 
     # 5. Write tracer-specific diagnostics to file
     for tracer_short_name in full_diag_dict.keys():
+        # (a) Process ['properties'] dictionary for budget terms
+        #     Note that this step will add to the ['diags'] dictionary but will not change previously set values
+        per_tracer_properties = full_diag_dict[tracer_short_name]['properties']
+        if per_tracer_properties['include budget terms']:
+            value = "low_average"
+        else:
+            value = "never_average"
+
+        # These diagnostics should be included by default for tracers requested budget terms
+        for key in ['UE', 'VN', 'WT', 'DIA_IMPVF', 'HDIFE', 'HDIFN', 'HDIFB']:
+            specific_key = '%s_%s' % (key, tracer_short_name)
+            if specific_key not in full_diag_dict[tracer_short_name]['diags'].keys():
+                full_diag_dict[tracer_short_name]['diags'][specific_key] = value
+
+        if per_tracer_properties['include budget terms'] and per_tracer_properties['has surface flux']:
+            value = "low_average"
+        else:
+            value = "never_average"
+
+        # These diagnostics should be included by default for tracers requested budget terms
+        # ONLY for tracers that have non-zero surface fluxes
+        for key in ['KPP_SRC']:
+            specific_key = '%s_%s' % (key, tracer_short_name)
+            if specific_key not in full_diag_dict[tracer_short_name]['diags'].keys():
+                full_diag_dict[tracer_short_name]['diags'][specific_key] = value
+
+        # (b) Loop through ['diags'] dictionary and write all diagnostics to file
         fout.write("#\n# Diagnostics for tracer %s\n#\n" % tracer_short_name)
-        # Loop through ['diags'] dictionary
         for diag in full_diag_dict[tracer_short_name]['diags'].keys():
             per_tracer_dict = full_diag_dict[tracer_short_name]['diags']
             if per_tracer_dict[diag] != 'none':
                 fout.write("%s : %s\n" % (diag, per_tracer_dict[diag]))
-
-        # Process ['properties'] dictionary for budget terms
-        per_tracer_dict = full_diag_dict[tracer_short_name]['properties']
-        if per_tracer_dict['include budget terms']:
-            fout.write("UE_%s : low_average\n" % tracer_short_name)
-            fout.write("VN_%s : low_average\n" % tracer_short_name)
-            fout.write("WT_%s : low_average\n" % tracer_short_name)
-            fout.write("DIA_IMPVF_%s : low_average\n" % tracer_short_name)
-            fout.write("HDIFE_%s : low_average\n" % tracer_short_name)
-            fout.write("HDIFN_%s : low_average\n" % tracer_short_name)
-            fout.write("HDIFB_%s : low_average\n" % tracer_short_name)
-        else:
-            fout.write("UE_%s : never_average\n" % tracer_short_name)
-            fout.write("VN_%s : never_average\n" % tracer_short_name)
-            fout.write("WT_%s : never_average\n" % tracer_short_name)
-            fout.write("DIA_IMPVF_%s : never_average\n" % tracer_short_name)
-            fout.write("HDIFE_%s : never_average\n" % tracer_short_name)
-            fout.write("HDIFN_%s : never_average\n" % tracer_short_name)
-            fout.write("HDIFB_%s : never_average\n" % tracer_short_name)
-
-        if per_tracer_dict['include budget terms'] and per_tracer_dict['has surface flux']:
-            fout.write("KPP_SRC_%s : low_average\n" % tracer_short_name)
-        else:
-            fout.write("KPP_SRC_%s : never_average\n" % tracer_short_name)
 
     # 6. Add section header for MARBL diagnostics
     #    (Another tool appends MARBL diagnostics to this file)

@@ -69,8 +69,9 @@ contains
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
 
-    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
     use ecosys_diagnostics_operators_mod,   only : ecosys_diagnostics_operators_init
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_surface_stream_cnt
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_interior_stream_cnt
 
     implicit none
 
@@ -103,35 +104,17 @@ contains
       allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_streams))
 
       call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing, &
+           stream_cnt=marbl_diags_interior_stream_cnt, &
            tavg_ids=tavg_ids_interior_forcing)
 
       call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing,  &
+           stream_cnt=marbl_diags_surface_stream_cnt, &
            tavg_ids=tavg_ids_surface_forcing)
 
     end associate
 
-    call define_tavg_field(tavg_ECOSYS_IFRAC_2,'ECOSYS_IFRAC_2',2,      &
-                           long_name='Ice Fraction for ecosys fluxes',  &
-                           units='fraction', grid_loc='2110',           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ECOSYS_XKW_2,'ECOSYS_XKW_2',2,          &
-                           long_name='XKW for ecosys fluxes',           &
-                           units='cm/s', grid_loc='2110',               &
-                           coordinates='TLONG TLAT time')
-
     call define_tavg_field(tavg_O2_GAS_FLUX_2,'STF_O2_2',2,             &
                            long_name='Dissolved Oxygen Surface Flux',   &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_DpCO2_2,'DpCO2_2',2,                    &
-                           long_name='D pCO2',                          &
-                           units='ppmv', grid_loc='2110',               &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_DIC_GAS_FLUX_2,'FG_CO2_2',2,            &
-                           long_name='DIC Surface Gas Flux',            &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
@@ -153,27 +136,60 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_interior(i, c, bid, &
-       marbl_interior_forcing_diags)
+  subroutine ecosys_tavg_accumulate_surface(marbl_col_to_pop_i, marbl_col_to_pop_j, &
+             STF, marbl_instance, bid)
+
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_surface_stream_cnt
+    use ecosys_tracers_and_saved_state_mod, only : o2_ind
 
     implicit none
 
-    integer , dimension(:), intent(in) :: i, c ! column indices
-    integer ,               intent(in) :: bid ! block index
+    integer,                     intent(in) :: marbl_col_to_pop_i(:)
+    integer,                     intent(in) :: marbl_col_to_pop_j(:)
+    real (r8)                  , intent(in) :: STF(:,:,:)
+    type(marbl_interface_class), intent(in) :: marbl_instance
+    integer,                     intent(in) :: bid
 
-    type(marbl_diagnostics_type), intent(in) :: marbl_interior_forcing_diags
     !-----------------------------------------------------------------------
 
-    call ecosys_tavg_accumulate_from_diag(i, c, bid, &
-         marbl_diags = marbl_interior_forcing_diags,  &
+    ! Accumulate surface_forcing_diags
+    call ecosys_tavg_accumulate_from_diag(marbl_col_to_pop_i(:), &
+         marbl_col_to_pop_j(:), bid, &
+         marbl_diags = marbl_instance%surface_forcing_diags, &
+         marbl_stream_cnt = marbl_diags_surface_stream_cnt, &
+         tavg_ids = tavg_ids_surface_forcing, &
+         num_elements = marbl_instance%surface_forcing_diags%num_elements)
+
+    call accumulate_tavg_field(STF(:,:,o2_ind), tavg_O2_GAS_FLUX_2, bid, 1)
+
+  end subroutine ecosys_tavg_accumulate_surface
+
+  !***********************************************************************
+
+  subroutine ecosys_tavg_accumulate_interior(i, c, marbl_instance, bid)
+
+    use ecosys_diagnostics_operators_mod, only : marbl_diags_interior_stream_cnt
+
+    implicit none
+
+    integer,                     intent(in) :: i, c ! column indices
+    type(marbl_interface_class), intent(in) :: marbl_instance
+    integer,                     intent(in) :: bid ! block index
+
+    !-----------------------------------------------------------------------
+
+    ! Accumulate diagnostics from marbl_interior_forcing_diags
+    call ecosys_tavg_accumulate_from_diag((/i/), (/c/), bid, &
+         marbl_diags = marbl_instance%interior_forcing_diags, &
+         marbl_stream_cnt = marbl_diags_interior_stream_cnt, &
          tavg_ids = tavg_ids_interior_forcing, &
-         num_elements =marbl_interior_forcing_diags%num_elements)
+         num_elements = marbl_instance%interior_forcing_diags%num_elements)
 
   end subroutine ecosys_tavg_accumulate_interior
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, tavg_ids, num_elements)
+  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, marbl_stream_cnt, tavg_ids, num_elements)
 
     ! Accumulate diagnostics
 
@@ -182,6 +198,7 @@ contains
     integer, dimension(:)        , intent(in) :: i, c ! column indices
     integer                      , intent(in) :: bid ! block index
     type(marbl_diagnostics_type) , intent(in) :: marbl_diags
+    integer, dimension(:)        , intent(in) :: marbl_stream_cnt
     integer, dimension(:,:)      , intent(in) :: tavg_ids
     integer                      , intent(in) :: num_elements
 
@@ -193,84 +210,21 @@ contains
 
     associate(diags => marbl_diags%diags(:))
 
-      do n=1,size(diags)
-         do ne = 1,num_elements
-           ! FIXME: once we are reading variable names from marbl_diags_sname,
-           !        loop from 1 to marbl_diags_stream_cnt(i), where
-           !        marbl_diags_sname(i) == diags(n)%short_name
-           do m=1, 1
-             if (allocated(diags(n)%field_2d)) then
-               call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n,m), bid, i(ne), c(ne))
-             else
-               call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n,m), bid, i(ne), c(ne))
-             end if
-           end do
+    do n=1,size(diags)
+       do ne = 1,num_elements
+         do m=1,marbl_stream_cnt(n)
+           if (allocated(diags(n)%field_2d)) then
+             call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n,m), bid, i(ne), c(ne))
+           else
+             call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n,m), bid, i(ne), c(ne))
+           end if
          end do
-      end do
+       end do
+    end do
 
     end associate
 
   end subroutine ecosys_tavg_accumulate_from_diag
-
-  !***********************************************************************
-
-  subroutine ecosys_tavg_accumulate_surface(surface_forcing_diags, STF, marbl_instances)
-
-    ! Accumulate diagnostics for surface fluxes
-
-    use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt, o2_ind
-    use marbl_diagnostics_mod,              only : ind => marbl_surface_forcing_diag_ind
-
-    implicit none
-
-    real (r8)                  , intent(in) :: surface_forcing_diags (:, :, :, :)
-    real (r8)                  , intent(in) :: STF(:,:,:,:)
-    type(marbl_interface_class), intent(in) :: marbl_instances(:)
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    integer :: i, m, n, iblock
-    integer :: nblocks_clinic
-    !-----------------------------------------------------------------------
-
-    nblocks_clinic = size(surface_forcing_diags,4)
-
-    !$OMP PARALLEL DO PRIVATE(iblock,i)
-    do iblock=1,nblocks_clinic
-
-       associate (diags => marbl_instances(iblock)%surface_forcing_diags%diags)
-
-       do i = 1,size(diags)
-         ! FIXME: once we are reading variable names from marbl_diags_sname,
-         !        loop from 1 to marbl_diags_stream_cnt(i), where
-         !        marbl_diags_sname(i) == diags(n)%short_name
-         do m=1, 1
-            call accumulate_tavg_field(surface_forcing_diags(:,:,i,iblock),     &
-                 tavg_ids_surface_forcing(i,m), iblock, 1)
-         end do
-       end do
-
-       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%ECOSYS_IFRAC,iblock), &
-            tavg_ECOSYS_IFRAC_2, iblock, 1)
-
-       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%ECOSYS_XKW,iblock),   &
-            tavg_ECOSYS_XKW_2, iblock, 1)
-
-       call accumulate_tavg_field(STF(:,:,o2_ind,iblock), tavg_O2_GAS_FLUX_2, iblock, 1)
-
-       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%DpCO2,iblock),        &
-            tavg_DpCO2_2, iblock, 1)
-
-       call accumulate_tavg_field(surface_forcing_diags(:,:,ind%DIC_GAS_FLUX,iblock), &
-            tavg_DIC_GAS_FLUX_2, iblock, 1)
-
-       end associate
-
-    end do
-    !$OMP END PARALLEL DO
-
-  end subroutine ecosys_tavg_accumulate_surface
 
   !***********************************************************************
 
@@ -305,26 +259,26 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_define_from_diag(marbl_diags, tavg_ids)
+  subroutine ecosys_tavg_define_from_diag(marbl_diags, stream_cnt, tavg_ids)
 
     use tavg, only : tavg_method_avg
 
     implicit none
 
     type(marbl_diagnostics_type),      intent(in)    :: marbl_diags
+    integer(int_kind), dimension(:),   intent(in)    :: stream_cnt
     integer(int_kind), dimension(:,:), intent(inout) :: tavg_ids
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(char_len) :: err_msg, gloc, coords
+    character(char_len) :: err_msg, gloc, coords, short_name
     integer :: m, n, ndims
     !-----------------------------------------------------------------------
 
     associate(diags => marbl_diags%diags(:))
 
       do n=1,size(diags)
-         ! FIXME: Continue to next n if diags(n)%short_name not in marbl_diags_sname
          if (trim(diags(n)%vertical_grid).eq.'none') then
             ndims = 2
             gloc = '2110'
@@ -349,12 +303,14 @@ contains
             end if
          end if
 
-         ! FIXME: once we are reading variable names from marbl_diags_sname,
-         !        loop from 1 to marbl_diags_stream_cnt(i), where
-         !        marbl_diags_sname(i) == diags(n)%short_name
-         do m=1, 1
+         do m=1,stream_cnt(n)
+           if (m .eq. 1) then
+             write(short_name, "(A)") trim(diags(n)%short_name)
+           else
+             write(short_name, "(A,'_',I0)") trim(diags(n)%short_name), m
+           end if
            call define_tavg_field(tavg_ids(n,m),    &
-                trim(diags(n)%short_name),          &
+                short_name,                         &
                 ndims,                              &
                 tavg_method = tavg_method_avg,      &
                 long_name=trim(diags(n)%long_name), &

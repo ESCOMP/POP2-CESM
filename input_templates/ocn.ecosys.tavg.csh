@@ -24,6 +24,7 @@ endif
 
 set lecosys_tavg_all     = $2
 set lecosys_tavg_alt_co2 = $3
+set POPROOT              = $4
 
 if ($lecosys_tavg_all == ".false.") then
 
@@ -76,7 +77,7 @@ if ( -f $CASEROOT/SourceMods/src.pop/ecosys_diagnostics ) then
 else
   set MARBL_args_filename = "-i $CASEBUILD/popconf/ecosys_diagnostics"
 endif
-$CASEBUILD/popconf/MARBL_diags_to_tavg.py $MARBL_args $MARBL_args_filename
+$POPROOT/MARBL_scripts/MARBL_diags_to_tavg.py $MARBL_args $MARBL_args_filename
 if ($status != 0) then
   echo "ERROR in MARBL_diags_to_tavg.py"
   exit 1

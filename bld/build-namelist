@@ -2549,7 +2549,8 @@ sub module_tavg_script_args() {
   my $cfg        = shift;
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
-            $nl->get_value('lecosys_tavg_alt_co2'));
+            $nl->get_value('lecosys_tavg_alt_co2'),
+            "$SRCROOT/components/pop");
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
