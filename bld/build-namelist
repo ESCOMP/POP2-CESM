@@ -1938,7 +1938,7 @@ if ($lmcog) {
 for my $module (@OCN_TAVG_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
-  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
+  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET POPROOT=$SRCROOT/components/pop";
   my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg);
   if (-f "${my_path}/$file"){
       $sysmod = "$env ${my_path}/${file} $my_stream @tavg_script_args";
@@ -2549,8 +2549,7 @@ sub module_tavg_script_args() {
   my $cfg        = shift;
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
-            $nl->get_value('lecosys_tavg_alt_co2'),
-            "$SRCROOT/components/pop");
+            $nl->get_value('lecosys_tavg_alt_co2'));
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");

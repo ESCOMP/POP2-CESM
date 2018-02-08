@@ -24,7 +24,6 @@ endif
 
 set lecosys_tavg_all     = $2
 set lecosys_tavg_alt_co2 = $3
-set POPROOT              = $4
 
 if ($lecosys_tavg_all == ".false.") then
 
