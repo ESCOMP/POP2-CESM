@@ -1487,6 +1487,7 @@
      do iblock = 1,nblocks_clinic
        call ecosys_driver_tavg_forcing(STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,iblock), iblock)
      end do
+     !$OMP END PARALLEL DO
    end if
 
 !-----------------------------------------------------------------------

@@ -28,7 +28,7 @@
   use marbl_interface       , only : marbl_interface_class
   use marbl_interface_public_types , only : marbl_diagnostics_type
 
-  use ecosys_diagnostics_operators_mod, only : max_marbl_streams
+  use ecosys_diagnostics_operators_mod, only : max_marbl_diags_stream_cnt
 
   implicit none
   private
@@ -48,12 +48,7 @@
 
   integer (int_kind), allocatable :: tavg_ids_interior_forcing(:,:)
   integer (int_kind), allocatable :: tavg_ids_surface_forcing(:,:)
-
-  integer (int_kind) :: tavg_ECOSYS_IFRAC_2 ! ice fraction duplicate
-  integer (int_kind) :: tavg_ECOSYS_XKW_2   ! xkw duplicate
   integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
-  integer (int_kind) :: tavg_DpCO2_2        ! delta pco2 duplicate
-  integer (int_kind) :: tavg_DIC_GAS_FLUX_2 ! dic flux duplicate
 
   integer (int_kind), allocatable :: tavg_ids_scalar_rmean_interior(:)
   integer (int_kind), allocatable :: tavg_ids_scalar_rmean_surface(:)
@@ -70,8 +65,8 @@ contains
     !  call define_tavg_field for all tavg fields
 
     use ecosys_diagnostics_operators_mod,   only : ecosys_diagnostics_operators_init
-    use ecosys_diagnostics_operators_mod,   only : marbl_diags_surface_stream_cnt
-    use ecosys_diagnostics_operators_mod,   only : marbl_diags_interior_stream_cnt
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_interior
 
     implicit none
 
@@ -100,15 +95,15 @@ contains
 
       call ecosys_diagnostics_operators_init(marbl_diag_file, surface_forcing, interior_forcing)
 
-      allocate(tavg_ids_interior_forcing(size(interior_forcing%diags), max_marbl_streams))
-      allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_streams))
+      allocate(tavg_ids_interior_forcing(size(interior_forcing%diags), max_marbl_diags_stream_cnt))
+      allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_diags_stream_cnt))
 
       call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing, &
-           stream_cnt=marbl_diags_interior_stream_cnt, &
+           stream_cnt=marbl_diags_stream_cnt_interior, &
            tavg_ids=tavg_ids_interior_forcing)
 
       call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing,  &
-           stream_cnt=marbl_diags_surface_stream_cnt, &
+           stream_cnt=marbl_diags_stream_cnt_surface, &
            tavg_ids=tavg_ids_surface_forcing)
 
     end associate
@@ -139,7 +134,7 @@ contains
   subroutine ecosys_tavg_accumulate_surface(marbl_col_to_pop_i, marbl_col_to_pop_j, &
              STF, marbl_instance, bid)
 
-    use ecosys_diagnostics_operators_mod,   only : marbl_diags_surface_stream_cnt
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
     use ecosys_tracers_and_saved_state_mod, only : o2_ind
 
     implicit none
@@ -156,7 +151,7 @@ contains
     call ecosys_tavg_accumulate_from_diag(marbl_col_to_pop_i(:), &
          marbl_col_to_pop_j(:), bid, &
          marbl_diags = marbl_instance%surface_forcing_diags, &
-         marbl_stream_cnt = marbl_diags_surface_stream_cnt, &
+         marbl_diags_stream_cnt = marbl_diags_stream_cnt_surface, &
          tavg_ids = tavg_ids_surface_forcing, &
          num_elements = marbl_instance%surface_forcing_diags%num_elements)
 
@@ -168,7 +163,7 @@ contains
 
   subroutine ecosys_tavg_accumulate_interior(i, c, marbl_instance, bid)
 
-    use ecosys_diagnostics_operators_mod, only : marbl_diags_interior_stream_cnt
+    use ecosys_diagnostics_operators_mod, only : marbl_diags_stream_cnt_interior
 
     implicit none
 
@@ -181,7 +176,7 @@ contains
     ! Accumulate diagnostics from marbl_interior_forcing_diags
     call ecosys_tavg_accumulate_from_diag((/i/), (/c/), bid, &
          marbl_diags = marbl_instance%interior_forcing_diags, &
-         marbl_stream_cnt = marbl_diags_interior_stream_cnt, &
+         marbl_diags_stream_cnt = marbl_diags_stream_cnt_interior, &
          tavg_ids = tavg_ids_interior_forcing, &
          num_elements = marbl_instance%interior_forcing_diags%num_elements)
 
@@ -189,7 +184,7 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, marbl_stream_cnt, tavg_ids, num_elements)
+  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, marbl_diags_stream_cnt, tavg_ids, num_elements)
 
     ! Accumulate diagnostics
 
@@ -198,7 +193,7 @@ contains
     integer, dimension(:)        , intent(in) :: i, c ! column indices
     integer                      , intent(in) :: bid ! block index
     type(marbl_diagnostics_type) , intent(in) :: marbl_diags
-    integer, dimension(:)        , intent(in) :: marbl_stream_cnt
+    integer, dimension(:)        , intent(in) :: marbl_diags_stream_cnt
     integer, dimension(:,:)      , intent(in) :: tavg_ids
     integer                      , intent(in) :: num_elements
 
@@ -212,7 +207,7 @@ contains
 
     do n=1,size(diags)
        do ne = 1,num_elements
-         do m=1,marbl_stream_cnt(n)
+         do m=1,marbl_diags_stream_cnt(n)
            if (allocated(diags(n)%field_2d)) then
              call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n,m), bid, i(ne), c(ne))
            else
