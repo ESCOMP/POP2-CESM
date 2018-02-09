@@ -53,6 +53,7 @@ contains
     end if
 
     ! initialize substring counter and position tracker
+    array_out = ''
     substr_num = 1
     substr_start = 1
 
