@@ -200,21 +200,21 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer :: m, n, ne
+    integer :: m, n
     !-----------------------------------------------------------------------
 
     associate(diags => marbl_diags%diags(:))
 
     do n=1,size(diags)
-       do ne = 1,num_elements
+      if (allocated(diags(n)%field_2d)) then
          do m=1,marbl_diags_stream_cnt(n)
-           if (allocated(diags(n)%field_2d)) then
-             call accumulate_tavg_field(diags(n)%field_2d(ne)  , tavg_ids(n,m), bid, i(ne), c(ne))
-           else
-             call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n,m), bid, i(ne), c(ne))
-           end if
+           call accumulate_tavg_field(diags(n)%field_2d(:), tavg_ids(n,m), bid, i(:), c(:))
          end do
-       end do
+       else
+         do m=1,marbl_diags_stream_cnt(n)
+           call accumulate_tavg_field(diags(n)%field_3d(:,:), tavg_ids(n,m), bid, i(:), c(:))
+         end do
+       end if
     end do
 
     end associate

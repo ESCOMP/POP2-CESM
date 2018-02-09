@@ -464,8 +464,8 @@
 
    interface accumulate_tavg_field
       module procedure accumulate_tavg_field_2d_3d
-      module procedure accumulate_tavg_field_2d_col
-      module procedure accumulate_tavg_field_3d_col
+      module procedure accumulate_tavg_field_2d_sparse
+      module procedure accumulate_tavg_field_3d_sparse
       module procedure accumulate_tavg_field_0d
    end interface
 
@@ -3223,10 +3223,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: accumulate_tavg_field_2d_col
+! !IROUTINE: accumulate_tavg_field_2d_sparse
 ! !INTERFACE:
 
- subroutine accumulate_tavg_field_2d_col(POINT,field_id,block,i,j,const)
+ subroutine accumulate_tavg_field_2d_sparse(POINTS,field_id,block,i,j,const)
 
 ! !DESCRIPTION:
 !  This routine updates a tavg field.  If the time average of the
@@ -3243,12 +3243,15 @@
 
    integer (int_kind), intent(in) :: &
       block,           &! local block address (in baroclinic distribution)
-      i,j,             &! horizontal column
       field_id          ! index into available fields for tavg field info
 
-   real (r8), intent(in) :: &
-      POINT             ! array of data for this block to add to 
+  integer (int_kind), dimension(:), intent(in) :: &
+      i,j               ! column indices
+
+   real (r8), dimension(:), intent(in) :: &
+      POINTS            ! array of data for this block to add to 
                         !  accumulated sum in tavg buffer
+
    real (r8), optional, intent(in) ::  &
       const
 !EOP
@@ -3260,16 +3263,16 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      bufloc              ! location of field in tavg buffer
+      bufloc,            &! location of field in tavg buffer
+      ne                  ! column index
 
 !-----------------------------------------------------------------------
-! 
-!  test: mix_pass, ltavg_on, and tavg_requested.                
-!                                                              
+!
+!  test: mix_pass, ltavg_on, and tavg_requested.
+!
 !-----------------------------------------------------------------------
-                                                                
-   if (.not. accumulate_tavg_now(field_id)) return             
-                                                              
+
+   if (.not. accumulate_tavg_now(field_id)) return
 
 !-----------------------------------------------------------------------
 !
@@ -3302,35 +3305,45 @@
    select case (avail_tavg_fields(field_id)%method)
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
-      TAVG_BUF_2D(i,j,block,bufloc) = &
-      TAVG_BUF_2D(i,j,block,bufloc) + dtavg*POINT
-   case (tavg_method_qflux)  
-      TAVG_BUF_2D(i,j,block,bufloc) =  &
-      TAVG_BUF_2D(i,j,block,bufloc) + const*max (c0,POINT)
+     do ne=1, size(i)
+       TAVG_BUF_2D(i(ne),j(ne),block,bufloc) = &
+       TAVG_BUF_2D(i(ne),j(ne),block,bufloc) + dtavg*POINTS(ne)
+     end do
+   case (tavg_method_qflux)
+     do ne=1, size(i)
+       TAVG_BUF_2D(i(ne),j(ne),block,bufloc) =  &
+       TAVG_BUF_2D(i(ne),j(ne),block,bufloc) + const*max (c0,POINTS(ne))
+     end do
    case (tavg_method_min)  ! replace with current minimum value
-      if (POINT.lt.TAVG_BUF_2D(i,j,block,bufloc)) then
-         TAVG_BUF_2D(i,j,block,bufloc) = POINT
-      end if
+     do ne=1, size(i)
+       if (POINTS(ne).lt.TAVG_BUF_2D(i(ne),j(ne),block,bufloc)) then
+         TAVG_BUF_2D(i(ne),j(ne),block,bufloc) = POINTS(ne)
+       end if
+    end do
    case (tavg_method_max)  ! replace with current minimum value
-      if (POINT.gt.TAVG_BUF_2D(i,j,block,bufloc)) then
-         TAVG_BUF_2D(i,j,block,bufloc) = POINT
-      end if
+     do ne=1, size(i)
+       if (POINTS(ne).gt.TAVG_BUF_2D(i(ne),j(ne),block,bufloc)) then
+         TAVG_BUF_2D(i(ne),j(ne),block,bufloc) = POINTS(ne)
+       end if
+     end do
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      TAVG_BUF_2D(i,j,block,bufloc) = POINT
+     do ne=1, size(i)
+       TAVG_BUF_2D(i(ne),j(ne),block,bufloc) = POINTS(ne)
+     end do
    case default
    end select
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine accumulate_tavg_field_2d_col
+ end subroutine accumulate_tavg_field_2d_sparse
 
 !***********************************************************************
 !BOP
-! !IROUTINE: accumulate_tavg_field_3d_col
+! !IROUTINE: accumulate_tavg_field_3d_sparse
 ! !INTERFACE:
 
- subroutine accumulate_tavg_field_3d_col(COL,field_id,block,i,j)
+ subroutine accumulate_tavg_field_3d_sparse(COLS,field_id,block,i,j)
 
 ! !DESCRIPTION:
 !  This routine updates a tavg field.  If the time average of the
@@ -3347,11 +3360,13 @@
 
    integer (int_kind), intent(in) :: &
       block,           &! local block address (in baroclinic distribution)
-      i,j,             &! column index
       field_id          ! index into available fields for tavg field info
 
-   real (r8), dimension(km), intent(in) :: &
-      COL               ! array of data for this block to add to
+   integer (int_kind), dimension(:), intent(in) :: &
+      i,j               ! column indices
+
+   real (r8), dimension(:,:), intent(in) :: &
+      COLS              ! array of data for this block to add to
                         !  accumulated sum in tavg buffer
 !EOP
 !BOC
@@ -3363,6 +3378,9 @@
 
    integer (int_kind) :: &
       bufloc,            &! location of field in tavg buffer
+      ne                  ! column index
+
+   integer (int_kind), dimension(size(i)) :: &
       kmax                ! max number of levels to accumulate
 
 !-----------------------------------------------------------------------
@@ -3401,7 +3419,9 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    end if
 
-   kmax = min(avail_tavg_fields(field_id)%km, KMT(i,j,block))
+   do ne=1,size(i)
+     kmax(ne) = min(avail_tavg_fields(field_id)%km, KMT(i(ne),j(ne),block))
+   end do
 
 !-----------------------------------------------------------------------
 !
@@ -3412,25 +3432,33 @@
    select case (avail_tavg_fields(field_id)%method)
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
-      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = &
-      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) + dtavg*COL(1:kmax)
+     do ne=1,size(i)
+       TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc) = &
+       TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc) + dtavg*COLS(1:kmax(ne),ne)
+     end do
    case (tavg_method_min)  ! replace with current minimum value
-      where (COL(1:kmax).lt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
-         TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
-      end where
+     do ne=1,size(i)
+       where (COLS(1:kmax(ne),ne).lt.TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc))
+         TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc) = COLS(1:kmax(ne),ne)
+       end where
+     end do
    case (tavg_method_max)  ! replace with current minimum value
-      where (COL(1:kmax).gt.TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc))
-         TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
-      end where
+     do ne=1,size(i)
+       where (COLS(1:kmax(ne),ne).gt.TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc))
+         TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc) = COLS(1:kmax(ne),ne)
+       end where
+     end do
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      TAVG_BUF_3D_TRANSPOSE(1:kmax,i,j,block,bufloc) = COL(1:kmax)
+     do ne=1,size(i)
+       TAVG_BUF_3D_TRANSPOSE(1:kmax(ne),i(ne),j(ne),block,bufloc) = COLS(1:kmax(ne),ne)
+     end do
    case default
    end select
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine accumulate_tavg_field_3d_col
+ end subroutine accumulate_tavg_field_3d_sparse
 
 !***********************************************************************
 !BOP

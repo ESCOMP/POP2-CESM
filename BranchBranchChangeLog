@@ -9,6 +9,10 @@ Tag Summary: First wave of clean-up following second code review
              3. Better variable names relating to what streams different MARBL
                 diagnostics belong in
              4. Use shr_string_countChar instead of clunky count(transfer()) construct
+             5. accumulate_tavg_[23]d_col -> [23]d_sparse: handle array of columns not
+                just single points!
+             6. ecosys_diagnostics_operators_init will abort if there is an
+                issue reading marbl_diags_file
 
 Testing:     still builds with nag on hobart, bit-for-bit in one-off testing
              Tested with MARBL 09fdc45 (on enhancement/YAML-diagnostics branch).
@@ -17,6 +21,7 @@ Files Modified:
 M       source/ecosys_diagnostics_operators_mod.F90
 M       source/ecosys_tavg.F90
 M       source/passive_tracers.F90
+M       source/tavg.F90
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy

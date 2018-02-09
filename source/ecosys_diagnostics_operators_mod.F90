@@ -87,6 +87,13 @@ contains
         !     (converts 'len' property to 'dimension')
         max_marbl_diags_stream_cnt = max(shr_string_countChar(single_line, ',')+1, max_marbl_diags_stream_cnt)
       end do
+      ! Abort if iostat did not return "End of File" status code
+      if (.not. is_iostat_end(io_err)) then
+         ! NOTE(bja, 2015-01) assuming that eof is the only proper exit
+         ! code from the read.
+         call document(subname, 'ERROR reading MARBL namelist file into buffer.')
+         call exit_POP(sigAbort, 'Stopping in ' // subname)
+      endif
       call document(subname, "max_marbl_diags_stream_cnt", max_marbl_diags_stream_cnt)
 
       ! Rewind back to beginning of file
@@ -164,6 +171,12 @@ contains
 
     end do
     ! Abort if iostat did not return "End of File" status code
+    if (.not. is_iostat_end(io_err)) then
+       ! NOTE(bja, 2015-01) assuming that eof is the only proper exit
+       ! code from the read.
+       call document(subname, 'ERROR reading MARBL namelist file into buffer.')
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
+    endif
 
     ! Close the file on master task
     if (my_task .eq. master_task) close(nml_in)
