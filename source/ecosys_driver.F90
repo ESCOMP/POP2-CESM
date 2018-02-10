@@ -1315,8 +1315,9 @@ contains
     real (r8), dimension(:,:,:), intent(in) :: stf_module
     integer,                     intent(in) :: bid
 
-    call ecosys_tavg_accumulate_surface(marbl_col_to_pop_i(:,bid), marbl_col_to_pop_j(:,bid), &
-         stf_module(:,:,:), marbl_instances(bid), bid)
+    call ecosys_tavg_accumulate_surface(marbl_col_to_pop_i(1:marbl_col_cnt(bid),bid), &
+                                        marbl_col_to_pop_j(1:marbl_col_cnt(bid),bid), &
+                                        stf_module(:,:,:), marbl_instances(bid), bid)
 
   end subroutine ecosys_driver_tavg_forcing
 

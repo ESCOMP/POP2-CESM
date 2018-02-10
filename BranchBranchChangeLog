@@ -13,6 +13,7 @@ Testing:     aux_pop_MARBL on hobart and cheyenne, all tests pass
 
 Files Modified:
 M       source/ecosys_diagnostics_operators_mod.F90
+M       source/ecosys_driver.F90
 A       source/utils_mod.F90
 ===============================================================================
 Tag Creator: mlevy
