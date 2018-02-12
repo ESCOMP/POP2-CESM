@@ -39,7 +39,7 @@
 <dt_count ocn_grid="gx1v6"  > 23</dt_count>
 <dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">46</dt_count>
 <dt_count ocn_grid="tx1v1"  > 23</dt_count>
-<dt_count ocn_grid="tx0.1v2">300</dt_count>
+<dt_count ocn_grid="tx0.1v2">576</dt_count>
 <dt_count ocn_grid="tx0.1v2" ocn_coupling="partial">500</dt_count>
 
 <impcor>.true.</impcor>
