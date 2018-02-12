@@ -107,15 +107,11 @@ def buildnml(case, caseroot, compname):
         if ninst > 1:
             inst_string = '_' + '%04d' % inst_counter
 
-
-        # Get use_ecosys from config_cache.xml
-        config_cache_file = GenericXML(infile=os.path.join(caseroot, "Buildconf", "popconf", "config_cache.xml"))
-        use_ecosys = config_cache_file.get_optional_node("entry", attributes={"id":"use_ecosys"}).get("value")
-
-        if use_ecosys == "TRUE":
+        marbl_nt_build = case.get_value("MARBL_NT")
+        if marbl_nt_build > 0:
             # Generate marbl_in and ecosys_diagnostics (files POP needs to read for MARBL)
             # Note that they are only needed when running with the ecosystem tracer module
-            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, config_cache_file)
+            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, marbl_nt_build)
             _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string)
 
         # If multi-instance = case does not have restart file,
@@ -210,7 +206,7 @@ def buildnml(case, caseroot, compname):
             _copy_file('pop_in', confdir, rundir, inst_string)
 
             # marbl_in and marbl_diagnostics_operators
-            if use_ecosys == "TRUE":
+            if marbl_nt_build > 0:
                 _copy_file('marbl_in', confdir, rundir, inst_string)
                 _copy_file('marbl_diagnostics_operators', confdir, rundir)
 
@@ -233,7 +229,7 @@ def _copy_file(filename, src_dir, dest_dir, inst_string=None):
 
 ###############################################################################
 
-def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, config_cache_file):
+def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, marbl_nt_build):
     # import wrappers to some MARBL calls
     sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
     from MARBL_wrappers import MARBL_settings_for_POP
@@ -251,9 +247,8 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, con
     # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
     #      Abort if values do not match
     MARBL_NT = MARBL_settings.get_MARBL_NT()
-    MARBL_NT_buildcpp = int(config_cache_file.get_optional_node("entry", attributes={"id":"marbl_nt"}).get("value"))
-    if MARBL_NT != MARBL_NT_buildcpp:
-      error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (MARBL_NT_buildcpp, MARBL_NT)
+    if MARBL_NT != marbl_nt_build:
+      error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (marbl_nt_build, MARBL_NT)
       error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
       logger.error(error_msg)
       sys.exit(1)

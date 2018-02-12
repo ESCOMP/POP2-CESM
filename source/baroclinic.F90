@@ -103,6 +103,7 @@
       tavg_SALT_MAX,     &! tavg id for maximum salinity
       tavg_SALT_MIN,     &! tavg id for minimum salinity
       tavg_SALT_RF,      &! tavg id for Robert Filter salinity adjustment
+      tavg_SSS2,         &! tavg id for surface salinity
       tavg_TEMP2,        &! tavg id for temperature squared
       tavg_TEMP_27,      &! tavg id for temperature at level 27
       tavg_TEMP_43,      &! tavg id for temperature at level 43
@@ -428,6 +429,12 @@
                           units='gram/kilogram', grid_loc='3111',      &
                           scale_factor=1000.0_r8,                      &
                           coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_SSS2,'SSS2',2,                          &
+                          long_name='Sea Surface Salinity**2',         &
+                          units='(gram/kilogram)**2', grid_loc='2110', &
+                          scale_factor=1000000.0_r8,                   &
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_TEMP2,'TEMP2',3,                        &
                           long_name='Temperature**2',                  &
@@ -2173,6 +2180,10 @@
    call accumulate_tavg_field(TCUR(:,:,1)*TCUR(:,:,2), tavg_ST,iblock,k)
 
    call accumulate_tavg_field(RHOCUR(:,:), tavg_RHO,iblock,k)
+
+   if (k == 1)  then
+      call accumulate_tavg_field(TCUR(:,:,2)**2, tavg_SSS2,iblock,1)
+   endif
 
 !   if (partial_bottom_cells) then 
 !      WORK1 = RHOCUR(:,:) * DZT(:,:,k,iblock)

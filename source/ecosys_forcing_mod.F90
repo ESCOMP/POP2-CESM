@@ -171,9 +171,10 @@ module ecosys_forcing_mod
   integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
   real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
   real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
-  character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and d13C varying or constant forcing
+  real(r8),dimension(3)::ciso_atm_d14c_lat_band_vals    ! atmospheric D14C constant [permil]
+  character(char_len) :: ciso_atm_d13c_opt              ! option for d13C (varying or constant forcing)
   character(char_len) :: ciso_atm_d13c_filename         ! filename for varying atm d13C
-  character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and d13C varying or constant forcing
+  character(char_len) :: ciso_atm_d14c_opt              ! option for d14C (varying or constant forcing)
   character(char_len) :: ciso_atm_d14c_filename         ! filename for varying atm D14C
 
   type (forcing_timeseries_dataset) :: &
@@ -271,7 +272,7 @@ module ecosys_forcing_mod
   integer(int_kind), public :: dustflux_ind       = 0, &
                        PAR_col_frac_ind   = 0, &
                        surf_shortwave_ind = 0, &
-                       temperature_ind    = 0, &
+                       potemp_ind         = 0, &
                        salinity_ind       = 0, &
                        pressure_ind       = 0, &
                        fesedflux_ind      = 0
@@ -383,7 +384,8 @@ contains
          atm_co2_opt, atm_co2_const, atm_alt_co2_opt, atm_alt_co2_const,      &
          liron_patch, iron_patch_flux_filename, iron_patch_month,             &
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
-         ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
+         ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
+         ciso_atm_d14c_filename,                                              &
          ciso_atm_model_year, ciso_atm_data_year, restorable_tracer_names,    &
          restore_data_filenames, restore_data_file_varnames,                  &
          restore_year_first, restore_year_last, restore_year_align,           &
@@ -449,8 +451,9 @@ contains
     ciso_atm_d13c_opt                       = 'const'
     ciso_atm_d13c_const                     = -6.610_r8
     ciso_atm_d13c_filename                  = 'unknown'
-    ciso_atm_d14c_opt                       = 'const'
-    ciso_atm_d14c_const                     = 0.0_r8
+    ciso_atm_d14c_opt                       = 'lat_bands'
+    ciso_atm_d14c_const                     = c0
+    ciso_atm_d14c_lat_band_vals(:)          = (/ -2.3_r8, -4.0_r8, -5.8_r8 /)
     ciso_atm_d14c_filename                  = 'unknown'
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
@@ -927,8 +930,8 @@ contains
                           marbl_varname=marbl_varname, field_units=units,               &
                           driver_varname='surf_shortwave', rank=3, dim3_len=mcog_nbins, &
                           ldim3_is_depth=.false., id=n)
-          case ('Temperature')
-            temperature_ind = n
+          case ('Potential Temperature')
+            potemp_ind = n
             call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='temperature', rank=3, dim3_len=km, id=n)
@@ -1522,7 +1525,7 @@ contains
                 else
                   interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
                 end if
-              else if (field_index .eq. temperature_ind) then
+              else if (field_index .eq. potemp_ind) then
                 ! --- average 2 time levels into 1 ---
                 interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,1,oldtime,iblock) + TRACER(:,:,:,1,curtime,iblock))
@@ -2300,8 +2303,8 @@ contains
     !-------------------------------------------------------------------------
 
     call c14_atm_forcing_init('ecosys_forcing', ciso_atm_d14c_opt, &
-        ciso_atm_d14c_const, ciso_atm_d14c_filename, &
-        ciso_atm_model_year, ciso_atm_data_year)
+        ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
+        ciso_atm_d14c_filename, ciso_atm_model_year, ciso_atm_data_year)
 
   end subroutine ciso_init_atm_D13_D14
 

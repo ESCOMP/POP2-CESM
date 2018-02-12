@@ -36,7 +36,7 @@ def _copy_files_to_blddir(case):
     # copy source files into obj dir
     srcroot = case.get_value("SRCROOT")
     glob_dirs = [os.path.join(srcroot,"components","pop","source"),
-                 os.path.join(srcroot,"components","pop","source","cvmix"),
+                 os.path.join(srcroot,"components","pop","externals","CVMix","src","shared"),
                  os.path.join(srcroot,"components","pop","externals","MARBL","src"),
                  os.path.join(srcroot,"components","pop","mpi"),
                  os.path.join(srcroot,"components","pop","drivers","cpl")]

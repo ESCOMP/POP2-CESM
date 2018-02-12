@@ -1,6 +1,57 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    12 Feb 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n165_marbl_dev_n74_cesm_pop_2_1_20180205
+Tag Summary: merge latest marbl_dev tag (n74) onto marbl_dev_levy
+
+Testing:     aux_pop_MARBL on hobart and cheyenne, all tests pass (bit-for-bit
+             with baselines from marbl_dev_n74). Note that the baseline
+             comparison tests pass despite this branch having significantly
+             more variables in the tavg stream than the baseline.
+             Tested with MARBL 6edc61f (on enhancement/YAML-diagnostics branch).
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       ChangeLog
+A  +    Externals.cfg
+A  +    Externals_POP.cfg
+A  +    README_EXTERNALS
+D       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+A  +    externals
+M       input_templates/gx1v7_tavg_contents
+A  +    input_templates/tx0.1v3_POP_DomainSizeMod.F90
+A  +    input_templates/tx0.1v3_depth_accel
+A  +    input_templates/tx0.1v3_domain_size.F90
+A  +    input_templates/tx0.1v3_history_contents
+A  +    input_templates/tx0.1v3_movie_contents
+A  +    input_templates/tx0.1v3_region_ids
+A  +    input_templates/tx0.1v3_tavg_contents
+A  +    input_templates/tx0.1v3_transport_contents
+A  +    input_templates/tx0.1v3_vert_grid
+M       source/abio_dic_dic14_mod.F90
+M       source/baroclinic.F90
+M       source/c14_atm_forcing_mod.F90
+M       source/diagnostics.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    9 Feb 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n164_marbl_dev_n69_cesm_pop_2_1_20171213
 Tag Summary: Introduce utils_mod.F90 with a utils_split() subroutine (splits a string

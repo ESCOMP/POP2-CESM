@@ -239,9 +239,12 @@
       tavg_HMXL,         &! tavg id for average mixed layer depth
       tavg_HMXL_2,       &! tavg id for average mixed layer depth, stream #2 (allows two frequencies)
       tavg_HMXL_DR,      &! tavg id for average mixed layer depth with density criterion, QL, 150526
+      tavg_HMXL_DR_2,    &! tavg id for average mixed layer depth with density criterion, stream #2
       tavg_XMXL,         &! tavg id for maximum mixed layer depth
       tavg_XMXL_2,       &! tavg id for maximum mixed layer depth, stream #2
+      tavg_XMXL_DR,      &! tavg id for maximum mixed layer depth with density criterion
       tavg_TMXL,         &! tavg id for minimum mixed layer depth
+      tavg_TMXL_DR,      &! tavg id for minimum mixed layer depth with density criterion
       tavg_HBLT,         &! tavg id for average boundary layer depth
       tavg_XBLT,         &! tavg id for maximum boundary layer depth
       tavg_TBLT           ! tavg id for minimum boundary layer depth
@@ -864,6 +867,12 @@
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_HMXL_DR_2,'HMXL_DR_2',2,               &
+                          tavg_method=tavg_method_avg,                &
+                          long_name='Mixed-Layer Depth (density)',    &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_XMXL,'XMXL',2,                         &
                           tavg_method=tavg_method_max,                &
                           long_name='Maximum Mixed-Layer Depth',      &
@@ -876,9 +885,21 @@
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_XMXL_DR,'XMXL_DR',2,                   &
+                          tavg_method=tavg_method_max,                &
+                          long_name='Maximum Mixed-Layer Depth (density)', &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_TMXL,'TMXL',2,                         &
                           tavg_method=tavg_method_min,                &
                           long_name='Minimum Mixed-Layer Depth',      &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_TMXL_DR,'TMXL_DR',2,                   &
+                          tavg_method=tavg_method_min,                &
+                          long_name='Minimum Mixed-Layer Depth (density)', &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
@@ -1425,6 +1446,12 @@
 
           !$OMP PARALLEL DO PRIVATE(iblock)
           do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL_DR(:,:,iblock), tavg_HMXL_DR_2,   iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
+
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
             call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL,   iblock, 1)
           end do
           !$OMP END PARALLEL DO
@@ -1437,7 +1464,19 @@
 
           !$OMP PARALLEL DO PRIVATE(iblock)
           do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL_DR(:,:,iblock), tavg_XMXL_DR, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
+
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
             call accumulate_tavg_field(HMXL(:,:,iblock), tavg_TMXL, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
+
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL_DR(:,:,iblock), tavg_TMXL_DR, iblock, 1)
           end do
           !$OMP END PARALLEL DO
         end if

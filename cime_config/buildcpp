@@ -120,6 +120,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 # (ii) get MARBL_NT
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
                 NT = NT + MARBL_NT
+                case.set_value("MARBL_NT", MARBL_NT)
             elif module == "IRF":
                 use_irf = "TRUE"
                 if IRF_NT == 0:
