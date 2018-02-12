@@ -6,7 +6,8 @@ Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n73_cesm_pop_2_1_20180205
 Tag Summary: Merge latest POP trunk tag (20180205)
 
 Testing:     Generated new baselines out of cesm2_0_beta09 sandbox for
-             hobart and cheyenne
+             hobart and cheyenne (not bit-for-bit with n72, likely due
+             to changes in cime and CICE)
 
 Files Modified:
  M      .
