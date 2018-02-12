@@ -253,6 +253,16 @@
     <desc>POP cpp definitions (for diagnostic use only, setup automatically, overwritten by configure_pop.py - DO NOT EDIT)</desc>
   </entry>
 
+  <entry id="MARBL_NT">
+    <type>integer</type>
+    <valid_values></valid_values>
+    <default_value>0</default_value>
+    <group>build_component_pop</group>
+    <file>env_build.xml</file>
+    <desc>pop marbl tracer count (this is runtime configurable in marbl but not in pop - do not edit)</desc>
+  </entry>
+
+
   <entry id="POP_PHYS_CYCLE_YEARS_IN_CYCLE">
     <type>integer</type>
     <default_value>0</default_value>
@@ -263,7 +273,7 @@
     and pre- and post-run scripts are specified in env vars
     PRERUN_SCRIPT and POSTRUN_SCRIPT</desc>
   </entry>
-    
+
   <entry id="POP_PHYS_CYCLE_MONTHS_RUN_SINCE_CYCLE">
     <type>integer</type>
     <default_value>0</default_value>
