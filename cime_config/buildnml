@@ -109,29 +109,10 @@ def buildnml(case, caseroot, compname):
 
         marbl_nt_build = case.get_value("MARBL_NT")
         if marbl_nt_build > 0:
-            # ------------------------------------------------------------------------------
-            # call MARBL's tool to generate a settings file
-            # output will go to CASEROOT/Buildconf/popconf/marbl_in
-            # ------------------------------------------------------------------------------
-
-            # (i) Import MARBL_settings_wrapper and generate MARBL_settings_for_POP object
-            MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
-            sys.path.append(os.path.join(srcroot,"components","pop","cime_config"))
-            from MARBL_settings_wrapper import MARBL_settings_for_POP
-            MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, srcroot, ocn_grid, run_type,
-                                   continue_run)
-
-            # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
-            #      Abort if values do not match
-            MARBL_NT = MARBL_settings.get_MARBL_NT()
-            if MARBL_NT != marbl_nt_build:
-              error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (marbl_nt_build, MARBL_NT)
-              error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
-              logger.error(error_msg)
-              sys.exit(1)
-
-            # (iii) write settings file
-            MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
+            # Generate marbl_in and ecosys_diagnostics (files POP needs to read for MARBL)
+            # Note that they are only needed when running with the ecosystem tracer module
+            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, marbl_nt_build)
+            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string)
 
         # If multi-instance = case does not have restart file,
         # use single-= case restart for each instance
@@ -222,29 +203,107 @@ def buildnml(case, caseroot, compname):
         # copy pop namelist files from confdir to rundir
         if os.path.isdir(rundir):
             # pop_in
-            file_src  = os.path.join(confdir, "pop_in")
-            file_dest = os.path.join(rundir, "pop_in")
-            if inst_string:
-                file_dest += inst_string
-            shutil.copy(file_src, file_dest)
+            _copy_file('pop_in', confdir, rundir, inst_string)
 
-            # marbl_in
+            # marbl_in and marbl_diagnostics_operators
             if marbl_nt_build > 0:
-                file_src  = os.path.join(confdir, "marbl_in")
-                file_dest = os.path.join(rundir, "marbl_in")
-                if inst_string:
-                    file_dest += inst_string
-                shutil.copy(file_src, file_dest)
+                _copy_file('marbl_in', confdir, rundir, inst_string)
+                _copy_file('marbl_diagnostics_operators', confdir, rundir)
 
             # tavg_contents file
-            file_src = os.path.join(confdir, ocn_grid + "_tavg_contents")
-            file_dest = os.path.join(rundir, ocn_grid + "_tavg_contents")
-            shutil.copy(file_src, file_dest)
+            _copy_file(ocn_grid + "_tavg_contents", confdir, rundir)
 
             # increment instance counter
             inst_counter = inst_counter + 1
 
 ###############################################################################
+
+def _copy_file(filename, src_dir, dest_dir, inst_string=None):
+    """ Copy a given file from confdir ($CASEROOT/Buildconf/popconf/) to rundir ($RUNDIR)
+    """
+    file_src  = os.path.join(src_dir, filename)
+    file_dest = os.path.join(dest_dir, filename)
+    if inst_string:
+        file_dest += inst_string
+    shutil.copy(file_src, file_dest)
+
+###############################################################################
+
+def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, marbl_nt_build):
+    # import wrappers to some MARBL calls
+    sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
+    from MARBL_wrappers import MARBL_settings_for_POP
+
+    # ------------------------------------------------------------------------------
+    # call MARBL's tool to generate a settings file
+    # output will go to CASEROOT/Buildconf/popconf/marbl_in
+    # ------------------------------------------------------------------------------
+
+    # (i) Generate MARBL_settings_for_POP object
+    MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
+    MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
+                                            run_type, continue_run)
+
+    # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
+    #      Abort if values do not match
+    MARBL_NT = MARBL_settings.get_MARBL_NT()
+    if MARBL_NT != marbl_nt_build:
+      error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (marbl_nt_build, MARBL_NT)
+      error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
+      logger.error(error_msg)
+      sys.exit(1)
+
+    # (iii) write settings file
+    MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
+
+###############################################################################
+
+def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string):
+    # import wrappers to some MARBL calls
+    sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
+    from MARBL_wrappers import MARBL_settings_for_POP
+    from MARBL_wrappers import write_ecosys_diagnostics_file
+    from MARBL_wrappers import MARBL_diagnostics_for_POP
+
+    # ------------------------------------------------------------------------------
+    # call MARBL's tool to generate a generic diagnostics file;
+    # output will go to CASEROOT/Buildconf/popconf/marbl_diagnostics
+    # (which will then be used by ocn.tavg.ecosys.csh to generate ecosys_tavg_contents)
+    #
+    # Also pass all MARBL tracer short names to another tool to generate
+    # a similar generic diagnostics file for the POP-owned ecosys-related
+    # diagnostics (tracer diagnostics MARBL expects the GCM to compute).
+    #
+    # In: MARBL_settings (or user_nl_marbl)
+    # Out: Buildconf/popconf/ecosys_diagnostics
+    # Out: Buildconf/popconf/marbl_diagnostics_list
+    # ------------------------------------------------------------------------------
+
+    # (i) Generate MARBL_settings_for_POP object
+    MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
+    MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
+                                            run_type, continue_run)
+
+    # (ii) Create ecosys_diagnostics with POP-generated diagnostics
+    write_ecosys_diagnostics_file(MARBL_settings.get_tracer_names(),
+                                  MARBL_settings.get_autotroph_names(),
+                                  MARBL_settings.get_zooplankton_names(),
+                                  MARBL_settings.get_autotroph_names(calcifier_only=True),
+                                  MARBL_settings.ladjust_bury_coeff(),
+                                  os.path.join(confdir, "ecosys_diagnostics"))
+
+    # (iii) Import MARBL_wrappers and generate MARBL_diagnostics_for_POP object
+    MARBL_diagnostics = MARBL_diagnostics_for_POP(MARBL_dir, caseroot, MARBL_settings)
+
+    # (iv) append MARBL diagnostics to ecosys_diagnostics
+    #      This also creates marbl_diagnostics_list to help track which
+    #      diagnostics came from MARBL
+    MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "ecosys_diagnostics"),
+                                             os.path.join(confdir, "marbl_diagnostics_list"),
+                                              append=True)
+
+###############################################################################
+
 def _main_func():
 
     caseroot = parse_input(sys.argv)

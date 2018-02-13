@@ -57,6 +57,7 @@ module ecosys_tracers_and_saved_state_mod
   integer(int_kind), public :: alk_alt_co2_ind
   integer(int_kind), public :: di13c_ind
   integer(int_kind), public :: di14c_ind
+  integer(int_kind), public :: o2_ind
   integer(int_kind), public :: no3_ind
   integer(int_kind), public :: po4_ind
   integer(int_kind), public :: don_ind

@@ -1027,7 +1027,7 @@
          end do
       !$OMP END PARALLEL DO
 
-      call ecosys_driver_post_set_sflux
+      call ecosys_driver_post_set_sflux()
 
       call ecosys_driver_comp_global_averages('surface')
    end if
@@ -1483,7 +1483,11 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-     call ecosys_driver_tavg_forcing()
+     !$OMP PARALLEL DO PRIVATE(iblock)
+     do iblock = 1,nblocks_clinic
+       call ecosys_driver_tavg_forcing(STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,iblock), iblock)
+     end do
+     !$OMP END PARALLEL DO
    end if
 
 !-----------------------------------------------------------------------
