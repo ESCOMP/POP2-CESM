@@ -34,6 +34,9 @@
       </test>
     </grid>
     <grid name="T62_g37">
+      <test name="SMS">
+        <machine compiler="intel" testtype="aux_cime_baselines" testmods="pop/default">cheyenne</machine>
+      </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">cheyenne</machine>
@@ -84,6 +87,9 @@
       </test>
     </grid>
     <grid name="T62_g17">
+      <test name="SMS">
+        <machine compiler="intel" testtype="aux_cime_baselines" testmods="pop/ecosys">cheyenne</machine>
+      </test>
       <test name="ERI">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ciso">cheyenne</machine>
@@ -199,6 +205,7 @@
       </test>
       <test name="SMS_Ld20">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/performance_eval">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_cime_baselines" testmods="pop/performance_eval">cheyenne</machine>
       </test>
     </grid>
     <grid name="T62_g37">
@@ -296,6 +303,7 @@
       <test name="SMS_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">cheyenne</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ecosys">cheyenne</machine>
+        <machine compiler="intel" testtype="aux_cime_baselines" testmods="pop/cice_ecosys">cheyenne</machine>
       </test>
     </grid>
     <grid name="f19_g16_rx1">

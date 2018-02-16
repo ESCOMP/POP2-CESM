@@ -1,4 +1,15 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    16 Feb 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180216
+Tag Summary: add tests in a new aux_cime_baselines category
+
+Testing:     ran the new test category (with 4 new SMS tests). all pass.
+
+M       cime_config/testdefs/testlist_pop.xml
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    5 Feb 2018
