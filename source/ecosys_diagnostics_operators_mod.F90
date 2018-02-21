@@ -123,14 +123,11 @@ contains
     do
       ! (1) Read next line on master, iostat value out
       !     (Exit loop if read is not successful; either read error or end of file)
-      if (my_task .eq. master_task) then
-        read(nml_in, "(A)", iostat=io_err) single_line
-      end if
+      if (my_task .eq. master_task) read(nml_in, "(A)", iostat=io_err) single_line
       call broadcast_scalar(io_err, master_task)
       if (io_err .ne. 0) exit
 
       ! (2) Broadcast line just read in on master_task to all tasks
-      !     (Initial entry to this loop will broadcast blank line which will be ignored)
       call broadcast_scalar(single_line, master_task)
 
       ! (3) Skip empty lines and lines beginning with '#'
