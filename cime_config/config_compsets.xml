@@ -70,6 +70,16 @@
   </compset>
 
   <compset>
+    <alias>GIAF_JRA</alias>
+    <lname>2000_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GIAF_JRA_HR</alias>
+    <lname>2000_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
     <alias>G1850ECO</alias>
     <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>

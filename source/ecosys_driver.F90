@@ -52,7 +52,7 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
-  use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
+  use ecosys_tracers_and_saved_state_mod, only : o2_ind, no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
   use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
 
   ! Provide marbl_tracer_cnt to passive_tracers.F90 (as ecosys_tracer_cnt)
@@ -203,7 +203,6 @@ contains
     integer(int_kind), parameter :: pop_in_tot_len    = 262144
     integer(int_kind), parameter :: pop_in_nl_max_len = 32768
     integer(int_kind), parameter :: pop_in_nl_cnt     = 256
-    integer(int_kind), parameter :: marbl_in_line_cnt = 1024
 
     character(len=*), parameter      :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)              :: log_message
@@ -225,11 +224,9 @@ contains
     character (char_len)             :: marbl_settings_file                  ! name of file containing MARBL settings
     character(len=pop_in_nl_max_len) :: nl_buffer(pop_in_nl_cnt)
     character(len=pop_in_nl_max_len) :: tmp_nl_buffer
-    character(len=256)               :: marbl_nl_buffer(marbl_in_line_cnt)
-    character(len=256)               :: marbl_var, marbl_type, marbl_val
+    character(len=256)               :: marbl_nl_line
     character(len=pop_in_tot_len)    :: nl_str
     character(char_len_long)         :: ioerror_msg
-    integer(int_kind)                :: marbl_nml_in
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -265,8 +262,8 @@ contains
 
           ! we should always reach the EOF to capture the entire file...
           if (.not. is_iostat_end(nml_error)) then
-             write(stdout, '(a, a, i8)') subname, &
-                  ": IO ERROR reading namelist file into buffer: ", nml_error
+             write(stdout, '(4a, i0)') subname, &
+                  ": IO ERROR reading ", trim(nml_filename), " into buffer: ", nml_error
              write(stdout, '(a)') ioerror_msg
           else
              write(stdout, '(a, a, a)') "Read '", trim(nml_filename), "' until EOF."
@@ -323,63 +320,6 @@ contains
        write(stdout,delim_fmt)
     endif
 
-    ! ---------------------
-    ! Read marbl input file
-    ! ---------------------
-
-    ! (a) initialize
-    marbl_nl_buffer(:) = ''
-    nl_str       = ''
-
-    ! (b) Only master task reads
-    if (my_task == master_task) then
-       ! read the marbl_in into buffer
-       open(unit=nml_in, file=marbl_settings_file, action='read', access='stream', &
-            form='unformatted', iostat=nml_error)
-       if (nml_error == 0) then
-          read(unit=nml_in, iostat=nml_error, iomsg=ioerror_msg) nl_str
-
-          ! we should always reach the EOF to capture the entire file...
-          if (.not. is_iostat_end(nml_error)) then
-             write(stdout, '(a, a, i8)') subname, &
-                  ": IO ERROR reading namelist file into buffer: ", nml_error
-             write(stdout, '(a)') ioerror_msg
-          else
-             write(stdout, '(a, a, a)') "Read '", trim(marbl_settings_file), "' until EOF."
-          end if
-
-          write(stdout, '(a, a, i7, a)') subname, ": Read buffer of ", &
-               len_trim(nl_str), " characters."
-
-          write(stdout, '(a)') "  If it looks like part of the namelist is missing, "
-          write(stdout, '(a)') "  compare the number of characters read to the actual "
-          write(stdout, '(a)') "  size of your file ($ wc -c marbl_in) and increase "
-          write(stdout, '(a)') "  the buffer size if necessary."
-       else
-          write(stdout, '(a, a, i8, a, a)') subname, ": IO ERROR ", nml_error, &
-               "opening namelist file : ", trim(marbl_settings_file)
-       end if
-       close(nml_in)
-    end if
-
-    ! (c) if error reading, let all tasks know / abort
-    call broadcast_scalar(nml_error, master_task)
-    if (.not. is_iostat_end(nml_error)) then
-       ! NOTE(bja, 2015-01) assuming that eof is the only proper exit
-       ! code from the read.
-       call document(subname, 'ERROR reading MARBL namelist file into buffer.')
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
-    endif
-
-    ! (d) Otherwise broadcast namelist contents to all tasks
-    call broadcast_scalar(nl_str, master_task)
-
-    ! (e) process namelist string to store in marbl_nl_buffer
-    call namelist_split_by_line(nl_str, marbl_nl_buffer)
-
-    ! now every process reads the namelists from the buffer
-    ioerror_msg=''
-
     !-----------------------------------------------------------------------
     !  timer init
     !-----------------------------------------------------------------------
@@ -405,18 +345,56 @@ contains
     endif
 
     !--------------------------------------------------------------------
-    !  Initialize marbl
+    !  Initialize MARBL
     !--------------------------------------------------------------------
 
-    ! Set up mapping between columns we pass to MARBL and the POP indices
+    ! (1) Read marbl input file and call put_setting()
+
+    ! (1a) only master task opens file
+    if (my_task == master_task) &
+       ! read the marbl_in into buffer
+       open(unit=nml_in, file=marbl_settings_file, iostat=nml_error)
+    call broadcast_scalar(nml_error, master_task)
+    if (nml_error .ne. 0) then
+      write(stdout, '(a, a, i8, a, a)') subname, ": IO ERROR ", nml_error, &
+           "opening namelist file : ", trim(marbl_settings_file)
+      call exit_POP(sigAbort, 'Stopping in ' // subname)
+    end if
+
+    ! (1b) master task reads file and broadcasts line-by-line
+    marbl_nl_line = ''
+    do
+      ! i. Read next line on master, iostat value out
+      !    (Exit loop if read is not successful; either read error or end of file)
+      if (my_task .eq. master_task) read(nml_in, "(A)", iostat=nml_error) marbl_nl_line
+      call broadcast_scalar(nml_error, master_task)
+      if (nml_error .ne. 0) exit
+
+      ! ii. Broadcast line just read in on master_task to all tasks
+      call broadcast_scalar(marbl_nl_line, master_task)
+
+      ! iii. Call put_setting from each block
+      do iblock=1, nblocks_clinic
+         ! call marbl_instance%put line by line
+         call marbl_instances(iblock)%put_setting(marbl_nl_line)
+      end do
+    end do
+
+    ! (1c) we should always reach the EOF to capture the entire file...
+    if (.not. is_iostat_end(nml_error)) then
+       write(stdout, '(4a, i0)') subname, &
+            ": IO ERROR reading ", trim(marbl_settings_file), ": ", nml_error
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
+    else
+       write(stdout, '(a, a, a)') "Read '", trim(marbl_settings_file), "' until EOF."
+    end if
+    if (my_task == master_task) close(nml_in)
+
+    ! (2) Set up mapping between columns we pass to MARBL and the POP indices
     call gen_marbl_to_pop_index_mapping()
 
+    ! (3) call marbl%init()
     do iblock=1, nblocks_clinic
-
-       ! call marbl_instance%put line by line
-       do n=1,size(marbl_nl_buffer)
-         call marbl_instances(iblock)%put_setting(marbl_nl_buffer(n))
-       end do
 
        call marbl_instances(iblock)%init(                                     &
             gcm_num_levels = km,                                              &
@@ -505,6 +483,7 @@ contains
     di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
     di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
 
+    o2_ind    = marbl_instances(1)%get_tracer_index('O2')
     no3_ind   = marbl_instances(1)%get_tracer_index('NO3')
     po4_ind   = marbl_instances(1)%get_tracer_index('PO4')
     don_ind   = marbl_instances(1)%get_tracer_index('DON')
@@ -868,8 +847,7 @@ contains
 
              call timer_start(ecosys_interior_marbl_tavg, block_id=bid)
 
-             call ecosys_tavg_accumulate_interior((/i/), (/c/), bid, &
-                  marbl_instances(bid)%interior_forcing_diags)
+             call ecosys_tavg_accumulate_interior(i, c, marbl_instances(bid), bid)
 
              call timer_stop(ecosys_interior_marbl_tavg, block_id=bid)
 
@@ -1309,12 +1287,16 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_tavg_forcing()
+  subroutine ecosys_driver_tavg_forcing(stf_module, bid)
 
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
+    real (r8), dimension(:,:,:), intent(in) :: stf_module
+    integer,                     intent(in) :: bid
 
-    call ecosys_tavg_accumulate_surface(surface_forcing_diags, marbl_instances(:))
+    call ecosys_tavg_accumulate_surface(marbl_col_to_pop_i(1:marbl_col_cnt(bid),bid), &
+                                        marbl_col_to_pop_j(1:marbl_col_cnt(bid),bid), &
+                                        stf_module(:,:,:), marbl_instances(bid), bid)
 
   end subroutine ecosys_driver_tavg_forcing
 

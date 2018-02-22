@@ -314,7 +314,7 @@
 
 
 #ifdef _HIRES
-   qsw_eps = -1.e-8_r8
+   qsw_eps = -1.e-3_r8
 #else
    qsw_eps = c0
 #endif

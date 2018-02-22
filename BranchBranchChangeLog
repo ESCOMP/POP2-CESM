@@ -2,6 +2,72 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    22 Feb 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n108_marbl_dev_n76_cesm_pop_2_1_20180205
+Tag Summary: merge marbl_dev_n76 tag to this branch
+
+Testing:
+MARBL commit 9dc105aaa276df729ea9d2a2c7d25c097fe4f7b7 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n105)
+   except for tests mentioned below, all tests pass
+      BASELINE and NLCOMP comparisons all fail
+      some MEMCOMP and TPUTCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       ChangeLog
+A  +    Externals.cfg
+A  +    Externals_POP.cfg
+A  +    MARBL_scripts
+A  +    README_EXTERNALS
+D       SVN_EXTERNAL_DIRECTORIES
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+D       cime_config/MARBL_settings_wrapper
+D       cime_config/MARBL_settings_wrapper/MARBL_settings.py
+D       cime_config/MARBL_settings_wrapper/__init__.py
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+ M      drivers/cpl
+ M      drivers/cpl_none
+A  +    externals
+M       input_templates/gx1v7_tavg_contents
+D       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+A  +    input_templates/tx0.1v3_POP_DomainSizeMod.F90
+A  +    input_templates/tx0.1v3_depth_accel
+A  +    input_templates/tx0.1v3_domain_size.F90
+A  +    input_templates/tx0.1v3_history_contents
+A  +    input_templates/tx0.1v3_movie_contents
+A  +    input_templates/tx0.1v3_region_ids
+A  +    input_templates/tx0.1v3_tavg_contents
+A  +    input_templates/tx0.1v3_transport_contents
+A  +    input_templates/tx0.1v3_vert_grid
+M       source/baroclinic.F90
+M       source/diagnostics.F90
+A  +    source/ecosys_diagnostics_operators_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/forcing.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+A  +    source/utils_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    23 Jan 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n107_marbl_dev_n71_cesm_pop_2_1_20171213
 Tag Summary: improve treatment of phys_cycle in compsets

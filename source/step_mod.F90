@@ -1686,12 +1686,13 @@
      endif
     endif ! lrf_prnt_conserve_adj
 
-
+#ifndef _HIRES
    !*** collect TEMP at specified levels
    if (km >= 27) &
       call accumulate_tavg_field(TRACER(:,:,27,1,curtime,iblock),tavg_TEMP_27,iblock,27)
 !  if (km >= 43) &
 !     call accumulate_tavg_field(TRACER(:,:,43,1,curtime,iblock),tavg_TEMP_43,iblock,43)
+#endif
 
    if (iblock == 1) first_trip = .false.
 
