@@ -2,6 +2,30 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    5 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n109_marbl_dev_n76_cesm_pop_2_1_20180205
+Tag Summary: masking for FLUX_100m vars, update diags for C budgets, ignore sub-sea floor dtracer values
+
+Testing:
+MARBL commit bc132fd450f9c221782eb693465276b70e91f329 enhancment/C_budget_diags branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n108)
+   except for tests mentioned below, all tests pass
+      BASELINE tests fail because of roundoff differences in some diags
+      NLCOMP comparisons fail because of new MARBL settings
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    22 Feb 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n108_marbl_dev_n76_cesm_pop_2_1_20180205
 Tag Summary: merge marbl_dev_n76 tag to this branch

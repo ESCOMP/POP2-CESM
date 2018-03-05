@@ -257,6 +257,8 @@ contains
   subroutine ecosys_tavg_define_from_diag(marbl_diags, stream_cnt, tavg_ids)
 
     use tavg, only : tavg_method_avg
+    use domain_size, only : km
+    use grid, only : zw
 
     implicit none
 
@@ -268,8 +270,20 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(char_len) :: err_msg, gloc, coords, short_name
-    integer :: m, n, ndims
+    integer :: m, n, ndims, mask_k
+
+    real (r8), parameter :: depth_ref = 100.0e2_r8
+    integer :: k_ref
     !-----------------------------------------------------------------------
+
+    ! find layer containing depth_ref, i.e., zw(k-1) .le. depth_ref .lt. zw(k)
+    if (depth_ref .lt. zw(km)) then
+      do k_ref = 1, km
+        if (depth_ref .lt. zw(k_ref)) exit
+      end do
+    else
+      k_ref = km
+    end if
 
     associate(diags => marbl_diags%diags(:))
 
@@ -278,6 +292,11 @@ contains
             ndims = 2
             gloc = '2110'
             coords = 'TLONG TLAT time'
+            if (index(diags(n)%short_name, 'FLUX_100m') > 0) then
+               mask_k = k_ref
+            else
+               mask_k = 1
+            end if
          else
             ndims = 3
             if (trim(diags(n)%vertical_grid).eq.'layer_avg') then
@@ -289,8 +308,8 @@ contains
                   coords = 'TLONG TLAT z_t time'
                end if
             elseif (trim(diags(n)%vertical_grid).eq.'layer_iface') then
-               gloc = '3113'
-               coords = 'TLONG TLAT z_w_bot time'
+               gloc = '3112'
+               coords = 'TLONG TLAT z_w_top time'
             else
                write(err_msg,*) "'", trim(diags(n)%vertical_grid), &
                     "' is not a valid vertical grid"
@@ -304,15 +323,28 @@ contains
            else
              write(short_name, "(A,'_',I0)") trim(diags(n)%short_name), m
            end if
-           call define_tavg_field(tavg_ids(n,m),    &
-                short_name,                         &
-                ndims,                              &
-                tavg_method = tavg_method_avg,      &
-                long_name=trim(diags(n)%long_name), &
-                units=trim(diags(n)%units),         &
-                grid_loc=gloc,                      &
-                coordinates=coords,                 &
-                transpose_field=(ndims .eq. 3))
+           if (ndims .eq. 2) then
+             call define_tavg_field(tavg_ids(n,m),    &
+                  short_name,                         &
+                  ndims,                              &
+                  tavg_method = tavg_method_avg,      &
+                  long_name=trim(diags(n)%long_name), &
+                  units=trim(diags(n)%units),         &
+                  grid_loc=gloc,                      &
+                  mask_k=mask_k,                      &
+                  coordinates=coords,                 &
+                  transpose_field=(ndims .eq. 3))
+           else
+             call define_tavg_field(tavg_ids(n,m),    &
+                  short_name,                         &
+                  ndims,                              &
+                  tavg_method = tavg_method_avg,      &
+                  long_name=trim(diags(n)%long_name), &
+                  units=trim(diags(n)%units),         &
+                  grid_loc=gloc,                      &
+                  coordinates=coords,                 &
+                  transpose_field=(ndims .eq. 3))
+           end if
          end do
       end do
     end associate

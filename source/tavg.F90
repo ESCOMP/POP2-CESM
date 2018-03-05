@@ -110,6 +110,7 @@
       logical                 :: transpose_field  ! accumulate k dim first
       real (r4), dimension(2) :: valid_range      ! min/max
       integer (i4)            :: km = -1          ! number of vertical levels (km or zt_150m_levs; -1 => 0D, 2D)
+      integer (i4)            :: mask_k           ! k passed to tavg_mask for 2d variables
       integer (i4)            :: ndims            ! num dims (0, 2 or 3)
       integer (i4)            :: buf_loc          ! location in buffer
       integer (i4)            :: method           ! method for averaging
@@ -1795,7 +1796,7 @@
           else if (avail_tavg_fields(nfield)%ndims == 2) then
 
             if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-              call tavg_mask(TAVG_BUF_2D(:,:,:,loc),avail_tavg_fields(nfield),1)
+              call tavg_mask(TAVG_BUF_2D(:,:,:,loc),avail_tavg_fields(nfield),avail_tavg_fields(nfield)%mask_k)
             endif
 
             tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
@@ -3961,7 +3962,7 @@
 
  subroutine define_tavg_field(id, short_name, ndims, tavg_method,       &
                                   long_name, units,                     &
-                                  grid_loc, valid_range,                &
+                                  grid_loc, valid_range, mask_k,        &
                                   field_loc, field_type,coordinates,    &
                                   scale_factor,                         &
                                   transpose_field,                      &
@@ -3991,6 +3992,7 @@
       ndims                     ! number of dims of the field
 
    integer (i4), intent(in), optional :: &
+      mask_k,                 &! k passed to tavg_mask for 2d variables
       field_loc,              &! location in grid 
       field_type,             &! type of field (scalar, vector, angle)
       tavg_method              ! id for method of averaging
@@ -4152,6 +4154,17 @@
       tavg_field%coordinates = coordinates
    else
       tavg_field%coordinates = char_blank
+   endif
+
+   if (present(mask_k)) then
+      if (ndims .ne. 2) then
+         exit_string = 'FATAL ERROR: mask_k can only be provided for 2D vars'
+         call document ('define_tavg_field', exit_string)
+         call exit_POP (sigAbort,exit_string,out_unit=stdout)
+      end if
+      tavg_field%mask_k = mask_k
+   else
+      tavg_field%mask_k = 1
    endif
 
    !*** set field location, field type used by i/o, ghost cell update

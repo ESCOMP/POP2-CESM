@@ -833,7 +833,7 @@ contains
              end do
 
              do n = 1, ecosys_tracer_cnt
-                dtracer_module(i, c, :, n) = marbl_instances(bid)%column_dtracers(n, :)
+                dtracer_module(i, c, 1:KMT(i, c, bid), n) = marbl_instances(bid)%column_dtracers(n, 1:KMT(i, c, bid))
              end do
 
              ! copy values to be used in computing requested global averages
