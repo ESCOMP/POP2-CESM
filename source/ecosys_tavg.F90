@@ -257,6 +257,7 @@ contains
   subroutine ecosys_tavg_define_from_diag(marbl_diags, stream_cnt, tavg_ids)
 
     use tavg, only : tavg_method_avg
+    use constants, only : cmperm
     use domain_size, only : km
     use grid, only : zw
 
@@ -270,20 +271,12 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(char_len) :: err_msg, gloc, coords, short_name
-    integer :: m, n, ndims, mask_k
+    integer :: m, n, ndims
 
-    real (r8), parameter :: depth_ref = 100.0e2_r8
-    integer :: k_ref
+    real (r8) :: ref_depth_cm
+    integer :: ref_k
     !-----------------------------------------------------------------------
 
-    ! find layer containing depth_ref, i.e., zw(k-1) .le. depth_ref .lt. zw(k)
-    if (depth_ref .lt. zw(km)) then
-      do k_ref = 1, km
-        if (depth_ref .lt. zw(k_ref)) exit
-      end do
-    else
-      k_ref = km
-    end if
 
     associate(diags => marbl_diags%diags(:))
 
@@ -292,10 +285,14 @@ contains
             ndims = 2
             gloc = '2110'
             coords = 'TLONG TLAT time'
-            if (index(diags(n)%short_name, 'FLUX_100m') > 0) then
-               mask_k = k_ref
+            ! find layer containing ref_depth, i.e., zw(k-1) .le. ref_depth .lt. zw(k)
+            ref_depth_cm = cmperm * diags(n)%ref_depth
+            if (ref_depth_cm .lt. zw(km)) then
+              do ref_k = 1, km
+                if (ref_depth_cm .lt. zw(ref_k)) exit
+              end do
             else
-               mask_k = 1
+              ref_k = km
             end if
          else
             ndims = 3
@@ -331,7 +328,7 @@ contains
                   long_name=trim(diags(n)%long_name), &
                   units=trim(diags(n)%units),         &
                   grid_loc=gloc,                      &
-                  mask_k=mask_k,                      &
+                  mask_k=ref_k,                       &
                   coordinates=coords,                 &
                   transpose_field=(ndims .eq. 3))
            else
@@ -354,4 +351,3 @@ contains
 end module ecosys_tavg
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-

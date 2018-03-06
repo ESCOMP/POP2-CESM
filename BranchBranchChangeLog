@@ -2,6 +2,29 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    6 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n110_marbl_dev_n77_cesm_pop_2_1_20180205
+Tag Summary: merge marbl_dev_n77 tag to this branch; get ref_depth, for masking 2D diagnostics, from MARBL
+
+Testing:
+MARBL commit 1b95f4b812017bc160fe3cbea20a1f9b7d4bff7e enhancment/C_budget_diags branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n109)
+   except for tests mentioned below, all tests pass
+      NLCOMP comparisons fail because particulate_flux_ref_depth was changed from real to integer
+      some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       Externals_POP.cfg
+M       source/ecosys_tavg.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    5 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n109_marbl_dev_n76_cesm_pop_2_1_20180205
 Tag Summary: masking for FLUX_100m vars, update diags for C budgets, ignore sub-sea floor dtracer values
