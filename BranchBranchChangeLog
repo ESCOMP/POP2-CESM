@@ -4,8 +4,9 @@ Developers:  mlevy
 Tag Date:    23 Feb 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n170_marbl_dev_n78_cesm_pop_2_1_20180205
 Tag Summary: merge latest marbl_dev tag (n78) onto marbl_dev_levy
+             also, fix units of U10_SQR diagnostic
 
-Testing:     None, this tag is identical to marbl_dev_n78
+Testing:     None, this tag is identical to marbl_dev_n78 (except for units)
 
 Files Modified:
 M       BranchChangeLog

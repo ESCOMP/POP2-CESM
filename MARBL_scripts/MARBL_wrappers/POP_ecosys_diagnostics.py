@@ -39,10 +39,6 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     fout.write("COARSE_DUST_FLUX_CPL : medium_average\n")
     fout.write("BLACK_CARBON_FLUX_CPL : medium_average\n")
 
-    # U10_SQR
-    fout.write("#\n# Running means computed for MARBL\n#\n")
-    fout.write("U10_SQR : never_average\n")
-
     # If adjusting bury coefficients, add running means to requested diagnostics
     if ladjust_bury_coeff:
         fout.write("#\n# Running means computed for MARBL\n#\n")
