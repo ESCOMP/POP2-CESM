@@ -3,6 +3,28 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    8 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n112_marbl_dev_n78_cesm_pop_2_1_20180205
+Tag Summary: change namelist defaults for ecosys IC and forcing
+
+Testing: none
+MARBL commit 539e2700c36a71839769ce3562f675a9a156d720 master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n110)
+   except for tests mentioned below, all tests pass
+      NLCOMP comparisons fail because of changed default values
+      BASELINE comparisons fail because of changes in IC and forcings
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    8 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n111_marbl_dev_n78_cesm_pop_2_1_20180205
 Tag Summary: merge marbl_dev_n78 tag to this branch
 
