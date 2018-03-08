@@ -39,6 +39,10 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     fout.write("COARSE_DUST_FLUX_CPL : medium_average\n")
     fout.write("BLACK_CARBON_FLUX_CPL : medium_average\n")
 
+    # U10_SQR
+    fout.write("#\n# Running means computed for MARBL\n#\n")
+    fout.write("U10_SQR : never_average\n")
+
     # If adjusting bury coefficients, add running means to requested diagnostics
     if ladjust_bury_coeff:
         fout.write("#\n# Running means computed for MARBL\n#\n")
@@ -139,8 +143,11 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     # DIC_ALT_CO2
     if 'DIC_ALT_CO2' in full_diag_dict.keys():
         full_diag_dict['DIC_ALT_CO2']['diags']['DIC_ALT_CO2_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DIC_ALT_CO2']['diags']['J_DIC_ALT_CO2'] = 'medium_average'
+        full_diag_dict['DIC_ALT_CO2']['diags']['Jint_100m_DIC_ALT_CO2'] = 'medium_average'
         full_diag_dict['DIC_ALT_CO2']['diags']['tend_zint_100m_DIC_ALT_CO2'] = 'medium_average'
         full_diag_dict['DIC_ALT_CO2']['diags']['FvPER_DIC_ALT_CO2'] = 'medium_average'
+        full_diag_dict['DIC_ALT_CO2']['diags']['FvICE_DIC_ALT_CO2'] = 'medium_average'
         full_diag_dict['DIC_ALT_CO2']['properties']['include budget terms'] = True
         full_diag_dict['DIC_ALT_CO2']['properties']['has surface flux'] = True
     # ALK
@@ -156,7 +163,12 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     # ALK_ALT_CO2
     if 'ALK_ALT_CO2' in full_diag_dict.keys():
         full_diag_dict['ALK_ALT_CO2']['diags']['ALK_ALT_CO2_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['ALK_ALT_CO2']['diags']['STF_ALK_ALT_CO2'] = 'medium_average'
+        full_diag_dict['ALK_ALT_CO2']['diags']['J_ALK_ALT_CO2'] = 'low_average'
+        full_diag_dict['ALK_ALT_CO2']['diags']['Jint_100m_ALK_ALT_CO2'] = 'medium_average'
+        full_diag_dict['ALK_ALT_CO2']['diags']['tend_zint_100m_ALK_ALT_CO2'] = 'medium_average'
         full_diag_dict['ALK_ALT_CO2']['diags']['FvPER_ALK_ALT_CO2'] = 'medium_average'
+        full_diag_dict['ALK_ALT_CO2']['diags']['FvICE_ALK_ALT_CO2'] = 'medium_average'
         full_diag_dict['ALK_ALT_CO2']['properties']['has surface flux'] = True
     # DOC
     if 'DOC' in full_diag_dict.keys():
@@ -164,7 +176,7 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['DOC']['diags']['Jint_100m_DOC'] = 'medium_average'
         full_diag_dict['DOC']['diags']['tend_zint_100m_DOC'] = 'medium_average'
         full_diag_dict['DOC']['properties']['include budget terms'] = True
-        full_diag_dict['DOC']['properties']['has surface flux'] = False # REALLY? STF_DOC has non-zero values
+        full_diag_dict['DOC']['properties']['has surface flux'] = False # this should be True if EBM is off
     # DON
     if 'DON' in full_diag_dict.keys():
         full_diag_dict['DON']['diags']['DON_RIV_FLUX'] = 'medium_average'
@@ -184,7 +196,10 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
     # DOCr
     if 'DOCr' in full_diag_dict.keys():
         full_diag_dict['DOCr']['diags']['DOCr_RIV_FLUX'] = 'medium_average'
-        full_diag_dict['DOCr']['properties']['has surface flux'] = True
+        full_diag_dict['DOCr']['diags']['Jint_100m_DOCr'] = 'medium_average'
+        full_diag_dict['DOCr']['diags']['tend_zint_100m_DOCr'] = 'medium_average'
+        full_diag_dict['DOCr']['properties']['include budget terms'] = True
+        full_diag_dict['DOCr']['properties']['has surface flux'] = False # this should be True if EBM is off
     # DI13C
     if 'DI13C' in full_diag_dict.keys():
         full_diag_dict['DI13C']['diags']['DI13C_RIV_FLUX'] = 'medium_average'

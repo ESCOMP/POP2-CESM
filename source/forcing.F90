@@ -226,8 +226,8 @@
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_U10_SQR,'U10_SQR',2,                  &
-                          long_name='10m wind speed squared',      &
-                          units='cm^2/^s', grid_loc='2110',        &
+                          long_name='10m wind speed squared',        &
+                          units='cm^2/s^2', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_FINE_DUST_FLUX_CPL,'FINE_DUST_FLUX_CPL',2, &
