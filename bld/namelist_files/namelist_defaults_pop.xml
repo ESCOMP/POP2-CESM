@@ -1373,8 +1373,8 @@
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>
 <ciso_tracer_init_ext(1)%scale_factor>1.025</ciso_tracer_init_ext(1)%scale_factor>
 
-<ciso_tracer_init_ext(2)%mod_varname>DO13C</ciso_tracer_init_ext(2)%mod_varname>
-<ciso_tracer_init_ext(2)%file_varname>DOC</ciso_tracer_init_ext(2)%file_varname>
+<ciso_tracer_init_ext(2)%mod_varname>DO13Ctot</ciso_tracer_init_ext(2)%mod_varname>
+<ciso_tracer_init_ext(2)%file_varname>DOCtot</ciso_tracer_init_ext(2)%file_varname>
 <ciso_tracer_init_ext(2)%scale_factor>1.0</ciso_tracer_init_ext(2)%scale_factor>
 
 <ciso_tracer_init_ext(3)%mod_varname>zoo13C</ciso_tracer_init_ext(3)%mod_varname>
@@ -1385,8 +1385,8 @@
 <ciso_tracer_init_ext(4)%file_varname>DIC</ciso_tracer_init_ext(4)%file_varname>
 <ciso_tracer_init_ext(4)%scale_factor>0.9225</ciso_tracer_init_ext(4)%scale_factor>
 
-<ciso_tracer_init_ext(5)%mod_varname>DO14C</ciso_tracer_init_ext(5)%mod_varname>
-<ciso_tracer_init_ext(5)%file_varname>DOC</ciso_tracer_init_ext(5)%file_varname>
+<ciso_tracer_init_ext(5)%mod_varname>DO14Ctot</ciso_tracer_init_ext(5)%mod_varname>
+<ciso_tracer_init_ext(5)%file_varname>DOCtot</ciso_tracer_init_ext(5)%file_varname>
 <ciso_tracer_init_ext(5)%scale_factor>1.0</ciso_tracer_init_ext(5)%scale_factor>
 
 <ciso_tracer_init_ext(6)%mod_varname>zoo14C</ciso_tracer_init_ext(6)%mod_varname>

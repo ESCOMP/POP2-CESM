@@ -3,10 +3,33 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    8 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n113_marbl_dev_n78_cesm_pop_2_1_20180205
+Tag Summary: change references of do1{3,4}c to do1{3,4}ctot, including ciso IC
+
+Testing:
+MARBL commit a1ffaaf09af8a848c6f251fe9a7ccaf390df62dd bugfix/215 branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n112)
+   except for tests mentioned below, all tests pass
+      NLCOMP failed for all tests because of changes to ciso_tracer_init_ext in POP
+      BASELINE failed for ciso tests because of changed IC and source term
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    8 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n112_marbl_dev_n78_cesm_pop_2_1_20180205
 Tag Summary: change namelist defaults for ecosys IC and forcing
 
-Testing: none
+Testing:
 MARBL commit 539e2700c36a71839769ce3562f675a9a156d720 master branch
 
 aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n110)
