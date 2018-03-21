@@ -5483,7 +5483,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc or fesedflux_gx1v6_etopo2v2_18gmol_cesm1_93_20161104.nc
+Default: fesedflux_gx3v7_cesm1_97_2017.nc or fesedflux_gx1v6_cesm2_2017.nc
 </entry>
 
 <entry
@@ -5524,7 +5524,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: feventflux_gx3v7_8gmol_constant_20161122.nc or feventflux_gx1v6_10gmol_constant_20161118.nc
+Default: feventflux_gx3v7_5gmol_cesm1_97_2017.nc or feventflux_gx1v6_5gmol_cesm1_97_2017.nc
 </entry>
 
 <entry
@@ -6332,7 +6332,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_tracer_init_nml"
 input_pathname="abs" >
-Default: ecosys_jan_IC_gx3v7_20161123.nc or ecosys_jan_IC_gx1v6_20161123.nc (none provided for tripole grids)
+Default: ecosys_jan_IC_gx3v7_20180308.nc or ecosys_jan_IC_gx1v6_20180308.nc (none provided for tripole grids)
 </entry>
 
 <entry

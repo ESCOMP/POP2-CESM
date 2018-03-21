@@ -38,7 +38,7 @@ module ecosys_forcing_mod
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
-  use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13ctot_ind, do14ctot_ind
 
   use forcing_timeseries_mod, only : forcing_timeseries_dataset
 
@@ -1105,8 +1105,8 @@ contains
           lhas_riv_flux(doc_ind) = .true.
           lhas_riv_flux(docr_ind) = .true.
           if (ciso_on) then
-            lhas_riv_flux(do13c_ind) = .true.
-            lhas_riv_flux(do14c_ind) = .true.
+            lhas_riv_flux(do13ctot_ind) = .true.
+            lhas_riv_flux(do14ctot_ind) = .true.
           endif
         case default
           call document(subname, 'unhandled riv_flux file_varname ', file_varname)
@@ -2052,10 +2052,10 @@ contains
 
       if (ciso_on) then
         conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
-        stf_riv(:,:,do13c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+        stf_riv(:,:,do13ctot_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
         conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
-        stf_riv(:,:,do14c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+        stf_riv(:,:,do14ctot_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
       endif
     endif
 
