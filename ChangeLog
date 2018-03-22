@@ -17,12 +17,11 @@ M       Externals_POP.cfg
 M       bld/build-namelist
 M       bld/namelist_files/namelist_defaults_pop.xml
 M       bld/namelist_files/namelist_definition_pop.xml
-?       input_templates/ocn.base.tavg.csh.nstep
-?       input_templates/ocn.vmix.tavg.csh
-?       manage_externals.log
+A       input_templates/ocn.base.tavg.csh.nstep
+A       input_templates/ocn.vmix.tavg.csh
 M       source/baroclinic.F90
 M       source/budget_diagnostics.F90
-?       source/geoheatflux.F90
+A       source/geoheatflux.F90
 M       source/initial.F90
 M       source/niw_mixing.F90
 M       source/restart.F90
