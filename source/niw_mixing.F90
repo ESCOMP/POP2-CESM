@@ -97,11 +97,14 @@
       niw_vert_decay_scale,  &! namelist variable; vertical decay scale for turbulence (cm)
       niw_mix_max             ! namelist variable; maximum diffusivity for niw (cm**2/sec)
 
-   integer (int_kind) ::     &! diagnostic niw history fields
+   integer (int_kind),       &
+              public ::      &! diagnostic niw history fields
       tavg_KVNIW,            &! tavg id for near-inertial wave tracer diffusivity
       tavg_KVNIW_M,          &! tavg id for near-inertial wave vertical momentum viscosity
       tavg_N2,               &! tavg id for bouyancy frequency squared
-      tavg_BFNIW              ! tavg id for bouyancy flux of near-inertial waves
+      tavg_BFNIW,            &! tavg id for bouyancy flux of near-inertial waves
+      tavg_KE_BL,            &! tavg id for boundary layer kinetic energy
+      tavg_En                 ! tavg id for NIW energy flux
 
 !EOP
 !BOC
@@ -445,6 +448,16 @@
                           units='cm^2 s^-3',                &
                           grid_loc='3113',                  &
                           coordinates  ='TLONG TLAT z_w_bot time' )
+
+   call define_tavg_field(tavg_KE_BL,'KE_BL',2,                 &
+                          long_name='Boundary Layer KE',        &
+                          units='ergs/centimeter**2',           &
+                          grid_loc='2221')
+   call define_tavg_field(tavg_En,'En',2,                       &
+                          long_name='En for Boundary Layer KE ',&
+                          units='Watts/meter^2',                &
+                          grid_loc='2221')
+
 
 !-----------------------------------------------------------------------
 !EOC

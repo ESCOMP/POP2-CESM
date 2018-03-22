@@ -58,7 +58,7 @@
 <entry
 id="nprocs_clinic"
 type="integer"
-category="decomp"
+category="Domain"
 group="domain_nml" >
 Number of processors in the baroclinic distribution.
 
@@ -68,7 +68,7 @@ Default: Set by CESM scripts
 <entry
 id="nprocs_tropic"
 type="integer"
-category="decomp"
+category="Domain"
 group="domain_nml" >
 Number of processors in the barotropic distribution.
 
@@ -78,10 +78,10 @@ Default: Set by CESM scripts
 <entry
 id="clinic_distribution_type"
 type="char*256"
-category="decomp"
+category="Domain"
 group="domain_nml"
 valid_values="cartesian,balanced,spacecurve,blockone" >
-Method to use to distribute blocks in baroclinic distribution.
+Selector for method used to distribute blocks in baroclinic distribution.
 
 Valid Values: 'cartesian', 'balanced', 'spacecurve', 'blockone'
 Default: 'cartesian'
@@ -90,10 +90,10 @@ Default: 'cartesian'
 <entry
 id="tropic_distribution_type"
 type="char*256"
-category="decomp"
+category="Domain"
 group="domain_nml"
 valid_values="cartesian,balanced,spacecurve,blockone" >
-Method to use to distribute blocks in barotropic distribution.
+Selector for method used to distribute blocks in barotropic distribution.
 
 Valid Values: 'cartesian', 'balanced', 'spacecurve', 'blockone'
 Default: 'cartesian'
@@ -102,10 +102,10 @@ Default: 'cartesian'
 <entry
 id="ew_boundary_type"
 type="char*256"
-category="decomp"
+category="Domain"
 group="domain_nml"
 valid_values="cyclic,closed" >
-Type of boundary in the logical east-west direction for global domain.
+Selector for type of boundary used in the logical east-west direction for global domain.
 
 Valid Values: 'cyclic', 'closed'
 Default: 'cyclic'
@@ -114,10 +114,10 @@ Default: 'cyclic'
 <entry
 id="ns_boundary_type"
 type="char*256"
-category="decomp"
+category="Domain"
 group="domain_nml"
 valid_values="cyclic,closed,tripole" >
-Type of boundary in the logical north-south direction for global domain.
+Selector for type of boundary used in the logical north-south direction for global domain. 
 
 Valid Values: 'cyclic', 'closed', 'tripole'
 Default: 'closed'
@@ -126,7 +126,7 @@ Default: 'closed'
 <entry
 id="profile_barrier"
 type="logical"
-category="decomp"
+category="Domain"
 group="domain_nml" >
 Flag to add MPI_Barrier calls for timing studies in time-step module.
 
@@ -140,7 +140,7 @@ Default: .false.
 <entry
 id="num_iotasks"
 type="integer"
-category="io"
+category="IO"
 group="io_nml" >
 Number of input / output tasks.
 
@@ -150,7 +150,7 @@ Default: 1
 <entry
 id="lredirect_stdout"
 type="logical"
-category="io"
+category="IO"
 group="io_nml" >
 Flag to redirect stdout to a log file.
 
@@ -160,9 +160,9 @@ Default: '.true.'
 <entry
 id="log_filename"
 type="char*256"
-category="io"
+category="IO"
 group="io_nml" >
-Root name for log file.
+Root name for ocean-model log file.
 
 Default: Set by CESM scripts.
 </entry>
@@ -170,9 +170,9 @@ Default: Set by CESM scripts.
 <entry
 id="luse_pointer_files"
 type="logical"
-category="io"
+category="IO"
 group="io_nml" >
-Flag to use files to point to location of restarts.
+Flag to activate the use of pointer files, which point to the location of restart files.
 
 Default: '.true.'
 </entry>
@@ -180,9 +180,9 @@ Default: '.true.'
 <entry
 id="pointer_filename"
 type="char*256"
-category="io"
+category="IO"
 group="io_nml" >
-Name of file that points to location of restarts.
+Root filename of the file that points to location of restarts.
 
 Default: rpointer.ocn.* (found in $RUNDIR)
 </entry>
@@ -194,7 +194,7 @@ Default: rpointer.ocn.* (found in $RUNDIR)
 <entry
 id="runid"
 type="char*256"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
 The CESM identifier for the run.
 
@@ -204,33 +204,29 @@ Default: $CASENAME
 <entry
 id="time_mix_opt"
 type="char*256"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml"
-valid_values="avg,avgbb,avgfit,robert" >
+valid_values="avgbb,avgfit,robert" >
 Option for time mixing:
+   avgbb  = DEPRECATED OPTION. leapfrog with occasional time-averaging timestep, immediately
+            followed by another time-averaging timestep ("back-to-back" avg). DO NOT USE THIS
+            OPTION in scientific experiments.
    avgfit = leapfrog with occasional time-averaging timestep to control stability.
             The timestep is modified such that an integer number of full and half timesteps
             fits into each coupling interval.
    robert = leapfrog with modified Robert-Asselin time filtering to control stability.
             The timestep is modifed such that an integer number of full timesteps
             fits into each coupling interval.
-   avg    = leapfrog with occasional time-averaging timestep to control stability.
-            NOT SUPPORTED in CESM, because the timesteps will not always align with
-            a coupling boundary.
-   avgbb  = DEPRECATED OPTION. leapfrog with occasional time-averaging timestep, immediately
-            followed by another time-averaging timestep ("back-to-back" avg). DO NOT USE THIS
-            OPTION in scientific experiments.
 
-Valid Values: 'robert' 'avgfit', 'avg', 'avgbb'
-Default: 'avgfit'
+Valid Values: 'robert' 'avgfit', 'avgbb'
 </entry>
 
 <entry
 id="time_mix_freq"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Frequency of mixing timestep.
+Frequency of mixing timestep. Ignored when time_mix_opt = 'robert'
 
 Default: 17
 </entry>
@@ -238,7 +234,7 @@ Default: 17
 <entry
 id="impcor"
 type="logical"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
 Flag for implicit treatment of Coriolis terms.
 
@@ -248,9 +244,9 @@ Default: .true.
 <entry
 id="laccel"
 type="logical"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Flag for acceleration.
+Flag for timestep acceleration.
 
 Default: .false.
 </entry>
@@ -258,9 +254,9 @@ Default: .false.
 <entry
 id="accel_file"
 type="char*256"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-File containing acceleration factors.
+File containing vertical profile of timestep acceleration factors. 
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -268,9 +264,10 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="dtuxcel"
 type="real"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Factor to multiply MOMENTUM timestep.
+Factor to multiply momentum timestep in order to set the momentum timestep to a
+value different from the tracer timestep.  
 
 Default: 1.0
 </entry>
@@ -278,9 +275,10 @@ Default: 1.0
 <entry
 id="iyear0"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Initial start date and time (year).
+Year at the start of the experiment. iyear0 remains fixed over the course of
+the integration; it does not change if experiment is continued.
 
 Default: 1
 </entry>
@@ -288,9 +286,10 @@ Default: 1
 <entry
 id="imonth0"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Initial start date and time (month).
+Month number at the start of the experiment. imonth0 remains fixed over the course of
+the integration; it does not change if experiment is continued.
 
 Default: 1
 </entry>
@@ -298,9 +297,10 @@ Default: 1
 <entry
 id="iday0"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Initial start date and time (day).
+Day number at the start of the experiment. iday0 remains fixed over the course of
+the integration; it does not change if experiment is continued.
 
 Default: 2
 </entry>
@@ -308,9 +308,10 @@ Default: 2
 <entry
 id="ihour0"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Initial start date and time (hour).
+Hours at the start of the experiment. ihour0 remains fixed over the course of
+the integration; it does not change if experiment is continued.
 
 Default: 0
 </entry>
@@ -318,9 +319,10 @@ Default: 0
 <entry
 id="iminute0"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Initial start date and time (minute).
+Minutes at the start of the experiment. iminute0 remains fixed over the course of
+the integration; it does not change if experiment is continued. 
 
 Default: 0
 </entry>
@@ -328,9 +330,10 @@ Default: 0
 <entry
 id="isecond0"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Initial start date and time (second).
+Seconds at the start of the experiment. isecond0 remains fixed over the course of
+the integration; it does not change if experiment is continued.
 
 Default: 0
 </entry>
@@ -338,13 +341,15 @@ Default: 0
 <entry
 id="dt_option"
 type="char*256"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml"
 valid_values="steps_per_year,steps_per_day,seconds,hours" >
-Method to determine tracer timestep size.
+Selector for units used in determining tracer timestep size; used in conjunction
+with dt_count to serve as a starting point from which POP determines
+the exact model timestep size.
 
-Not all time_mix_opt values are compatible with all dt_option values,
-so steps_per_day is the recommended CESM option.
+Not all permissible time_mix_opt values are compatible with all dt_option values.
+The recommended option is steps_per_day
 
 Valid Values: 'steps_per_year', 'steps_per_day', 'seconds', 'hours'
 Default: 'steps_per_day'
@@ -353,9 +358,10 @@ Default: 'steps_per_day'
 <entry
 id="dt_count"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Input count to determine tracer timestep.
+Number of timesteps in dt_option units. Serves
+as a starting point from which POP determines the exact model timestep size.
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -363,10 +369,11 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="stop_option"
 type="char*256"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml"
 valid_values="never,eoy,eom,eod,nyear,nyears,nmonth,nmonths,nday,ndays,nstep,nsteps,date" >
-Specify how to determine stopping time.
+Units of time for 'stop_count'.
+In conjunction with 'stop_count', determines stopping time.
 
 Valid Values: 'never', 'eoy', 'eom', 'eod', 'nyear', 'nyears', 'nmonth', 'nmonths', 'nday', 'ndays', 'nstep', 'nsteps', 'date'
 Default: 'nyear'
@@ -375,9 +382,9 @@ Default: 'nyear'
 <entry
 id="stop_count"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Number of stop_option intervals before stop OR date (yyyymmdd) at which model stops.
+Number of stop_option units before POP stops OR date (yyyymmdd) at which POP stops.
 
 Default: 1000
 </entry>
@@ -385,9 +392,10 @@ Default: 1000
 <entry
 id="date_separator"
 type="char*1"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Character to separate yyyy-mm-dd.
+Single character used to separate yyyy mm dd in date string. Note a blank space (' ') can be used
+to indicate no separator, but this is not recommended.
 
 Default: "-"
 </entry>
@@ -395,9 +403,9 @@ Default: "-"
 <entry
 id="allow_leapyear"
 type="logical"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Flag to allow leap years.
+Flag to select calendar with leap years.
 
 Default: .false.
 </entry>
@@ -405,9 +413,10 @@ Default: .false.
 <entry
 id="fit_freq"
 type="integer"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
-Number of intervals / days into which full and half timesteps must exactly "fit".
+Number of intervals per day into which full and half timesteps must exactly "fit"
+when using time_mix_opt='avgfit'
 
 Default: 1
 </entry>
@@ -415,7 +424,7 @@ Default: 1
 <entry
 id="robert_alpha"
 type="real"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml">
 Tuning parameter used in Robert filtering.
 
@@ -428,7 +437,7 @@ Default: 1.0
 <entry
 id="robert_nu"
 type="real"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml">
 Tuning parameter used in Robert filtering.
 
@@ -441,7 +450,7 @@ Default: 0.20
 <entry
 id="ltime_mgr_print"
 type="logical"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
 Print time_manager info every timestep and print initial time-flag info.
 
@@ -452,10 +461,10 @@ Default: .false.
 <entry
 id="lrf_conserveVT"
 type="logical"
-category="timemgr"
+category="Time Management"
 group="time_manager_nml" >
 Conserve <volume*TRACER> across each Robert Filtering step. Note that
-this is unstable, so only use as a sanity check over a few days at most.
+this option is unstable, so only use it as a sanity check over a few days at most.
 
 Default: .false.
 </entry>
@@ -466,10 +475,11 @@ Default: .false.
 <entry
 id="horiz_grid_opt"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 valid_values="internal,file" >
-Horizontal grid option.
+Option to define the horizontal grid by reading from an input file ('file') or
+generating the grid internally ('internal')
 
 Valid Values: 'internal', 'file'
 Default: 'file'
@@ -478,10 +488,11 @@ Default: 'file'
 <entry
 id="vert_grid_opt"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 valid_values="internal,file" >
-Vertical grid option.
+Option to define the vertical grid by reading from an input file ('file') or
+generating the grid internally ('internal').
 
 Valid Values: 'internal', 'file'
 Default: 'file'
@@ -490,22 +501,23 @@ Default: 'file'
 <entry
 id="topography_opt"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
-valid_values="internal,bathymetry,file" >
-Topography (KMT) option.
+valid_values="bathymetry,file,internal" >
+Option to define the bottom topography (KMT) by reading discretized values from an input file ('file') or
+generating an idealized flat-bottom topography internally ('internal').
 
-Valid Values: 'internal', 'bathymetry', 'file'
+Valid Values: 'bathymetry','file','internal'
 Default: 'file'
 </entry>
 
 <entry
 id="horiz_grid_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 input_pathname="abs" >
-Input file for reading horizontal grid info.
+Name of the input file (with path) containing horizontal grid information.
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -513,9 +525,10 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="vert_grid_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Input file for reading vertical grid info.
+Name of the input file (with path) containing
+the thickness (cm) of each vertical layer.
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -523,10 +536,11 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="topography_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 input_pathname="abs" >
-Input file for reading topography info.
+Name of the input file containing integer indices of the deepest vertical grid
+level at each horizontal gridpoint.
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -534,9 +548,9 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="topography_outfile"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Output file for writing horizontal grid info.
+Name of the output file for writing horizontal grid information.
 
 Default: '$RUNDIR/$CASENAME.pop.h.topography_bathymetry.ieeer8'
 </entry>
@@ -544,9 +558,9 @@ Default: '$RUNDIR/$CASENAME.pop.h.topography_bathymetry.ieeer8'
 <entry
 id="bathymetry_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Input file for reading bathymetry info.
+Name of an input file containing bathymetry information.
 
 Default: 'unknown_bathymetry'
 </entry>
@@ -554,9 +568,9 @@ Default: 'unknown_bathymetry'
 <entry
 id="n_topo_smooth"
 type="integer"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Number of topo smoothing passes.
+Number of topography smoothing passes.
 
 Default: 0
 </entry>
@@ -564,9 +578,9 @@ Default: 0
 <entry
 id="flat_bottom"
 type="logical"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Flag for flat bottom topography.
+Flag used to select flat-bottom topography.
 
 Default: .false.
 </entry>
@@ -574,9 +588,9 @@ Default: .false.
 <entry
 id="lremove_points"
 type="logical"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Flag for removing isolated points.
+Flag for removing isolated or disconnected ocean gridpoints.
 
 Default: .false.
 </entry>
@@ -584,10 +598,10 @@ Default: .false.
 <entry
 id="region_mask_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 input_pathname="abs" >
-Input file for reading region mask.
+Name of the input file containing integer region number at each horizontal gridpoint. 
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -595,9 +609,12 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="region_info_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Input file with region identification info.
+Name of the input file containing integer region identification numbers at each gridpoint. 
+
+The information in this file associates region ids with a region name; a negative region id 
+indicates a marginal sea.
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -605,10 +622,11 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="sfc_layer_opt"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 valid_values="varthick,rigid,oldfree" >
-Choice for surface layer type.
+Option for surface layer type: variable thickness ('varthick'), rigid lid ('rigid'),
+or old free-surface formulation ('oldfree'). The 'oldfree' option is obsolete.
 
 Valid Values: 'varthick', 'rigid', 'oldfree'
 Default: 'varthick'
@@ -617,9 +635,9 @@ Default: 'varthick'
 <entry
 id="partial_bottom_cells"
 type="logical"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Flag for partial bottom cells.
+Flag to activate the use of partial bottom cells.
 
 Default: .false.
 </entry>
@@ -627,10 +645,10 @@ Default: .false.
 <entry
 id="bottom_cell_file"
 type="char*256"
-category="grid"
+category="Grid"
 group="grid_nml"
 input_pathname="abs" >
-Input file for thickness of partial bottom cells.
+Input file containing thickness (cm) of partial bottom cell for each column.
 
 Default: 'unknown_bottom_cell'
 </entry>
@@ -638,9 +656,9 @@ Default: 'unknown_bottom_cell'
 <entry
 id="kmt_kmin"
 type="integer"
-category="grid"
+category="Grid"
 group="grid_nml" >
-Minimum allowed non-zero KMT value.
+Minimum allowable non-zero KMT value.
 
 Default: 3
 </entry>
@@ -648,7 +666,7 @@ Default: 3
 <entry
 id="l1Ddyn"
 type="logical"
-category="grid"
+category="Grid"
 group="grid_nml" >
 Flag to run POP in 1D dynamics mode (recommend only using with T62_g37 resolution)
 
@@ -662,7 +680,7 @@ Default: .false.
 <entry
 id="lidentical_columns"
 type="logical"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 Flag to treat all columns the same (true 1D run). Recommend only using with
 the T62_g37 resolution; can not be run without l1Ddyn = .true.
@@ -673,7 +691,7 @@ Default: .false.
 <entry
 id="lconst_Coriolis"
 type="logical"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 Flag to run POP with a spatially-constant Coriolis parameter; can not be run
 without l1Ddyn = .true.
@@ -684,7 +702,7 @@ Default: .false.
 <entry
 id="lmin_Coriolis"
 type="logical"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 Flag to run POP with a specified minimum value for the Coriolis parameter; can not be run
 without l1Ddyn = .true.
@@ -695,7 +713,7 @@ Default: .false. if l1Ddyn = .false; .true. if l1Ddyn = .true.
 <entry
 id="Coriolis_min"
 type="real"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 If lmin_Coriolis = .true., this is smallest value for Coriolis parameter.
 (units = 1/s)
@@ -706,7 +724,7 @@ Default: 6.4e-6 (corresponds to ~2.5 degrees)
 <entry
 id="Coriolis_val"
 type="real"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 If lconst_Coriolis = .true., use this value for Coriolis parameter.
 (units = 1/s)
@@ -717,7 +735,7 @@ Default: 1e-4
 <entry
 id="global_taux"
 type="real"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 If lidentical_columns = .true., use this value for tau_x in surface forcing.
 (units = N/m^2, converted in source code)
@@ -728,7 +746,7 @@ Default: 0.1
 <entry
 id="global_SHF_coef"
 type="real"
-category="grid"
+category="Grid (1D)"
 group="pop1d_nml" >
 If lidentical_columns = .true., use this value for SHF coefficient in surface
 forcing (units = W/m^2, converted in source code).
@@ -743,9 +761,14 @@ Default: -100
 <entry
 id="init_ts_option"
 type="char*256"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml" >
-Option for initializing temperature and salinity.
+Option for initializing ocean conditions.
+'ccsm_startup' reads initial temperature and salinity from a file;
+'ccsm_continue' and 'ccsm_branch' read ocean initial conditions from a restart file;
+'ccsm_hybrid' reads ocean initial conditions from a restart file with a different model date; and
+'PHC' remaps PHC Levitus data to POP grid.
+'PHC' is a research option that is available but not publicly supported.
 
 Default: 'ccsm_RUNTYPE'
 </entry>
@@ -753,10 +776,13 @@ Default: 'ccsm_RUNTYPE'
 <entry
 id="init_ts_file"
 type="char*256"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml"
 input_pathname="abs" >
-Input file for initial temperature and salinity.
+Name of the input file containing ocean initial conditions.
+Contents of this file depend on init_ts_option. If luse_pointer_files = .true., and 
+init_ts_option is 'ccsm_continue', 'ccsm_branch', or 'ccsm_hybrid', then
+init_ts_file is ignored and POP reads the file specified in the ocean rpointer files.
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -764,10 +790,10 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="init_ts_file_fmt"
 type="char*256"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml"
 valid_values="bin,nc" >
-init_ts_file format (binary or netCDF).
+Data format type of init_ts_file file; either binary ('bin') or netCDF ('nc').
 
 Valid Values: 'bin', 'nc'
 Default: 'bin'
@@ -776,9 +802,16 @@ Default: 'bin'
 <entry
 id="init_ts_suboption"
 type="char*256"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml" >
-Suboption for initializing temperature and salinity.
+Suboption for initializing temperature and salinity. See CESM documentation. 
+This option should only be used by experts.
+
+If init_ts_suboption = 'spunup', then init_ts_option is set (internally) to 'ccsm_startup_spunup';
+otherwise, this option has no effect. If the spunup suboption is selected, the model T,S are
+initialized from the specified input file, but velocities are initialized to zero, as in 
+a 'ccsm_startup' run.
+This option should only be used by experts. 
 
 Default: 'null'
 </entry>
@@ -786,9 +819,10 @@ Default: 'null'
 <entry
 id="init_ts_outfile"
 type="char*256"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml" >
-Output file for writing temperature and salinity.
+Name of the output file for writing temperature and salinity.
+This file is only generated when init_ts_option = 'PHC'
 
 Default: '$RUNDIR/$CASENAME.pop.h.ts_ic'
 </entry>
@@ -796,10 +830,10 @@ Default: '$RUNDIR/$CASENAME.pop.h.ts_ic'
 <entry
 id="init_ts_outfile_fmt"
 type="char*256"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml"
 valid_values="bin,nc" >
-init_ts_outfile format (binary or netCDF).
+Data format type of init_ts_outfile file; either binary ('bin') or netCDF ('nc').
 
 Valid Values: 'bin', 'nc'
 Default: 'nc'
@@ -808,7 +842,7 @@ Default: 'nc'
 <entry 
 id="init_ts_perturb"
 type="real"
-category="init_ts"
+category="Initialization"
 group="init_ts_nml">
 init_ts_perturb perturbation for ts. 
 
@@ -822,10 +856,10 @@ Default: 1.0e-3
 <entry
 id="diag_global_freq_opt"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml"
 valid_values="never,nyear,nmonth,nday,nhour,nsecond,nstep" >
-Units of diag_global_freq (frequency of global diagnostics).
+Units of time for diag_global_freq (frequency of global diagnostics).
 
 Valid Values: 'never', 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep'
 Default: 'nmonth'
@@ -834,9 +868,9 @@ Default: 'nmonth'
 <entry
 id="diag_global_freq"
 type="integer"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Frequency of global diagnostics.
+Frequency of computing and printing of global diagnostics.
 
 Default: 1
 </entry>
@@ -844,10 +878,10 @@ Default: 1
 <entry
 id="diag_cfl_freq_opt"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml"
 valid_values="never,nyear,nmonth,nday,nhour,nsecond,nstep" >
-Units of diag_cfl_freq (frequency of CFL diagnostics).
+Units of time for diag_cfl_freq (frequency of CFL diagnostics).
 
 Valid Values: 'never', 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep'
 Default: 'nmonth'
@@ -856,19 +890,19 @@ Default: 'nmonth'
 <entry
 id="diag_cfl_freq"
 type="integer"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Frequency of CFL diagnostics.
+Frequency of computing and printing CFL diagnostics.
 Default: 1
 </entry>
 
 <entry
 id="diag_transp_freq_opt"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml"
 valid_values="never,nyear,nmonth,nday,nhour,nsecond,nstep" >
-Units of diag_transp_freq (frequency of transport diagnostics).
+Units of time for diag_transp_freq (frequency of transport diagnostics).
 
 Valid Values: 'never', 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep'
 Default: 'nmonth'
@@ -877,9 +911,9 @@ Default: 'nmonth'
 <entry
 id="diag_transp_freq"
 type="integer"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Frequency of transport diagnostics.
+Frequency of computing and printing transport diagnostics.
 
 Default: 1
 </entry>
@@ -887,9 +921,10 @@ Default: 1
 <entry
 id="diag_transport_file"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Filename for choosing fields for output.
+Name of the file that contains information for choosing fields for output. 
+(the "transport_contents" file name)
 
 Default: Set by CESM scripts based on ocean grid
 </entry>
@@ -897,9 +932,10 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="diag_all_levels"
 type="logical"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Flag to write some global diagnostics for all vertical levels.
+Flag to control the writing of some global diagnostics for all vertical levels.
+If true, tracer mean diagnostics at all vertical levels are computed and printed.
 
 Default: .false.
 </entry>
@@ -907,9 +943,10 @@ Default: .false.
 <entry
 id="cfl_all_levels"
 type="logical"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Flag to write some CFL diagnostics for all vertical levels.
+Flag to control the writing of some CFL diagnostics for all vertical levels.
+If true, CFL diagnostics at all vertical levels are computed and printed.
 
 Default: .false.
 </entry>
@@ -917,9 +954,9 @@ Default: .false.
 <entry
 id="diag_outfile"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Filename for diagnostic output.
+Name of the output file into which diagnostics are written.
 
 Default: '$RUNDIR/$CASENAME.pop.dd'
 </entry>
@@ -927,9 +964,9 @@ Default: '$RUNDIR/$CASENAME.pop.dd'
 <entry
 id="diag_transport_outfile"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Filename for transport output.
+Name of the output file into which transport diagnostics are written.
 
 Default: '$RUNDIR/$CASENAME.pop.dt'
 </entry>
@@ -937,9 +974,9 @@ Default: '$RUNDIR/$CASENAME.pop.dt'
 <entry
 id="diag_velocity_outfile"
 type="char*256"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Filename for velocity output.
+Name of the output file into which the velocity diagnostics are written.
 
 Default: '$RUNDIR/$CASENAME.pop.dv'
 </entry>
@@ -947,9 +984,9 @@ Default: '$RUNDIR/$CASENAME.pop.dv'
 <entry
 id="ldiag_velocity"
 type="logical"
-category="diag"
+category="Model Diagnostics"
 group="diagnostics_nml" >
-Flag to compute velocity diagnostics.
+Flag to activate the computation of the velocity diagnostics.
 
 Default: .true.
 </entry>
@@ -961,9 +998,9 @@ Default: .true.
 <entry
 id="ldiag_global_tracer_budgets"
 type="logical"
-category="diag"
+category="Diagnostics (Budgets)"
 group="budget_diagnostics_nml" >
-Flag for global budget diagnostics for tracers.
+Flag to control the computation of global budget diagnostics for tracers.
 
 Default: .true.
 </entry>
@@ -971,9 +1008,9 @@ Default: .true.
 <entry
 id="lrf_print_budget_term_by_term"
 type="logical"
-category="diag"
+category="Diagnostics (Budgets)"
 group="budget_diagnostics_nml" >
-Flag for printing Robert-filter budget terms in a human-eye-friendly manner.
+Flag to control the printing Robert-filter budget terms in a human-eye-friendly manner. 
 
 Default: .false.
 </entry>
@@ -985,9 +1022,9 @@ Default: .false.
 <entry
 id="ldiag_bsf"
 type="logical"
-category="diag"
+category="Diagnostics (Barotropic Stream Function)"
 group="bsf_diagnostic_nml" >
-Flag for barotropic stream function diagnostics.
+Flag to control the computation and printing of barotropic stream function diagnostics.
 
 Default: .true.
 </entry>
@@ -999,10 +1036,10 @@ Default: .true.
 <entry
 id="restart_freq_opt"
 type="char*256"
-category="restart"
+category="Restart"
 group="restart_nml"
 valid_values="never,nyear,nmonth,nday,nhour,nsecond,nstep" >
-Units of restart_freq (restart frequency).
+Units of time for restart_freq (restart frequency).
 
 Valid Values: 'never', 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep'
 Default: 'nyear'
@@ -1011,9 +1048,9 @@ Default: 'nyear'
 <entry
 id="restart_freq"
 type="integer"
-category="restart"
+category="Restart"
 group="restart_nml" >
-Restart frequency.
+Number of 'restart_freq_opt' units between the writing of restart files.
 
 Default: 100000
 </entry>
@@ -1021,9 +1058,11 @@ Default: 100000
 <entry
 id="restart_outfile"
 type="char*256"
-category="restart"
+category="Restart"
 group="restart_nml" >
-Restart output filename root.
+Name of the restart output filename root.
+The model code will create the complete restart output filename
+based on the model date.
 
 Default: '$RUNDIR/$CASENAME.pop.r'
 </entry>
@@ -1031,10 +1070,10 @@ Default: '$RUNDIR/$CASENAME.pop.r'
 <entry
 id="restart_fmt"
 type="char*256"
-category="restart"
+category="Restart"
 group="restart_nml"
 valid_values="bin,nc" >
-restart_outfile format (binary or netCDF).
+Data format type of restart_outfile file; either binary ('bin') or netCDF ('nc').
 
 Valid Values: 'bin', 'nc'
 Default: 'nc'
@@ -1043,7 +1082,7 @@ Default: 'nc'
 <entry
 id="leven_odd_on"
 type="logical"
-category="restart"
+category="Restart"
 group="restart_nml" >
 Flag to turn even_odd restarts on.
 
@@ -1053,7 +1092,7 @@ Default: .false.
 <entry
 id="even_odd_freq"
 type="integer"
-category="restart"
+category="Restart"
 group="restart_nml" >
 Frequency to write even/odd restart files (units = nstep).
 
@@ -1063,9 +1102,11 @@ Default: 100000
 <entry
 id="pressure_correction"
 type="logical"
-category="restart"
+category="Restart"
 group="restart_nml" >
-Flag to fix pressure for exact restart.
+Flag to  apply correction to pressure upon restart.
+If .true., surface pressure is modified to correct for an error due to (possible) different timestep. 
+Use .false. for exact restart.
 
 Default: .false.
 </entry>
@@ -1073,10 +1114,11 @@ Default: .false.
 <entry
 id="restart_start_opt"
 type="char*256"
-category="restart"
+category="Restart"
 group="restart_nml"
 valid_values="nstep,nday,nyear,date" >
-Units of restart_start (when to begin writing regular restart files).
+Units of time for restart_start. Take restart_start units 
+prior to beginning the writing of regular restart files.
 
 Default: 'nstep'
 </entry>
@@ -1084,9 +1126,10 @@ Default: 'nstep'
 <entry
 id="restart_start"
 type="integer"
-category="restart"
+category="Restart"
 group="restart_nml" >
 Wait prior to beginning to output restart files.
+Number of units of restart_start_opt before restart files are started in a run.
 
 Default:  0
 </entry>
@@ -1098,10 +1141,10 @@ Default:  0
 <entry
 id="history_freq_opt"
 type="char*256"
-category="history"
+category="History Files (Snapshots)"
 group="history_nml"
 valid_values="never,nyear,nmonth,nday,nhour,nsecond,nstep" >
-Units of history_freq (frequency of writing history files).
+Units of time for history_freq (frequency of writing history files).
 
 Valid Values: 'never', 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep'
 Default: 'never'
@@ -1110,7 +1153,7 @@ Default: 'never'
 <entry
 id="history_freq"
 type="integer"
-category="history"
+category="History Files (Snapshots)"
 group="history_nml" >
 Frequency of writing history files.
 
@@ -1120,7 +1163,7 @@ Default: 1
 <entry
 id="history_outfile"
 type="char*256"
-category="history"
+category="History Files (Snapshots)"
 group="history_nml" >
 Root filename for history files.
 
@@ -1130,7 +1173,7 @@ Default: '$CASENAME.pop.hs'
 <entry
 id="history_contents"
 type="char*256"
-category="history"
+category="History Files (Snapshots)"
 group="history_nml" >
 Filename for choosing fields for output in history file.
 
@@ -1140,10 +1183,10 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="history_fmt"
 type="char*256"
-category="history"
+category="History Files (Snapshots)"
 group="history_nml"
 valid_values="bin,nc" >
-history_outfile format (binary or netCDF).
+Data format type of history_outfile file; either binary ('bin') or netCDF ('nc').
 
 Valid Values: 'bin', 'nc'
 Default: 'nc'
@@ -1156,10 +1199,10 @@ Default: 'nc'
 <entry
 id="movie_freq_opt"
 type="char*256"
-category="history"
+category="History Files (Movie)"
 group="movie_nml"
 valid_values="never,nyear,nmonth,nday,nhour,nsecond,nstep" >
-Units of movie_freq (frequency of writing movie files).
+Units of time for movie_freq (frequency of writing movie files).
 
 Valid Values: 'never', 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep'
 Default: 'never'
@@ -1168,7 +1211,7 @@ Default: 'never'
 <entry
 id="movie_freq"
 type="integer"
-category="history"
+category="History Files (Movie)"
 group="movie_nml" >
 Frequency of writing movie files.
 
@@ -1178,7 +1221,7 @@ Default: 1
 <entry
 id="movie_outfile"
 type="char*256"
-category="history"
+category="History Files (Movie)"
 group="movie_nml" >
 Root filename for movie files.
 
@@ -1188,7 +1231,7 @@ Default: '$CASENAME.pop.hm'
 <entry
 id="movie_contents"
 type="char*256"
-category="history"
+category="History Files (Movie)"
 group="movie_nml" >
 Filename for choosing fields for output in movie file.
 
@@ -1198,10 +1241,10 @@ Default: Set by CESM scripts based on ocean grid
 <entry
 id="movie_fmt"
 type="char*256"
-category="history"
+category="History Files (Movie)"
 group="movie_nml"
 valid_values="bin,nc" >
-movie_outfile format (binary or netCDF).
+Data format type of movie_outfile file; either binary ('bin') or netCDF ('nc').
 
 Valid Values: 'bin', 'nc'
 Default: 'nc'
@@ -1214,21 +1257,25 @@ Default: 'nc'
 <entry
 id="solverChoice"
 type="char*256"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers"
 valid_values="pcg,ChronGear,PCSI" >
-Solver to use for elliptic system for surface pressure in barotropic mode.
+Method to solve the two-dimensional elliptic equation for the surface pressure.
 
-Valid Values: 'pcg', 'ChronGear,PCSI'
+Valid Values: 'ChronGear','pcg','PCSI'
+'ChronGear' = Chronopoulos-Gear conjugate-gradient solver with preconditioner.
+'pcg'       =  Preconditioned conjugate-gradient solver.
+'PCSI'      = Preconditioned Classical Stiefel Iteration.
+
 Default: 'ChronGear'
 </entry>
 
 <entry
 id="convergenceCriterion"
 type="real"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-Convergence error criterion.
+Convergence error criterion: |δX/X| < convergenceCriterion
 
 Default: 1.0e-13
 </entry>
@@ -1236,9 +1283,9 @@ Default: 1.0e-13
 <entry
 id="maxIterations"
 type="integer"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-Max number of solver iterations.
+Upper limit on number of solver iterations.
 
 Default: 1000
 </entry>
@@ -1246,9 +1293,9 @@ Default: 1000
 <entry
 id="convergenceCheckFreq"
 type="integer"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-Frequency (number of steps) in which to check check for convergence.
+Check for convergence every convergenceCheckFreq iterations.
 
 Default: 10
 </entry>
@@ -1256,9 +1303,10 @@ Default: 10
 <entry
 id="convergenceCheckStart"
 type="integer"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-Start number of steps in which to check check for convergence.
+Start checking for convergence after convergenceCheckStart steps 
+(starting step number of convergence checking).
 
 Default: 60
 </entry>
@@ -1266,21 +1314,25 @@ Default: 60
 <entry
 id="preconditionerChoice"
 type="char*256"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers"
 valid_values="diagonal,evp,file" >
 Preconditioner choice.
-
 Valid Values: 'diagonal', 'evp','file'
+'diagonal' -- No preconditioner.
+'file'     -- A preconditioner is used to reduce number of iterations to convergence.  No longer supported.
+'evp'      -- Edge-vertex preconditioner.
+
 Default: 'diagonal'
 </entry>
 
 <entry
 id="preconditionerFile"
 type="char*256"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-File containing the preconditioner (if preconditionerChoice='file').
+File containing preconditioner coefficients for solver; 
+used when preconditionerChoice='file'.
 
 Default: 'unknownPrecondFile'
 </entry>
@@ -1288,9 +1340,9 @@ Default: 'unknownPrecondFile'
 <entry
 id="LanczosconvergenceCriterion"
 type="real"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-Convergence error criterion for lanczos step.
+Convergence error criterion for Lanczos step.
 
 Default:  0.15
 </entry>
@@ -1298,9 +1350,9 @@ Default:  0.15
 <entry
 id="maxLanczosStep"
 type="integer"
-category="solvers"
+category="Barotropic Mode Solvers"
 group="solvers" >
-Maximum Lanczos Steps
+Maximum number of Lanczos steps taken to get eigenvalues.
 
 Default: 100
 </entry>
@@ -1311,21 +1363,28 @@ Default: 100
 <entry
 id="vmix_choice"
 type="char*256"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml"
 valid_values="const,rich,kpp" >
-Vertical mixing parameterization.
+Selector for method of computing vertical diffusion.
 
 Valid Values: 'const', 'rich', 'kpp'
+
+'const' -- use constant vertical mixing
+'rich'  -- use Richardson-number vertical mixing
+'kpp'   -- use Kpp vertical mixing
+
 Default: 'kpp'
 </entry>
 
 <entry
 id="aidif"
 type="real"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml" >
 Time-centering parameter for implicit vertical mixing.
+Use of the default value (1.0) is recommended.
+Valid Values: in the range [0.5,1.0]
 
 Default: 1.0
 </entry>
@@ -1333,39 +1392,19 @@ Default: 1.0
 <entry
 id="bottom_drag"
 type="real"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml" >
-Drag coefficient for bottom drag.
+Drag coefficient used in quadratic bottom drag formula (dimensionless).
 
 Default: 1.0e-3
 </entry>
 
 <entry
-id="bottom_heat_flx"
-type="real"
-category="vmix"
-group="vertical_mix_nml" >
-Bottom (geothermal) heat flux [W/m^2].
-
-Default: 0.0
-</entry>
-
-<entry
-id="bottom_heat_flx_depth"
-type="real"
-category="vmix"
-group="vertical_mix_nml" >
-Depth below which bottom heat is applied.
-
-Default: 1000.0e2
-</entry>
-
-<entry
 id="implicit_vertical_mix"
 type="logical"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml" >
-Flag for computing vertical mixing implicitly in time.
+Flag to activate computation of vertical mixing implicitly in time.
 
 Default: .true.
 </entry>
@@ -1373,21 +1412,26 @@ Default: .true.
 <entry
 id="convection_type"
 type="char*256"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml"
 valid_values="adjustment,diffusion" >
-Method for convection.
+
+Selector for convection method.
 
 Valid Values: 'adjustment', 'diffusion'
+
+'adjustment' -- convection treated by adjustment.
+'diffusion'  -- convection treated by large mixing coefficients.
+
 Default: 'diffusion'
 </entry>
 
 <entry
 id="nconvad"
 type="integer"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml" >
-Number of times to convectively adjust.
+Number of passes through the convective-adjustment algorithm.
 
 Default: 2
 </entry>
@@ -1395,9 +1439,9 @@ Default: 2
 <entry
 id="convect_diff"
 type="real"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml" >
-Tracer diffusion to use for convection.
+Tracer mixing coefficient to be used with diffusion option.
 
 Default: 10000.0
 </entry>
@@ -1405,11 +1449,47 @@ Default: 10000.0
 <entry
 id="convect_visc"
 type="real"
-category="vmix"
+category="Vertical Mixing"
 group="vertical_mix_nml" >
-Viscosity to use for convection (momentum).
+Momentum mixing coefficient to use with diffusion option. 
 
 Default: 10000.0
+</entry>
+
+!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: geoheatflux_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="geoheatflux_choice"
+type="char*256"
+category="Forcing (Geothermal Heat Flux)"
+group="geoheatflux_nml"
+valid_values="const,spatial" >
+Option for geothermal (bottom) heat flux.
+
+Valid Values: 'const', 'spatial'
+Default: 'const'
+</entry>
+
+<entry 
+id="geoheatflux_const"
+type="real"
+category="Forcing (Geothermal Heat Flux)"
+group="geoheatflux_nml" >
+Constant geothermal heat flux to apply to bottom layers. (W/m^2)
+
+Default: 0.0
+</entry>
+
+<entry 
+id="geoheatflux_depth"
+type="real"
+category="Forcing (Geothermal Heat Flux)"
+group="geoheatflux_nml" >
+Depth (cm) below which geothermal heat flux is applied.
+
+Default: 1000.0e2
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1419,9 +1499,9 @@ Default: 10000.0
 <entry
 id="const_vvc"
 type="real"
-category="vmix"
+category="Vertical Mixing (Constant)"
 group="vmix_const_nml" >
-Constant value for viscosity.
+Vertical viscosity coefficient (momentum mixing) (cm^2/s).
 
 Default: 0.25
 </entry>
@@ -1429,9 +1509,9 @@ Default: 0.25
 <entry
 id="const_vdc"
 type="real"
-category="vmix"
+category="Vertical Mixing (Constant)"
 group="vmix_const_nml" >
-Constant value for diffusivity.
+Vertical diffusivity coefficient (tracer mixing) (cm^2/s).
 
 Default: 0.25
 </entry>
@@ -1443,9 +1523,9 @@ Default: 0.25
 <entry
 id="bckgrnd_vvc"
 type="real"
-category="vmix"
+category="Vertical Mixing (Richardson Parameterization)"
 group="vmix_rich_nml" >
-Background value for viscosity.
+Background vertical viscosity (cm^2/s).
 
 Default: 1.0
 </entry>
@@ -1453,9 +1533,9 @@ Default: 1.0
 <entry
 id="bckgrnd_vdc"
 type="real"
-category="vmix"
+category="Vertical Mixing (Richardson Parameterization)"
 group="vmix_rich_nml" >
-Background value for diffusivity.
+Background vertical diffusivity (cm^2/s).
 
 Default: 0.1
 </entry>
@@ -1463,9 +1543,9 @@ Default: 0.1
 <entry
 id="rich_mix&vmix_rich_nml"
 type="real"
-category="vmix"
+category="Vertical Mixing (Richardson Parameterization)"
 group="derived" >
-Coefficient for Richardson number term.
+Coefficient for Richardson-number function.
 
 Default: 50.0
 Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
@@ -1475,77 +1555,514 @@ Note: You must specify both the variable name and namelist name if you change th
 <!-- Group: tidal_nml                - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
-<entry
-id="ltidal_mixing"
+<entry 
+id="ltidal_schmittner_socn"
 type="logical"
-category="tidal"
+category="Vertical Mixing (Tidal)"
 group="tidal_nml" >
-Flag for tidal mixing.
+Flag to activate Schmittner's method southern ocean modification.
 
 Default: .true.
 </entry>
 
-<entry
-id="local_mixing_fraction"
+<entry 
+id="ltidal_all_TC_coefs_eq_1"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag for setting q==1 in construction of 3D tidal energy field from tidal constituents for plotting/testing'
+Do not activate this flag in a scientific experiment.
+
+Default: .false.
+</entry>
+
+<entry 
+id="ltidal_all_TC_coefs_eq_p33"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag for setting q==0.33 in construction of 3D tidal energy field from tidal constituents for plotting/testing'
+Do not activate this flag in a scientific experiment.
+
+Default: .false.
+</entry>
+
+<entry 
+id="ltidal_mixing"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag to activate tidal mixing.
+
+Default: .true.
+</entry>
+
+<entry 
+id="ltidal_max"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag to impose tidal_mix_max on all TIDAL_DIFF values.
+
+Default: .true.
+</entry>
+
+
+<entry 
+id="ltidal_stabc"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag to impose tidal_mix_max on all TIDAL_DIFF values.
+
+Default: .true.
+</entry>
+
+<entry 
+id="ltidal_melet_plot"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag to activate collection of fields used to create Melet plot.
+
+Default: .false.
+</entry>
+
+<entry 
+id="ltidal_lunar_cycle"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Flag to activate 18.6-year lunar cycle.
+
+Default: .false.
+</entry>
+
+<entry 
+id="tidal_mixing_method_choice"
+type="char*256"
+category="Vertical Mixing (Tidal)"
+valid_values="jayne,polzin,schmittner" 
+group="tidal_nml" >
+Selector for tidal mixing scheme method.
+
+'jayne'
+      Jayne, S. R., and L. C. St. Laurent, 2001: Parameterizing tidal
+        dissipation over rough topography. Geophys. Res. Lett., 
+        v28, 811-814.
+
+      Simmons, H. L., S. R. Jayne, L. C. St. Laurent, and
+        A. J. Weaver, 2004: Tidally driven mixing in a numerical
+        model of the ocean general circulation. Ocean Modelling,
+        vol 6, 245-263.
+
+      Jayne, Steven R., 2009: The Impact of Abyssal Mixing
+        Parameterizations in an Ocean General Circulation Model.
+       JPO, vol 39, 1756-1775.
+
+'schmittner'
+      Use with 3D datasets only.
+
+      Schmittner, A. and G.D. Egbert, 2014: An improved parameterization
+      of tidal mixing for ocean models. Geosci. Model Dev., 7, 211-224, 201
+
+
+'polzin'
+      Melet version is implemented.
+
+      Polzin, K. L., 2009:  An abyssal recipe. Ocean Modelling,
+        vol 30, 298-309
+
+      Melet, A. et al, 2013: Sensitivity of the ocean state to the
+        vertical distribution of the internal-tide-driven mixing. 
+        J. Phys Oceanography, vol 43, 602-615
+
+Default: 'jayne'
+</entry>
+
+<entry 
+id="tidal_energy_choice"
+type="char*256"
+category="Vertical Mixing (Tidal)"
+valid_values="arbic,jayne,ER03,GN13,LGM0,LGMi5g21,LGMi6g21"
+group="tidal_nml" >
+Selector for tidal mixing energy file source. 
+
+'jayne' Jayne 2009
+'arbic' not yet available
+'ER03'  Egbert and Ray 2003
+'GN13'  Green and Nycander 2013
+'LGM0'  LGM present day Wilmes 2017
+'LGMi5g21' LGM 21kyrbp sea-level reconstruction ig5
+'LGMi6g21' LGM 21kyrbp sea-level reconstruction ig6
+
+Default: 'jayne'
+</entry>
+
+<entry 
+id="tidal_eps_n2"
 type="real"
-category="tidal"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Minimum value of N**2 used in tidal diffusion computations.
+
+Default: 1.0e-08
+</entry>
+
+<entry 
+id="tidal_local_mixing_fraction"
+type="real"
+category="Vertical Mixing (Tidal)"
 group="tidal_nml" >
 Fraction of energy available for mixing local to the generation region.
 
 Default: 0.33
 </entry>
 
-<entry
-id="mixing_efficiency"
+<entry 
+id="tidal_mixing_efficiency"
 type="real"
-category="tidal"
+category="Vertical Mixing (Tidal)"
 group="tidal_nml" >
-Mixing efficiency.
+Tidal mixing efficiency. (Gamma)
 
 Default: 0.2
 </entry>
 
-<entry
+<entry 
 id="vertical_decay_scale"
 type="real"
-category="tidal"
+category="Vertical Mixing (Tidal)"
 group="tidal_nml" >
-Vertical decay scale for turbulence (cm)
+Vertical decay scale for turbulence (cm).
 
 Default: 500.0e02
 </entry>
 
-<entry
-id="tidal_energy_file"
-type="char*256"
-category="tidal"
-group="tidal_nml"
+<entry 
+id="tidal_vars_file_polz"
+type="char*512"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" 
 input_pathname="abs" >
-Input file for reading tidal energy flux.
+Input file containing initialization variables (urms and topographic
+roughness) for use in the Polzin tidal mixing method.
 
-Default: 'unknown_tidal_mixing'
+Default: 'unknown_tidal_vars_file_polz'
 </entry>
 
-<entry
+<entry 
+id="tidal_diss_lim_TC"
+type="real"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Tidal dissipation vertical threshhold in tidal-constituent dataset (cm).
+Energy above this level is not included in the parameterization.
+Active only when 3D tidal-constituent datasets are used.
+
+Default: 0.0e02
+</entry>
+
+<entry 
 id="tidal_mix_max"
 type="real"
-category="tidal"
+category="Vertical Mixing (Tidal)"
 group="tidal_nml" >
 Maximum for vertical diffusivity and viscosity (cm^2/s).
 
 Default: 100.0
 </entry>
 
-<entry
+
+################## TEST
+<entry 
+id="ltidal_min_regions"
+type="logical"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Apply minimum tidal mixing value in specified regions
+
+Default: .false.
+</entry>
+
+<entry 
+id="num_tidal_min_regions"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Number of regions where minimum tidal-mixing values will be applied
+
+Default: 2
+</entry>
+
+<entry 
+id="tidal_min_regions_klevels"
+type="integer(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Number of bottom k-levels where minimum tidal-mixing values will be applied
+
+Default: 6
+</entry>
+
+<entry 
+id="tidal_min_regions_name"
+type="char*128(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Name of regions where minimum tidal-mixing values will be applied
+
+Default: 2
+</entry>
+<entry 
+id="tidal_min_values"
+type="real(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Array of minimum tidal-mixing values
+
+Default: 1.0
+</entry>
+
+<entry 
+id="tidal_TLATmin_regions"
+type="real(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Array of tidal-mixing lower TLAT values
+
+Default: 1.0
+</entry>
+
+<entry 
+id="tidal_TLATmax_regions"
+type="real(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Array of tidal-mixing upper TLAT values
+
+Default: 1.0
+</entry>
+
+<entry 
+id="tidal_TLONmin_regions"
+type="real(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Array of tidal-mixing lower TLON values
+
+Default: 1.0
+</entry>
+
+<entry 
+id="tidal_TLONmax_regions"
+type="real(9)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Array of tidal-mixing upper TLON values
+
+Default: 1.0
+</entry>
+################## TEST
+
+<entry 
+id="tidal_energy_file"
+type="char*512"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+input_pathname="abs" >
+Input file containing tidal energy.
+
+Default: 'unknown_tidal_energy_file'
+</entry>
+
+<entry 
 id="tidal_energy_file_fmt"
 type="char*256"
-category="tidal"
+category="Vertical Mixing (Tidal)"
 group="tidal_nml"
 valid_values="bin,nc" >
-tidal_energy_file format (binary or netCDF).
+File format of the tidal_energy_file file. 
 
-Valid Values: 'bin', 'nc'
-Default: 'bin'
+Valid Values: 'bin,nc'
+Default: 'nc'
+</entry>
+
+<entry 
+id="tidal_energy_ts_files"
+type="char*1024(4)"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+input_pathname="abs">
+Array of tidal energy timeseries modulation files (18.6 year tidal cycle),
+for each of the tidal constituents M2,S2,K1,O1.
+
+Ignored if the lunar cycle is not active.
+
+Default: 'unknown_tidal_energy_ts_files'
+</entry>
+
+<entry 
+id="tidal_energy_ts_file_fmt"
+type="char*256"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="ascii" >
+File format of the tidal_energy_ts_file file. 
+
+Ignored if the lunar cycle is not active.
+
+Valid Values: 'ascii'
+Default: 'ascii'
+</entry>
+
+<entry 
+id="tidal_energy_ts_calendar"
+type="char*256"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="365" >
+tidal_energy_ts_file calendar type. 
+
+Ignored if the lunar cycle is not active.
+
+Valid Values: '365'
+
+Default: '365'
+</entry>
+
+<entry 
+id="tidal_energy_ts_model_yr_align"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Model year assigned to the selected data year.
+
+Ignored if the lunar cycle is not active.
+
+Default: '1'
+</entry>
+
+<entry 
+id="tidal_energy_ts_data_first_year"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Starting year used in the model from the lunar-cycle timeseries data record.
+
+The lunar-cycle timeseries data record starts at 1500-01-02 (yyyy-mm-dd).
+
+Ignored if the lunar cycle is not active.
+
+Default: '1948'
+</entry>
+
+<entry 
+id="tidal_energy_ts_data_first_month"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="1,2,3,4,5,6,7,8,9,10,11,12" >
+Numerical representation of the starting month used in the model from the lunar-cycle
+timeseries data record.
+
+1 ==> January, etc.
+
+The lunar-cycle timeseries data record starts at 1500-01-02 (yyyy-mm-dd).
+
+Ignored if the lunar cycle is not active.
+
+Default: '1'
+</entry>
+
+<entry 
+id="tidal_energy_ts_data_first_day"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31" >
+Starting day used in the model from the lunar-cycle timeseries data record.
+
+The lunar-cycle timeseries data record starts at 1500-01-02 (yyyy-mm-dd).
+
+There are no data points at 29-Feb, but the model can accomodate a Gregorian
+calendar anyway, by interpolating between 28-Feb and 01-Mar.
+
+Ignored if the lunar cycle is not active.
+
+Default: '1'
+</entry>
+
+<entry 
+id="tidal_energy_ts_data_final_year"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" >
+Final year used in the model from the lunar-cycle timeseries data record.
+
+The lunar-cycle timeseries data record extends through 2200-12-31 (yyyy-mm-dd).
+
+Ignored if the lunar cycle is not active.
+
+Default: '2009'
+</entry>
+
+<entry 
+id="tidal_energy_ts_data_final_month"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="1,2,3,4,5,6,7,8,9,10,11,12" >
+Numerical representation of the final month used in the model from the lunar-cycle
+timeseries data record.
+
+The lunar-cycle timeseries data record extends through 2200-12-31 (yyyy-mm-dd).
+
+Ignored if the lunar cycle is not active.
+
+Default: ''
+</entry>
+
+<entry 
+id="tidal_energy_ts_data_final_day"
+type="integer"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml" 
+valid_values="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31" >
+Final day used in the model from the lunar-cycle timeseries data record.
+
+The lunar-cycle timeseries data record extends through 2200-12-31 (yyyy-mm-dd).
+
+Ignored if the lunar cycle is not active.
+
+Default: '1'
+</entry>
+
+<entry 
+id="tidal_vars_file_fmt_polz"
+type="char*256"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="nc" >
+File format of the tidal_vars_file_polz file (netCDF only).
+
+Ignored if the 'polzin' tidal_mixing_method_choice option is not active.
+
+Default: 'nc'
+</entry>
+
+<entry 
+id="tidal_vert_decay_option_schm"
+type="char*256"
+category="Vertical Mixing (Tidal)"
+group="tidal_nml"
+valid_values="SSJ02,P09" >
+Vertical decay function used in the Schmittner subgridscale scheme.
+
+Ignored if the 'schmittner' tidal_mixing_method_choice option is not active.
+
+Valid Values: 'SSJ02','P09'
+Default: 'SSJ02'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1555,7 +2072,7 @@ Default: 'bin'
 <entry
 id="bckgrnd_vdc1"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Background diffusivity (Ledwell).
 
@@ -1565,7 +2082,7 @@ Default: 0.16
 <entry
 id="bckgrnd_vdc2"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Variation in diffusivity.
 
@@ -1575,7 +2092,7 @@ Default: 0.0
 <entry
 id="bckgrnd_vdc_eq"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Equatorial diffusivity (Gregg).
 
@@ -1585,7 +2102,7 @@ Default: 0.01
 <entry
 id="bckgrnd_vdc_psim"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Maximum PSI-induced diffusivity (MacKinnon).
 
@@ -1595,7 +2112,7 @@ Default: 0.13
 <entry
 id="bckgrnd_vdc_ban"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Banda Sea diffusivity (Gordon).
 
@@ -1605,7 +2122,7 @@ Default: 1.0
 <entry
 id="bckgrnd_vdc_dpth"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Depth at which diffusivity equals vdc1
 Default: 1000.0e02
@@ -1614,7 +2131,7 @@ Default: 1000.0e02
 <entry
 id="bckgrnd_vdc_linv"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Inverse length for transition region.
 
@@ -1624,7 +2141,7 @@ Default: 4.5e-05
 <entry
 id="Prandtl"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Prandtl number.
 
@@ -1634,7 +2151,7 @@ Default: 10.0
 <entry
 id="rich_mix&vmix_kpp_nml"
 type="real"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="derived" >
 Coefficient for Richardson number term.
 
@@ -1645,7 +2162,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="num_v_smooth_Ri"
 type="integer"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Number of times to vertically smooth Ri.
 
@@ -1655,7 +2172,7 @@ Default: 1
 <entry
 id="lrich"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag for computing Ri-dependent mixing.
 
@@ -1665,7 +2182,7 @@ Default: .true.
 <entry
 id="ldbl_diff"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag for computing double-diffusive mixing.
 
@@ -1675,7 +2192,7 @@ Default: .true.
 <entry
 id="lshort_wave"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag for computing short-wave forcing.
 
@@ -1685,7 +2202,7 @@ Default: .true.
 <entry
 id="lcheckekmo"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag to check Ekman, Monin-Obhukov depth limit.
 
@@ -1695,7 +2212,7 @@ Default: .false.
 <entry
 id="larctic_bckgrnd_vdc"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag to decrease Arctic background diffusivity; typically only used as an option
 with niw_mixing in research mode.
@@ -1706,7 +2223,7 @@ Default: .false.
 <entry
 id="lhoriz_varying_bckgrnd"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag to allow horizontally-varying background (need bckgrnd_vdc2=0.0).
 
@@ -1716,7 +2233,7 @@ Default: .true.
 <entry
 id="linertial"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag for using inertial mixing parameterization.
 
@@ -1726,7 +2243,7 @@ Default: .false.
 <entry
 id="lcvmix"
 type="logical"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Flag for using CVMix for mixing instead of POP routines
 
@@ -1737,7 +2254,7 @@ Default: .true.
 <entry
 id="langmuir_opt"
 type="char*256"
-category="kpp"
+category="Vertical Mixing (KPP)"
 group="vmix_kpp_nml" >
 Langmuir mixing parameterization option.
 
@@ -1752,7 +2269,7 @@ Default: 'vr12-ma'
 <entry
 id="tadvect_ctype"
 type="char*256"
-category="advect"
+category="Advection"
 group="advect_nml"
 valid_values="centered,upwind3,lw_lim" >
 Tracer advection choice.
@@ -1768,7 +2285,7 @@ Default: 'upwind3'
 <entry
 id="hmix_momentum_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing"
 group="hmix_nml"
 valid_values="del2,del4,anis,gent" >
 Type of horizontal momentum mixing.
@@ -1780,7 +2297,7 @@ Default: 'anis'
 <entry
 id="hmix_tracer_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing"
 group="hmix_nml"
 valid_values="del2,del4,gent,gmaniso" >
 Type of horizontal tracer mixing.
@@ -1792,7 +2309,7 @@ Default: 'gent'
 <entry
 id="lsubmesoscale_mixing"
 type="logical"
-category="hmix"
+category="Horizontal Mixing"
 group="hmix_nml" >
 Flag for submesoscale mixing.
 
@@ -1806,7 +2323,7 @@ Default: .true.
 <entry
 id="lauto_hmix&hmix_del2u_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL2 Velocity)"
 group="derived" >
 Flag to internally compute mixing coefficient.
 
@@ -1817,7 +2334,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lvariable_hmix&hmix_del2u_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL2 Velocity)"
 group="derived" >
 Flag to enable spatially-varying mixing.
 
@@ -1828,7 +2345,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="am&hmix_del2u_nml"
 type="real"
-category="hmix"
+category="Horizontal Mixing (DEL2 Velocity)"
 group="derived" >
 Horizontal momentum mixing coefficient.
 
@@ -1843,7 +2360,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lauto_hmix&hmix_del2t_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL2 Tracer)"
 group="derived" >
 Flag to internally compute mixing coefficient.
 
@@ -1854,7 +2371,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lvariable_hmix&hmix_del2t_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL2 Tracer)"
 group="derived" >
 Flag to enable spatially-varying mixing.
 
@@ -1865,7 +2382,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="ah&hmix_del2t_nml"
 type="real"
-category="hmix"
+category="Horizontal Mixing (DEL2 Tracer)"
 group="derived" >
 Horizontal tracer mixing coefficient.
 
@@ -1880,7 +2397,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lauto_hmix&hmix_del4u_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL4 Velocity)"
 group="derived" >
 Flag to internally compute mixing coefficient.
 
@@ -1891,7 +2408,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lvariable_hmix&hmix_del4u_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL4 Velocity)"
 group="derived" >
 Flag to enable spatially-varying mixing.
 
@@ -1902,7 +2419,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="am&hmix_del4u_nml"
 type="real"
-category="hmix"
+category="Horizontal Mixing (DEL4 Velocity)"
 group="derived" >
 Horizontal momentum mixing coefficient.
 
@@ -1917,7 +2434,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lauto_hmix&hmix_del4t_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL4 Tracer)"
 group="derived" >
 Flag to internally compute mixing coefficient.
 
@@ -1928,7 +2445,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="lvariable_hmix&hmix_del4t_nml"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (DEL4 Tracer)"
 group="derived" >
 Flag to enable spatially-varying mixing.
 
@@ -1939,7 +2456,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="ah&hmix_del4t_nml"
 type="real"
-category="hmix"
+category="Horizontal Mixing (DEL4 Tracer)"
 group="derived" >
 Horizontal tracer mixing coefficient.
 
@@ -1954,7 +2471,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="kdir_type_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml"
 valid_values="shear,east,zonal,flow,pvgrid,read" >
 choice for major axis direction
@@ -1966,7 +2483,7 @@ Default: 'shear'
 <entry
 id="kmin_type_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml"
 valid_values="simple,read" >
 choice for minor diffusivity
@@ -1978,7 +2495,7 @@ Default: 'simple'
 <entry
 id="krat_type_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml"
 valid_values="shear,simple,read" >
 choice for diffusivity ratio (major/minor)
@@ -1990,7 +2507,7 @@ Default: 'shear'
 <entry
 id="addrandfluc"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 Flag to add random fluctuation to orientation
 
@@ -2000,7 +2517,7 @@ Default: .false.
 <entry
 id="cflmajoronly"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 T reduce major only for cfl violations, F reduce entire tensor for cfl violations
 
@@ -2010,7 +2527,7 @@ Default: .true.
 <entry
 id="isominoronly"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 T Set isotropic diffusivity with minor: F set isotropic diffusivity with avg of major and minor
 
@@ -2020,7 +2537,7 @@ Default: .true.
 <entry
 id="isoonly"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 T to do isotropic using diagnosis
 
@@ -2030,7 +2547,7 @@ Default: .false.
 <entry
 id="savenewtavgs"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 Save aniso time averaged diagnostics
 
@@ -2040,7 +2557,7 @@ Default: .true.
 <entry
 id="simpsubcells"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 T to use simple subcell volume = 1/8 T-cell volume, F to use HTN & HTE
 
@@ -2050,7 +2567,7 @@ Default: .false.
 <entry
 id="vertdiffhere"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 T do VDC here, F to do in vertical_mix
 
@@ -2060,7 +2577,7 @@ Default: .false.
 <entry
 id="cflmult"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 multiplication factor for cfl check
 
@@ -2070,7 +2587,7 @@ Default: 0.175
 <entry
 id="erat_const"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 constant eigenvalue ratio
 
@@ -2080,7 +2597,7 @@ Default: 5.0
 <entry
 id="erat_factor"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 max negative factor of major to set minor, set to 0 to force minor to be positive
 
@@ -2090,7 +2607,7 @@ Default: 0.0
 <entry
 id="minorfactor"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 minor eigenvalue multiplicative factor
 
@@ -2100,7 +2617,7 @@ Default: 1.0
 <entry
 id="shrdispfac"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Isopycnic Tracer)"
 group="hmix_gm_aniso_nml" >
 multiplicative coefficient for shear dispersion term: MAJOR = MINOR + shrdispfac/MINOR*<(U*dy)^2+(V*dx)^2>
 
@@ -2114,7 +2631,7 @@ Default: 0.5
 <entry
 id="kappa_isop_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml"
 valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_ISOP (isopycnal).
@@ -2126,7 +2643,7 @@ Default: 'bfre'
 <entry
 id="kappa_thic_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml"
 valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_THIC (thickness).
@@ -2138,7 +2655,7 @@ Default: 'bfre'
 <entry
 id="kappa_freq_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml"
 valid_values="never,every_time_step,once_a_day" >
 Frequency of KAPPA computation.
@@ -2150,7 +2667,7 @@ Default: 'once_a_day'
 <entry
 id="slope_control_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml"
 valid_values="tanh,notanh,clip,Gerd" >
 Choice for slope control.
@@ -2162,7 +2679,7 @@ Default: 'notanh'
 <entry
 id="kappa_depth_1"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 1 of 2 parameters for variation of KAPPA with kappa_type_depth option.
 
@@ -2172,7 +2689,7 @@ Default: 1.0
 <entry
 id="kappa_depth_2"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 1 of 2 parameters for variation of KAPPA with kappa_type_depth option.
 
@@ -2182,7 +2699,7 @@ Default: 0.0
 <entry
 id="kappa_depth_scale"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Depth scale for variation of KAPPA with kappa_type_depth.
 
@@ -2192,7 +2709,7 @@ Default: 150000.0
 <entry
 id="ah&hmix_gm_nml"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="derived" >
 Isopycnal diffusivity.
 
@@ -2203,7 +2720,7 @@ Note: You must specify both the variable name and namelist name if you change th
 <entry
 id="ah_bolus"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Thickness (GM bolus) diffusivity.
 
@@ -2213,7 +2730,7 @@ Default: 3.0e7
 <entry
 id="use_const_ah_bkg_srfbl"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Flag to use ag_bkg_srfbl as maxmium background horizontal diffusivity within the surface boundary layer (rather than using KAPPA_ISOP).
 
@@ -2223,7 +2740,7 @@ Default: .true.
 <entry
 id="ah_bkg_srfbl"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Background horizontal diffusivity within the surface boundary layer.
 
@@ -2233,7 +2750,7 @@ Default: 3.0e7
 <entry
 id="ah_bkg_bottom"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Background horizontal diffusivity at k = KMT
 
@@ -2243,7 +2760,7 @@ Default: 0.0
 <entry
 id="kappa_isop_deep"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 specify isopcynal deep diffusivity as fraction of the reference value
 
@@ -2253,7 +2770,7 @@ Default: 0.1
 <entry
 id="kappa_thic_deep"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 specify thickness deep diffusivity as fraction of the reference value
 
@@ -2265,7 +2782,7 @@ Default: 0.1
 <entry
 id="slm_r"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Maximum slope allowed for redi diffusion.
 
@@ -2275,7 +2792,7 @@ Default: 0.3
 <entry
 id="slm_b"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Maximum slope allowed for bolus transport.
 
@@ -2285,7 +2802,7 @@ Default: 0.3
 <entry
 id="diag_gm_bolus"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Flag for diagnostic bolus velocity computation.
 
@@ -2295,7 +2812,7 @@ Default: .true.
 <entry
 id="diag_gm_steer"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Flag for diagnostic steering level eddy flux computation.
 
@@ -2305,7 +2822,7 @@ Default: .true.
 <entry
 id="transition_layer_on"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Flag for transition layer parameterization.
 
@@ -2315,7 +2832,7 @@ Default: .true.
 <entry
 id="read_n2_data"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Flag to use climatoligical N^2 data instead of model-dependent N^2.
 
@@ -2325,7 +2842,7 @@ Default: .false.
 <entry
 id="buoyancy_freq_filename"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 File name for the time-dependent buoyancy frequency (squared).
 
@@ -2335,7 +2852,7 @@ Default: '$RUNDIR/buoyancy_freq'
 <entry
 id="buoyancy_freq_fmt"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml"
 valid_values="bin,nc" >
 buoyancy_freq_filename format (binary or netCDF).
@@ -2347,7 +2864,7 @@ Default: 'nc'
 <entry
 id="const_eg"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Unitless tuning parameter.
 
@@ -2357,7 +2874,7 @@ Default: 1.2
 <entry
 id="gamma_eg"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Effective upper limit for inverse eddy timescale (unitless).
 
@@ -2367,7 +2884,7 @@ Default: 500.0
 <entry
 id="kappa_min_eg"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Minimum value for KAPPA (cm^2/s).
 
@@ -2377,7 +2894,7 @@ Default: 0.35e7
 <entry
 id="kappa_max_eg"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Gent-McWilliams Tracer)"
 group="hmix_gm_nml" >
 Maximum value for KAPPA (cm^2/s).
 
@@ -2391,7 +2908,7 @@ Default: 2.0e7
 <entry
 id="efficiency_factor"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Submesoscale)"
 group="mix_submeso_nml" >
 Efficiency factor: must be between 0.06 and 0.08 [inclusive].
 
@@ -2401,7 +2918,7 @@ Default: 0.07
 <entry
 id="time_scale_constant"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Submesoscale)"
 group="mix_submeso_nml" >
 Time scale constant in seconds -- must be between 1 and 4 days [86400 and 345600 seconds].
 
@@ -2411,7 +2928,7 @@ Default: 8.64e4 (1 day)
 <entry
 id="luse_const_horiz_len_scale"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Submesoscale)"
 group="mix_submeso_nml" >
 Flag to use constant horizontal length scale given by hor_length_scale rather than varying length scale with space and time.
 
@@ -2421,7 +2938,7 @@ Default: .false.
 <entry
 id="hor_length_scale"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Submesoscale)"
 group="mix_submeso_nml" >
 Constant horizontal length scale in cm (if luse_const_horiz_len_scale=.true.).
 
@@ -2435,7 +2952,7 @@ Default: 5.0e5 (5 km)
 <entry
 id="hmix_alignment_choice"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml"
 valid_values="flow,east,grid" >
 Direction that breaks isotropy.
@@ -2447,7 +2964,7 @@ Default: 'east'
 <entry
 id="lvariable_hmix_aniso"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Flag to allow spatially variable anisotropic viscosity.
 
@@ -2457,7 +2974,7 @@ Default: .true.
 <entry
 id="lsmag_aniso"
 type="logical"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Flag to use nonlinear Smagorinski viscosities (c_para/perp and u_para/perp) rather than input anisotropic viscosities (visc_para/perp).
 
@@ -2467,7 +2984,7 @@ Default: .false.
 <entry
 id="visc_para"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Viscosity parallel to alignment direction.
 
@@ -2477,7 +2994,7 @@ Default: 50.0e7
 <entry
 id="visc_perp"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Viscosity perpendicular to alignment direction.
 
@@ -2487,7 +3004,7 @@ Default: 50.0e7
 <entry
 id="c_para"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Dimensionless Smagorinksi coefficient parallel to alignment direction.
 
@@ -2497,7 +3014,7 @@ Default: 8.0
 <entry
 id="c_perp"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Dimensionless Smagorinksi coefficient perpendicular to alignment direction.
 
@@ -2507,7 +3024,7 @@ Default: 8.0
 <entry
 id="u_para"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Velocity for grid Reynolds number viscous limit (parallel to alignment direction).
 
@@ -2517,7 +3034,7 @@ Default: 5.0
 <entry
 id="u_perp"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Velocity for grid Reynolds number viscous limit (perpendicular to alignment direction).
 
@@ -2527,7 +3044,7 @@ Default: 5.0
 <entry
 id="vconst_1"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form. Units are cm^2/s.
 
@@ -2537,7 +3054,7 @@ Default: 0.6e7
 <entry
 id="vconst_2"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form.
 
@@ -2547,7 +3064,7 @@ Default: 0.5
 <entry
 id="vconst_3"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form.
 
@@ -2557,7 +3074,7 @@ Default: 0.16
 <entry
 id="vconst_4"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form. Units are 1/cm.
 
@@ -2567,7 +3084,7 @@ Default: 2.e-8
 <entry
 id="vconst_5"
 type="integer"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form.
 
@@ -2577,7 +3094,7 @@ Default: 3
 <entry
 id="vconst_6"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form. Units are cm^2/s.
 
@@ -2587,7 +3104,7 @@ Default: 0.6e7
 <entry
 id="vconst_7"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 1 of 7 coefficients for variable viscosity form. Units are degrees of latitude.
 
@@ -2597,7 +3114,7 @@ Default: 45.0
 <entry
 id="smag_lat"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Latitude at which to vary perpendicular Smagorinsky viscosity.
 
@@ -2607,7 +3124,7 @@ Default: 20.0
 <entry
 id="smag_lat_fact"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Coefficient of latitude-dependent Smagorinsky viscosity.
 
@@ -2617,7 +3134,7 @@ Default: 0.98
 <entry
 id="smag_lat_gauss"
 type="real"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 Gaussian width of latitude-dependent Smagorinksy viscosity.
 
@@ -2627,7 +3144,7 @@ Default: 98.0
 <entry
 id="var_viscosity_infile"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 File name for variable viscosity factor.
 
@@ -2637,7 +3154,7 @@ Default: 'ccsm-internal'
 <entry
 id="var_viscosity_infile_fmt"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml"
 valid_values="bin,nc" >
 var_viscosity_infile format (binary or netCDF).
@@ -2649,7 +3166,7 @@ Default: 'bin'
 <entry
 id="var_viscosity_outfile"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml" >
 File for output of internally-computed viscosity.
 
@@ -2659,7 +3176,7 @@ Default: '$RUNDIR/$CASENAME.pop.hv'
 <entry
 id="var_viscosity_outfile_fmt"
 type="char*256"
-category="hmix"
+category="Horizontal Mixing (Anisotropic)"
 group="hmix_aniso_nml"
 valid_values="bin,nc" >
 var_viscosity_outfile format (binary or netCDF).
@@ -2675,7 +3192,7 @@ Default: 'nc'
 <entry
 id="state_choice"
 type="char*256"
-category="state"
+category="Equation of State"
 group="state_nml"
 valid_values="jmcd,mwjf,poly,line" >
 Which equation of state to use.
@@ -2687,7 +3204,7 @@ Default: 'mwjf'
 <entry
 id="state_file"
 type="char*256"
-category="state"
+category="Equation of State"
 group="state_nml" >
 File containing polynomial equation of state coefficients.
 
@@ -2697,7 +3214,7 @@ Default: 'internal'
 <entry
 id="state_range_opt"
 type="char*256"
-category="state"
+category="Equation of State"
 group="state_nml"
 valid_values="ignore,check,enforce" >
 Option for checking for valid temperature and salinity ranges.
@@ -2709,7 +3226,7 @@ Default: 'enforce'
 <entry
 id="state_range_freq"
 type="integer"
-category="state"
+category="Equation of State"
 group="state_nml" >
 Frequency (in steps) for checking validity of temperature and salinity ranges.
 
@@ -2723,7 +3240,7 @@ Default: 100000
 <entry
 id="reset_to_freezing"
 type="logical"
-category="baroclinic"
+category="Baroclinic"
 group="baroclinic_nml" >
 Flag to prevent very cold water.
 
@@ -2737,7 +3254,7 @@ Default: .false.
 <entry
 id="kmxice"
 type="integer"
-category="ice"
+category="Sea-ice Emulation"
 group="ice_nml" >
 Lowest level from which to integrate ice formation.
 
@@ -2747,7 +3264,7 @@ Default: 1
 <entry
 id="ice_freq_opt"
 type="char*256"
-category="ice"
+category="Sea-ice Emulation"
 group="ice_nml"
 valid_values="never,coupled,nyear,nmonth,nday,nhour,nsecond,nstep" >
 Option for frequency of computing ice.
@@ -2759,7 +3276,7 @@ Default: 'coupled'
 <entry
 id="ice_freq"
 type="integer"
-category="ice"
+category="Sea-ice Emulation"
 group="ice_nml" >
 Frequency with which to compute ice (units of ice_freq_opt).
 
@@ -2769,7 +3286,7 @@ Default:  100000
 <entry
 id="lactive_ice"
 type="logical"
-category="ice"
+category="Sea-ice Emulation"
 group="ice_nml" >
 Flag for whether POP is coupled to an active ice model.
 
@@ -2779,7 +3296,7 @@ Default: Depends on $OCN_ICE_FORCING ("inactive" => .false.)
 <entry
 id="licecesm2"
 type="logical"
-category="ice"
+category="Sea-ice Emulation"
 group="ice_nml" >
 CESM2 default for forming ice every timestep when coupled
 
@@ -2793,7 +3310,7 @@ Default: .true.
 <entry
 id="lpressure_avg"
 type="logical"
-category="presgrad"
+category="Pressure Gradient Options"
 group="pressure_grad_nml" >
 Flag to turn on averaging of pressure across three time steps.
 
@@ -2803,7 +3320,7 @@ Default: .true.
 <entry
 id="lbouss_correct"
 type="logical"
-category="presgrad"
+category="Pressure Gradient Options"
 group="pressure_grad_nml" >
 Flag for adding correction to Boussinesq approximation.
 
@@ -2817,7 +3334,7 @@ Default: .false.
 <entry
 id="ltopostress"
 type="logical"
-category="topostress"
+category="Topographic Stress"
 group="topostress_nml" >
 Flag to turn on topographic stress.
 
@@ -2827,7 +3344,7 @@ Default: .false.
 <entry
 id="nsmooth_topo"
 type="integer"
-category="topostress"
+category="Topographic Stress"
 group="topostress_nml" >
 Number of passes the topography smoother will make.
 
@@ -2841,7 +3358,7 @@ Default: 0
 <entry
 id="ldamp_uv"
 type="logical"
-category="grid"
+category="Damping (Velocity)"
 group="damping_nml" >
 Flag to damp UVEL and VVEL; currently the only method for damping is from private communication with Nick Klingaman (Univ. of Reading); it is a non-linear damping.
 
@@ -2855,7 +3372,7 @@ Default: .false.
 <entry
 id="ws_data_type"
 type="char*256"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml"
 valid_values="none,analytic,annual,monthly,monthly-calendar,monthly-equal,n-hour" >
 Type or periodicity of wind stress forcing.
@@ -2868,7 +3385,7 @@ CESM Default: 'none'
 <entry
 id="ws_data_inc"
 type="real"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml" >
 Increment (in hours) between forcing times if ws_data_type='nhour'.
 
@@ -2879,7 +3396,7 @@ CESM Default: 24.
 <entry
 id="ws_interp_freq"
 type="char*256"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml"
 valid_values="never,n-hour,every-timestep" >
 How often to temporally interpolate wind stress data to current time; value in namelist is ignored and value set to 'never' if ws_data_type is 'analytic', 'none', or 'annual'.
@@ -2892,7 +3409,7 @@ CESM Default: 'every-timestep'
 <entry
 id="ws_interp_type"
 type="char*256"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml"
 valid_values="nearest,linear,4point" >
 Type of temporal interpolation for wind stress data.
@@ -2905,7 +3422,7 @@ CESM Default: 'linear'
 <entry
 id="ws_interp_inc"
 type="real"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml" >
 Increment (in hours) between interpolation times if ws_interp_freq = 'n-hour'.
 LANL Default: 1e20
@@ -2915,7 +3432,7 @@ CESM Default: 72.
 <entry
 id="ws_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml" >
 Name of file containing wind stress, or root of filenames if ws_data_type='n-hour'
 
@@ -2925,7 +3442,7 @@ Default: 'unknown-ws'
 <entry
 id="ws_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml"
 valid_values="bin,nc" >
 ws_filename format (binary of netCDF)
@@ -2937,7 +3454,7 @@ Default: 'bin'
 <entry
 id="ws_data_renorm"
 type="real(20)"
-category="forcing"
+category="Forcing (Wind Stress)"
 group="forcing_ws_nml" >
 Renormalization constants for the components in the wind stress forcing file.
 
@@ -2952,7 +3469,7 @@ CESM Default: 10., 19*1.
 <entry
 id="shf_formulation"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml"
 valid_values="restoring,Barnier-restoring,bulk-NCEP,partially-coupled" >
 Surface heat flux formation.
@@ -2965,7 +3482,7 @@ CESM Default: 'partially-coupled' or 'restoring' depending on configuration
 <entry
 id="shf_data_type"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml"
 valid_values="none,analytic,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
 Type or periodicity of surface heat flux forcing.
@@ -2978,7 +3495,7 @@ CESM Default: 'monthly' if formulation is 'partially-coupled', 'none' otherwise
 <entry
 id="shf_data_inc"
 type="real"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Increment (in hours) between forcing times if shf_data_type='n-hour'.
 
@@ -2989,7 +3506,7 @@ CESM Default: 24.
 <entry
 id="shf_interp_freq"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml"
 valid_values="never,n-hour,every-timestep" >
 How often to temporally interpolate surface heat flux data to current time.
@@ -3002,7 +3519,7 @@ CESM Default: 'every-timestep'
 <entry
 id="shf_interp_type"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml"
 valid_values="nearest,linear,4point" >
 Type of temporal interpolation for surface heat flux data.
@@ -3014,7 +3531,7 @@ CESM Default: 'linear'
 <entry
 id="shf_interp_inc"
 type="real"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Increment (in hours) between interpolation times if shf_interp_freq = 'n-hour'.
 
@@ -3025,7 +3542,7 @@ CESM Default: 72.
 <entry
 id="shf_restore_tau"
 type="real"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Restoring timescale (days) if shf_formulation='restoring'.
 
@@ -3036,7 +3553,7 @@ CESM Default: 30.
 <entry
 id="shf_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml"
 input_pathname="abs" >
 Name of file containing surface heat flux data, or root of filenames if shf_data_type='n-hour'.
@@ -3048,7 +3565,7 @@ CESM Default: '$shf_filename', auto-filled by CESM scripts
 <entry
 id="shf_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml"
 valid_values="bin,nc" >
 shf_filename format (binary or netCDF)
@@ -3060,7 +3577,7 @@ Default: 'bin'
 <entry
 id="shf_data_renorm"
 type="real(20)"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Renormalization constants for the components in the surface heat flux forcing file.
 
@@ -3071,7 +3588,7 @@ CESM Default: (0.94, 19*1.)
 <entry
 id="shf_weak_restore"
 type="real"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Restoring flux for weak restoring in bulk-NCEP
 
@@ -3081,7 +3598,7 @@ Default: 0.
 <entry
 id="shf_strong_restore"
 type="real"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Restoring flux for strong restoring in bulk-NCEP
 
@@ -3092,7 +3609,7 @@ CESM Default: 0.0
 <entry
 id="luse_cpl_ifrac"
 type="logical"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Flag to control use of fractional ice coverage.
 
@@ -3103,7 +3620,7 @@ CESM Default: .true. if shf_formulation='partially-coupled', .false. otherwise
 <entry
 id="shf_strong_restore_ms"
 type="real"
-category="forcing"
+category="Forcing (Surface Heat Flux)"
 group="forcing_shf_nml" >
 Restoring flux for strong restoring over marginal seas in bulk-NCEP
 
@@ -3119,7 +3636,7 @@ CESM Default: 92.64
 <entry
 id="sfwf_formulation"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml"
 valid_values="restoring,bulk-NCEP,partially-coupled" >
 Surface fresh water flux formulation.
@@ -3132,7 +3649,7 @@ CESM Default: 'restoring' or 'partially-coupled', depending on configuration
 <entry
 id="sfwf_data_type"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml"
 valid_values="none,analytic,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
 Type or periodicity of surface fresh water flux forcing.
@@ -3145,7 +3662,7 @@ CESM Default: 'none' or 'monthly'
 <entry
 id="sfwf_data_inc"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Increment (hours) between forcing times if sfwf_data_type='n-hour'.
 
@@ -3156,7 +3673,7 @@ CESM Default: 24.
 <entry
 id="sfwf_interp_freq"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml"
 valid_values="never,n-hour,every-timestep" >
 How often to temporally interpolate surface fresh water flux data to current time.
@@ -3169,7 +3686,7 @@ CESM Default: 'every-timestep'
 <entry
 id="sfwf_interp_type"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml"
 valid_values="nearest,linear,4point" >
 Type of temporal interpolation for surface fresh water flux data.
@@ -3182,7 +3699,7 @@ CESM Default: 'linear'
 <entry
 id="sfwf_interp_inc"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Increment (hours) between interpolation times if sfwf_interp_freq='n-hour'.
 
@@ -3193,7 +3710,7 @@ CESM Default: 72.
 <entry
 id="sfwf_restore_tau"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Restoring timescale (days) if sfwf_formulation='restoring'.
 
@@ -3204,7 +3721,7 @@ CESM Default: 30.
 <entry
 id="sfwf_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml"
 input_pathname="abs" >
 Name of file containing surface fresh water flux data, or root of filenames if sfwf_data_type='n-hour'.
@@ -3216,7 +3733,7 @@ CESM Default: '$sfwf_filename', auto-filled by CESM scripts
 <entry
 id="sfwf_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml"
 valid_values="bin,nc" >
 sfwf_filename format (binary or netCDF).
@@ -3228,7 +3745,7 @@ Default: 'bin'
 <entry
 id="sfwf_data_renorm"
 type="real(20)"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Renormalization constants for components in sfwf forcing file.
 
@@ -3239,7 +3756,7 @@ CESM Default: 0.001, 19*1.
 <entry
 id="sfwf_weak_restore"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Restoring flux for weak restoring in 'bulk-NCEP' and 'partially-coupled' formulation.
 
@@ -3250,7 +3767,7 @@ CESM Default: 0.0115
 <entry
 id="sfwf_strong_restore"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Restoring flux for strong restoring in 'bulk-NCEP' and 'partially-coupled' formulation.
 
@@ -3261,7 +3778,7 @@ CESM Default: 0.0
 <entry
 id="sfwf_strong_restore_ms"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Restoring flux for strong restoring over marginal seas in CESM 'bulk-NCEP' and 'partially-coupled' formulations.
 
@@ -3272,7 +3789,7 @@ CESM Default: 0.6648
 <entry
 id="ladjust_precip"
 type="logical"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Adjust precipitation to balance water budget.
 
@@ -3283,7 +3800,7 @@ CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 <entry
 id="lms_balance"
 type="logical"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Balance E, P, M, R, and S in marginal seas.
 
@@ -3294,7 +3811,7 @@ CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 <entry
 id="lfw_as_salt_flx"
 type="logical"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Treat fresh water flux as virtual salt flux when using varthick sfc layer.
 
@@ -3305,7 +3822,7 @@ CESM Default: .true.
 <entry
 id="lsend_precip_fact"
 type="logical"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Flag for sending precip_fact to CESM coupler for use in fresh-water balance.
 
@@ -3316,7 +3833,7 @@ CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 <entry
 id="precip_fact_const"
 type="real"
-category="forcing"
+category="Forcing (Surface Fresh Water Flux)"
 group="forcing_sfwf_nml" >
 Value used for precip_fact when ladjust_precip=.false..
 
@@ -3331,7 +3848,7 @@ CESM Default: 1.0
 <entry
 id="pt_interior_data_type"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml"
 valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour,shr_stream" >
 Type or periodicity of interior potential temperature forcing.
@@ -3343,7 +3860,7 @@ Default: 'none'
 <entry
 id="pt_interior_data_inc"
 type="real"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Increment (hours) between forcing times if pt_interior_data_type='n-hour'.
 
@@ -3354,7 +3871,7 @@ CESM Default: 24
 <entry
 id="pt_interior_interp_freq"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml"
 valid_values="never,n-hour,every-timestep" >
 How often to temporally interpolate interior potential temperature data to current time.
@@ -3367,7 +3884,7 @@ CESM Default: 'every-timestep'
 <entry
 id="pt_interior_interp_type"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml"
 valid_values="nearest,linear,4point" >
 Type of temporal interpolation for interior potential temperature data.
@@ -3380,7 +3897,7 @@ CESM Default: 'linear'
 <entry
 id="pt_interior_interp_inc"
 type="real"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Increment (hours) between interpolation times if interp_freq='n-hour'
 
@@ -3391,7 +3908,7 @@ CESM Default: 72
 <entry
 id="pt_interior_restore_tau"
 type="real"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Restoring timescale (days) if pt_interior_formulation='restoring'.
 
@@ -3402,7 +3919,7 @@ CESM Default: 365
 <entry
 id="pt_interior_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 File containing interior potential temperature data, or root of filenames if pt_interior_data_type='n--hour'.
 
@@ -3412,7 +3929,7 @@ Default: 'unknown-pt_interior'
 <entry
 id="pt_interior_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml"
 valid_values="bin,nc" >
 pt_interior_filename format (binary or netCDF).
@@ -3424,7 +3941,7 @@ Default: 'bin'
 <entry
 id="pt_interior_restore_max_level"
 type="integer"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Maximum level for interior potential temperature restoring.
 
@@ -3434,7 +3951,7 @@ Default: 0
 <entry
 id="pt_interior_formulation"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Interior potential temperature formulation.
 
@@ -3444,7 +3961,7 @@ Default: 'restoring'
 <entry
 id="pt_interior_data_renorm"
 type="real(20)"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Renormalization constants for components in interior potential temperature forcing file.
 
@@ -3454,7 +3971,7 @@ Default: 20*1.
 <entry
 id="pt_interior_variable_restore"
 type="logical"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Enable variable interior potential temperature restoring.
 
@@ -3464,7 +3981,7 @@ Default: .false.
 <entry
 id="pt_interior_restore_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Name of file containing variable interior potential temperature restoring data.
 
@@ -3474,7 +3991,7 @@ Default: 'unknown-pt_interior_restore'
 <entry
 id="pt_interior_restore_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml"
 valid_values="bin,nc" >
 pt_interior_restore_filename format (binary or netCDF).
@@ -3486,7 +4003,7 @@ Default: 'bin'
 <entry
 id="pt_interior_surface_restore"
 type="logical"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 PT interior restoring includes the surface layer
 
@@ -3496,7 +4013,7 @@ Default: .false.
 <entry
 id="pt_interior_shr_stream_year_first"
 type="integer"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Default: 1
 </entry>
@@ -3504,7 +4021,7 @@ Default: 1
 <entry
 id="pt_interior_shr_stream_year_last"
 type="integer"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Default: 1
 </entry>
@@ -3512,7 +4029,7 @@ Default: 1
 <entry
 id="pt_interior_shr_stream_year_align"
 type="integer"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml" >
 Default: 1
 </entry>
@@ -3520,7 +4037,7 @@ Default: 1
 <entry
 id="pt_interior_shr_stream_file"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Potential Temperature)"
 group="forcing_pt_interior_nml">
 Default: unknown-pt_interior_shr_stream
 </entry>
@@ -3532,7 +4049,7 @@ Default: unknown-pt_interior_shr_stream
 <entry
 id="s_interior_data_type"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml"
 valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour,shr_stream" >
 Type or periodicity of interior salinity forcing.
@@ -3544,7 +4061,7 @@ Default: 'none'
 <entry
 id="s_interior_data_inc"
 type="real"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Increment (hours) between forcing times if s_interior_data_type='n-hour'.
 
@@ -3555,7 +4072,7 @@ CESM Default: 24
 <entry
 id="s_interior_interp_freq"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml"
 valid_values="never,n-hour,every-timestep" >
 How often to temporally interpolate interior salinity data to current time.
@@ -3568,7 +4085,7 @@ CESM Default: 'every-timestep'
 <entry
 id="s_interior_interp_type"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml"
 valid_values="nearest,linear,4point" >
 Type of temporal interpolation for interior salinity data.
@@ -3581,7 +4098,7 @@ CESM Default: 'linear'
 <entry
 id="s_interior_interp_inc"
 type="real"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Increment (hours) between interpolation times if s_interior_interp_freq='n-hour'.
 
@@ -3592,7 +4109,7 @@ CESM Default: 72
 <entry
 id="s_interior_restore_tau"
 type="real"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Restoring timescale (days) if s_interior_formulation='restoring'.
 
@@ -3603,7 +4120,7 @@ CESM Default: 365
 <entry
 id="s_interior_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Name of file containing interior salinity data, or root of filenames if s_interior_data_type='n-hour'.
 
@@ -3613,7 +4130,7 @@ Default: 'unknown-s_interior'
 <entry
 id="s_interior_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml"
 valid_values="bin,nc" >
 s_interior_filename format (binary or netCDF)
@@ -3625,7 +4142,7 @@ Default: 'bin'
 <entry
 id="s_interior_restore_max_level"
 type="integer"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Maximum level for interior salinity restoring.
 
@@ -3635,7 +4152,7 @@ Default: 0
 <entry
 id="s_interior_formulation"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Interior salinity formulation.
 
@@ -3645,7 +4162,7 @@ Default: 'restoring'
 <entry
 id="s_interior_data_renorm"
 type="real(20)"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Renormalization constants for components in interior salinity forcing file.
 
@@ -3655,7 +4172,7 @@ Default: 20*1.
 <entry
 id="s_interior_variable_restore"
 type="logical"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Enable variable interior salinity restoring.
 
@@ -3665,7 +4182,7 @@ Default: .false.
 <entry
 id="s_interior_restore_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Name of file containing variable interior salinity restoring data.
 
@@ -3675,7 +4192,7 @@ Default: 'unknown-s_interior_restore'
 <entry
 id="s_interior_restore_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml"
 valid_values="bin,nc" >
 s_interior_restore_filename format (binary or netCDF).
@@ -3687,7 +4204,7 @@ Default: 'bin'
 <entry
 id="s_interior_surface_restore"
 type="logical"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 S interior restoring includes the surface layer
 
@@ -3697,7 +4214,7 @@ Default: .false.
 <entry
 id="s_interior_shr_stream_year_first"
 type="integer"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Default: 1
 </entry>
@@ -3705,7 +4222,7 @@ Default: 1
 <entry
 id="s_interior_shr_stream_year_last"
 type="integer"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Default: 1
 </entry>
@@ -3713,7 +4230,7 @@ Default: 1
 <entry
 id="s_interior_shr_stream_year_align"
 type="integer"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml" >
 Default: 1
 </entry>
@@ -3721,7 +4238,7 @@ Default: 1
 <entry
 id="s_interior_shr_stream_file"
 type="char*256"
-category="forcing"
+category="Forcing (Interior Salt)"
 group="forcing_s_interior_nml">
 Default: unknown-s_interior_shr_stream
 </entry>
@@ -3734,7 +4251,7 @@ Default: unknown-s_interior_shr_stream
 <entry
 id="ap_data_type"
 type="char*256"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml"
 valid_values="none,analytic,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
 Type or periodicity of atmospheric forcing.
@@ -3746,7 +4263,7 @@ Default: 'none'
 <entry
 id="ap_data_inc"
 type="real"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml" >
 Increment (in hours) between forcing times if ap_data_type='n-hour'.
 
@@ -3756,7 +4273,7 @@ Default: 1.e20
 <entry
 id="ap_interp_freq"
 type="char*256"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml"
 valid_values="never,n-hour,every-timestep" >
 How often to temporally interpolate atmospheric forcing data to current time.
@@ -3768,7 +4285,7 @@ Default: 'never'
 <entry
 id="ap_interp_type"
 type="char*256"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml"
 valid_values="nearest,linear,4point" >
 Type of temporal interpolation for atmospheric pressure forcing data.
@@ -3780,7 +4297,7 @@ Default: 'nearest'
 <entry
 id="ap_interp_inc"
 type="real"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml" >
 Increment (in hours) between interpolation times if ap_interp_freq = 'n-hour'.
 
@@ -3790,7 +4307,7 @@ Default: 1e20
 <entry
 id="ap_filename"
 type="char*256"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml" >
 Name of file containing atmospheric pressure forcing, or root of filenames if ap_data_type='n-hour'.
 
@@ -3800,7 +4317,7 @@ Default: 'unknown-ap'
 <entry
 id="ap_file_fmt"
 type="char*256"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml"
 valid_values="bin,nc" >
 ap_filename format (binary or netCDF)
@@ -3812,7 +4329,7 @@ Default: 'bin'
 <entry
 id="ap_data_renorm"
 type="real(20)"
-category="forcing"
+category="Forcing (Atmospheric Pressure)"
 group="forcing_ap_nml" >
 Renormalization constants for the components in the atmospheric pressure forcing file.
 
@@ -3826,10 +4343,11 @@ Default: 20*1.
 <entry
 id="coupled_freq_opt"
 type="char*256"
-category="coupled"
+category="Coupling Options"
 group="coupled_nml"
 valid_values="nyear,nmonth,nday,nhour,nsecond,nstep,never" >
-Units of coupled_freq (frequency POP is coupled to atmosphere / sea ice models via CESM flux coupler).
+Units of time for coupled_freq (frequency POP is coupled to atmosphere/sea ice models
+via CESM flux coupler).
 
 Valid Values: 'nyear', 'nmonth', 'nday', 'nhour', 'nsecond', 'nstep', 'never'
 Default: 'nhour'
@@ -3838,7 +4356,7 @@ Default: 'nhour'
 <entry
 id="coupled_freq"
 type="integer"
-category="coupled"
+category="Coupling Options"
 group="coupled_nml" >
 Frequency POP is coupled to atmosphere / sea ice models via CESM flux coupler (units given by coupled_freq_opt).
 
@@ -3848,7 +4366,7 @@ Default:  24
 <entry
 id="qsw_distrb_opt"
 type="char*256"
-category="coupled"
+category="Coupling Options"
 group="coupled_nml"
 valid_values="const,12hr,cosz" >
 Option for distributing net shortwave heat flux over a coupling interval (all options preserve time-integrated flux).
@@ -3864,7 +4382,7 @@ Default: 'cosz'
 <entry
 id="sw_absorption_type"
 type="char*256"
-category="swabs"
+category="Shortwave Absorption"
 group="sw_absorption_nml"
 valid_values="top-layer,jerlov,chlorophyll" >
 Short-wave absorption type.
@@ -3876,7 +4394,7 @@ Default: 'chlorophyll'
 <entry
 id="chl_option"
 type="char*256"
-category="swabs"
+category="Shortwave Absorption"
 group="sw_absorption_nml"
 valid_values="file,model" >
 Chlorophyll option.
@@ -3888,7 +4406,7 @@ Default: auto-filled by CESM scripts
 <entry
 id="chl_filename"
 type="char*256"
-category="swabs"
+category="Shortwave Absorption"
 group="sw_absorption_nml"
 input_pathname="abs" >
 Chlorophyll input filename.
@@ -3899,7 +4417,7 @@ Default: auto-filled by CESM scripts
 <entry
 id="chl_file_fmt"
 type="char*256"
-category="swabs"
+category="Shortwave Absorption"
 group="sw_absorption_nml"
 valid_values="bin,nc" >
 chl_filename format (binary or netCDF).
@@ -3911,7 +4429,7 @@ Default: 'bin'
 <entry
 id="jerlov_water_type"
 type="integer"
-category="swabs"
+category="Shortwave Absorption"
 group="sw_absorption_nml"
 valid_values="1,2,3,4,5" >
 Jerlov water type.
@@ -3927,7 +4445,7 @@ Default: 3
 <entry
 id="lat_aux_grid_type"
 type="char*256"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml"
 valid_values="southern,full,user-specified" >
 Type of the auxiliary latitudinal grid.
@@ -3939,7 +4457,7 @@ Default: 'southern'
 <entry
 id="lat_aux_begin"
 type="real"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Beginning latitude for the auxiliary grid (degrees north).
 
@@ -3949,7 +4467,7 @@ Default: -90.0
 <entry
 id="lat_aux_end"
 type="real"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Ending latitude for the auxiliary grid (degrees north).
 
@@ -3959,7 +4477,7 @@ Default:  90.0
 <entry
 id="n_lat_aux_grid"
 type="integer"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Auxiliary grid dimension.
 
@@ -3969,7 +4487,7 @@ Default: 180
 <entry
 id="moc_requested"
 type="logical"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Flag for turning on output for meridional overturning circulation.
 
@@ -3979,7 +4497,7 @@ Default: .true. for displaced pole grids, .false. for tripole grids.
 <entry
 id="n_heat_trans_requested"
 type="logical"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Flag for outputting northward heat transport.
 
@@ -3989,7 +4507,7 @@ Default: .true. for displaced pole grids, .false. for tripole grids.
 <entry
 id="n_salt_trans_requested"
 type="logical"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Flag for outputting northward salt transport.
 
@@ -3999,7 +4517,7 @@ Default: .true. for displaced pole grids, .false. for tripole grids.
 <entry
 id="transport_reg2_names"
 type="char*256(6)"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Names of the selected input regions when n_transport_reg = 2.
 
@@ -4009,7 +4527,7 @@ Default: 'Atlantic Ocean','Mediterranean Sea','Labrador Sea','GIN Sea','Arctic O
 <entry
 id="n_transport_reg"
 type="integer"
-category="transdiag"
+category="Diagnostics (Transports)"
 group="transports_nml" >
 Number of regions for all transport diagnostics.
 
@@ -4023,7 +4541,7 @@ Default: 2
 <entry
 id="lcoupled"
 type="logical"
-category="context"
+category="Context"
 group="context_nml" >
 Flag for whether POP is coupled to another system.
 
@@ -4033,7 +4551,7 @@ Default: .true.
 <entry
 id="lccsm"
 type="logical"
-category="context"
+category="Context"
 group="context_nml" >
 Flag to run pop in the CESM context.
 
@@ -4043,7 +4561,7 @@ Default: .true.
 <entry
 id="b4b_flag"
 type="logical"
-category="context"
+category="Context"
 group="context_nml" >
 Flag to run POP in bit-for-bit mode.
 
@@ -4053,7 +4571,7 @@ Default: .false.
 <entry
 id="lccsm_control_compatible"
 type="logical"
-category="context"
+category="Context"
 group="context_nml" >
 Flag to run POP with code that is bit-for-bit with the ccsm4 control run. (According to source notes, this option should have been removed in ccsm4_0_1!).
 
@@ -4063,7 +4581,7 @@ Default: .false.
 <entry
 id="ldebug"
 type="logical"
-category="context"
+category="Context"
 group="context_nml" >
 If this is true, then various internal consistency checks are enabled.
 
@@ -4078,7 +4596,7 @@ Default: DEBUG from env_run.xml, but overridable by user_nl_pop
 <entry
 id="overflows_on"
 type="logical"
-category="overflows"
+category="Overflow Parameterization"
 group="overflows_nml" >
 Flag for using parameterized overflows.
 
@@ -4088,7 +4606,7 @@ Default: .true. for displaced pole grids, .false. for tripole grids.
 <entry
 id="overflows_interactive"
 type="logical"
-category="overflows"
+category="Overflow Parameterization"
 group="overflows_nml" >
 Flag for using interactive overflows.
 
@@ -4098,7 +4616,7 @@ Default: .true. for displaced pole grids, .false. for tripole grids.
 <entry
 id="overflows_infile"
 type="char*256"
-category="overflows"
+category="Overflow Parameterization"
 group="overflows_nml" >
 File with overflow information.
 
@@ -4108,7 +4626,7 @@ Default: Set by CESM scripts based on ocean grid.
 <entry
 id="overflows_diag_outfile"
 type="char*256"
-category="overflows"
+category="Overflow Parameterization"
 group="overflows_nml" >
 File for writing overflow diagnostics output.
 
@@ -4118,7 +4636,7 @@ Default: '$RUNDIR/$CASENAME.do'
 <entry
 id="overflows_restart_type"
 type="char*256"
-category="overflows"
+category="Overflow Parameterization"
 group="overflows_nml"
 valid_values="ccsm_startup,ccsm_continue,ccsm_hybrid,ccsm_branch" >
 Overflow restart type.
@@ -4130,7 +4648,7 @@ Default: 'ccsm_$RUNTYPE'
 <entry
 id="overflows_restfile"
 type="char*256"
-category="overflows"
+category="Overflow Parameterization"
 group="overflows_nml" >
 Overflow restart file name.
 
@@ -4145,7 +4663,7 @@ Default: '$RUNDIR/$CASENAME.ro'
 <entry
 id="lniw_mixing"
 type="logical"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Flag for using near inertial wave mixing.
 
@@ -4155,7 +4673,7 @@ Default: .false.
 <entry
 id="niw_local_mixing_fraction"
 type="real"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Fraction of near inertial wave energy available for mixing local to the generation region.
 
@@ -4165,7 +4683,7 @@ Default: 0.5
 <entry
 id="niw_mixing_efficiency"
 type="real"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Mixing efficiency (portion producing mixing rather than thermal heating).
 
@@ -4175,7 +4693,7 @@ Default: 0.2
 <entry
 id="niw_obs2model_ratio"
 type="real"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Ratio between observed and modeled near inertial wave strength.
 
@@ -4185,7 +4703,7 @@ Default: 2.0
 <entry
 id="niw_boundary_layer_absorption"
 type="real"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Fraction of near inertial wave energy absorbed in the boundary layer.
 
@@ -4195,7 +4713,7 @@ Default: 0.7
 <entry
 id="niw_vert_decay_scale"
 type="real"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Vertical decay scale for turbulence (cm).
 
@@ -4205,7 +4723,7 @@ Default: 500.0e02
 <entry
 id="niw_mix_max"
 type="real"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Maximum diffusivity for near inertial waves (cm^2/s).
 
@@ -4215,7 +4733,7 @@ Default: 100.0
 <entry
 id="niw_energy_type"
 type="char*256"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml" >
 Type (internal or external) for near inertial wave energy source.
 
@@ -4225,7 +4743,7 @@ Default: 'blke'
 <entry
 id="niw_energy_file"
 type="char*256"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml"
 input_pathname="abs" >
 Input file for reading near inertial wave energy flux.
@@ -4236,7 +4754,7 @@ Default: Resolution-dependent
 <entry
 id="niw_energy_file_fmt"
 type="char*256"
-category="vmix"
+category="Vertical Mixing (Near-Inertial Wave)"
 group="niw_nml"
 valid_values="bin,nc" >
 niw_energy_file_fmt (binary or netCDF).
@@ -4253,7 +4771,7 @@ Default: 'bin'
 <entry
 id="n_tavg_streams"
 type="integer"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 3
 </entry>
@@ -4261,7 +4779,7 @@ Default: 3
 <entry
 id="ltavg_ignore_extra_streams"
 type="logical"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: .false.
 </entry>
@@ -4269,7 +4787,7 @@ Default: .false.
 <entry
 id="ltavg_streams_index_present"
 type="logical"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: .true.
 </entry>
@@ -4277,7 +4795,7 @@ Default: .true.
 <entry
 id="tavg_freq_opt"
 type="char*256(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 'nmonth' 'nday' 'once'
 </entry>
@@ -4285,7 +4803,7 @@ Default: 'nmonth' 'nday' 'once'
 <entry
 id="tavg_freq"
 type="integer(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 1 1 1
 </entry>
@@ -4293,7 +4811,7 @@ Default: 1 1 1
 <entry
 id="tavg_file_freq_opt"
 type="char*256(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 'nmonth' 'nmonth' 'once'
 </entry>
@@ -4301,7 +4819,7 @@ Default: 'nmonth' 'nmonth' 'once'
 <entry
 id="tavg_file_freq"
 type="integer(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 1 1 1
 </entry>
@@ -4309,7 +4827,7 @@ Default: 1 1 1
 <entry
 id="tavg_stream_filestrings"
 type="char*256(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 'nmonth1' 'nday1' 'once'
 </entry>
@@ -4317,7 +4835,7 @@ Default: 'nmonth1' 'nday1' 'once'
 <entry
 id="tavg_start_opt"
 type="char*256(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 'nstep' 'nstep' 'nstep'
 </entry>
@@ -4325,7 +4843,7 @@ Default: 'nstep' 'nstep' 'nstep'
 <entry
 id="tavg_start"
 type="integer(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 0 0 0
 </entry>
@@ -4333,7 +4851,7 @@ Default: 0 0 0
 <entry
 id="tavg_fmt_in"
 type="char*256(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 'nc' 'nc' 'nc'
 </entry>
@@ -4341,7 +4859,7 @@ Default: 'nc' 'nc' 'nc'
 <entry
 id="tavg_fmt_out"
 type="char*256(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 'nc' 'nc' 'nc'
 </entry>
@@ -4349,7 +4867,7 @@ Default: 'nc' 'nc' 'nc'
 <entry
 id="tavg_contents"
 type="char*256"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: ' '
 </entry>
@@ -4357,7 +4875,7 @@ Default: ' '
 <entry
 id="ltavg_nino_diags_requested"
 type="logical"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: .true.
 </entry>
@@ -4365,7 +4883,7 @@ Default: .true.
 <entry
 id="tavg_infile"
 type="char*256"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: ' '
 </entry>
@@ -4373,7 +4891,7 @@ Default: ' '
 <entry
 id="tavg_outfile"
 type="char*256"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: ' '
 </entry>
@@ -4381,7 +4899,7 @@ Default: ' '
 <entry
 id="ltavg_has_offset_date"
 type="logical(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: .false. .false. .false.
 </entry>
@@ -4389,7 +4907,7 @@ Default: .false. .false. .false.
 <entry
 id="tavg_offset_years"
 type="integer(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 1 1 1
 </entry>
@@ -4397,7 +4915,7 @@ Default: 1 1 1
 <entry
 id="tavg_offset_months"
 type="integer(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 1 1 1
 </entry>
@@ -4405,7 +4923,7 @@ Default: 1 1 1
 <entry
 id="tavg_offset_days"
 type="integer(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: 2 2 2
 </entry>
@@ -4413,7 +4931,7 @@ Default: 2 2 2
 <entry
 id="ltavg_one_time_header"
 type="logical(9)"
-category="tavg"
+category="History Files (Time-Averaged)"
 group="tavg_nml" >
 Default: .false. .false. .false.
 </entry>
@@ -4425,7 +4943,7 @@ Default: .false. .false. .false.
 <entry
 id="lmcog"
 type="logical"
-category="mcog"
+category="Multi-Column Ocean Grid Parameterization (MCOG)"
 group="mcog_nml"
 valid_values=".true.,.false." >
 Flag for activating mcog, the multiple-column ocean grid parameterization.
@@ -4436,7 +4954,7 @@ Default: .false., unless ecosys is turned on
 <entry
 id="lmcog_debug"
 type="logical"
-category="mcog"
+category="Multi-Column Ocean Grid Parameterization (MCOG)"
 group="mcog_nml"
 valid_values=".true.,.false." >
 Flag for activating debugging statements in multiple-column ocean grid parameterization.
@@ -4447,7 +4965,7 @@ Default: .false.
 <entry
 id="mcog_dagg_qsw_abort_thres"
 type="real"
-category="mcog"
+category="Multi-Column Ocean Grid Parameterization (MCOG)"
 group="mcog_nml" >
 call abort if abs(dagg_qsw) exceeds this threshold
 
@@ -4457,7 +4975,7 @@ Default: 1.0e-10
 <entry
 id="mcog_col_to_bin"
 type="integer(100)"
-category="mcog"
+category="Multi-Column Ocean Grid Parameterization (MCOG)"
 group="mcog_nml" >
 bin index for each column
 
@@ -4471,7 +4989,7 @@ Default: mcog_col_to_bin(nbin) = nbin
 <entry
 id="lchange_ans"
 type="logical"
-category="software_eng"
+category="Software Testing"
 group="se_nml" >
 Flag used for testing when introducing answer changes that will not be
 controlled by other namelist flags. Outside of specific tags, this flag will
@@ -4487,7 +5005,7 @@ Default: .false.
 <entry
 id="ecosys_on"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers"
 group="passive_tracers_on_nml" >
 Flag for using ecosys module.
 
@@ -4497,7 +5015,7 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 <entry
 id="cfc_on"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers"
 group="passive_tracers_on_nml" >
 Flag for using cfc module.
 
@@ -4507,7 +5025,7 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 <entry
 id="sf6_on"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers"
 group="passive_tracers_on_nml" >
 Flag for using sf6 module.
 
@@ -4517,7 +5035,7 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 <entry
 id="iage_on"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers"
 group="passive_tracers_on_nml" >
 Flag for using iage module.
 
@@ -4527,7 +5045,7 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 <entry
 id="abio_dic_dic14_on"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers"
 group="passive_tracers_on_nml" >
 Flag for using abio_dic_dic14 module.
 
@@ -4537,7 +5055,7 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 <entry
 id="IRF_on"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers"
 group="passive_tracers_on_nml" >
 Flag for using IRF module.
 
@@ -4551,7 +5069,7 @@ Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 <entry
 id="init_iage_option"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="iage_nml"
 valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_branch,ccsm_hybrid,file" >
 Option for initialization of iage.
@@ -4563,7 +5081,7 @@ Default: 'ccsm_$RUNTYPE'
 <entry
 id="init_iage_init_file"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="iage_nml"
 input_pathname="abs" >
 Filename for initializing iage (if init_iage_option='file').
@@ -4574,7 +5092,7 @@ Default: 'same_as_TS'
 <entry
 id="tracer_init_ext%mod_varname&iage_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="derived" >
 Default:
 </entry>
@@ -4582,7 +5100,7 @@ Default:
 <entry
 id="tracer_init_ext%filename&iage_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -4591,7 +5109,7 @@ Default:
 <entry
 id="tracer_init_ext%file_varname&iage_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="derived" >
 Default:
 </entry>
@@ -4599,7 +5117,7 @@ Default:
 <entry
 id="tracer_init_ext%file_fmt&iage_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="derived" >
 Default:
 </entry>
@@ -4607,7 +5125,7 @@ Default:
 <entry
 id="tracer_init_ext%scale_factor&iage_nml"
 type="dtype(1)%real"
-category="passive_tracers"
+category="Passive Tracers"
 group="derived" >
 Default:
 </entry>
@@ -4615,7 +5133,7 @@ Default:
 <entry
 id="tracer_init_ext%default_val&iage_nml"
 type="dtype(1)%real"
-category="passive_tracers"
+category="Passive Tracers"
 group="derived" >
 Default:
 </entry>
@@ -4623,7 +5141,7 @@ Default:
 <entry
 id="init_iage_init_file_fmt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers"
 group="iage_nml"
 valid_values="bin,nc" >
 init_iage_init_file format (binary or netCDF).
@@ -4639,7 +5157,7 @@ Default: 'bin'
 <entry
 id="init_cfc_option"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="cfc_nml"
 valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_branch,ccsm_hybrid,file" >
 Option for initialization of cfc.
@@ -4651,7 +5169,7 @@ Default: ccsm_$runtype
 <entry
 id="init_cfc_init_file"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="cfc_nml"
 input_pathname="abs" >
 Filename for initializing cfc (if init_cfc_option='file').
@@ -4662,7 +5180,7 @@ Default: 'same_as_TS'
 <entry
 id="init_cfc_init_file_fmt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="cfc_nml"
 valid_values="bin,nc" >
 init_cfc_init_file format (binary or netCDF).
@@ -4674,7 +5192,7 @@ Default: 'bin'
 <entry
 id="tracer_init_ext%mod_varname&cfc_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4682,7 +5200,7 @@ Default:
 <entry
 id="tracer_init_ext%filename&cfc_nml"
 type="dtype(2)%char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -4691,7 +5209,7 @@ Default:
 <entry
 id="tracer_init_ext%file_varname&cfc_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4699,7 +5217,7 @@ Default:
 <entry
 id="tracer_init_ext%file_fmt&cfc_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4707,7 +5225,7 @@ Default:
 <entry
 id="tracer_init_ext%scale_factor&cfc_nml"
 type="dtype(1)%real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4715,7 +5233,7 @@ Default:
 <entry
 id="tracer_init_ext%default_val&cfc_nml"
 type="dtype(1)%real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4723,7 +5241,7 @@ Default:
 <entry
 id="pcfc_file"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (pCFC)"
 group="cfc_nml"
 input_pathname="abs" >
 File name for ascii time series of atm cfc11.
@@ -4734,7 +5252,7 @@ Default: '$DIN_LOC_ROOT/ocn/pop/res_indpt/forcing/cfc_atm_20170512.nc'
 <entry
 id="pcfc_first_nonzero_year"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (pCFC)"
 group="cfc_nml" >
 first year of non-zero values in pcfc_file
 If the effective cfc calendar year is less than this,
@@ -4746,7 +5264,7 @@ Default: 1936
 <entry
 id="model_year&cfc_nml"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Arbitrary model year.
 
@@ -4756,7 +5274,7 @@ Default: 1850 for OCN_TRANSIENT=1850-2000, 310 for OCN_TRANSIENT=CORE2, 1 otherw
 <entry
 id="data_year&cfc_nml"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Year in data that corresponds to model_year.
 
@@ -4766,7 +5284,7 @@ Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2, 1 other
 <entry
 id="cfc_formulation"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="cfc_nml"
 valid_values="ocmip,model" >
 Flux formulation.
@@ -4778,7 +5296,7 @@ Default: 'model'
 <entry
 id="gas_flux_fice%filename&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -4787,7 +5305,7 @@ Default:
 <entry
 id="gas_flux_fice%file_fmt&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4795,7 +5313,7 @@ Default:
 <entry
 id="gas_flux_fice%file_varname&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4803,7 +5321,7 @@ Default:
 <entry
 id="gas_flux_fice%scale_factor&cfc_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4811,7 +5329,7 @@ Default:
 <entry
 id="gas_flux_fice%default_val&cfc_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4819,7 +5337,7 @@ Default:
 <entry
 id="gas_flux_ws%filename&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -4828,7 +5346,7 @@ Default:
 <entry
 id="gas_flux_ws%file_fmt&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4836,7 +5354,7 @@ Default:
 <entry
 id="gas_flux_ws%file_varname&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4844,7 +5362,7 @@ Default:
 <entry
 id="gas_flux_ws%scale_factor&cfc_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4852,7 +5370,7 @@ Default:
 <entry
 id="gas_flux_ws%default_val&cfc_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4860,7 +5378,7 @@ Default:
 <entry
 id="gas_flux_ap%filename&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -4869,7 +5387,7 @@ Default:
 <entry
 id="gas_flux_ap%file_fmt&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4877,7 +5395,7 @@ Default:
 <entry
 id="gas_flux_ap%file_varname&cfc_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4885,7 +5403,7 @@ Default:
 <entry
 id="gas_flux_ap%scale_factor&cfc_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4893,7 +5411,7 @@ Default:
 <entry
 id="gas_flux_ap%default_val&cfc_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (CFCs)"
 group="derived" >
 Default:
 </entry>
@@ -4905,7 +5423,7 @@ Default:
 <entry
 id="init_sf6_option"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="sf6_nml"
 valid_values="ccsm_startup,zero,ccsm_startup_spunup,restart,ccsm_continue,ccsm_branch,ccsm_hybrid,file" >
 Option for initialization of sf6.
@@ -4917,7 +5435,7 @@ Default: ccsm_$runtype
 <entry
 id="init_sf6_init_file"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="sf6_nml"
 input_pathname="abs" >
 Filename for initializing sf6 (if init_sf6_option='file').
@@ -4928,7 +5446,7 @@ Default: 'same_as_TS'
 <entry
 id="init_sf6_init_file_fmt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="sf6_nml"
 valid_values="bin,nc" >
 init_sf6_init_file format (binary or netCDF).
@@ -4940,7 +5458,7 @@ Default: 'bin'
 <entry
 id="tracer_init_ext%mod_varname&sf6_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -4948,7 +5466,7 @@ Default:
 <entry
 id="tracer_init_ext%filename&sf6_nml"
 type="dtype(2)%char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -4957,7 +5475,7 @@ Default:
 <entry
 id="tracer_init_ext%file_varname&sf6_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -4965,7 +5483,7 @@ Default:
 <entry
 id="tracer_init_ext%file_fmt&sf6_nml"
 type="dtype(1)%char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -4973,7 +5491,7 @@ Default:
 <entry
 id="tracer_init_ext%scale_factor&sf6_nml"
 type="dtype(1)%real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -4981,7 +5499,7 @@ Default:
 <entry
 id="tracer_init_ext%default_val&sf6_nml"
 type="dtype(1)%real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -4989,7 +5507,7 @@ Default:
 <entry
 id="psf6_file"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="sf6_nml"
 input_pathname="abs" >
 File name for ascii time series of atm sf6.
@@ -5000,7 +5518,7 @@ Default: '$DIN_LOC_ROOT/ocn/pop/res_indpt/forcing/sf6_atm_20160311.nc'
 <entry
 id="psf6_first_nonzero_year"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="sf6_nml" >
 first year of non-zero values in psf6_file
 If the effective sf6 calendar year is less than this,
@@ -5012,7 +5530,7 @@ Default: 1953
 <entry
 id="model_year&sf6_nml"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Arbitrary model year.
 
@@ -5022,7 +5540,7 @@ Default: 1850 for 1850-2000 transient run, 1 otherwise.
 <entry
 id="data_year&sf6_nml"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Year in data that corresponds to model_year.
 
@@ -5032,7 +5550,7 @@ Default: 1850 for 1850-2000 transient run, 1981 otherwise.
 <entry
 id="sf6_formulation"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="sf6_nml"
 valid_values="ocmip,model" >
 Flux formulation.
@@ -5044,7 +5562,7 @@ Default: 'model'
 <entry
 id="gas_flux_fice%filename&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -5053,7 +5571,7 @@ Default:
 <entry
 id="gas_flux_fice%file_fmt&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5061,7 +5579,7 @@ Default:
 <entry
 id="gas_flux_fice%file_varname&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5069,7 +5587,7 @@ Default:
 <entry
 id="gas_flux_fice%scale_factor&sf6_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5077,7 +5595,7 @@ Default:
 <entry
 id="gas_flux_fice%default_val&sf6_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5085,7 +5603,7 @@ Default:
 <entry
 id="gas_flux_ws%filename&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -5094,7 +5612,7 @@ Default:
 <entry
 id="gas_flux_ws%file_fmt&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5102,7 +5620,7 @@ Default:
 <entry
 id="gas_flux_ws%file_varname&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5110,7 +5628,7 @@ Default:
 <entry
 id="gas_flux_ws%scale_factor&sf6_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5118,7 +5636,7 @@ Default:
 <entry
 id="gas_flux_ws%default_val&sf6_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5126,7 +5644,7 @@ Default:
 <entry
 id="gas_flux_ap%filename&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived"
 input_pathname="abs" >
 Default:
@@ -5135,7 +5653,7 @@ Default:
 <entry
 id="gas_flux_ap%file_fmt&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5143,7 +5661,7 @@ Default:
 <entry
 id="gas_flux_ap%file_varname&sf6_nml"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5151,7 +5669,7 @@ Default:
 <entry
 id="gas_flux_ap%scale_factor&sf6_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5159,7 +5677,7 @@ Default:
 <entry
 id="gas_flux_ap%default_val&sf6_nml"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (SF6)"
 group="derived" >
 Default:
 </entry>
@@ -5171,7 +5689,7 @@ Default:
 <entry
 id="init_abio_dic_dic14_option"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5179,7 +5697,7 @@ Default:
 <entry
 id="init_abio_dic_dic14_init_file"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml"
 input_pathname="abs" >
 Default:
@@ -5188,7 +5706,7 @@ Default:
 <entry
 id="init_abio_dic_dic14_init_file_fmt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5196,7 +5714,7 @@ Default:
 <entry
 id="abio_tracer_init_ext%mod_varname"
 type="dtype(2)%char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5204,7 +5722,7 @@ Default:
 <entry
 id="abio_tracer_init_ext%file_varname"
 type="dtype(2)%char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5212,7 +5730,7 @@ Default:
 <entry
 id="abio_tracer_init_ext%scale_factor"
 type="dtype(2)%real"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5220,7 +5738,7 @@ Default:
 <entry
 id="abio_tracer_init_ext%default_val"
 type="dtype(2)%real"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5228,7 +5746,7 @@ Default:
 <entry
 id="abio_surf_avg_dic_const"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5236,7 +5754,7 @@ Default:
 <entry
 id="abio_surf_avg_dic14_const"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5244,7 +5762,7 @@ Default:
 <entry
 id="abio_use_nml_surf_vals"
 type="logical"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5252,7 +5770,7 @@ Default:
 <entry
 id="abio_comp_surf_avg_freq_opt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default: 'never'
 </entry>
@@ -5260,15 +5778,15 @@ Default: 'never'
 <entry
 id="abio_comp_surf_avg_freq"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default: '1'
 </entry>
 
 <entry
 id="abio_atm_d14c_filename"
-type="char*256" 
-category="passive_tracers"
+type="char*256"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml"
 input_pathname="abs" >
 Default:
@@ -5278,7 +5796,7 @@ Default:
 <entry
 id="abio_atm_co2_filename"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml"
 input_pathname="abs" >
 Default:
@@ -5287,10 +5805,10 @@ Default:
 <entry
 id="abio_atm_co2_opt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml"
 valid_values="file,const,drv_diag" >
-Source of atmos CO2.
+Source of atmos CO2 and D14C.
 
 Valid Values: 'file', 'const', 'drv_diag'
 Default: '
@@ -5299,7 +5817,7 @@ Default: '
 <entry
 id="abio_atm_d14c_opt"
 type="char*256"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" 
 valid_values="file,const" >
 Source of atmos D14C.
@@ -5308,10 +5826,10 @@ Valid Values: 'file', 'const'
 Default: '
 </entry>
 
-<entry 
+<entry
 id="abio_atm_d14c_const"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5319,7 +5837,7 @@ Default:
 <entry
 id="abio_atm_co2_const"
 type="real"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Default:
 </entry>
@@ -5327,7 +5845,7 @@ Default:
 <entry
 id="abio_atm_model_year"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Arbitrary model year.
 
@@ -5337,7 +5855,7 @@ Default: 1
 <entry
 id="abio_atm_data_year"
 type="integer"
-category="passive_tracers"
+category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
 Year in data that corresponds to abio_atm_model_year.
 
@@ -5352,7 +5870,7 @@ Default: 1
 <entry
 id="lecosys_tavg_all"
 type="logical"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived">
 When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
@@ -5360,7 +5878,7 @@ When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 <entry
 id="lecosys_tavg_alt_co2"
 type="logical"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived">
 When turned on, ocn.ecosys.tavg.csh will output alt_co2 related fields
 </entry>
@@ -5372,7 +5890,7 @@ When turned on, ocn.ecosys.tavg.csh will output alt_co2 related fields
 <entry
 id="dust_flux_source"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="monthly-calendar,driver" >
 Default: 'monthly-calendar'
@@ -5381,7 +5899,7 @@ Default: 'monthly-calendar'
 <entry
 id="dust_flux_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: dst79gnx_gx3v7_20100305.nc or dst79gnx_gx1v6_090416.nc
@@ -5390,7 +5908,7 @@ Default: dst79gnx_gx3v7_20100305.nc or dst79gnx_gx1v6_090416.nc
 <entry
 id="dust_flux_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -5398,7 +5916,7 @@ Default: 'nc'
 <entry
 id="dust_flux_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'DSTSF'
 </entry>
@@ -5406,7 +5924,7 @@ Default: 'DSTSF'
 <entry
 id="dust_flux_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0e-1
 </entry>
@@ -5414,7 +5932,7 @@ Default: 1.0e-1
 <entry
 id="dust_flux_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -5422,7 +5940,7 @@ Default: none provided
 <entry
 id="iron_flux_source"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="monthly-calendar,driver-derived" >
 Default: 'monthly-calendar'
@@ -5431,7 +5949,7 @@ Default: 'monthly-calendar'
 <entry
 id="iron_flux_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc or solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc
@@ -5440,7 +5958,7 @@ Default: solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc or solFe_scena
 <entry
 id="iron_flux_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -5448,7 +5966,7 @@ Default: 'nc'
 <entry
 id="iron_flux_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'DSTSF'
 </entry>
@@ -5456,7 +5974,7 @@ Default: 'DSTSF'
 <entry
 id="iron_flux_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.79e6
 </entry>
@@ -5464,7 +5982,7 @@ Default: 1.79e6
 <entry
 id="iron_flux_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -5472,7 +5990,7 @@ Default: none provided
 <entry
 id="fesedflux_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc or fesedflux_gx1v6_etopo2v2_18gmol_cesm1_93_20161104.nc
@@ -5481,7 +5999,7 @@ Default: fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc or fesedflux_gx1v6
 <entry
 id="fesedflux_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'FESEDFLUXIN'
 </entry>
@@ -5489,7 +6007,7 @@ Default: 'FESEDFLUXIN'
 <entry
 id="fesedflux_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -5497,7 +6015,7 @@ Default: 'nc'
 <entry
 id="fesedflux_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.1574e-6
 </entry>
@@ -5505,7 +6023,7 @@ Default: 1.1574e-6
 <entry
 id="fesedflux_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -5513,7 +6031,7 @@ Default: none provided
 <entry
 id="feventflux_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: feventflux_gx3v7_8gmol_constant_20161122.nc or feventflux_gx1v6_10gmol_constant_20161118.nc
@@ -5522,7 +6040,7 @@ Default: feventflux_gx3v7_8gmol_constant_20161122.nc or feventflux_gx1v6_10gmol_
 <entry
 id="feventflux_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'FESEDFLUXIN'
 </entry>
@@ -5530,7 +6048,7 @@ Default: 'FESEDFLUXIN'
 <entry
 id="feventflux_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -5538,7 +6056,7 @@ Default: 'nc'
 <entry
 id="feventflux_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.1574e-6
 </entry>
@@ -5546,7 +6064,7 @@ Default: 1.1574e-6
 <entry
 id="feventflux_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -5554,7 +6072,7 @@ Default: none provided
 <entry
 id="ndep_data_type"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="shr_stream,monthly-calendar,driver" >
 Default: 'monthly-calendar' or 'shr_stream'
@@ -5563,7 +6081,7 @@ Default: 'monthly-calendar' or 'shr_stream'
 <entry
 id="lignore_driver_ndep"
 type="logical"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 If .false., abort if the coupler passes NHx or NOy and ndep_data_type is not 'driver'
 
@@ -5573,7 +6091,7 @@ Default: .false.
 <entry
 id="nox_flux_monthly_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
@@ -5582,7 +6100,7 @@ Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
 <entry
 id="nox_flux_monthly_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -5590,7 +6108,7 @@ Default: 'nc'
 <entry
 id="nox_flux_monthly_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'NOy_deposition'
 </entry>
@@ -5598,7 +6116,7 @@ Default: 'NOy_deposition'
 <entry
 id="nox_flux_monthly_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 7.1429e6
 </entry>
@@ -5606,7 +6124,7 @@ Default: 7.1429e6
 <entry
 id="nox_flux_monthly_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -5614,7 +6132,7 @@ Default: none provided
 <entry
 id="nhy_flux_monthly_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
@@ -5623,7 +6141,7 @@ Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
 <entry
 id="nhy_flux_monthly_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -5631,7 +6149,7 @@ Default: 'nc'
 <entry
 id="nhy_flux_monthly_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'NHx_deposition'
 </entry>
@@ -5639,7 +6157,7 @@ Default: 'NHx_deposition'
 <entry
 id="nhy_flux_monthly_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 7.1429e6
 </entry>
@@ -5647,7 +6165,7 @@ Default: 7.1429e6
 <entry
 id="nhy_flux_monthly_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -5655,7 +6173,7 @@ Default: none provided
 <entry
 id="ndep_shr_stream_year_first"
 type="integer"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1849 (2004 for rcp runs)
 </entry>
@@ -5663,7 +6181,7 @@ Default: 1849 (2004 for rcp runs)
 <entry
 id="ndep_shr_stream_year_last"
 type="integer"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 2006 (2101 for rcp runs)
 </entry>
@@ -5671,7 +6189,7 @@ Default: 2006 (2101 for rcp runs)
 <entry
 id="ndep_shr_stream_year_align"
 type="integer"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1849 (2101 for rcp runs)
 </entry>
@@ -5679,7 +6197,7 @@ Default: 1849 (2101 for rcp runs)
 <entry
 id="ndep_shr_stream_file"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: depends on grid and OCN_TRANSIENT
@@ -5688,7 +6206,7 @@ Default: depends on grid and OCN_TRANSIENT
 <entry
 id="ndep_shr_stream_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 7.1429e6
 </entry>
@@ -5696,7 +6214,7 @@ Default: 7.1429e6
 <entry
 id="riv_flux_shr_stream_file"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc (gx3v7),
@@ -5708,7 +6226,7 @@ riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc (g
 <entry
 id="riv_flux_shr_stream_year_first"
 type="integer"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1900
 </entry>
@@ -5716,7 +6234,7 @@ Default: 1900
 <entry
 id="riv_flux_shr_stream_year_last"
 type="integer"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1900 (OCN_TRANSIENT=unset), 2000
 </entry>
@@ -5724,7 +6242,7 @@ Default: 1900 (OCN_TRANSIENT=unset), 2000
 <entry
 id="riv_flux_shr_stream_year_align"
 type="integer"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1900
 </entry>
@@ -5732,7 +6250,7 @@ Default: 1900
 <entry
 id="riv_flux_din_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'din_riv_flux'
 </entry>
@@ -5740,7 +6258,7 @@ Default: 'din_riv_flux'
 <entry
 id="riv_flux_din_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5748,7 +6266,7 @@ Default: 1.0
 <entry
 id="riv_flux_dip_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'dip_riv_flux'
 </entry>
@@ -5756,7 +6274,7 @@ Default: 'dip_riv_flux'
 <entry
 id="riv_flux_dip_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5764,7 +6282,7 @@ Default: 1.0
 <entry
 id="riv_flux_don_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'don_riv_flux'
 </entry>
@@ -5772,7 +6290,7 @@ Default: 'don_riv_flux'
 <entry
 id="riv_flux_don_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5780,7 +6298,7 @@ Default: 1.0
 <entry
 id="riv_flux_dop_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'dop_riv_flux'
 </entry>
@@ -5788,7 +6306,7 @@ Default: 'dop_riv_flux'
 <entry
 id="riv_flux_dop_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5796,7 +6314,7 @@ Default: 1.0
 <entry
 id="riv_flux_dsi_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'dsi_riv_flux'
 </entry>
@@ -5804,7 +6322,7 @@ Default: 'dsi_riv_flux'
 <entry
 id="riv_flux_dsi_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5812,7 +6330,7 @@ Default: 1.0
 <entry
 id="riv_flux_dfe_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 'dfe_riv_flux'
 </entry>
@@ -5820,7 +6338,7 @@ Default: 'dfe_riv_flux'
 <entry
 id="riv_flux_dfe_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5828,7 +6346,7 @@ Default: 1.0
 <entry
 id="riv_flux_dic_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'dic_riv_flux'
 </entry>
@@ -5836,7 +6354,7 @@ Default: 'dic_riv_flux'
 <entry
 id="riv_flux_dic_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5844,7 +6362,7 @@ Default: 1.0
 <entry
 id="riv_flux_alk_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'alk_riv_flux'
 </entry>
@@ -5852,7 +6370,7 @@ Default: 'alk_riv_flux'
 <entry
 id="riv_flux_alk_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5860,7 +6378,7 @@ Default: 1.0
 <entry
 id="riv_flux_doc_file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'doc_riv_flux'
 </entry>
@@ -5868,7 +6386,7 @@ Default: 'doc_riv_flux'
 <entry
 id="riv_flux_doc_scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -5876,7 +6394,7 @@ Default: 1.0
 <entry
 id="gas_flux_forcing_opt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'drv'
 </entry>
@@ -5884,7 +6402,7 @@ Default: 'drv'
 <entry
 id="gas_flux_forcing_file"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 path="abs" >
 Default: none provided
@@ -5893,7 +6411,7 @@ Default: none provided
 <entry
 id="gas_flux_fice%filename&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived"
 input_pathname="abs" >
 Default: none provided
@@ -5902,7 +6420,7 @@ Default: none provided
 <entry
 id="gas_flux_fice%file_fmt&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5910,7 +6428,7 @@ Default: none provided
 <entry
 id="gas_flux_fice%file_varname&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5918,7 +6436,7 @@ Default: none provided
 <entry
 id="gas_flux_fice%scale_factor&ecosys_forcing_data_nml"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5926,7 +6444,7 @@ Default: none provided
 <entry
 id="gas_flux_fice%default_val&ecosys_forcing_data_nml"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5934,7 +6452,7 @@ Default: none provided
 <entry
 id="gas_flux_ws%filename&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived"
 input_pathname="abs" >
 Default: none provided
@@ -5943,7 +6461,7 @@ Default: none provided
 <entry
 id="gas_flux_ws%file_fmt&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5951,7 +6469,7 @@ Default: none provided
 <entry
 id="gas_flux_ws%file_varname&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5959,7 +6477,7 @@ Default: none provided
 <entry
 id="gas_flux_ws%scale_factor&ecosys_forcing_data_nml"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5967,7 +6485,7 @@ Default: none provided
 <entry
 id="gas_flux_ws%default_val&ecosys_forcing_data_nml"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5975,7 +6493,7 @@ Default: none provided
 <entry
 id="gas_flux_ap%filename&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived"
 input_pathname="abs" >
 Default: none provided
@@ -5984,7 +6502,7 @@ Default: none provided
 <entry
 id="gas_flux_ap%file_fmt&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -5992,7 +6510,7 @@ Default: none provided
 <entry
 id="gas_flux_ap%file_varname&ecosys_forcing_data_nml"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6000,7 +6518,7 @@ Default: none provided
 <entry
 id="gas_flux_ap%scale_factor&ecosys_forcing_data_nml"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6008,7 +6526,7 @@ Default: none provided
 <entry
 id="gas_flux_ap%default_val&ecosys_forcing_data_nml"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6016,7 +6534,7 @@ Default: none provided
 <entry
 id="atm_co2_opt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="const,drv_prog,drv_diag" >
 Default: depends on OCN_CO2_TYPE in env_run.xml
@@ -6025,7 +6543,7 @@ Default: depends on OCN_CO2_TYPE in env_run.xml
 <entry
 id="atm_co2_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: CCSM_CO2_PPMV value in env_conf.xml
 </entry>
@@ -6033,7 +6551,7 @@ Default: CCSM_CO2_PPMV value in env_conf.xml
 <entry
 id="atm_alt_co2_opt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="const" >
 Default: 'const'
@@ -6042,7 +6560,7 @@ Default: 'const'
 <entry
 id="atm_alt_co2_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: CCSM_CO2_PPMV value in env_conf.xml
 </entry>
@@ -6050,7 +6568,7 @@ Default: CCSM_CO2_PPMV value in env_conf.xml
 <entry
 id="liron_patch"
 type="logical"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -6058,7 +6576,7 @@ Default: none provided
 <entry
 id="iron_patch_flux_filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: none provided
@@ -6067,7 +6585,7 @@ Default: none provided
 <entry
 id="iron_patch_month"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -6075,7 +6593,7 @@ Default: none provided
 <entry
 id="ciso_atm_d13c_opt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="const,file,coupled" >
 Default:
@@ -6084,7 +6602,7 @@ Default:
 <entry
 id="ciso_atm_d13c_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default:
 </entry>
@@ -6092,7 +6610,7 @@ Default:
 <entry
 id="ciso_atm_d14c_opt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="const,file,coupled" >
 Default:
@@ -6101,7 +6619,7 @@ Default:
 <entry
 id="ciso_atm_d14c_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default:
 </entry>
@@ -6109,7 +6627,7 @@ Default:
 <entry
 id="ciso_atm_d13c_filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default:
@@ -6117,8 +6635,8 @@ Default:
 
 <entry
 id="ciso_atm_d14c_filename"
-type="char*256" 
-category="ecosys"
+type="char*256"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default:
@@ -6127,7 +6645,7 @@ Default:
 <entry
 id="ciso_atm_model_year"
 type="integer"
-category="passive_tracers"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Arbitrary model year.
 
@@ -6137,7 +6655,7 @@ Default: 1
 <entry
 id="ciso_atm_data_year"
 type="integer"
-category="passive_tracers"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Year in atm data that corresponds to ciso_atm_model_year.
 
@@ -6147,7 +6665,7 @@ Default: 1
 <entry
 id="restorable_tracer_names"
 type="char*256(41)"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 'PO4','NO3','SiO3','O2','ALK'
 </entry>
@@ -6155,7 +6673,7 @@ Default: 'PO4','NO3','SiO3','O2','ALK'
 <entry
 id="restore_data_filenames"
 type="char*256(41)"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: none provided, constructed by build-namelist
 </entry>
@@ -6163,7 +6681,7 @@ Default: none provided, constructed by build-namelist
 <entry
 id="restore_data_filenames_derived"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="derived"
 input_pathname="abs" >
 Default: ecosys_restore_POP_gx3v7_20170113.nc (gx3v7), ecosys_restore_POP_gx1v6_20170113.nc (gx1v6,gx1v7)
@@ -6172,7 +6690,7 @@ Default: ecosys_restore_POP_gx3v7_20170113.nc (gx3v7), ecosys_restore_POP_gx1v6_
 <entry
 id="restore_data_file_varnames"
 type="char*256(41)"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 'PO4','NO3','SiO3','O2','ALK'
 </entry>
@@ -6180,7 +6698,7 @@ Default: 'PO4','NO3','SiO3','O2','ALK'
 <entry
 id="restore_inv_tau_opt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="const,file_time_invariant">
 Default: 'file_time_invariant' for gx3v7, gx1v6, gx1v7 grids, 'const' otherwise
@@ -6189,7 +6707,7 @@ Default: 'file_time_invariant' for gx3v7, gx1v6, gx1v7 grids, 'const' otherwise
 <entry
 id="restore_inv_tau_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 0.0
 </entry>
@@ -6197,7 +6715,7 @@ Default: 0.0
 <entry
 id="restore_inv_tau_input%filename"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
 Default: ecosys_restore_inv_tau_POP_gx3v7_20170125.nc (gx3v7), ecosys_restore_inv_tau_POP_gx1v6_20170125.nc (gx1v6,gx1v7)
@@ -6206,7 +6724,7 @@ Default: ecosys_restore_inv_tau_POP_gx3v7_20170125.nc (gx3v7), ecosys_restore_in
 <entry
 id="restore_inv_tau_input%file_varname"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'RESTORE_INV_TAU_MARGINAL_SEA_ONLY'
 </entry>
@@ -6214,7 +6732,7 @@ Default: 'RESTORE_INV_TAU_MARGINAL_SEA_ONLY'
 <entry
 id="restore_inv_tau_input%file_fmt"
 type="char*256"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 'nc'
 </entry>
@@ -6222,7 +6740,7 @@ Default: 'nc'
 <entry
 id="restore_inv_tau_input%scale_factor"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1.0
 </entry>
@@ -6230,7 +6748,7 @@ Default: 1.0
 <entry
 id="restore_inv_tau_input%default_val"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: none provided
 </entry>
@@ -6238,7 +6756,7 @@ Default: none provided
 <entry
 id="surf_avg_dic_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 1944.0
 </entry>
@@ -6246,7 +6764,7 @@ Default: 1944.0
 <entry
 id="surf_avg_alk_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 2225.0
 </entry>
@@ -6254,7 +6772,7 @@ Default: 2225.0
 <entry
 id="surf_avg_di13c_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 1944.0
 </entry>
@@ -6262,7 +6780,7 @@ Default: 1944.0
 <entry
 id="surf_avg_di14c_const"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 Default: 1944.0
 </entry>
@@ -6270,7 +6788,7 @@ Default: 1944.0
 <entry
 id="iron_frac_in_fine_dust"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 fraction, by weight, of iron in fine dust
 
@@ -6290,7 +6808,7 @@ Default: 0.00035
 <entry
 id="iron_frac_in_bc"
 type="real"
-category="ecosys"
+category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
 fraction, by weight, of iron in black carbon
 
@@ -6305,7 +6823,7 @@ Default: 0.06
 <entry
 id="init_ecosys_option"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default: 'ccsm_RUNTYPE'
 </entry>
@@ -6313,7 +6831,7 @@ Default: 'ccsm_RUNTYPE'
 <entry
 id="init_ecosys_init_file"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml"
 input_pathname="abs" >
 Default: ecosys_jan_IC_gx3v7_20161123.nc or ecosys_jan_IC_gx1v6_20161123.nc (none provided for tripole grids)
@@ -6322,7 +6840,7 @@ Default: ecosys_jan_IC_gx3v7_20161123.nc or ecosys_jan_IC_gx1v6_20161123.nc (non
 <entry
 id="tracer_init_ext%mod_varname&ecosys_tracer_init_nml"
 type="dtype(31)%char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6330,7 +6848,7 @@ Default: none provided
 <entry
 id="tracer_init_ext%filename&ecosys_tracer_init_nml"
 type="dtype(31)%char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="derived"
 input_pathname="abs" >
 Default: none provided
@@ -6339,7 +6857,7 @@ Default: none provided
 <entry
 id="tracer_init_ext%file_varname&ecosys_tracer_init_nml"
 type="dtype(31)%char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6347,7 +6865,7 @@ Default: none provided
 <entry
 id="tracer_init_ext%file_fmt&ecosys_tracer_init_nml"
 type="dtype(31)%char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6355,7 +6873,7 @@ Default: none provided
 <entry
 id="tracer_init_ext%scale_factor&ecosys_tracer_init_nml"
 type="dtype(31)%real"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6363,7 +6881,7 @@ Default: none provided
 <entry
 id="tracer_init_ext%default_val&ecosys_tracer_init_nml"
 type="dtype(31)%real"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="derived" >
 Default: none provided
 </entry>
@@ -6371,7 +6889,7 @@ Default: none provided
 <entry
 id="init_ecosys_init_file_fmt"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default: 'nc'
 </entry>
@@ -6379,7 +6897,7 @@ Default: 'nc'
 <entry
 id="ciso_init_ecosys_option"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default:
 </entry>
@@ -6387,7 +6905,7 @@ Default:
 <entry
 id="ciso_init_ecosys_init_file"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default:
 </entry>
@@ -6395,7 +6913,7 @@ Default:
 <entry
 id="ciso_tracer_init_ext%mod_varname"
 type="dtype(14)%char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default:
 </entry>
@@ -6403,7 +6921,7 @@ Default:
 <entry
 id="ciso_tracer_init_ext%file_varname"
 type="dtype(14)%char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default:
 </entry>
@@ -6412,7 +6930,7 @@ Default:
 <entry
 id="ciso_tracer_init_ext%scale_factor"
 type="dtype(14)%real"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default:
 </entry>
@@ -6420,7 +6938,7 @@ Default:
 <entry
 id="ciso_tracer_init_ext%default_val"
 type="dtype(14)%real"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default:
 </entry>
@@ -6428,7 +6946,7 @@ Default:
 <entry
 id="ciso_init_ecosys_init_file_fmt"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml" >
 Default: 'nc'
 </entry>
@@ -6441,7 +6959,7 @@ Default: 'nc'
 <entry
 id="lmarginal_seas"
 type="logical"
-category="ecosys"
+category="Ecosystem Model"
 group="ecosys_driver_nml" >
 Default: .true.
 </entry>
@@ -6449,7 +6967,7 @@ Default: .true.
 <entry
 id="ecosys_tadvect_ctype"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model"
 group="ecosys_driver_nml" >
 Default: 'base model'
 </entry>
@@ -6457,7 +6975,7 @@ Default: 'base model'
 <entry
 id="ecosys_qsw_distrb_const"
 type="logical"
-category="ecosys"
+category="Ecosystem Model"
 group="ecosys_driver_nml" >
 Default:
 </entry>
@@ -6465,7 +6983,7 @@ Default:
 <entry
 id="marbl_settings_file"
 type="char*256"
-category="ecosys"
+category="Ecosystem Model"
 group="ecosys_driver_nml" >
 Default: 'marbl_in' for single instance, 'marbl_in_####' for multi-instance.
 </entry>
@@ -6477,7 +6995,7 @@ Default: 'marbl_in' for single instance, 'marbl_in_####' for multi-instance.
 <entry
 id="irf_tracer_file"
 type="char*256"
-category="pop2"
+category="Impulse Response Functions (Diagnostic Tracers)"
 group="irf_nml"
 input_pathname="abs" >
 Default: one of the following, depending on ocean grid and NK_MODE
@@ -6490,7 +7008,7 @@ IRF_offline_transport_tracers_gx1v6_20150313.nc
 <entry
 id="irf_tracer_file_ind_start"
 type="integer"
-category="pop2"
+category="Impulse Response Functions (Diagnostic Tracers)"
 group="irf_nml" >
 Default: 1
 </entry>
@@ -6502,7 +7020,7 @@ Default: 1
 <entry
 id="estuary_option"
 type="char*256"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6510,7 +7028,7 @@ Default: none
 <entry
 id="estuary_type"
 type="char*256"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6518,7 +7036,7 @@ Default: none
 <entry
 id="ebm_param_option"
 type="char*256"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6526,7 +7044,7 @@ Default: none
 <entry
 id="ebm_param_filename"
 type="char*256"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml"
 input_pathname="abs" >
 Default: auto-filled by CESM scripts
@@ -6535,14 +7053,14 @@ Default: auto-filled by CESM scripts
 <entry
 id="ebm_param_file_fmt"
 type="char*256"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 
 <entry
 id="tide_amp"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6550,7 +7068,7 @@ Default: none
 <entry
 id="W_h"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6558,7 +7076,7 @@ Default: none
 <entry
 id="H"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6566,7 +7084,7 @@ Default: none
 <entry
 id="a1"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6574,7 +7092,7 @@ Default: none
 <entry
 id="a2"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
 Default: none
 </entry>
@@ -6582,24 +7100,30 @@ Default: none
 <entry
 id="h0"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
+Ratio of lower-layer depth to H at estuary mouth.
+
 Default: none
 </entry>
 
 <entry
 id="h_upper"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
+Thickness (m) of upper layer of exchange flow. 
+
 Default: none
 </entry>
 
 <entry
 id="h_lower"
 type="real"
-category="pop2"
+category="Estuary Box Model"
 group="estuary_nml" >
+Thickness (m) of lower layer of exchange flow.
+
 Default: none
 </entry>
 

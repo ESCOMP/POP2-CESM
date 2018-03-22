@@ -65,6 +65,8 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
+   use tidal_mixing, only: ltidal_melet_plot, ltidal_mixing, tidal_accumulate_tavg, &
+                           tidal_ts_driver
    use estuary_vsf_mod   
    use running_mean_mod, only: running_mean_test_update_var
 
@@ -365,15 +367,9 @@
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
-  !*** define fields for off-line tracer budget computations
    call define_tavg_field(tavg_TEMP_RF,'TEMP_RF',3,                     &
                           long_name='Robert Filter Potential Temperature Adjustment',&
                           units='degC', grid_loc='3111',                &
-                          coordinates='TLONG TLAT z_t time')
-  call define_tavg_field(tavg_SALT_RF,'SALT_RF',3,                      &
-                          long_name='Robert Filter Salinity Adjustment',&
-                          units='gram/kilogram', grid_loc='3111',       &
-                          scale_factor=1000.0_r8,                       &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_dTEMP_POS_3D,'dTEMP_POS_3D',3,          &
@@ -428,6 +424,12 @@
                           long_name='Minimum Salinity',                &
                           units='gram/kilogram', grid_loc='3111',      &
                           scale_factor=1000.0_r8,                      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_SALT_RF,'SALT_RF',3,                     &
+                          long_name='Robert Filter Salinity Adjustment',&
+                          units='gram/kilogram', grid_loc='3111',       &
+                          scale_factor=1000.0_r8,                       &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_SSS2,'SSS2',2,                          &
@@ -631,8 +633,10 @@
 !-----------------------------------------------------------------------
 
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,kp1,km1,WTK,WORK1,factor)
+   !*** must call tidal_ts_driver outside threaded region
+   if (ltidal_mixing) call tidal_ts_driver
 
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,kp1,km1,WTK,WORK1,factor)
    do iblock = 1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)  
 
@@ -743,6 +747,12 @@
                                         PSURF  (:,:    ,curtime,iblock),  &
                                         DH     (:,:            ,iblock),  &
                                         k,iblock)
+         !*** accumulate some tidal-mixing tavg diagnostics if requested; 
+         !      testing is internal to tidal_accumulate_tavg
+
+         if (ltidal_melet_plot) &
+         call tidal_accumulate_tavg (TRACER(:,:,k,1,curtime,iblock),iblock,k,'TEMP')
+
          endif
 
          if (nt > 2) call tavg_passive_tracers(iblock,k)

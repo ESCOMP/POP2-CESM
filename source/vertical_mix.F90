@@ -42,6 +42,9 @@
    use cvmix_put_get
    use exit_mod
    use prognostic
+   use geoheatflux
+   use registry
+   use tidal_mixing
 
    implicit none
    private
@@ -133,17 +136,12 @@
 
 !-----------------------------------------------------------------------
 !
-!  bottom drag and bottom (geothermal) heat flux
+!  bottom drag
 !
 !-----------------------------------------------------------------------
 
-   logical (log_kind) ::    &
-      lbottom_heat_flx       ! true if bottom heat flux /= 0
-
    real (r8) ::             &
-      bottom_drag,          &! drag coefficient for bottom drag
-      bottom_heat_flx,      &! bottom (geothermal) heat flux (W/m2)
-      bottom_heat_flx_depth  ! depth below which bottom heat applied
+      bottom_drag            ! drag coefficient for bottom drag
 
 !-----------------------------------------------------------------------
 !
@@ -207,6 +205,10 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
+      iblock,             &! block index
+      i,                  &! horizontal grid index x-direction
+      ic,                 &! cvmix horizontal index
+      j,                  &! horizontal grid index y-direction
       k,                  &! vertical level index
       ncol,               &! number of columns
       n,                  &! dummy loop index
@@ -220,7 +222,6 @@
       convection_type      ! input choice for method for convection
 
    namelist /vertical_mix_nml/ vmix_choice, aidif, bottom_drag,        &
-                               bottom_heat_flx, bottom_heat_flx_depth, &
                                implicit_vertical_mix,                  &
                                convection_type, nconvad,               &
                                convect_diff, convect_visc
@@ -233,8 +234,6 @@
 
    aidif = c1
    bottom_drag = 1.0e-3_r8
-   bottom_heat_flx = c0
-   bottom_heat_flx_depth = 1000.00e2_r8
    implicit_vertical_mix = .true.
    convection_type = 'diffusion'
    nconvad = 2
@@ -309,36 +308,17 @@
          convection_itype = -1000
       end select
 
-      if (bottom_heat_flx /= c0) then
-         write(stdout,'(a36)') ' Bottom geothermal heat flux enabled'
-         write(stdout,'(a17,1pe10.3)') '   Flux (W/m2) = ', &
-                                       bottom_heat_flx
-         write(stdout,'(a17,1pe10.3)') '   Depth (cm)  = ', &
-                                       bottom_heat_flx_depth
-      else
-         write(stdout,'(a37)') ' Bottom geothermal heat flux disabled'
-      endif
    endif
 
    call broadcast_scalar(vmix_itype,            master_task)
    call broadcast_scalar(aidif,                 master_task)
    call broadcast_scalar(bottom_drag,           master_task)
-   call broadcast_scalar(bottom_heat_flx,       master_task)
-   call broadcast_scalar(bottom_heat_flx_depth, master_task)
    call broadcast_scalar(implicit_vertical_mix, master_task)
    call broadcast_scalar(convection_itype,      master_task)
    call broadcast_scalar(nconvad,               master_task)
    call broadcast_scalar(convect_diff,          master_task)
    call broadcast_scalar(convect_visc,          master_task)
   
-   bottom_heat_flx = bottom_heat_flx * hflux_factor
-
-   if (bottom_heat_flx /= c0) then
-      lbottom_heat_flx = .true.
-   else
-      lbottom_heat_flx = .false.
-   endif
-
 !-----------------------------------------------------------------------
 !
 !  do some error and consistency checks
@@ -382,6 +362,22 @@
    call cvmix_put(CVmix_params, 'prandtl', 10._r8)
    ncol = nx_block*ny_block
    allocate(CVmix_vars(ncol,nblocks_clinic))
+
+!-----------------------------------------------------------------------
+!
+!  second initializion phase of tidally driven mixing -- must precede init_vmix_kpp
+!
+!-----------------------------------------------------------------------
+
+   call init_tidal_mixing2
+
+!-----------------------------------------------------------------------
+!
+!  initialize tidal lunar timeseries after reading restart file
+!
+!-----------------------------------------------------------------------
+
+   call init_tidal_ts
 
 !-----------------------------------------------------------------------
 !
@@ -614,6 +610,7 @@
 
    case(vmix_type_kpp)
       if (k == 1) then     ! for KPP, compute coeffs for all levels
+
          if (.not. present(SMFT) .and. .not. present(SMF)) &
             call exit_POP(sigAbort, &
                     'vmix_coeffs: must supply either SMF,SMFT')
@@ -794,12 +791,11 @@
                       (p5*(DZT(:,:,k,bid) + DZT(:,:,kp1,bid)))  &
                       ,c0, KMT(:,:,bid) > k)
 
-         if (lbottom_heat_flx .and. n == 1) then
+         if (lgeoheatflux .and. n == 1) then
 !CDIR COLLAPSE
-            VTFB = merge( -bottom_heat_flx, VTFB,       &
+            VTFB = merge( -geoheatflux_const, VTFB,     &
                          k == KMT(:,:,bid) .and.        &
-                         (zt(k) + p5*DZT(:,:,k,bid)) >= &
-                         bottom_heat_flx_depth)
+                         (zt(k) + p5*DZT(:,:,k,bid)) >= geoheatflux_depth)
          endif
 
 !CDIR COLLAPSE
@@ -812,11 +808,16 @@
                       (TOLD(:,:,k  ,n) - TOLD(:,:,kp1,n))*dzwr(k) &
                       ,c0, KMT(:,:,bid) > k)
 
-         if (lbottom_heat_flx .and. n == 1) then
+         if (lgeoheatflux .and. n == 1) then
+           if (registry_match ('geoheatflux_choice_spatial')) then
 !CDIR COLLAPSE
-            VTFB = merge( -bottom_heat_flx, VTFB,      &
+            VTFB = merge( -GEOHFLUX(:,:,bid), VTFB,    &
                          k == KMT(:,:,bid) .and.       &
-                         zw(k) >= bottom_heat_flx_depth)
+                         zw(k) >= geoheatflux_depth)
+           else
+            VTFB = merge( -geoheatflux_const, VTFB,      &
+                         k == KMT(:,:,bid) .and. zw(k) >= geoheatflux_depth)
+           endif
          endif
 
 !CDIR COLLAPSE
@@ -841,7 +842,6 @@
 !EOC
 
  end subroutine vdifft
-
 !***********************************************************************
 !BOP
 ! !IROUTINE: vdiffu
@@ -1248,6 +1248,9 @@
  end subroutine impvmixt
 
 !***********************************************************************
+!BOP
+! !IROUTINE: impvmixt_tavg
+! !INTERFACE:
 
  subroutine impvmixt_tavg(TNEW, bid)
 
@@ -1288,19 +1291,25 @@
                WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))/        &
                              (p5*(DZT(:,:,k,bid) + DZT(:,:,k+1,bid)))        &
                              ,c0, k < KMT(:,:,bid))
-               if (lbottom_heat_flx .and. n == 1) then
-                  WORK2 = merge( -bottom_heat_flx, WORK2,      &
+               if (lgeoheatflux .and. n == 1) then
+                  WORK2 = merge( -geoheatflux_const, WORK2,    &
                                 k == KMT(:,:,bid) .and.        &
-                                (zt(k) + p5*DZT(:,:,k,bid)) >= &
-                                bottom_heat_flx_depth)
+                                (zt(k) + p5*DZT(:,:,k,bid)) >= geoheatflux_depth)
                endif
             else
                WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))*dzwr(k) &
                              ,c0, k < KMT(:,:,bid))
-               if (lbottom_heat_flx .and. n == 1) then
-                  WORK2 = merge( -bottom_heat_flx, WORK2,      &
+               if (lgeoheatflux .and. n == 1) then
+
+                 if (registry_match('geoheatflux_choice_spatial')) then
+                  WORK2 = merge( -GEOHFLUX(:,:,bid), WORK2,    &
                                 k == KMT(:,:,bid) .and.        &
-                                zw(k) >= bottom_heat_flx_depth)
+                                zw(k) >= geoheatflux_depth)
+                 else
+                  WORK2 = merge( -geoheatflux_const, WORK2,    &
+                                k == KMT(:,:,bid) .and.        &
+                                zw(k) >= geoheatflux_depth)
+                 endif
                endif
             endif
             call accumulate_tavg_field(WORK2,tavg_DIA_IMPVF_TRACER(n),bid,k)
@@ -1309,7 +1318,6 @@
    end do
 
  end subroutine impvmixt_tavg
-
 !***********************************************************************
 !BOP
 ! !IROUTINE: impvmixt_correct

@@ -55,6 +55,7 @@
    use overflows
    use overflow_type
    use running_mean_mod, only: running_mean_write_restart
+   use tidal_mixing
 
    implicit none
    private
@@ -165,6 +166,7 @@
 !     ap_interp_last, pt_interior_interp_last
 !     s_interior_interp_last
 !     sal_initial, sum_precip, precip_fact, ssh_initial
+!     tidal_ts_data_ind_low, tidal_ts_data_ind_high,tidal_ts_data_day_of_year
 !
 !-----------------------------------------------------------------------
 
@@ -179,7 +181,7 @@
 ! !INTERFACE:
 
  subroutine read_restart(in_filename,lccsm_branch,lccsm_hybrid, &
-                         in_restart_fmt, errorCode)
+                         in_restart_fmt, init_ts_option, errorCode)
 
 ! !DESCRIPTION:
 !  This routine reads restart data from a file.
@@ -196,6 +198,8 @@
 !  same as module
 
 ! !INPUT PARAMETERS:
+
+   character (*), intent(in) ::   init_ts_option
 
    character (*), intent(in) :: &
       in_filename,              &! filename of restart file
@@ -374,6 +378,15 @@
    call add_attrib_file(restart_file, 'precip_fact', precip_fact)
    call add_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
+   select case (init_ts_option)
+     case ('ccsm_continue', 'restart')
+       if (ltidal_lunar_cycle) then
+         call add_attrib_file(restart_file, 'tidal_ts_data_ind_low',     tidal_ts_data_ind_low)
+         call add_attrib_file(restart_file, 'tidal_ts_data_ind_high',    tidal_ts_data_ind_high)
+         call add_attrib_file(restart_file, 'tidal_ts_data_day_of_year', tidal_ts_data_day_of_year)
+       endif
+   end select
+
    if (lrobert_filter) then
       !*** rf tracer conservation adjustment factor
       do n=1,2
@@ -514,6 +527,16 @@
          enddo 
       endif
  
+      select case (init_ts_option)
+        case ('ccsm_continue', 'restart')
+         if (ltidal_lunar_cycle) then
+           call extract_attrib_file(restart_file, 'tidal_ts_data_ind_low',    tidal_ts_data_ind_low)
+           call extract_attrib_file(restart_file, 'tidal_ts_data_ind_high',   tidal_ts_data_ind_high)
+           call extract_attrib_file(restart_file, 'tidal_ts_data_day_of_year',tidal_ts_data_day_of_year)
+         endif
+      end select
+
+
       short_name = char_blank
       do k=1,km
          write(short_name,'(a11,i3.3)') 'sal_initial',k
@@ -1042,6 +1065,9 @@
       call document ('read_restart', 'precip_fact', precip_fact)
       call document ('read_restart', 'sum_precip', sum_precip)
 
+     !call document ('read_restart', 'ltidal_lunar_cycle',   ltidal_lunar_cycle)
+     !call document ('read_restart', 'tidal_ts_data_ind_low',tidal_ts_data_ind_low)
+
       if (lrobert_filter) then
          do n = 1,2
             write(restart_string,'(a,i3.3,a)') 'rf_S_prev(',n,')'
@@ -1319,6 +1345,12 @@
    call add_attrib_file(restart_file, 'sum_precip' , sum_precip )
    call add_attrib_file(restart_file, 'precip_fact', precip_fact)
    call add_attrib_file(restart_file, 'ssh_initial', ssh_initial)
+
+   if (ltidal_lunar_cycle) then
+     call add_attrib_file(restart_file, 'tidal_ts_data_ind_low',     tidal_ts_data_ind_low)
+     call add_attrib_file(restart_file, 'tidal_ts_data_ind_high',    tidal_ts_data_ind_high)
+     call add_attrib_file(restart_file, 'tidal_ts_data_day_of_year', tidal_ts_data_day_of_year)
+   endif
 
    if (lrobert_filter) then
       !*** rf tracer conservation adjustment factor

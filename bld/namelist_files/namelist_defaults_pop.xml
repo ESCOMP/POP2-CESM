@@ -277,8 +277,14 @@
 <convect_diff>10000.0</convect_diff>
 <convect_visc>10000.0</convect_visc>
 <bottom_drag>1.0e-3</bottom_drag>
-<bottom_heat_flx>0.0</bottom_heat_flx>
-<bottom_heat_flx_depth>1000.0e2</bottom_heat_flx_depth>
+
+<!---------------------------->
+<!-- geoheatflux_nml        -->
+<!---------------------------->
+
+<geoheatflux_choice>'const'</geoheatflux_choice>
+<geoheatflux_const>0.0</geoheatflux_const>
+<geoheatflux_depth>1000.0e2</geoheatflux_depth>
 
 <!---------------------------->
 <!-- vmix_const_nml -->
@@ -299,21 +305,121 @@
 <!-- tidal_nml -->
 <!---------------------------->
 
+<tidal_local_mixing_fraction>0.33</tidal_local_mixing_fraction>
+
+<ltidal_all_TC_coefs_eq_1>.false.</ltidal_all_TC_coefs_eq_1>
+<ltidal_all_TC_coefs_eq_p33>.false.</ltidal_all_TC_coefs_eq_p33>
+
 <ltidal_mixing>.true.</ltidal_mixing>
+<ltidal_melet_plot>.false.</ltidal_melet_plot>
+<ltidal_lunar_cycle>.false.</ltidal_lunar_cycle>
 <ltidal_mixing ocn_grid="tx1v1"  >.false.</ltidal_mixing>
 <ltidal_mixing ocn_grid="tx0.1v2">.false.</ltidal_mixing>
 <ltidal_mixing ocn_grid="tx0.1v3">.false.</ltidal_mixing>
 
-<tidal_energy_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/tidal_energy_gx3v7_20100107.ieeer8</tidal_energy_file>
-<tidal_energy_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8</tidal_energy_file>
-<tidal_energy_file ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8</tidal_energy_file>
+<ltidal_max >.true.</ltidal_max>
+<ltidal_stabc >.true.</ltidal_stabc>
 
-<tidal_energy_file_fmt>'bin'</tidal_energy_file_fmt>
+<ltidal_min_regions>.true.</ltidal_min_regions> 
+<ltidal_min_regions ocn_grid="tx1v1"  >.false.</ltidal_min_regions>
+<ltidal_min_regions ocn_grid="tx0.1v2">.false.</ltidal_min_regions>
+<ltidal_min_regions ocn_grid="tx0.1v3">.false.</ltidal_min_regions>
+<num_tidal_min_regions> 3</num_tidal_min_regions> 
 
-<local_mixing_fraction>0.33</local_mixing_fraction>
-<mixing_efficiency>0.2</mixing_efficiency>
-<vertical_decay_scale>500.0e02</vertical_decay_scale>
+<tidal_min_values(1)> 20.0</tidal_min_values(1)>
+<tidal_min_regions_name(1)> 'Denmark Strait'</tidal_min_regions_name(1)>                
+<tidal_min_regions_klevels(1)>6</tidal_min_regions_klevels(1)>
+<tidal_TLATmin_regions(1)> 67.0</tidal_TLATmin_regions(1)>                
+<tidal_TLATmax_regions(1)> 69.4</tidal_TLATmax_regions(1)>                
+<tidal_TLONmin_regions(1)> 333.5</tidal_TLONmin_regions(1)>                
+<tidal_TLONmax_regions(1)> 337.9</tidal_TLONmax_regions(1)>                
+
+<tidal_min_values(2)> 20.0</tidal_min_values(2)>
+<tidal_min_regions_name(2)> 'Faroe Bank Channel'</tidal_min_regions_name(2)>                
+<tidal_min_regions_klevels(2)>6</tidal_min_regions_klevels(2)>
+<tidal_TLATmin_regions(2)> 60.7</tidal_TLATmin_regions(2)>                
+<tidal_TLATmax_regions(2)> 64.1</tidal_TLATmax_regions(2)>                
+<tidal_TLONmin_regions(2)> 355.</tidal_TLONmin_regions(2)>                
+<tidal_TLONmax_regions(2)> 1.8</tidal_TLONmax_regions(2)>                
+
+<tidal_min_values(3)> 20.0</tidal_min_values(3)>
+<tidal_min_regions_name(3)> 'Ross Sea'</tidal_min_regions_name(3)>                
+<tidal_min_regions_klevels(3)>6</tidal_min_regions_klevels(3)>
+<tidal_TLATmin_regions(3)> -78.2</tidal_TLATmin_regions(3)>                
+<tidal_TLATmax_regions(3)> -74.4</tidal_TLATmax_regions(3)>                
+<tidal_TLONmin_regions(3)> 164.2</tidal_TLONmin_regions(3)>                
+<tidal_TLONmax_regions(3)> 188.9</tidal_TLONmax_regions(3)>                
+
+<ltidal_schmittner_socn>.false.</ltidal_schmittner_socn>
+<ltidal_schmittner_socn ocn_grid="gx3v7"  >.false.</ltidal_schmittner_socn>
+<ltidal_schmittner_socn ocn_grid="tx1v1"  >.false.</ltidal_schmittner_socn>
+<ltidal_schmittner_socn ocn_grid="tx0.1v2">.false.</ltidal_schmittner_socn>
+<ltidal_schmittner_socn ocn_grid="tx0.1v3">.false.</ltidal_schmittner_socn>
+
+<tidal_diss_lim_TC>0.0e02</tidal_diss_lim_TC>
+<tidal_energy_choice>'jayne'</tidal_energy_choice>
+
+<!-------- select tidal energy input file based on tidal_energy_choice and resolution -------------------->
+
+<!-------- arbic ------------>
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'arbic'">'ocn/pop/gx1v6/forcing/tidal_mixing_arbic_gx1v6_20140221.temporary.nc'</tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'arbic'">'nc'</tidal_energy_file_fmt>
+
+<!-------- jayne ------------>
+<tidal_energy_file     ocn_grid="gx3v7" tidal_energy_choice="'jayne'">'ocn/pop/gx3v7/forcing/tidal_energy_gx3v7_20100107.ieeer8'     </tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx3v7" tidal_energy_choice="'jayne'">'bin' </tidal_energy_file_fmt>
+
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'jayne'">'ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8'     </tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'jayne'">'bin' </tidal_energy_file_fmt>
+<tidal_energy_file     ocn_grid="gx1v7" tidal_energy_choice="'jayne'">'ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8'     </tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v7" tidal_energy_choice="'jayne'">'bin' </tidal_energy_file_fmt>
+
+<!-------- ER03 ------------>
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'ER03'">'ocn/pop/gx1v6/forcing/tidal_constituents.ER03.20140225.nc'</tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'ER03'">'nc'</tidal_energy_file_fmt>
+
+<!-------- 3D Green and Nycander 2013  -------------------->
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'GN13'">'ocn/pop/gx1v6/forcing/tidal_constituents.GN13.20141027.nc'</tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'GN13'">'nc'</tidal_energy_file_fmt>
+
+<!-------- LGM0 Wilmes  -------------------->
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'LGM0'">'ocn/pop/gx1v6/forcing/tidal_constituents.LGM.00kyrBP.20170927.nc'</tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'LGM0'">'nc'</tidal_energy_file_fmt>
+
+<!--------LGMi5g21 Wilmes  -------------------->
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'LGMi5g21'">'ocn/pop/gx1v6/forcing/tidal_constituents.LGM.21kyrBP.i5g.20170927.nc'</tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'LGMi5g21'">'nc'</tidal_energy_file_fmt>
+
+<!-------- LGMi6g21 Wilmes  -------------------->
+<tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'LGMi6g21'">'ocn/pop/gx1v6/forcing/tidal_constituents.LGM.21kyrBP.i6g.20170927.nc</tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'LGMi6g21'">'nc'</tidal_energy_file_fmt>
+
+<!-------- polzin input file gx1v6 only -------------------->
+<tidal_vars_file_polz ocn_grid="gx1v6">'ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_polzin.noatt.20170302.nc'</tidal_vars_file_polz>
+<tidal_vars_file_fmt_polz>'nc'</tidal_vars_file_fmt_polz>
+
+<!-------- lunar cycle -------------------->
+<tidal_energy_ts_calendar >'365'</tidal_energy_ts_calendar>
+<tidal_energy_ts_model_yr_align>1</tidal_energy_ts_model_yr_align>
+<tidal_energy_ts_data_first_year >1948</tidal_energy_ts_data_first_year>
+<tidal_energy_ts_data_first_month>1   </tidal_energy_ts_data_first_month>
+<tidal_energy_ts_data_first_day  >1   </tidal_energy_ts_data_first_day>
+<tidal_energy_ts_data_final_year >2009</tidal_energy_ts_data_final_year>
+<tidal_energy_ts_data_final_month>1   </tidal_energy_ts_data_final_month>
+<tidal_energy_ts_data_final_day  >2   </tidal_energy_ts_data_final_day>
+<tidal_energy_ts_files(1)>'ocn/pop/gx1v6/forcing/tidal_lunar_m2modul_nodalTOmonth.20141028.txt'</tidal_energy_ts_files(1)>
+<tidal_energy_ts_files(2)>'ocn/pop/gx1v6/forcing/tidal_lunar_s2modul_nodalTOmonth.20141028.txt'</tidal_energy_ts_files(2)>
+<tidal_energy_ts_files(3)>'ocn/pop/gx1v6/forcing/tidal_lunar_k1modul_nodalTOmonth.20141028.txt'</tidal_energy_ts_files(3)>
+<tidal_energy_ts_files(4)>'ocn/pop/gx1v6/forcing/tidal_lunar_o1modul_nodalTOmonth.20141028.txt' </tidal_energy_ts_files(4)>
+<tidal_energy_ts_file_fmt >'ascii'</tidal_energy_ts_file_fmt>
+
+<!-------- other -------------------->
+<tidal_eps_n2>1.0e-8</tidal_eps_n2>
 <tidal_mix_max>100.0</tidal_mix_max>
+<tidal_mixing_method_choice>'jayne'</tidal_mixing_method_choice>
+<tidal_mixing_efficiency>0.2</tidal_mixing_efficiency>
+<tidal_vert_decay_option_schm>'SSJ02'</tidal_vert_decay_option_schm>
+<vertical_decay_scale>500.0e02</vertical_decay_scale>
 
 <!---------------------------->
 <!-- vmix_kpp_nml -->
@@ -364,6 +470,7 @@
 <bckgrnd_vdc2 ocn_grid="gx1v6" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".true." >0.0</bckgrnd_vdc2>
 <bckgrnd_vdc1 ocn_grid="gx1v6" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".false.">0.524</bckgrnd_vdc1>
 <bckgrnd_vdc2 ocn_grid="gx1v6" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".false.">0.313</bckgrnd_vdc2>
+#... .true., .false. defaults are missing... not straightforward to define
 
 <bckgrnd_vdc1 ocn_grid="gx1v7" lhoriz_varying_bckgrnd=".true."  ltidal_mixing=".true." >0.16</bckgrnd_vdc1>
 <bckgrnd_vdc2 ocn_grid="gx1v7" lhoriz_varying_bckgrnd=".true."  ltidal_mixing=".true." >0.0</bckgrnd_vdc2>
