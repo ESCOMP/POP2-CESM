@@ -3,6 +3,25 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    23 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n115_marbl_dev_n79_cesm_pop_2_1_20180205
+Tag Summary: merge marbl_dev_n79 tag to this branch
+
+Testing: none
+
+Files Modified:
+ M      .
+M       BranchBranchChangeLog
+M       BranchChangeLog
+M       Externals_POP.cfg
+ M      drivers/cpl
+ M      drivers/cpl_none
+M       externals/manage_externals/.git/index
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    23 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n114_marbl_dev_n78_cesm_pop_2_1_20180205
 Tag Summary: add box_atm_trace_gas_mod, box_atm_co2 option for atm_co2_opt and atm_alt_co2_opt
 

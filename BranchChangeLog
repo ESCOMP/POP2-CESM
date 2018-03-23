@@ -1,6 +1,36 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
+Tag Date:    13 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n79_cesm_pop_2_1_20180205
+Tag Summary: Merge latest marbl_dev_klindsay (n113) into marbl_dev
+             Two orthogonal updates:
+             1. Initial condition file updates:
+                * iron_flux_input%filename for gx1v7 matches gx1v6 (had
+                  previously used an older version of the file)
+                * new version of fesedflux_input%filename for all resolutions
+                * new version of feventflux_input%filename for all resolutions
+             2. do13c and do14c should be total isotopic doc, not just
+                semi-labile (so it now includes refactory as well). to make
+                this clear in the code, variables have been renamed do13ctot
+                and do14ctot.
+             also, this branch now gets marbl from private github developer
+             repository instead of the mirror in cesm dev repository.
+
+testing:     aux_pop_marbl on cheyenne and hobart. all cases fail NLCOMP and
+             BASELINE due to changes mentioned in (1). Additionally, (2)
+             results in different variable names for some CISO diagnostics.
+
+Files Modified:
+M       Externals_POP.cfg
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
 Tag Date:    7 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n78_cesm_pop_2_1_20180205
 Tag Summary: Merge latest marbl_dev_klindsay (n110) into marbl_dev
