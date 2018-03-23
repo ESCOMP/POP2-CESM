@@ -2,6 +2,56 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    23 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n114_marbl_dev_n78_cesm_pop_2_1_20180205
+Tag Summary: add box_atm_trace_gas_mod, box_atm_co2 option for atm_co2_opt and atm_alt_co2_opt
+
+new module box_atm_trace_gas_mod is to 'simulate single-box atm trace gases'
+used by ecosys_forcing_mod, to enable 'box_atm_co2' as valid values for atm_co2_opt and atm_alt_co2_opt
+introduce ecosys_forcing_saved_state_mod, for forcing related saved state variables
+
+add box_atm_co2 as valid_value for OCN_CO2_TYPE
+  atm_co2_opt still derived from OCN_CO2_TYPE
+  atm_alt_co2_opt set purely in user_nl_pop
+
+new C1850ECO, T62_g37 tests for cheyenne/intel (ERS_Ld5_D), hobart/nag (SMS)
+
+code cleanup/improvements:
+  surface_forcing_outputs now allocatable, sfo_cnt and block dimensions swapped
+  simplify forcing_field_metadata_set
+  align running_mean code to look more similar to box_atm_trace_gas_mod
+
+Testing:
+MARBL commit fb88957365a965d6dc5fad79958afc40e47b49a3 master branch
+(after bugfix/1 was merged)
+
+aux_pop_MARBL hobart/nag: (baseline comparison to marbl_dev_klindsay_n113)
+   except for tests mentioned below, all tests pass
+      NLCOMP failed for all tests because of new namelist var box_atm_co2_init_val
+      BASELINE failed for new tests
+
+Files Modified:
+M       BranchBranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_box_atm_co2
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_box_atm_co2/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_box_atm_co2/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_box_atm_co2/user_nl_pop
+A       source/box_atm_trace_gas_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+A       source/ecosys_forcing_saved_state_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/restart.F90
+M       source/running_mean_mod.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    8 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n113_marbl_dev_n78_cesm_pop_2_1_20180205
 Tag Summary: change references of do1{3,4}c to do1{3,4}ctot, including ciso IC

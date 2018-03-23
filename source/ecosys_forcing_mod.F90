@@ -155,30 +155,30 @@ module ecosys_forcing_mod
   integer(int_kind)   :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
   character(char_len) :: ndep_shr_stream_file         ! file containing domain and input data
   real(r8)            :: ndep_shr_stream_scale_factor ! unit conversion factor
-  character(char_len) :: gas_flux_forcing_opt        ! option for forcing gas fluxes
+  character(char_len) :: gas_flux_forcing_opt         ! option for forcing gas fluxes
   character(char_len) :: gas_flux_forcing_file        ! file containing gas flux forcing fields
-  type(tracer_read)   :: gas_flux_fice               ! ice fraction for gas fluxes
-  type(tracer_read)   :: gas_flux_ws                 ! wind speed for gas fluxes
-  type(tracer_read)   :: gas_flux_ap                 ! atmospheric pressure for gas fluxes
-  character(char_len) :: atm_co2_opt                 ! option for atmospheric co2 concentration
+  type(tracer_read)   :: gas_flux_fice                ! ice fraction for gas fluxes
+  type(tracer_read)   :: gas_flux_ws                  ! wind speed for gas fluxes
+  type(tracer_read)   :: gas_flux_ap                  ! atmospheric pressure for gas fluxes
+  character(char_len) :: atm_co2_opt                  ! option for atmospheric co2 concentration
   real(r8)            :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
-  character(char_len) :: atm_alt_co2_opt             ! option for atmospheric alternative CO2
+  character(char_len) :: atm_alt_co2_opt              ! option for atmospheric alternative CO2
   real(r8)            :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
   logical(log_kind)   :: liron_patch                  ! flag for iron patch fertilization
   character(char_len) :: iron_patch_flux_filename     ! file containing name of iron patch file
   integer(int_kind)   :: iron_patch_month             ! integer month to add patch flux
-  integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
-  integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-  real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
-  real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
-  real(r8),dimension(3)::ciso_atm_d14c_lat_band_vals    ! atmospheric D14C constant [permil]
-  character(char_len) :: ciso_atm_d13c_opt              ! option for d13C (varying or constant forcing)
-  character(char_len) :: ciso_atm_d13c_filename         ! filename for varying atm d13C
-  character(char_len) :: ciso_atm_d14c_opt              ! option for d14C (varying or constant forcing)
-  character(char_len) :: ciso_atm_d14c_filename         ! filename for varying atm D14C
+  integer(int_kind)   :: ciso_atm_model_year          ! arbitrary model year
+  integer(int_kind)   :: ciso_atm_data_year           ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
+  real(r8)            :: ciso_atm_d13c_const          ! atmospheric d13C constant [permil]
+  real(r8)            :: ciso_atm_d14c_const          ! atmospheric D14C constant [permil]
+  real(r8),dimension(3)::ciso_atm_d14c_lat_band_vals  ! atmospheric D14C constant [permil]
+  character(char_len) :: ciso_atm_d13c_opt            ! option for d13C (varying or constant forcing)
+  character(char_len) :: ciso_atm_d13c_filename       ! filename for varying atm d13C
+  character(char_len) :: ciso_atm_d14c_opt            ! option for d14C (varying or constant forcing)
+  character(char_len) :: ciso_atm_d14c_filename       ! filename for varying atm D14C
 
   type (forcing_timeseries_dataset) :: &
-    ciso_atm_d13c_forcing_dataset                       ! data structure for atm d13C timeseries
+    ciso_atm_d13c_forcing_dataset                     ! data structure for atm d13C timeseries
 
   !-----------------------------------------------------------------------
   !  tracer restoring related variables
@@ -246,7 +246,8 @@ module ecosys_forcing_mod
   integer(int_kind) :: dust_dep_ind = 0, &
                        Fe_dep_ind   = 0, &
                        bc_dep_ind   = 0, &
-                       xco2_ind     = 0, &
+                       box_atm_co2_ind     = 0, &
+                       box_atm_co2_dup_ind = 0, &
                        ifrac_ind    = 0, &
                        ap_ind       = 0, &
                        sst_ind      = 0, &
@@ -310,6 +311,8 @@ contains
     use domain, only : distrb_clinic
 
     use mcog, only : mcog_nbins
+
+    use ecosys_forcing_saved_state_mod, only : lbox_atm_co2, box_atm_co2_init_val
 
     logical,                         intent(in)    :: ciso_on
     logical,                         intent(in)    :: land_mask(:,:,:)
@@ -381,7 +384,8 @@ contains
          riv_flux_doc_file_varname, riv_flux_doc_scale_factor,                &
          gas_flux_forcing_opt,                                                &
          gas_flux_forcing_file, gas_flux_fice, gas_flux_ws, gas_flux_ap,      &
-         atm_co2_opt, atm_co2_const, atm_alt_co2_opt, atm_alt_co2_const,      &
+         atm_co2_opt, atm_co2_const, box_atm_co2_init_val,                    &
+         atm_alt_co2_opt, atm_alt_co2_const,                                  &
          liron_patch, iron_patch_flux_filename, iron_patch_month,             &
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
@@ -444,10 +448,11 @@ contains
     liron_patch              = .false.
     iron_patch_flux_filename = 'unknown_iron_patch_filename'
     iron_patch_month         = 1
-    atm_co2_opt   = 'const'
-    atm_co2_const = 280.0_r8
-    atm_alt_co2_opt   = 'const'
-    atm_alt_co2_const = 280.0_r8
+    atm_co2_opt          = 'const'
+    atm_co2_const        = 280.0_r8
+    box_atm_co2_init_val = 280.0_r8
+    atm_alt_co2_opt      = 'const'
+    atm_alt_co2_const    = 280.0_r8
     ciso_atm_d13c_opt                       = 'const'
     ciso_atm_d13c_const                     = -6.610_r8
     ciso_atm_d13c_filename                  = 'unknown'
@@ -631,7 +636,6 @@ contains
                                driver_varname='SSS', rank=2, id=n)
 
         case ('xco2')
-          xco2_ind = n
           if (trim(atm_co2_opt).eq.'const') then
             call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
                                  marbl_varname=marbl_varname, field_units=units,   &
@@ -644,6 +648,11 @@ contains
             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
                                  marbl_varname=marbl_varname, field_units=units,         &
                                  named_field='ATM_CO2_DIAG', rank=2, id=n)
+          else if (trim(atm_co2_opt).eq.'box_atm_co2') then
+            box_atm_co2_ind = n
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
+                                 driver_varname='box_atm_co2', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_co2_opt),                     &
                  'is not a valid option for atm_co2_opt'
@@ -656,6 +665,15 @@ contains
             call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
                                  marbl_varname=marbl_varname, field_units=units,   &
                                  field_constant=atm_alt_co2_const, rank=2, id=n)
+          else if (trim(atm_alt_co2_opt).eq.'box_atm_co2') then
+            if (trim(atm_co2_opt).eq.'box_atm_co2') then
+              box_atm_co2_dup_ind = n
+            else
+              box_atm_co2_ind = n
+            end if
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
+                                 driver_varname='box_atm_co2', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_alt_co2_opt),                 &
                  'is not a valid option for atm_alt_co2_opt'
@@ -829,6 +847,10 @@ contains
           call exit_POP(sigAbort, 'Stopping in ' // subname)
       end select
     end do
+
+    !--------------------------------------------------------------------------
+
+    lbox_atm_co2 = box_atm_co2_ind > 0
 
     !--------------------------------------------------------------------------
     !  Interior forcing
@@ -1611,6 +1633,9 @@ contains
     use passive_tracer_tools  , only : read_field
     use marbl_constants_mod   , only : molw_Fe
 
+    use ecosys_forcing_saved_state_mod , only : ecosys_forcing_saved_state_get_var_val
+    use ecosys_forcing_saved_state_mod , only : box_atm_co2_forcing_saved_state_id
+
     implicit none
 
     logical,   intent(in)  :: ciso_on
@@ -1821,6 +1846,10 @@ contains
 
                 else if (index == sss_ind) then
                    forcing_field%field_0d(:,:,iblock) = sss(:,:,iblock)
+
+                else if (index == box_atm_co2_ind .or. index == box_atm_co2_dup_ind) then
+                   forcing_field%field_0d(:,:,iblock) = &
+                        ecosys_forcing_saved_state_get_var_val(box_atm_co2_forcing_saved_state_id)
 
                 else if (index == ext_C_flux_ind) then
                    forcing_field%field_0d(:,:,iblock) = c0
@@ -2477,35 +2506,12 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:forcing_field_metadata_set'
-    character(len=char_len)     :: log_message
 
-    character(len=char_len), dimension(7) :: valid_field_sources
-    integer(kind=int_kind)  :: n
-    logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
     !-----------------------------------------------------------------------
 
-    valid_field_sources(1) = 'const'
-    valid_field_sources(2) = 'zero'
-    valid_field_sources(3) = 'internal'
-    valid_field_sources(4) = 'named_field'
-    valid_field_sources(5) = 'shr_stream'
-    valid_field_sources(6) = 'file_time_invariant'
-    valid_field_sources(7) = 'POP monthly calendar'
-
-    ! check for valid source
-    has_valid_source = .false.
-    do n = 1,size(valid_field_sources)
-       if (trim(field_source) .eq. trim(valid_field_sources(n))) has_valid_source = .true.
-    enddo
-    if (.not. has_valid_source) then
-       write(log_message,"(4A)") trim(field_source),                          &
-                                 " is not a valid source for reading the ",   &
-                                 trim(marbl_varname), " forcing field"
-
-       call document(subname, log_message)
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
-    endif
+    call document(subname, "marbl_varname", marbl_varname)
+    call document(subname, "field_source", field_source)
 
     ! required variables for all forcing field sources
     this%field_source  = trim(field_source)
@@ -2529,26 +2535,17 @@ contains
        this%ltime_varying = .false.
        if (.not.present(field_constant)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding constant forcing_field_type for ", &
-                                    trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_constant_info%initialize(field_constant)
        endif
 
     case('zero')
        this%ltime_varying = .false.
-       write(log_message,"(2A)") "Adding constant (0) forcing_field_type for ", &
-                                 trim(this%marbl_varname)
-       call document(subname, log_message)
        call this%field_constant_info%initialize(c0)
 
     case('internal')
        this%ltime_varying = .true.
        if (.not.present(driver_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message, "(2A)") "Adding internal forcing_field_type for ",  &
-                                    trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_driver_info%initialize(driver_varname)
        endif
 
@@ -2556,9 +2553,6 @@ contains
        this%ltime_varying = .true.
        if (.not.present(named_field)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message, "(2A)") "Adding named field forcing_field_type for ",  &
-                                    trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_named_info%initialize(named_field)
        endif
 
@@ -2567,9 +2561,6 @@ contains
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
-                                   trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_file_info%initialize(&
                filename, file_varname, rank)
        endif
@@ -2583,9 +2574,6 @@ contains
        if (.not.present(year_align))            has_valid_inputs = .false.
        if (.not.present(strdata_inputlist_ptr)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
-                                   trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_file_info%initialize(&
                filename, file_varname, rank, &
                year_first=year_first, year_last=year_last, year_align=year_align, &
@@ -2597,19 +2585,17 @@ contains
        this%ltime_varying = .true.
        if (.not.present(forcing_calendar_name)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding calendar forcing_field_type for ", &
-                                   trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_monthly_calendar_info%initialize(forcing_calendar_name)
        endif
+
+     case default
+       call document(subname, "unknown field_source")
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     end select
 
     if (.not.has_valid_inputs) then
-      write(log_message,"(3A)") "Call to forcing_field%init does not have ",  &
-                                "the correct optional arguments for ",        &
-                                trim(field_source)
-       call document(subname, log_message)
+       call document(subname, "required optional arguments for field_source not provided")
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 

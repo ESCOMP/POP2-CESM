@@ -1521,6 +1521,8 @@ if ($ecosys_on eq "TRUE") {
     $atm_co2_opt = "drv_prog";
   } elsif ($OCN_CO2_TYPE eq "diagnostic") {
     $atm_co2_opt = "drv_diag";
+  } elsif ($OCN_CO2_TYPE eq "box_atm_co2") {
+    $atm_co2_opt = "box_atm_co2";
   } else {
     print "error specifying atm_co2_opt \n";
     print "unknown OCN_CO2_TYPE:  $OCN_CO2_TYPE \n";
@@ -1528,6 +1530,7 @@ if ($ecosys_on eq "TRUE") {
   }
   add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
   add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
+  add_default($nl, 'box_atm_co2_init_val', 'val'=>"$CCSM_CO2_PPMV");
   add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
   add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
 
@@ -1693,9 +1696,6 @@ if ($ecosys_on eq "TRUE") {
 
     if ($atm_co2_opt eq $atm_alt_co2_opt) {
       # If both are set to 'const', then equivalence depends on the const value.
-      #   Currently atm_co2_opt=atm_alt_co2_opt implies atm_co2_opt=const,
-      #   because const is the only valid value for atm_alt_co2_opt. But leave
-      #   the check in, in case more valid values are added to atm_alt_co2_opt.
       if ($atm_co2_opt eq 'const') {
         my $atm_co2_const     = $nl->get_value('atm_co2_const');
         my $atm_alt_co2_const = $nl->get_value('atm_alt_co2_const');
