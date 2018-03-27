@@ -136,6 +136,8 @@ Contains
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
 
+    use ecosys_forcing_saved_state_mod, only : ecosys_forcing_saved_state_init
+
     integer (int_kind),                   intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
     logical,                              intent(in)    :: ciso_on
     character(len=*),                     intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
@@ -281,11 +283,12 @@ Contains
     !  initialize saved state
     !-----------------------------------------------------------------------
 
+    ecosys_restart_filename = char_blank
+
     select case (trim(init_ecosys_option))
 
     case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
 
-       ecosys_restart_filename = char_blank
        init_file_fmt = init_ecosys_init_file_fmt
        if (init_ecosys_init_file == 'same_as_TS') then
           if (read_restart_filename == 'undefined') then
@@ -312,6 +315,8 @@ Contains
        call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     end select
+
+    call ecosys_forcing_saved_state_init(ecosys_restart_filename)
 
     !-----------------------------------------------------------------------
     !  initialize tracers
