@@ -1,6 +1,46 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
+Tag Date:    28 Mar 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n80_cesm_pop_2_1_20180205
+Tag Summary: Merge latest marbl_dev_klindsay (n115) into marbl_dev and update to
+             newer MARBL
+             1. POP update introduces box_atm_trace_gas_mod to 'simulate single-box
+                atm trace gases'; 'box_atm_co2' is a valid value for both
+                atm_co2_opt and atm_alt_co2_opt (set via OCN_CO2_TYPE)
+             2. MARBL updates bring in
+                a) Rather than output full column mass balance integrals, abort
+                   if a threshold is exceeded (threshold comes from new
+                   naelist variable); CISO_Jint_14Ctot now includes decay
+                   term so it is conserved.
+                b) Fix some forcing field units and introduce FESEDFLUX diagnostic
+                c) Fix more forcing field and diagnostics units; note that
+                   DUST_FLUX is no longer multiplied by conversion factor so it
+                   will fail baseline comparisons; also DUST_REMIN was reporting
+                   the wrong value. That has been corrected and will also cause
+                   baseline failures.
+
+testing:     aux_pop_marbl on cheyenne and hobart. all cases fail NLCOMP due
+             to changes mentioned in (1) and (2a), and BASELINE due to changes mentioned
+             in (2).
+
+Files Modified:
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_box_atm_co2
+A  +    source/box_atm_trace_gas_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+A  +    source/ecosys_forcing_saved_state_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/restart.F90
+M       source/running_mean_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
 Tag Date:    13 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n79_cesm_pop_2_1_20180205
 Tag Summary: Merge latest marbl_dev_klindsay (n113) into marbl_dev
