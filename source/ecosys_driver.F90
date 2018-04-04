@@ -116,10 +116,10 @@ module ecosys_driver
   logical   (log_kind) , allocatable :: land_mask(:, :, :)
   real      (r8)       , allocatable :: surface_forcing_diags(:, :, :, :)
 
-  integer   (int_kind) , parameter   :: sfo_cnt = 2
+  integer   (int_kind)               :: sfo_cnt
   integer   (int_kind)               :: flux_co2_id
   integer   (int_kind)               :: totalChl_id
-  real      (r8)                     :: surface_forcing_outputs(nx_block, ny_block, sfo_cnt, max_blocks_clinic)
+  real      (r8)       , allocatable :: surface_forcing_outputs(:, :, :, :)
 
 
   ! Variables related to global averages
@@ -428,6 +428,45 @@ contains
     end if
 
     !--------------------------------------------------------------------
+    !  Initialize ecosys forcing fields
+    !--------------------------------------------------------------------
+
+    ! Determine MARBL tracer indices for tracers that use virtual fluxes
+    ! (must be done prior to call to ecosys_forcing_init, when vflux is set)
+    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
+    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
+    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
+    alk_alt_co2_ind = marbl_instances(1)%get_tracer_index('ALK_ALT_CO2')
+    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
+    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
+
+    o2_ind       = marbl_instances(1)%get_tracer_index('O2')
+    no3_ind      = marbl_instances(1)%get_tracer_index('NO3')
+    po4_ind      = marbl_instances(1)%get_tracer_index('PO4')
+    don_ind      = marbl_instances(1)%get_tracer_index('DON')
+    donr_ind     = marbl_instances(1)%get_tracer_index('DONr')
+    dop_ind      = marbl_instances(1)%get_tracer_index('DOP')
+    dopr_ind     = marbl_instances(1)%get_tracer_index('DOPr')
+    sio3_ind     = marbl_instances(1)%get_tracer_index('SiO3')
+    fe_ind       = marbl_instances(1)%get_tracer_index('Fe')
+    doc_ind      = marbl_instances(1)%get_tracer_index('DOC')
+    docr_ind     = marbl_instances(1)%get_tracer_index('DOCr')
+    do13ctot_ind = marbl_instances(1)%get_tracer_index('DO13Ctot')
+    do14ctot_ind = marbl_instances(1)%get_tracer_index('DO14Ctot')
+
+    ! pass ecosys_forcing_data_nml
+    ! to ecosys_forcing_init()
+    ! Also pass marbl_instance%surface_forcing_metadata
+    tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_forcing_data_nml')
+
+    call ecosys_forcing_init(ciso_on,                                         &
+                             land_mask,                                       &
+                             marbl_instances(1)%surface_input_forcings,       &
+                             marbl_instances(1)%interior_input_forcings,      &
+                             tmp_nl_buffer,                                   &
+                             lhas_riv_flux)
+
+    !--------------------------------------------------------------------
     !  Initialize ecosys tracers and saved state
     !--------------------------------------------------------------------
 
@@ -471,45 +510,6 @@ contains
     endif
 
     !--------------------------------------------------------------------
-    !  Initialize ecosys forcing fields
-    !--------------------------------------------------------------------
-
-    ! Determine MARBL tracer indices for tracers that use virtual fluxes
-    ! (must be done prior to call to ecosys_forcing_init, when vflux is set)
-    dic_ind   = marbl_instances(1)%get_tracer_index('DIC')
-    alk_ind   = marbl_instances(1)%get_tracer_index('ALK')
-    dic_alt_co2_ind = marbl_instances(1)%get_tracer_index('DIC_ALT_CO2')
-    alk_alt_co2_ind = marbl_instances(1)%get_tracer_index('ALK_ALT_CO2')
-    di13c_ind = marbl_instances(1)%get_tracer_index('DI13C')
-    di14c_ind = marbl_instances(1)%get_tracer_index('DI14C')
-
-    o2_ind       = marbl_instances(1)%get_tracer_index('O2')
-    no3_ind      = marbl_instances(1)%get_tracer_index('NO3')
-    po4_ind      = marbl_instances(1)%get_tracer_index('PO4')
-    don_ind      = marbl_instances(1)%get_tracer_index('DON')
-    donr_ind     = marbl_instances(1)%get_tracer_index('DONr')
-    dop_ind      = marbl_instances(1)%get_tracer_index('DOP')
-    dopr_ind     = marbl_instances(1)%get_tracer_index('DOPr')
-    sio3_ind     = marbl_instances(1)%get_tracer_index('SiO3')
-    fe_ind       = marbl_instances(1)%get_tracer_index('Fe')
-    doc_ind      = marbl_instances(1)%get_tracer_index('DOC')
-    docr_ind     = marbl_instances(1)%get_tracer_index('DOCr')
-    do13ctot_ind = marbl_instances(1)%get_tracer_index('DO13Ctot')
-    do14ctot_ind = marbl_instances(1)%get_tracer_index('DO14Ctot')
-
-    ! pass ecosys_forcing_data_nml
-    ! to ecosys_forcing_init()
-    ! Also pass marbl_instance%surface_forcing_metadata
-    tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_forcing_data_nml')
-
-    call ecosys_forcing_init(ciso_on,                                         &
-                             land_mask,                                       &
-                             marbl_instances(1)%surface_input_forcings,       &
-                             marbl_instances(1)%interior_input_forcings,      &
-                             tmp_nl_buffer,                                   &
-                             lhas_riv_flux)
-
-    !--------------------------------------------------------------------
     !  Initialize ecosys_driver module variables
     !--------------------------------------------------------------------
 
@@ -518,7 +518,6 @@ contains
     end associate
 
     surface_forcing_diags = c0
-    surface_forcing_outputs = c0
 
     tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
 
@@ -533,8 +532,11 @@ contains
     ! Register and set fco2, the  air-sea co2 gas flux
     !--------------------------------------------------------------------
 
+    sfo_cnt = 0
+
+    ! Register flux_co2 with MARBL surface forcing outputs
+    sfo_cnt = sfo_cnt + 1
     do iblock=1, nblocks_clinic
-       ! Register flux_co2 with MARBL surface forcing outputs
        call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "flux_co2",                                      &
@@ -547,8 +549,11 @@ contains
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
+    end do
 
-       ! Register totalChl with MARBL surface forcing outputs
+    ! Register totalChl with MARBL surface forcing outputs
+    sfo_cnt = sfo_cnt + 1
+    do iblock=1, nblocks_clinic
        call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "totalChl",                                      &
@@ -562,6 +567,10 @@ contains
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
     end do
+
+    allocate(surface_forcing_outputs(nx_block,ny_block,nblocks_clinic,sfo_cnt))
+    surface_forcing_outputs = c0
+
     call named_field_register('SFLUX_CO2'        , sflux_co2_nf_ind)
     call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
 
@@ -1004,7 +1013,7 @@ contains
        end do
 
        do n=1,sfo_cnt
-         surface_forcing_outputs(i,j,n,iblock) = &
+         surface_forcing_outputs(i,j,iblock,n) = &
             marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
        end do
 
@@ -1072,8 +1081,7 @@ contains
     use POP_ErrorMod         , only : POP_Success
     use domain               , only : POP_haloClinic
     use named_field_mod      , only : named_field_set
-    use marbl_settings_mod   , only : lflux_gas_co2
-
+    use ecosys_forcing_saved_state_mod , only : ecosys_forcing_saved_state_update
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1084,7 +1092,7 @@ contains
     integer (int_kind) :: errorCode ! halo update error code
     !-----------------------------------------------------------------------
 
-    ! Added halo update for all surface forcing outputs because sw_absorption
+    ! Added halo update for totalChl surface forcing output because sw_absorption
     ! had issue with prognostic Chl and we didn't track down why the halo cells
     ! mattered in that case
     ! klindsay thought -- KPP smooths boundary layer depth; CVMix computes KPP
@@ -1092,25 +1100,29 @@ contains
     ! so computing vertical mixing coefficients only on phys points will require
     ! halo update for HBLT (and we may be able to remove this halo update as a
     ! result)
-    call POP_HaloUpdate(surface_forcing_outputs, POP_haloclinic, &
+    call POP_HaloUpdate(surface_forcing_outputs(:,:,:,totalChl_id), POP_haloclinic, &
          POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
     if (errorCode /= POP_Success) then
-       call document(subname, 'error updating halo for SFO from MARBL')
+       call document(subname, 'error updating SFO halo for totalChl from MARBL')
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
+
+    !-----------------------------------------------------------------------
+    ! Update ecosys_forcing_saved_state fields
+    !-----------------------------------------------------------------------
+
+    call ecosys_forcing_saved_state_update(surface_forcing_outputs(:,:,:,flux_co2_id))
 
     !-----------------------------------------------------------------------
     ! Update named fields
     !-----------------------------------------------------------------------
 
-    do iblock = 1, nblocks_clinic
-       call named_field_set(totChl_surf_nf_ind, iblock, surface_forcing_outputs(:, :, totalChl_id, iblock))
+    call named_field_set(totChl_surf_nf_ind, surface_forcing_outputs(:,:,:,totalChl_id))
 
-       !  set air-sea co2 gas flux named field, converting units from
-       !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
-       if (lflux_gas_co2) then
-          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:, :, flux_co2_id, iblock))
-       end if
+    !  set air-sea co2 gas flux named field, converting units from
+    !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
+    do iblock = 1, nblocks_clinic
+       call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:,:,iblock,flux_co2_id))
     end do
 
   end subroutine ecosys_driver_post_set_sflux

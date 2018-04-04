@@ -55,6 +55,7 @@
    use overflows
    use overflow_type
    use running_mean_mod, only: running_mean_write_restart
+   use box_atm_trace_gas_mod, only: box_atm_trace_gas_write_restart
 
    implicit none
    private
@@ -1557,6 +1558,8 @@
 
    call running_mean_write_restart(restart_file,'define')
 
+   call box_atm_trace_gas_write_restart(restart_file,'define')
+
 !-----------------------------------------------------------------------
 !
 !  now we actually write each field
@@ -1599,6 +1602,8 @@
    if (nt > 2) call write_restart_passive_tracers(restart_file,'write')
 
    call running_mean_write_restart(restart_file,'write')
+
+   call box_atm_trace_gas_write_restart(restart_file,'write')
 
 !-----------------------------------------------------------------------
 !

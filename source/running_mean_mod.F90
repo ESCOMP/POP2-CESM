@@ -147,7 +147,7 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   character (*), intent(in) ::  &
+   character (len=*), intent(in) ::  &
       init_ts_file_fmt,    & ! format (bin or nc) for input file
       read_restart_filename  ! file name for restart file
 
@@ -157,6 +157,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_init'
    integer (int_kind) :: block ! loop index
    integer (int_kind) :: k     ! loop index
 
@@ -190,9 +191,9 @@ contains
       ! initialize test vars from ts restart file, if present
       if (read_restart_filename /= 'undefined') then
 
-         call document('running_mean_init', 'read_restart_filename', read_restart_filename)
+         call document(subname, 'read_restart_filename', read_restart_filename)
          if (init_ts_file_fmt /= 'nc') then
-           call document('running_mean_init', 'init_ts_file_fmt', init_ts_file_fmt)
+           call document(subname, 'init_ts_file_fmt', init_ts_file_fmt)
            call exit_POP(sigAbort, 'unsupported init_ts_file_fmt')
          endif
          call running_mean_init_var(test_index_0d, read_restart_filename)
@@ -337,7 +338,7 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   character (*), intent(in)       :: name      ! variable name
+   character (len=*), intent(in)   :: name      ! variable name
    integer (int_kind), intent(in)  :: rank      ! rank of variable
    real (r8), intent(in)           :: timescale ! running mean timescale
 
@@ -348,15 +349,21 @@ contains
 !EOP
 !BOC
 !-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
 
-   call document('running_mean_define_var', 'name', name)
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_define_var'
+
+!-----------------------------------------------------------------------
+
+   call document(subname, 'name', name)
 
 !-----------------------------------------------------------------------
 !  error checking
 !-----------------------------------------------------------------------
 
    if (rank < 0 .or. rank > 3) then
-      call document('running_mean_define_var', 'rank', rank)
+      call document(subname, 'rank', rank)
       call exit_POP(sigAbort, 'unsupported rank')
    endif
 
@@ -374,7 +381,7 @@ contains
 
    running_mean_cnt = running_mean_cnt + 1
    if (running_mean_cnt > running_mean_cnt_max) then
-      call document('running_mean_define_var', 'running_mean_cnt_max', &
+      call document(subname, 'running_mean_cnt_max', &
                     running_mean_cnt_max)
       call exit_POP(sigAbort, 'too many running mean variables defined')
    endif
@@ -443,7 +450,7 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   character (*), intent(in)                :: name         ! name of variable to be looked up
+   character (len=*), intent(in)            :: name         ! name of variable to be looked up
    logical (log_kind), intent(in), optional :: exit_on_err  ! Is exit_POP called if name not found?
 
 ! !OUTPUT PARAMETERS:
@@ -456,10 +463,18 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   logical (log_kind) :: loc_exit_on_err   ! local copy of exit_on_err
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_get_var_index'
    integer (int_kind) :: i                 ! loop index
+   logical (log_kind) :: loc_exit_on_err   ! local copy of exit_on_err
 
 !-----------------------------------------------------------------------
+
+   do i=1,running_mean_cnt
+      if (running_mean_array(i)%name == name) then
+         index = i
+         return
+      endif
+   end do
 
    if (.not. present(exit_on_err)) then
       loc_exit_on_err = .true.
@@ -467,18 +482,12 @@ contains
       loc_exit_on_err = exit_on_err
    endif
 
-   index = 0
-   do i=1,running_mean_cnt
-      if (running_mean_array(i)%name == name) then
-         index = i
-         exit
-      endif
-   end do
-
-   if (index == 0 .and. loc_exit_on_err) then
-      call document('running_mean_get_var_index', 'name', name)
+   if (loc_exit_on_err) then
+      call document(subname, 'name', name)
       call exit_POP(sigAbort, 'name not found')
    endif
+
+   index = 0
 
 !-----------------------------------------------------------------------
 !EOC
@@ -490,7 +499,7 @@ contains
 ! !IROUTINE: running_mean_var_exists_in_file
 ! !INTERFACE:
 
- function running_mean_var_exists_in_file(index, filename)
+ function running_mean_var_exists_in_file(index, filename) result(exists)
 
 ! !DESCRIPTION:
 !  Determine if a running mean variable exists in a file.
@@ -498,14 +507,16 @@ contains
 ! !REVISION HISTORY:
 !  same as module
 
+   use passive_tracer_tools, only: field_exists_in_file
+
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: index
-   character (*), intent(in)      :: filename
+   character (len=*), intent(in)  :: filename
 
 ! !OUTPUT PARAMETERS:
 
-   logical (log_kind) :: running_mean_var_exists_in_file
+   logical (log_kind) :: exists
 
 !EOP
 !BOC
@@ -513,20 +524,18 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
-   type (datafile) :: file ! io file descriptor
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_var_exists_in_file'
 
 !-----------------------------------------------------------------------
+!  error checking
+!-----------------------------------------------------------------------
 
-   file = construct_file('nc', full_name=trim(filename))
+   if (index < 1 .or. index > running_mean_cnt) then
+      call document(subname, 'index', index)
+      call exit_POP(sigAbort, 'index out of bounds')
+   endif
 
-   call data_set(file, 'open_read')
-
-   call data_set(file, 'field_exists', fieldname=running_mean_array(index)%file_varname, &
-                 field_exists=running_mean_var_exists_in_file)
-
-   call data_set(file, 'close')
-
-   call destroy_file(file)
+   exists = field_exists_in_file('nc', filename, running_mean_array(index)%file_varname)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -549,7 +558,7 @@ contains
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: index
-   character (*), intent(in)      :: filename
+   character (len=*), intent(in)  :: filename
 
 !EOP
 !BOC
@@ -557,6 +566,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_init_var_filename'
    type (datafile)      :: file         ! io file descriptor
    type (io_dim)        :: i_dim        ! dimension descriptor
    type (io_dim)        :: j_dim        ! dimension descriptor
@@ -568,7 +578,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (index < 1 .or. index > running_mean_cnt) then
-      call document('running_mean_init_var_filename', 'index', index)
+      call document(subname, 'index', index)
       call exit_POP(sigAbort, 'index out of bounds')
    endif
 
@@ -576,8 +586,8 @@ contains
 !  initialize values from file
 !-----------------------------------------------------------------------
 
-   call document('running_mean_init_var_filename', 'name', running_mean_array(index)%name)
-   call document('running_mean_init_var_filename', 'file_varname', running_mean_array(index)%file_varname)
+   call document(subname, 'name', running_mean_array(index)%name)
+   call document(subname, 'file_varname', running_mean_array(index)%file_varname)
 
    file = construct_file('nc', full_name=trim(filename))
 
@@ -658,6 +668,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_init_var_vals'
    integer (int_kind) :: iblock ! loop index
 
 !-----------------------------------------------------------------------
@@ -665,11 +676,11 @@ contains
 !-----------------------------------------------------------------------
 
    if (index < 1 .or. index > running_mean_cnt) then
-      call document('running_mean_init_var_vals', 'index', index)
+      call document(subname, 'index', index)
       call exit_POP(sigAbort, 'index out of bounds')
    endif
 
-   call document('running_mean_init_var_vals', 'name', running_mean_array(index)%name)
+   call document(subname, 'name', running_mean_array(index)%name)
 
    select case (running_mean_array(index)%rank)
    case(0)
@@ -684,7 +695,7 @@ contains
          if (.not. present(k)) then
             call exit_POP(sigAbort, 'k must be supplied if vals_1d_1klev is supplied')
          else
-            call document('running_mean_init_var_vals', 'k', k)
+            call document(subname, 'k', k)
          endif
       endif
    case(2)
@@ -695,7 +706,7 @@ contains
          if (.not. present(block)) then
             call exit_POP(sigAbort, 'block must be supplied if vals_2d_1block is supplied')
          else
-            call document('running_mean_init_var_vals', 'block', block)
+            call document(subname, 'block', block)
          endif
       endif
    case(3)
@@ -706,19 +717,19 @@ contains
          if (.not. present(k)) then
             call exit_POP(sigAbort, 'k must be supplied if vals_3d_1klev_1block is supplied')
          else
-            call document('running_mean_init_var_vals', 'k', k)
+            call document(subname, 'k', k)
          endif
          if (.not. present(block)) then
             call exit_POP(sigAbort, 'block must be supplied if vals_3d_1klev_1block is supplied')
          else
-            call document('running_mean_init_var_vals', 'block', block)
+            call document(subname, 'block', block)
          endif
       endif
       if (present(vals_3d_1klev_blocks)) then
          if (.not. present(k)) then
             call exit_POP(sigAbort, 'k must be supplied if vals_3d_1klev_blocks is supplied')
          else
-            call document('running_mean_init_var_vals', 'k', k)
+            call document(subname, 'k', k)
          endif
       endif
    end select
@@ -820,6 +831,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_update_var'
    integer (int_kind) :: iblock ! loop index
    integer (int_kind) :: k_loc  ! loop index
    real (r8)          :: weight ! weight applied to current running mean
@@ -829,49 +841,49 @@ contains
 !-----------------------------------------------------------------------
 
    if (index < 1 .or. index > running_mean_cnt) then
-      call document('running_mean_update_var', 'index', index)
+      call document(subname, 'index', index)
       call exit_POP(sigAbort, 'index out of bounds')
    endif
 
    select case (running_mean_array(index)%rank)
    case(0)
       if (.not. present(vals_0d)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_0d must be supplied for 0d vars')
       endif
    case(1)
       if (.not. present(vals_1d_1klev) .and. .not. present(vals_1d_klevs)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_1d_1klev or vals_1d_klevs must be supplied for 1d vars')
       endif
       if (present(vals_1d_1klev) .and. .not. present(k)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'k must be supplied if vals_1d_1klev is supplied')
       endif
    case(2)
       if (.not. present(vals_2d_1block) .and. .not. present(vals_2d_blocks)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_2d_1block or vals_2d_blocks must be supplied for 2d vars')
       endif
       if (present(vals_2d_1block) .and. .not. present(block)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'block must be supplied if vals_2d_1block is supplied')
       endif
    case(3)
       if (.not. present(vals_3d_1klev_1block) .and. .not. present(vals_3d_1klev_blocks)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_3d_1klev_1block or vals_3d_1klev_blocks must be supplied for 3d vars')
       endif
       if (present(vals_3d_1klev_1block) .and. .not. present(k)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'k must be supplied if vals_3d_1klev_1block is supplied')
       endif
       if (present(vals_3d_1klev_1block) .and. .not. present(block)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'block must be supplied if vals_3d_1klev_1block is supplied')
       endif
       if (present(vals_3d_1klev_blocks) .and. .not. present(k)) then
-         call document('running_mean_update_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'k must be supplied if vals_3d_1klev_blocks is supplied')
       endif
    end select
@@ -1019,6 +1031,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   character (len=*), parameter :: subname = 'running_mean_mod:running_mean_get_var'
    integer (int_kind) :: iblock ! loop index
    integer (int_kind) :: k_loc  ! loop index
 
@@ -1027,94 +1040,94 @@ contains
 !-----------------------------------------------------------------------
 
    if (index < 1 .or. index > running_mean_cnt) then
-      call document('running_mean_get_var', 'index', index)
+      call document(subname, 'index', index)
       call exit_POP(sigAbort, 'index out of bounds')
    endif
 
    select case (running_mean_array(index)%rank)
    case(0)
       if (.not. present(vals_0d)) then
-         call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_0d must be supplied for 0d vars')
       endif
       if (.not. running_mean_array(index)%linit_0d) then
-         call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
       endif
    case(1)
       if (.not. present(vals_1d_1klev) .and. .not. present(vals_1d_klevs)) then
-         call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_1d_1klev or vals_1d_klevs must be supplied for 1d vars')
       endif
       if (present(vals_1d_1klev)) then
          if (.not. present(k)) then
-            call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+            call document(subname, 'name', running_mean_array(index)%name)
             call exit_POP(sigAbort, 'k must be supplied if vals_1d_1klev is supplied')
          endif
          if (.not. running_mean_array(index)%linit_1d(k)) then
-            call document('running_mean_get_var', 'name', running_mean_array(index)%name)
-            call document('running_mean_get_var', 'k', k)
+            call document(subname, 'name', running_mean_array(index)%name)
+            call document(subname, 'k', k)
             call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
          endif
       else
          do k_loc=1,km
             if (.not. running_mean_array(index)%linit_1d(k_loc)) then
-               call document('running_mean_get_var', 'name', running_mean_array(index)%name)
-               call document('running_mean_get_var', 'k_loc', k_loc)
+               call document(subname, 'name', running_mean_array(index)%name)
+               call document(subname, 'k_loc', k_loc)
                call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
             endif
          end do
       endif
    case(2)
       if (.not. present(vals_2d_1block) .and. .not. present(vals_2d_blocks)) then
-         call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_2d_1block or vals_2d_blocks must be supplied for 2d vars')
       endif
       if (present(vals_2d_1block)) then
          if (.not. present(block)) then
-            call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+            call document(subname, 'name', running_mean_array(index)%name)
             call exit_POP(sigAbort, 'block must be supplied if vals_2d_1block is supplied')
          endif
          if (.not. running_mean_array(index)%linit_2d(block)) then
-            call document('running_mean_get_var', 'name', running_mean_array(index)%name)
-            call document('running_mean_get_var', 'block', block)
+            call document(subname, 'name', running_mean_array(index)%name)
+            call document(subname, 'block', block)
             call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
          endif
       else
          do iblock=1,nblocks_clinic
             if (.not. running_mean_array(index)%linit_2d(iblock)) then
-               call document('running_mean_get_var', 'name', running_mean_array(index)%name)
-               call document('running_mean_get_var', 'iblock', iblock)
+               call document(subname, 'name', running_mean_array(index)%name)
+               call document(subname, 'iblock', iblock)
                call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
             endif
          end do
       endif
    case(3)
       if (.not. present(k)) then
-         call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'k must be supplied for 3d vars')
       endif
       if (.not. present(vals_3d_1klev_1block) .and. .not. present(vals_3d_1klev_blocks)) then
-         call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+         call document(subname, 'name', running_mean_array(index)%name)
          call exit_POP(sigAbort, 'vals_3d_1klev_1block or vals_3d_1klev_blocks must be supplied for 3d vars')
       endif
       if (present(vals_3d_1klev_1block)) then
          if (.not. present(block)) then
-            call document('running_mean_get_var', 'name', running_mean_array(index)%name)
+            call document(subname, 'name', running_mean_array(index)%name)
             call exit_POP(sigAbort, 'block must be supplied if vals_3d_1klev_1block is supplied')
          endif
          if (.not. running_mean_array(index)%linit_3d(k,block)) then
-            call document('running_mean_get_var', 'name', running_mean_array(index)%name)
-            call document('running_mean_get_var', 'k', k)
-            call document('running_mean_get_var', 'block', block)
+            call document(subname, 'name', running_mean_array(index)%name)
+            call document(subname, 'k', k)
+            call document(subname, 'block', block)
             call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
          endif
       else
          do iblock=1,nblocks_clinic
             if (.not. running_mean_array(index)%linit_3d(k,iblock)) then
-               call document('running_mean_get_var', 'name', running_mean_array(index)%name)
-               call document('running_mean_get_var', 'k', k)
-               call document('running_mean_get_var', 'iblock', iblock)
+               call document(subname, 'name', running_mean_array(index)%name)
+               call document(subname, 'k', k)
+               call document(subname, 'iblock', iblock)
                call exit_POP(sigAbort, 'running_mean_get_var must not be called on an uninitialized running mean')
             endif
          end do
@@ -1172,11 +1185,11 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   character (*), intent(in) :: action
+   character (len=*), intent(in) :: action
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (datafile), intent (inout)  :: restart_file
+   type (datafile), intent (inout) :: restart_file
 
 !EOP
 !BOC

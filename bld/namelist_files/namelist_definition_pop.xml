@@ -5329,7 +5329,7 @@ id="abio_atm_co2_const"
 type="real"
 category="passive_tracers"
 group="abio_dic_dic14_nml" >
-Default:
+Default: CCSM_CO2_PPMV value in env_run.xml
 </entry>
 
 <entry
@@ -6026,7 +6026,7 @@ id="atm_co2_opt"
 type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
-valid_values="const,drv_prog,drv_diag" >
+valid_values="const,drv_prog,drv_diag,box_atm_co2" >
 Default: depends on OCN_CO2_TYPE in env_run.xml
 </entry>
 
@@ -6035,7 +6035,15 @@ id="atm_co2_const"
 type="real"
 category="ecosys"
 group="ecosys_forcing_data_nml" >
-Default: CCSM_CO2_PPMV value in env_conf.xml
+Default: CCSM_CO2_PPMV value in env_run.xml
+</entry>
+
+<entry
+id="box_atm_co2_init_val"
+type="real"
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: CCSM_CO2_PPMV value in env_run.xml
 </entry>
 
 <entry
@@ -6043,7 +6051,7 @@ id="atm_alt_co2_opt"
 type="char*256"
 category="ecosys"
 group="ecosys_forcing_data_nml"
-valid_values="const" >
+valid_values="const,box_atm_co2" >
 Default: 'const'
 </entry>
 
@@ -6052,7 +6060,7 @@ id="atm_alt_co2_const"
 type="real"
 category="ecosys"
 group="ecosys_forcing_data_nml" >
-Default: CCSM_CO2_PPMV value in env_conf.xml
+Default: CCSM_CO2_PPMV value in env_run.xml
 </entry>
 
 <entry
