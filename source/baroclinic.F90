@@ -403,7 +403,7 @@
 
    call define_tavg_field(tavg_SST2,'SST2',2,                          &
                           long_name='Surface Potential Temperature**2',&
-                          units='degC', grid_loc='2110',               &
+                          units='degC^2', grid_loc='2110',             &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SALT,'SALT',3,                          &

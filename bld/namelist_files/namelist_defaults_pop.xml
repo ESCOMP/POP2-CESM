@@ -158,7 +158,7 @@
 
 <init_ts_file ocn_grid="gx3v7">  ocn/pop/gx3v7/ic/ts_PHC2_jan_ic_gx3v7_20100107.ieeer8</init_ts_file>
 <init_ts_file ocn_grid="gx1v6">  ocn/pop/gx1v6/ic/ts_PHC2_jan_ic_gx1v6_20090205.ieeer8</init_ts_file>
-<init_ts_file ocn_grid="gx1v7">  ocn/pop/gx1v6/ic/ts_PHC2_jan_ic_gx1v6_20090205.ieeer8</init_ts_file>
+<init_ts_file ocn_grid="gx1v7">  ocn/pop/gx1v7/ic/ts_WOA13v2_jan_ic_gx1v7_20170706.ieeer8</init_ts_file>
 <init_ts_file ocn_grid="tx1v1">  ocn/pop/tx1v1/ic/ts_jan_ic_20050510.ieeer8</init_ts_file>
 <init_ts_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/ic/GC007v3.pop.r.0001-01-16-00000</init_ts_file>
 <init_ts_file ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/ic/ts.woa2013v2_0.25.ic.POP_tx0.1v3_62lev.20170920.nc</init_ts_file>
@@ -943,7 +943,7 @@
 
 <sfwf_filename ocn_grid="gx3v7"  >ocn/pop/gx3v7/forcing/sfwf_mm_PHC2_salx_flxio_20090831.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="gx1v6"  >ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
-<sfwf_filename ocn_grid="gx1v7"  >ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  >ocn/pop/gx1v7/forcing/sfwf_mm_WOA13v2_salx_flxio_gx1v7_20170706.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx1v1"  >ocn/pop/tx1v1/forcing/sfwf_mm_PHC2_salx_flxio_20080502.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
@@ -952,7 +952,7 @@
 <sfwf_weak_restore ocn_grid="gx3v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
-<sfwf_weak_restore ocn_grid="gx1v7"  >0.0115</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  >0.046</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
@@ -1569,6 +1569,7 @@
 <estuary_type ocn_grid="gx1v7">vsf_ebm</estuary_type>
 <ebm_param_option ocn_grid="gx1v7">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
+<ebm_param_filename ocn_grid="gx1v7" datm_mode="CORE_IAF_JRA">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
 
 <tide_amp>1.0</tide_amp>
 <W_h>2000.0</W_h> >

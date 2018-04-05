@@ -1278,11 +1278,20 @@ write(stdout,*) ' after REGION_BOX3D print test'
           end do ! k
 
           do k=1,km
-            where ( k <= KMT(:,:,iblock) )
+            !where ( k <= KMT(:,:,iblock) )
+            !  VERTICAL_NUM  (:,:,k,iblock) = exp(-(HT(:,:,iblock) - zw(k))/vertical_decay_scale)
+            !  VERTICAL_FUNC(:,:,k,iblock) = VERTICAL_NUM(:,:,k,iblock)/WORK(:,:,iblock)
+!           !  !*** the following line was moved to tidal_form_coef_jayne
+!           !  TIDAL_COEF_3D(:,:,k,iblock) = tidal_gamma_rhor*TIDAL_QE_2D(:,:,iblock)*VERTICAL_FUNC(:,:,k,iblock)
+            !endwhere
+            ! The above where-block is divided as follows for generalizing it for partial bottom cells.
+            where ( k < KMT(:,:,iblock) )
               VERTICAL_NUM  (:,:,k,iblock) = exp(-(HT(:,:,iblock) - zw(k))/vertical_decay_scale)
               VERTICAL_FUNC(:,:,k,iblock) = VERTICAL_NUM(:,:,k,iblock)/WORK(:,:,iblock)
-!             !*** the following line was moved to tidal_form_coef_jayne
-!             TIDAL_COEF_3D(:,:,k,iblock) = tidal_gamma_rhor*TIDAL_QE_2D(:,:,iblock)*VERTICAL_FUNC(:,:,k,iblock)
+            endwhere
+            where ( k == KMT(:,:,iblock) )
+              VERTICAL_NUM  (:,:,k,iblock) = 1.0_r8
+              VERTICAL_FUNC(:,:,k,iblock) = VERTICAL_NUM(:,:,k,iblock)/WORK(:,:,iblock)
             endwhere
           enddo ! k
         enddo ! iblock
@@ -2865,13 +2874,16 @@ write(stdout,*) ' after REGION_BOX3D print test'
    call document ('tidal_check','Begin tidal-mixing error checking')
 
    !--------------------------------------------------------------------
-   !  abort if tidal mixing and partial_bottom_cells are both enabled,
-   !   (until pbc option is added to tidal mixing code)
+   !  abort if partial_bottom_cells is enabled when polzin or schmittner
+   !  scheme is to be used
    !--------------------------------------------------------------------
-   if ( ltidal_mixing .and. partial_bottom_cells) then
-      string = 'ERROR: partial bottom cells not implemented with tidal_mixing option'
+   if ( partial_bottom_cells .and.&
+        (tidal_mixing_method_itype .eq. tidal_mixing_method_schmittner.or.&
+         tidal_mixing_method_itype .eq. tidal_mixing_method_polzin) ) then
+      string = 'ERROR: partial_bottom_cells not applicable for Schmittner'&
+                //' or Polzin tidal_mixing option'
       call document ('tidal_check', trim(string))
-      call document ('tidal_check', 'ltidal_mixing', ltidal_mixing)
+      call document ('tidal_check', 'tidal_mixing_method_itype', tidal_mixing_method_itype)
       call document ('tidal_check', 'partial_bottom_cells', partial_bottom_cells)
       number_of_fatal_errors = number_of_fatal_errors + 1
    endif

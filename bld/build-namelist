@@ -353,6 +353,7 @@ my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
+my $DATM_MODE              = "$xmlvars{'DATM_MODE'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -1304,7 +1305,7 @@ add_default($nl, "irf_on");
 add_default($nl, 'estuary_option');
 add_default($nl, 'estuary_type');
 add_default($nl, 'ebm_param_option');
-add_default($nl, 'ebm_param_filename', 'nofail'=>1);
+add_default($nl, 'ebm_param_filename', 'datm_mode'=>"$DATM_MODE", 'nofail'=>1);
 if (not $nl->get_value('ebm_param_filename')) {
 	add_default($nl, 'ebm_param_filename', 'val'=>'unknown_ebm_param_filename','noprepend'=>1);
 }

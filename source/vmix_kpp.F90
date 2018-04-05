@@ -743,6 +743,11 @@
              CVmix_vars(ic,bid)%zw_iface(2:nlev+1) = -zw(1:nlev)*1e-2_r8
              ! Depth at bottom of ocean
              call cvmix_put(CVmix_vars(ic,bid), 'ocn_depth', zw(nlev)*1e-2_r8)
+             if (partial_bottom_cells) then
+               CVMix_vars(ic,bid)%zt_cntr(nlev)     = (-zw(nlev-1)-p5*DZT(inx, jny, nlev, bid))*1e-2_r8
+               CVMix_vars(ic,bid)%zw_iface(nlev+1)  = (-zw(nlev-1)-DZT(inx, jny, nlev, bid))*1e-2_r8
+               CVMix_vars(ic,bid)%OceanDepth        = CVMix_vars(ic,bid)%zw_iface(nlev+1) 
+             endif
              ! Initialize SchmittnerCoeff
              call cvmix_put(CVmix_vars(ic,bid), 'SchmittnerCoeff', tmp_array)
              ! Initialize SchmittnerSouthernOcean
@@ -1801,11 +1806,13 @@
 !  consider the internal wave mixing first. rich_mix is used as the
 !  upper limit for internal wave mixing coefficient.
 !
-!  NOTE: no partial_bottom_cell implementation at this time 
-!
 !-----------------------------------------------------------------------
 
-          WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+          if (partial_bottom_cells) then
+            WORK1 = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + DZT(:,:,k+1,bid)))
+          else
+            WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+          endif
 
           select case (tidal_mixing_method_itype)
 
@@ -1958,7 +1965,13 @@
        !    comparison with Melet 2013 Figure 3
        call tidal_accumulate_tavg(TIDAL_DIFF(:,:,k,bid),bid,k,'TIDAL_DIFF')
 
-       if (.not. lcvmix) TIDAL_N2(:,:,k,bid) = DBLOC(:,:,k)/(zgrid(k)-zgrid(k+1))
+       if (.not. lcvmix) then
+          if (partial_bottom_cells) then
+            TIDAL_N2(:,:,k,bid) = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + DZT(:,:,k+1,bid)))
+          else
+            TIDAL_N2(:,:,k,bid) = DBLOC(:,:,k)/(zgrid(k)-zgrid(k+1))
+          endif
+       endif
        call tidal_accumulate_tavg(TIDAL_N2(:,:,k,bid),bid,k,'N2')
 
        if (accumulate_tavg_now(tavg_TIDAL_COEF_3D)) then
