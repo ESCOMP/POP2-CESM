@@ -2,6 +2,39 @@
 
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    5 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n117_marbl_dev_n80_cesm_pop_2_1_20180205
+Tag Summary: update paramterization of bioavailable iron for iron_flux_source='driver-derived'
+
+also introduce separate iron_frac settings for dust and bc from seaice
+
+Testing:
+MARBL commit 5ce7fe91cf35baf081f5710d230fe68ad4c491cc master branch
+
+aux_pop_MARBL cheyenne/{intel,gnu}: (baseline comparison to marbl_dev_klindsay_n115)
+   except for tests mentioned below, all tests pass
+      NLCOMP failed for all tests because of changes to iron_frac nl vars in POP
+      BASELINE failed for ecosys_dust_flux_driver tests because of changed IRON_FLUX
+      some MEMCOMP failures
+
+Files Modified:
+M       BranchBranchChangeLog
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/cpl/ocn_import_export.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/passive_tracers.F90
+
+===============================================================================
+
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    3 Apr 2018
 Tag Name:    pop2/branch_tags/marbl_dev_klindsay_tags/marbl_dev_klindsay_n116_marbl_dev_n80_cesm_pop_2_1_20180205
 Tag Summary: merge marbl_dev_n80 tag to this branch

@@ -1354,10 +1354,12 @@
 <surf_avg_di13c_const>1944.0</surf_avg_di13c_const>
 <surf_avg_di14c_const>1944.0</surf_avg_di14c_const>
 
-<iron_frac_in_fine_dust>0.00035</iron_frac_in_fine_dust>
-<iron_frac_in_coarse_dust>0.00035</iron_frac_in_coarse_dust>
+<iron_frac_in_atm_fine_dust>0.035</iron_frac_in_atm_fine_dust>
+<iron_frac_in_atm_coarse_dust>0.035</iron_frac_in_atm_coarse_dust>
+<iron_frac_in_seaice_dust>0.035</iron_frac_in_seaice_dust>
 
-<iron_frac_in_bc>0.06</iron_frac_in_bc>
+<iron_frac_in_atm_bc>0.06</iron_frac_in_atm_bc>
+<iron_frac_in_seaice_bc>0.06</iron_frac_in_seaice_bc>
 
 <!----------------------------->
 <!-- ecosys_tracer_init_nml  -->

@@ -32,7 +32,8 @@ module ocn_import_export
    use forcing_fields,    only: ATM_NHx_nf_ind, ATM_NOy_nf_ind
    use forcing_fields,    only: IFRAC, U10_SQR, ATM_PRESS
    use forcing_fields,    only: LAMULT, USTOKES, VSTOKES
-   use forcing_fields,    only: FINE_DUST_FLUX, COARSE_DUST_FLUX, BLACK_CARBON_FLUX
+   use forcing_fields,    only: ATM_FINE_DUST_FLUX, ATM_COARSE_DUST_FLUX, SEAICE_DUST_FLUX
+   use forcing_fields,    only: ATM_BLACK_CARBON_FLUX, SEAICE_BLACK_CARBON_FLUX
    use mcog,              only: lmcog, mcog_ncols, import_mcog
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
@@ -258,20 +259,27 @@ contains
          VSTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
 
          ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
-         FINE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
-            x2o(index_x2o_Faxa_dstwet1,n) + x2o(index_x2o_Faxa_dstdry1,n) + x2o(index_x2o_Fioi_flxdst,n))
+         ATM_FINE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Faxa_dstwet1,n) + x2o(index_x2o_Faxa_dstdry1,n))
 
          ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
-         COARSE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+         ATM_COARSE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
             x2o(index_x2o_Faxa_dstwet2,n) + x2o(index_x2o_Faxa_dstwet3,n) + x2o(index_x2o_Faxa_dstwet4,n) + &
             x2o(index_x2o_Faxa_dstdry2,n) + x2o(index_x2o_Faxa_dstdry3,n) + x2o(index_x2o_Faxa_dstdry4,n))
 
+         ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+         SEAICE_DUST_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Fioi_flxdst,n))
+
          ! convert black carbon flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
-         BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+         ATM_BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
             x2o(index_x2o_Faxa_bcphidry,n) + x2o(index_x2o_Faxa_bcphodry,n) + &
-            x2o(index_x2o_Faxa_bcphiwet,n) + x2o(index_x2o_Fioi_bcpho,n) +    &
-            x2o(index_x2o_Fioi_bcphi,n))
-               
+            x2o(index_x2o_Faxa_bcphiwet,n))
+
+         ! convert black carbon flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+         SEAICE_BLACK_CARBON_FLUX(i,j,iblock) = 0.1_r8 * RCALCT(i,j,iblock) * ( &
+            x2o(index_x2o_Fioi_bcpho,n) + x2o(index_x2o_Fioi_bcphi,n))
+
       enddo
       enddo
 

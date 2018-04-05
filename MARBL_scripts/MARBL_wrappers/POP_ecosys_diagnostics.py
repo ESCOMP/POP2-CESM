@@ -35,9 +35,11 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
 
     # Add tracer-agnostic forcing fields to requested diagnostics
     fout.write("# Dust and Carbon Fluxes from the Coupler\n#\n")
-    fout.write("FINE_DUST_FLUX_CPL : medium_average\n")
-    fout.write("COARSE_DUST_FLUX_CPL : medium_average\n")
-    fout.write("BLACK_CARBON_FLUX_CPL : medium_average\n")
+    fout.write("ATM_FINE_DUST_FLUX_CPL : medium_average\n")
+    fout.write("ATM_COARSE_DUST_FLUX_CPL : medium_average\n")
+    fout.write("SEAICE_DUST_FLUX_CPL : medium_average\n")
+    fout.write("ATM_BLACK_CARBON_FLUX_CPL : medium_average\n")
+    fout.write("SEAICE_BLACK_CARBON_FLUX_CPL : medium_average\n")
 
     # If adjusting bury coefficients, add running means to requested diagnostics
     if ladjust_bury_coeff:
