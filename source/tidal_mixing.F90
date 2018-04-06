@@ -890,7 +890,7 @@
      write(stdout,1102)  '(init_tidal_mixing1) tidal_TLONmin_regions  = ', tidal_TLONmin_regions(ii)
      write(stdout,1102)  '(init_tidal_mixing1) tidal_TLONmax_regions  = ', tidal_TLONmax_regions(ii)
      write(stdout,*) ' '
-     call flush(stdout)
+     call shr_sys_flush(stdout)
    enddo !num_region
    endif !my_task
 

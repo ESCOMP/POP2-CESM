@@ -30,6 +30,7 @@ Tag Summary: Merge latest marbl_dev branch tag (n82) onto trunk
                   (users no longer need to inspect vertical integrals in
                   diagnostic output)
                 - new tunings to go with fe_bioavail fix
+             Also fixed bugs introduced in 
 
 Testing:     aux_pop on cheyenne (intel)
              * NLCOMP failures for all ecosys tests and all abio tests
@@ -59,6 +60,7 @@ M       drivers/cpl/ocn_import_export.F90
 M       externals/manage_externals/.git/index
 D       input_templates/ocn.ciso.tavg.csh
 M       input_templates/ocn.ecosys.tavg.csh
+M       input_templates/ocn.vmix.tavg.csh
 M       source/abio_dic_dic14_mod.F90
 A  +    source/box_atm_trace_gas_mod.F90
 M       source/c14_atm_forcing_mod.F90
@@ -75,7 +77,9 @@ M       source/passive_tracers.F90
 M       source/restart.F90
 M       source/running_mean_mod.F90
 M       source/tavg.F90
+M       source/tidal_mixing.F90
 A  +    source/utils_mod.F90
+M       source/vmix_kpp.F90
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas

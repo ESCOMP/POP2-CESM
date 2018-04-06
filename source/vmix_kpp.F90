@@ -732,7 +732,8 @@
 
              allocate(tmp_array(nlev+1))
              tmp_array = 0._r8
-             allocate(tmp_array2(nlev+1,nlev+1))
+             allocate(tmp_array2(2:nlev+1,2:nlev+1))
+             tmp_array2 = 0._r8
              ! Shear Richardson
              call cvmix_put(CVmix_vars(ic,bid), 'Ri_iface', tmp_array)
              ! Bulk Richardson
