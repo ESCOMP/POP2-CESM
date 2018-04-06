@@ -1,4 +1,79 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    05 Apr 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180405
+Tag Summary: Tidal PBC, JRA forcing updates, update testlist, correct unit
+             
+             - Enable default tidal mixing parameterization (Jayne et al.) with partial bottom cells
+               (Sourcemods from gokhan, adapted to new tidal mixing module)
+             - JRA forcing updates:
+                * new init_ts_file, sfwf_filename for gx1v7 for both JRA and CORE2
+                * sfwf restoring set to 1 yr for gx1v7 by default for both JRA and CORE2
+                * new ebm_param_filename for gx1v7 JRA (CORE2 unchanged)
+             - Testlist updates:
+                * all bluewaters and eos tests removed. (prealpha and prebeta)
+                * added JRA tests to aux_pop and prebeta
+             - Correct tavg_SST2 unit
+
+Testing:     - aux_pop on cheyenne/intel. all except gx1v7 bit for bit. gx1v7 differs due to new 
+             ic and sfwf files
+             - G.TL319_t13.startup two-month smoke test for tidal PBC
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+?       manage_externals.log
+M       source/baroclinic.F90
+M       source/tidal_mixing.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  njn01
+Tag Date:    22 Mar 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180322
+Tag Summary: add new tidal mixing methods, options, variables, energy datasets
+
+             - tidal mixing methods: jayne, polzin, schmittner
+             - Changed initialization calling sequences and split init_tidal_mixing into two routines.
+             - CVMix changes. (added Schmittner)
+             - New Geothermal options, variables, options.
+            
+
+Testing:     aux_pop on cheyenne (intel)
+
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A       input_templates/ocn.base.tavg.csh.nstep
+A       input_templates/ocn.vmix.tavg.csh
+M       source/baroclinic.F90
+M       source/budget_diagnostics.F90
+A       source/geoheatflux.F90
+M       source/initial.F90
+M       source/niw_mixing.F90
+M       source/restart.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+M       source/time_management.F90
+M       source/vertical_mix.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    16 Feb 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180216
+Tag Summary: add tests in a new aux_cime_baselines category
+
+Testing:     ran the new test category (with 4 new SMS tests). all pass.
+
+M       cime_config/testdefs/testlist_pop.xml
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    5 Feb 2018

@@ -40,6 +40,7 @@
    use forcing
    use damping, only : ldamp_uv, damping_uv
    use forcing_shf
+   use geoheatflux
    use ice
    use passive_tracers
    use registry
@@ -51,6 +52,7 @@
    use overflows
    use overflow_type
    use qflux_mod
+   use tidal_mixing
 
    implicit none
    private
@@ -103,8 +105,8 @@
    real (POP_r8), allocatable, dimension(:)                  :: open_ocean_area_t_k
    real (POP_r8)                                             :: open_ocean_volume_2_km
 
-   logical (POP_Logical), allocatable, dimension(:,:,:,:)    :: LMASK_BUDGT
-   real    (POP_r8),      allocatable, dimension(:,:,:,:), private ::  MASK_BUDGT
+   logical (POP_Logical), allocatable, dimension(:,:,:,:)    :: LMASK_TRBUDGET
+   real    (POP_r8),      allocatable, dimension(:,:,:,:), private :: MASK_TRBUDGET
 
    logical (POP_Logical) :: lrf_budget_collect_tracer_mean_initial
    logical (POP_Logical) :: lrf_budget_collect_S1
@@ -172,8 +174,8 @@
       PSURF_FILT_CUR,    &! time filtered PSURF at curtime
       WORK_MIN,WORK_MAX   ! work variables for enforcing tracer bounds during time filtering
 
-   logical (POP_Logical), save ::    &
-      first_call = .true.          ! flag for initializing timers
+   logical (POP_Logical), save ::  &
+      first_call = .true.         ! flag controlling one-time tavg calls
 
    type (block) ::        &
       this_block          ! block information for current block
@@ -217,7 +219,7 @@
 
    if (.not. lrobert_filter) &
    call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
-                                 MASK_BUDGT, bgtarea_t_k, step_call = .true.)
+                                 MASK_TRBUDGET, bgtarea_t_k, step_call = .true.)
 
 !-----------------------------------------------------------------------
 !
@@ -377,6 +379,14 @@
             'step: error in baroclinic driver')
          return
       endif
+
+!-----------------------------------------------------------------------
+!
+!     compute time-invariant "tavg_once" fields at just the right time
+!
+!-----------------------------------------------------------------------
+
+      if (first_call) call step_accumulate_tavg_once
 
 !-----------------------------------------------------------------------
 !
@@ -878,7 +888,7 @@
 
      endif ! lrobert_filter
 
-     call tracer_budgets (MASK_BUDGT, bgtarea_t_k)
+     call tracer_budgets (MASK_TRBUDGET, bgtarea_t_k)
 
    endif !ldiag_global_tracer_budgets
 
@@ -891,6 +901,8 @@
 !-----------------------------------------------------------------------
 
   call timer_stop(timer_step)
+
+  first_call = .false.
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1062,7 +1074,7 @@
        WORKN(:,:,n,iblock) = c0
        do k=2,km
          WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) &
-           + dz(k)*MASK_BUDGT(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
+           + dz(k)*MASK_TRBUDGET(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
        enddo ! k
        WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*WORKN(:,:,n,iblock)
      enddo ! n
@@ -1096,7 +1108,7 @@
 
            !*** form RF TRACER conservation adjustment term at surface;
            !    compute surface rf_Svol (thickness is already included in STORE_RF(k=1))
-           WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*MASK_BUDGT(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
+           WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*MASK_TRBUDGET(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
 
        enddo ! n
      end do ! block loop
@@ -1126,7 +1138,7 @@
      k=1
      n=1
      rf_sump = global_sum(STORE_RF(:,:,k,n,:)*TAREA(:,:,:),  &
-                          distrb_clinic,field_loc_center, MASK_BUDGT(:,:,k,:))
+                          distrb_clinic,field_loc_center, MASK_TRBUDGET(:,:,k,:))
      rf_sump = rf_sump/bgtarea_t_k(k)
 
      k=1
@@ -1134,7 +1146,7 @@
      do iblock = 1,nblocks_clinic
 
        !*** apply RF conservation adjustment term to PSURF
-       WORK2(:,:) = merge (rf_sump, c0, LMASK_BUDGT(:,:,k,iblock))
+       WORK2(:,:) = merge (rf_sump, c0, LMASK_TRBUDGET(:,:,k,iblock))
 
        if (lrf_nonzero_newtime) &
        PSURF(:,:,newtime,iblock) = PSURF(:,:,newtime,iblock) - robert_newtime*WORK2(:,:)
@@ -1173,7 +1185,7 @@
    WORKB(:,:,:) = TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav)
 
    rf_volume_total_cur = rf_volume_2_km + global_sum(WORKB,  &
-                         distrb_clinic,field_loc_center,MASK_BUDGT(:,:,1,:))
+                         distrb_clinic,field_loc_center,MASK_TRBUDGET(:,:,1,:))
 
    if (registry_match ('partially-coupled')) then
      rf_ocean_norm = rf_volume_total_cur
@@ -1224,7 +1236,7 @@
    !*** computation of tracer_mean_initial must precede ice formation
    if (lrf_budget_collect_tracer_mean_initial) &
    call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
-                                 MASK_BUDGT, bgtarea_t_k, step_call = .true.)
+                                 MASK_TRBUDGET, bgtarea_t_k, step_call = .true.)
 
    if (lrf_step_diagnostics) then
       !***  placeholder for step diagnostics
@@ -1394,10 +1406,10 @@
      do n=1,nt
        k=1
        WORKN(:,:,n,iblock) = (dz(1) + PSURF(:,:,curtime,iblock)/grav) &
-         * MASK_BUDGT(:,:,k,iblock) * TRACER(:,:,k,n,curtime,iblock)
+         * MASK_TRBUDGET(:,:,k,iblock) * TRACER(:,:,k,n,curtime,iblock)
        do k=2,km
          WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) &
-           + dz(k) * MASK_BUDGT(:,:,k,iblock) * TRACER(:,:,k,n,curtime,iblock)
+           + dz(k) * MASK_TRBUDGET(:,:,k,iblock) * TRACER(:,:,k,n,curtime,iblock)
        enddo ! k
        WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*WORKN(:,:,n,iblock)
      enddo ! n
@@ -1559,8 +1571,8 @@
 
    !*** NOTE:
    !    rf_S_prev and rf_Svol are defined and initialized in time_management.F90 and restart.F90
-   allocate (LMASK_BUDGT(nx_block,ny_block,km,nblocks_clinic))
-   allocate ( MASK_BUDGT(nx_block,ny_block,km,nblocks_clinic))
+   allocate (LMASK_TRBUDGET(nx_block,ny_block,km,nblocks_clinic))
+   allocate ( MASK_TRBUDGET(nx_block,ny_block,km,nblocks_clinic))
 
    allocate (bgtarea_t_k(km))         ; bgtarea_t_k=c0
    allocate (open_ocean_area_t_k(km)) ; open_ocean_area_t_k=c0
@@ -1578,28 +1590,28 @@
    open_ocean_volume_2_km = c0
    rf_volume_2_km = c0
 
-   !*** LMASK_BUDGT
+   !*** LMASK_TRBUDGET
 
    !$OMP PARALLEL DO PRIVATE(iblock,k)
    do iblock = 1,nblocks_clinic
      do k=1,km
        if (lrobert_filter) then
          if (registry_match ('partially-coupled')) then
-           LMASK_BUDGT(:,:,k,iblock) = CALCT_OPEN_OCEAN_3D(:,:,k,iblock)
+           LMASK_TRBUDGET(:,:,k,iblock) = CALCT_OPEN_OCEAN_3D(:,:,k,iblock)
          else
-           LMASK_BUDGT(:,:,k,iblock) = (KMT(:,:,iblock) >= k )
+           LMASK_TRBUDGET(:,:,k,iblock) = (KMT(:,:,iblock) >= k )
          endif
        else
-         LMASK_BUDGT(:,:,k,iblock) = .true.   ! b4b with nonRF version (partially coupled and avgfit)
+         LMASK_TRBUDGET(:,:,k,iblock) = .true.   ! b4b with nonRF version (partially coupled and avgfit)
        endif
      enddo ! k
    end do ! block loop (iblock)
    !$OMP END PARALLEL DO
 
-   where (LMASK_BUDGT)
-     MASK_BUDGT = c1
+   where (LMASK_TRBUDGET)
+     MASK_TRBUDGET = c1
    elsewhere
-     MASK_BUDGT = c0
+     MASK_TRBUDGET = c0
    endwhere
 
 
@@ -1607,7 +1619,7 @@
    write(stdout,*) 'k, area_t_k(k), bgtarea_t_k(k) open_ocean_area_t_k(k)'
 
    do k=1,km
-     bgtarea_t_k(k) = global_sum(TAREA,distrb_clinic,field_loc_center,MASK_BUDGT(:,:,k,:))
+     bgtarea_t_k(k) = global_sum(TAREA,distrb_clinic,field_loc_center,MASK_TRBUDGET(:,:,k,:))
      rfthick = bgtarea_t_k(k)*dz(k)
      if (k .ge. 2) rf_volume_2_km = rf_volume_2_km + rfthick
 
@@ -1699,6 +1711,29 @@
 3000 format (1x, '(step_diagnostics) ', a, 1x,'RF volume-based', 1x,a,1x, 1pE26.15)
 
    end subroutine step_diagnostics
+
+!***********************************************************************
+!BOP
+! !IROUTINE: step_accumulate_tavg_once
+! !INTERFACE:
+
+ subroutine step_accumulate_tavg_once
+
+! !DESCRIPTION:
+!  This routine calls "write tavg once" subroutines at the appropriate time
+!
+! !REVISION HISTORY:
+!  added 16 December 2016 njn01
+
+!EOP
+!BOC
+
+   call geoheatflux_accumulate_tavg_once(MASK_TRBUDGET)
+
+   call tidal_accumulate_tavg_once
+
+
+   end subroutine step_accumulate_tavg_once
 
  end module step_mod
 

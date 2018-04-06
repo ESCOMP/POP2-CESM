@@ -413,9 +413,8 @@
    integer, dimension (max_avail_tavg_nstd_fields) ::  &
       ndims_nstd_ccsm
  
-
-   integer (int_kind) ::  &
-      tavg_debug  = 0      ! debug level [0,1]  1 ==> messages
+   logical (log_kind) ::  &
+      ltavg_debug  = .false. 
  
 !-----------------------------------------------------------------------
 !
@@ -1187,6 +1186,21 @@
 
 
      do n = 1,num_avail_tavg_fields  ! check all available fields
+
+       !*** document methods
+       if (n == 1) then
+        if (my_task == master_task) then
+         write(stdout,*) ' document fields and methods '
+         write(stdout,*) ' '
+         write(stdout,*) '   tavg_method_unknown  = 0 '
+         write(stdout,*) '   tavg_method_avg      = 1 '
+         write(stdout,*) '   tavg_method_min      = 2 '
+         write(stdout,*) '   tavg_method_max      = 3 '
+         write(stdout,*) '   tavg_method_qflux    = 4 '
+         write(stdout,*) '   tavg_method_constant = 5 '
+        endif
+       endif
+
        loc = abs(avail_tavg_fields(n)%buf_loc)
        if (loc /= 0) then  ! field is actually requested and in buffer
           if (avail_tavg_fields(n)%ndims == 0) then
@@ -1199,6 +1213,13 @@
              else
                 TAVG_BUF_3D_METHOD(loc) = avail_tavg_fields(n)%method
              end if
+          endif
+
+          !*** document method used by each field
+          if (my_task == master_task) then
+            write(stdout,'(3x,A,A25,A,I2)') '(init_tavg) ',  &
+                 trim(avail_tavg_fields(n)%short_name)   ,  &
+                 ' method = ', avail_tavg_fields(n)%method
           endif
 
           !*** determine which streams use tavg_method_qflux
@@ -4219,7 +4240,7 @@
      avail_tavg_fields(id) = tavg_field
    endif
 
-   if (my_task == master_task .and. tavg_debug > 0) then
+   if (my_task == master_task .and. ltavg_debug) then
      call document ('define_tavg_field',  trim(tavg_field%short_name))
      call document ('define_tavg_field', 'buffer id number ', id)
      call document ('define_tavg_field',  trim(tavg_field%long_name))
@@ -5267,6 +5288,9 @@
 
      case(tavg_method_max)
         method_string='time: maximum'
+
+     case(tavg_method_constant)
+        method_string='time: invariant'
 
      case(tavg_method_qflux)
         method_string='time: mean'

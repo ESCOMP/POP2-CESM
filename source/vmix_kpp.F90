@@ -32,7 +32,7 @@
    use io_types, only: stdout
    use communicate, only: my_task, master_task
    use niw_mixing
-   use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing, TIDAL_ENERGY_FLUX
+   use tidal_mixing
    use registry
    use prognostic
    use time_management
@@ -60,6 +60,7 @@
              smooth_hblt,     &
              linertial
 
+
 ! !PUBLIC DATA MEMBERS:
 
    real (r8), dimension(:,:,:), allocatable, public :: & 
@@ -72,6 +73,8 @@
    real (r8), public ::   &
       bckgrnd_vdc2         ! variation in diffusivity
 
+   real (r8), public ::   cvmix2popL2, pop2cvmixL2
+   real (r8), public ::   cvmix2popL , pop2cvmixL 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -203,6 +206,15 @@
 
 !-----------------------------------------------------------------------
 !
+!  module variables to indicate which tidal-mixing method is in use
+!   defined here to improve efficiency in subroutine ri_iwmix
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind) :: luse_simmons, luse_schmittner, luse_polzin
+
+!-----------------------------------------------------------------------
+!
 !  ids for tavg diagnostics computed in this module
 !
 !-----------------------------------------------------------------------
@@ -218,13 +230,6 @@
 
    integer (int_kind), dimension(nt) :: &
       tavg_KPP_SRC          ! tavg id for KPP_SRC for each tracer
-
-   real (r8), dimension(:,:,:,:), allocatable :: &
-      TIDAL_DIFF            ! diffusivity due to tidal mixing 
-
-   integer (int_kind) ::   &
-      tavg_KE_BL,    &! tavg id for boundary layer kinetic energy at mix time
-      tavg_En         ! tavg id for boundary layer kinetic energy En
 
    ! Parameters for CVMix
    type(cvmix_global_params_type) :: CVmix_params
@@ -279,7 +284,8 @@
 
    integer (int_kind) :: bid, jny, inx, ic, nlev
 
-   real (r8), dimension(:), allocatable :: tmp_array
+   real (r8), dimension(:),   allocatable :: tmp_array
+   real (r8), dimension(:,:), allocatable :: tmp_array2
 
    real (r8) ::           &
       bckgrnd_vdc1,       &! background diffusivity (Ledwell)  
@@ -442,6 +448,8 @@
    call broadcast_scalar(llangmuir_efactor,     master_task)
    call broadcast_scalar(lenhanced_entrainment, master_task)
 
+   if (lcvmix) call register_string('lcvmix')
+
 !-----------------------------------------------------------------------
 !
 !  determine if this case must be backwards compatible with ccsm4 control
@@ -458,6 +466,20 @@
 
    Vtc     = sqrt(0.2_r8/c_s/epssfc)/vonkar**2
    cg      = cstar*vonkar*(c_s*vonkar*epssfc)**p33
+
+   pop2cvmixL  = 1.0e-2_r8
+   if (pop2cvmixL /= c0)  then
+     cvmix2popL = c1/pop2cvmixL
+   else
+     call exit_POP (sigAbort, 'ERROR (init_vmix_kpp): pop2cvmixL = 0')
+   endif
+
+   pop2cvmixL2 = 1.0e-4_r8
+   if (pop2cvmixL2 /= c0)  then
+     cvmix2popL2 = c1/pop2cvmixL2
+   else
+     call exit_POP (sigAbort, 'ERROR (init_vmix_kpp): pop2cvmixL2 = 0')
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -599,6 +621,7 @@
 
    else
 
+
 !-----------------------------------------------------------------------
 !
 !  only need one block since the vertical grid is the same across blocks
@@ -611,7 +634,7 @@
       bckgrnd_vvc(:,:,k,:) = Prandtl*bckgrnd_vdc(:,:,k,:)
 
       if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
-        write (stdout,'(2x,e12.6)') bckgrnd_vdc(1,1,k,1)
+        write (stdout,'(2x,e13.6)') bckgrnd_vdc(1,1,k,1)
       endif
     end do
  
@@ -643,11 +666,6 @@
    KPP_SRC  = c0
    VDC      = c0
    VVC      = c0
-
-   if ( ltidal_mixing ) then
-     allocate ( TIDAL_DIFF(nx_block,ny_block,km,nblocks_clinic) ) 
-     TIDAL_DIFF = c0
-   endif
 
 !-----------------------------------------------------------------------
 !
@@ -709,9 +727,12 @@
              call cvmix_put(CVmix_vars(ic,bid), 'Nsqr', 0._r8)
              call cvmix_put(CVmix_vars(ic,bid), 'rho', 0._r8)
              call cvmix_put(CVmix_vars(ic,bid), 'rho_lwr', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'lat', TLATD(inx,jny,bid))
+             call cvmix_put(CVmix_vars(ic,bid), 'lon', TLOND(inx,jny,bid))
 
              allocate(tmp_array(nlev+1))
              tmp_array = 0._r8
+             allocate(tmp_array2(nlev+1,nlev+1))
              ! Shear Richardson
              call cvmix_put(CVmix_vars(ic,bid), 'Ri_iface', tmp_array)
              ! Bulk Richardson
@@ -722,20 +743,93 @@
              CVmix_vars(ic,bid)%zw_iface(2:nlev+1) = -zw(1:nlev)*1e-2_r8
              ! Depth at bottom of ocean
              call cvmix_put(CVmix_vars(ic,bid), 'ocn_depth', zw(nlev)*1e-2_r8)
-             deallocate(tmp_array)
+             if (partial_bottom_cells) then
+               CVMix_vars(ic,bid)%zt_cntr(nlev)     = (-zw(nlev-1)-p5*DZT(inx, jny, nlev, bid))*1e-2_r8
+               CVMix_vars(ic,bid)%zw_iface(nlev+1)  = (-zw(nlev-1)-DZT(inx, jny, nlev, bid))*1e-2_r8
+               CVMix_vars(ic,bid)%OceanDepth        = CVMix_vars(ic,bid)%zw_iface(nlev+1) 
+             endif
+             ! Initialize SchmittnerCoeff
+             call cvmix_put(CVmix_vars(ic,bid), 'SchmittnerCoeff', tmp_array)
+             ! Initialize SchmittnerSouthernOcean
+             call cvmix_put(CVmix_vars(ic,bid), 'SchmittnerSouthernOcean', tmp_array)
+             ! Initialize Schmittner time-invariant term
+             call cvmix_put(CVmix_vars(ic,bid), 'exp_hab_zetar', tmp_array2)
+             deallocate(tmp_array,tmp_array2)
 
              ! NOTE: cvmix_init_tidal is called from tidal_mixing.F90 but we
              !       still need to compute time-invariant tidal quantites
              !       (requires nlev, rho, zt, and zw)
              if (ltidal_mixing) then
-               call cvmix_compute_Simmons_invariant(CVmix_vars(ic,bid), CVmix_params, &
-                                                    TIDAL_ENERGY_FLUX(inx,jny,bid)/c1000)
+              select case (tidal_mixing_method_itype)
+               case (tidal_mixing_method_jayne)
+                 !-------------------------------------------------------------
+                 ! cvmix_compute_Simmons forms SimmonsCoefficient from
+                 ! (input)q*(input)E.    However, when using ER03 and
+                 ! GN13 options with a 2D method such as Simmons, only
+                 !(qE) is available, not E decoupled from q.  So in POP,
+                 ! we will always use as input to cvmix_compute_Simmons_invariant
+                 ! the quantity TIDAL_QE_2D = (qE), regardless  of whether the energy
+                 ! source is 2D or 3D, and then  always divide SimmonsCoeff by q
+                 ! afterwards. Note that the operation
+                 ! (f(q*E)*q)/q is round-off level different from E*q
+                 !--------------------------------------------------------------
+                 call cvmix_compute_Simmons_invariant(CVmix_vars(ic,bid), &
+                                                      CVmix_params, &
+                                                      TIDAL_QE_2D(inx,jny,bid)/c1000)
+                 call cvmix_put(CVmix_vars(ic,bid), 'SimmonsCoeff', &
+                                CVmix_vars(ic,bid)%SimmonsCoeff/tidal_local_mixing_fraction)
+                 !--------------------------------------------------------------
+                 ! form the time-invariant part of Schmittner coefficient term
+                 !--------------------------------------------------------------
+                 call cvmix_compute_socn_tidal_invariant(CVmix_vars(ic,bid), &
+                                                         CVmix_params)
+               case (tidal_mixing_method_schmittner)
+                 !--------------------------------------------------------------
+                 ! form the time-invariant part of Schmittner coefficient term
+                 !--------------------------------------------------------------
+                 call cvmix_compute_Schmittner_invariant(CVmix_vars(ic,bid), &
+                                                         CVmix_params)
+                 !--------------------------------------------------------------
+                 ! form the Schmittner coefficient that is based on 3D q*E, 
+                 ! which is formed from summing q_i*TidalConstituent_i over
+                 ! the number of constituents.
+                 !--------------------------------------------------------------
+                 call cvmix_compute_SchmittnerCoeff     (CVmix_vars(ic,bid), CVmix_params,  &
+                                                         nlev,                              &
+                                                         TIDAL_QE_3D(inx,jny,:,bid)/c1000)
+                 !-----------------------------------------------------------------------
+                 ! form the time-invariant part of the Schmittner coefficient term
+                 !-----------------------------------------------------------------------
+                 call cvmix_compute_socn_tidal_invariant(CVmix_vars(ic,bid), &
+                                                         CVmix_params)
+              end select
              end if
            end if
          end do
        end do
      end do
    end if
+
+!-----------------------------------------------------------------------
+!
+!  define module-wide logical values to indicate which tidal-mixing 
+!    method is active. This should improve efficiency in 
+!    subroutine ri_iwmix.
+!
+!-----------------------------------------------------------------------
+
+   luse_polzin     = .false.
+   luse_simmons    = .false.
+   luse_schmittner = .false.
+
+   select case (tidal_mixing_method_itype)
+          case (tidal_mixing_method_jayne)
+           luse_simmons = .true.
+          case (tidal_mixing_method_schmittner)
+           luse_schmittner = .true.
+          case (tidal_mixing_method_polzin)
+           luse_polzin = .true.
+   end select
 
 !-----------------------------------------------------------------------
 !
@@ -819,16 +913,6 @@
                             coordinates  ='TLONG TLAT z_t time' ) 
    enddo
 
-   if (lniw_mixing) then
-     call define_tavg_field(tavg_KE_BL,'KE_BL',2,                 &
-                            long_name='Boundary Layer KE',        &
-                            units='ergs/centimeter**2',           &
-                            grid_loc='2221')
-     call define_tavg_field(tavg_En,'En',2,                       &
-                            long_name='En for Boundary Layer KE ',&
-                            units='Watts/meter^2',                &
-                            grid_loc='2221')
-   endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1070,7 +1154,6 @@
 !  convection
 !
 !-----------------------------------------------------------------------
-
    call ri_iwmix(CVMix_vars, DBLOC, VISC, VDC, UUU, VVV, RHOMIX, this_block)
 
 !-----------------------------------------------------------------------
@@ -1401,8 +1484,9 @@
 
    integer (int_kind) :: &
       k,                 &! index for vertical levels
+      ktop,              &! index for vertical level
       nlev,              &! number of vertical levels
-      i,j, ic,           &! horizontal loop indices
+      i,ic,j,            &! horizontal loop indices
       bid,               &! local block index
       n                   ! vertical smoothing index
 
@@ -1421,13 +1505,19 @@
    real (r8), dimension(nx_block,ny_block) :: &
       FCON,              &
       WORK1,             &! local work array
-      WORKN               ! local work array
+      WORKN,             &! local work array
+      N2_AVG,            &! vertical average of N**2
+      ZSTARP_INV          ! c1/z^*_sub p
+
+   real (r8) :: N2_AVG_clmn, ZSTARP_INV_clmn
+ 
 
 !-----------------------------------------------------------------------
 !
 !  compute mixing at each level
 !
 !-----------------------------------------------------------------------
+
 
    bid = this_block%local_id
 
@@ -1530,9 +1620,34 @@
 !
 !-----------------------------------------------------------------------
 
+   if (ltidal_mixing) then
+     TIDAL_DIFF(:,:,:,bid) = c0
+   endif
+
    if (lcvmix) then
+
      do j=1,ny_block
        do i=1,nx_block
+
+          if ( ltidal_mixing ) then
+            !*** if using tidal_mixing option, compute some full-depth quantites 
+            !    before looping over k
+            !*** this should be imported to cvmix_tidal
+            
+             if (luse_polzin) then
+               !*** note: polzin method is colmnized, but not cvmix-ified. Note
+               !    that units in the polzin computaton are native POP units,
+               !    not cvmix units
+
+               !*** compute N**2(z) z-average over entire depth
+               ktop = 0
+               call tidal_N2_integral (N2_AVG_clmn,DBLOC(i,j,:),i,j,ktop,bid)
+
+              !*** compute 1/zstarP(z)
+              call tidal_zstarp_inv (ZSTARP_INV_clmn,N2_AVG_clmn,DBLOC(i,j,:),i,j,bid)
+            endif
+          endif !ltidal_mixing
+
           ic = (j-1)*nx_block + i
           nlev = CVmix_vars(ic)%nlev
           if (nlev.gt.0) then
@@ -1546,17 +1661,68 @@
             end if
 
             if (ltidal_mixing) then
-              call cvmix_coeffs_tidal(CVmix_vars(ic), CVmix_params)
-              k = KMT(i,j,bid) - 2
-              if (k.gt.2) then
-                CVMix_vars(ic)%Tdiff_iface(k+1) = max(CVMix_vars(ic)%Tdiff_iface(k+1), &
-                                                      CVMix_vars(ic)%Tdiff_iface(k))
-              end if
-              k = KMT(i,j,bid) - 1
-              if (k.gt.2) then
-                CVMix_vars(ic)%Tdiff_iface(k+1) = max(CVMix_vars(ic)%Tdiff_iface(k+1), &
-                                                      CVMix_vars(ic)%Tdiff_iface(k))
-              end if
+               if (luse_simmons) then
+               !*** compute tidal diffusion 
+                 if (ltidal_lunar_cycle) then
+                  call cvmix_compute_Simmons_invariant  &
+                    (CVmix_vars(ic), CVmix_params, TIDAL_QE_2D(i,j,bid)/c1000)
+                  call cvmix_put(CVmix_vars(ic),'SimmonsCoeff', &
+                                 CVmix_vars(ic)%SimmonsCoeff/tidal_local_mixing_fraction)
+                 endif
+                 call cvmix_coeffs_tidal(CVmix_vars(ic), &
+                                         CVmix_params)
+
+               else if (luse_schmittner) then
+               !*** compute tidal diffusion 
+                 if (ltidal_lunar_cycle) then
+                  call cvmix_compute_SchmittnerCoeff (CVmix_vars(ic), CVmix_params, nlev, &
+                                                      TIDAL_QE_3D(i,j,:,bid)/c1000)
+                 endif
+                 call cvmix_coeffs_tidal(CVmix_vars(ic), &
+                                         CVmix_params)
+
+               else if (luse_polzin) then
+                 !*** compute TIDAL_DIFF using columnized version of tidal_compute_diff_polzin
+                 !    Note: computed in POP units
+                 !    next step would be cvmix-ifying these routines
+                 call tidal_compute_diff_polzin(ZSTARP_INV_clmn,N2_AVG_clmn,DBLOC(i,j,:),i,j,nlev,bid)
+
+                 !*** then fill cvmix with TIDAL_DIFF computed from polzin routine
+                 CVmix_vars(ic)%Tdiff_iface(2:nlev+1) = TIDAL_DIFF(i,j,1:nlev,bid)*pop2cvmixL2
+              endif
+
+              !*** modify TIDAL_DIFF using POP-specific mods for stability control
+              if (ltidal_stabc .and. .not. lccsm_control_compatible) then
+                do k= KMT(i,j,bid) - 2, KMT(i,j,bid) - 1
+                  if (k.gt.2) &
+                  CVMix_vars(ic)%Tdiff_iface(k+1) = max( & 
+                    CVMix_vars(ic)%Tdiff_iface(k+1),CVMix_vars(ic)%Tdiff_iface(k))
+                enddo
+              endif ! ltidal_mixing
+
+              !*** modify TIDAL_DIFF using POP-specific mods for stability control in specified regions
+              if (ltidal_min_regions) then
+                do k= 1, KMT(i,j,bid)
+                  call tidal_min_regions_set(i,j,k,2,nlev+1,bid,CVMix_vars(ic)%Tdiff_iface(2:nlev+1), &
+                       pop2cvmixL2,this_block)
+                enddo
+              endif
+
+              !*** should either update Mdiff_iface here or disallow lrich when (lcvmix .and. ltidal)
+
+              !*** store TIDAL_DIFF variables for tavg accumulation
+              TIDAL_DIFF(i,j,1:nlev,bid) = CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*cvmix2popL2
+              TIDAL_N2(i,j,1:nlev,bid)   = CVmix_vars(ic)%SqrBuoyancyFreq_iface(2:nlev+1)
+              if (accumulate_tavg_now(tavg_TIDAL_COEF_3D)) then
+                 if (luse_simmons) then
+                  TIDAL_COEF_3D(i,j,1:nlev,bid) =  &
+                  CVmix_vars(ic)%SimmonsCoeff*CVmix_vars(ic)%VertDep_iface(2:nlev+1)*cvmix2popL2
+                 else if (luse_schmittner) then
+                  TIDAL_COEF_3D(i,j,1:nlev,bid) =  &
+                  CVmix_vars(ic)%SchmittnerCoeff*CVmix_vars(ic)%VertDep_iface(2:nlev+1)*cvmix2popL2
+                 endif
+              endif
+
               VISC_COL(1:nlev) = Prandtl*min(VISC_COL(1:nlev)/Prandtl +       &
                                  CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8, &
                                  tidal_mix_max)
@@ -1564,10 +1730,11 @@
                                  CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8, &
                                  tidal_mix_max)
             end if
-            KVMIX(i,j,1:nlev) = DIFF_COL(1:nlev)
-            KVMIX_M(i,j,1:nlev) = VISC_COL(1:nlev)
-            KVMIX(i,j,km) = c0
+            KVMIX  (i,j,1:nlev)  = DIFF_COL(1:nlev)
+            KVMIX_M(i,j,1:nlev)  = VISC_COL(1:nlev)
+            KVMIX  (i,j,km) = c0
             KVMIX_M(i,j,km) = c0
+
             if (lrich) then
               ! Shear mixing
               CVmix_vars(ic)%ShearRichardson_iface(2:nlev+1) = FRI(i,j,1:nlev)
@@ -1582,6 +1749,7 @@
             VISC(i,j,:) = VISC_COL
             VDC(i,j,:,1) = DIFF_COL
             VDC(i,j,:,2) = DIFF_COL
+            TIDAL_N2(i,j,nlev+1:km,bid) = c0
           else
             VISC(i,j,:) = c0
             VDC(i,j,:,1) = c0
@@ -1590,7 +1758,29 @@
        end do
      end do
    else ! not lcvmix
-     if ( ltidal_mixing )  TIDAL_DIFF(:,:,:,bid) = c0
+
+!-----------------------------------------------------------------------
+!
+!  if using tidal_mixing option, compute some full-depth quantites 
+!   before looping over k
+!
+!-----------------------------------------------------------------------
+
+     if ( ltidal_mixing ) then
+       TIDAL_DIFF(:,:,:,bid) = c0
+
+        if (luse_polzin) then
+
+          !*** compute N**2(z) z-average over entire depth
+          ktop = 0
+          call tidal_N2_integral (N2_AVG,DBLOC,ktop,bid)
+
+          !*** compute 1/zstarP(z)
+          call tidal_zstarp_inv (ZSTARP_INV,N2_AVG,DBLOC,bid)
+
+       endif
+
+     endif
 
      do k = 1,km
 
@@ -1616,26 +1806,27 @@
 !  consider the internal wave mixing first. rich_mix is used as the
 !  upper limit for internal wave mixing coefficient.
 !
-!  NOTE: no partial_bottom_cell implementation at this time 
-!
 !-----------------------------------------------------------------------
 
-          WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
-
-          where (WORK1 > c0)
-            TIDAL_DIFF(:,:,k,bid) = TIDAL_COEF(:,:,k,bid)/WORK1
-          endwhere
-
-          ! Notes:
-          ! (1) this step breaks backwards compatibility
-          ! (2) check for k>2 was added to if statement to avoid
-          !     out of bounds access
-          if ((.not. lccsm_control_compatible).and.(k.gt.2)) then
-          where ( k == KMT(:,:,bid)-1  .or.  k == KMT(:,:,bid)-2 )
-            TIDAL_DIFF(:,:,k,bid) = max( TIDAL_DIFF(:,:,k,  bid),  &
-                                         TIDAL_DIFF(:,:,k-1,bid) )
-          endwhere 
+          if (partial_bottom_cells) then
+            WORK1 = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + DZT(:,:,k+1,bid)))
+          else
+            WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
           endif
+
+          select case (tidal_mixing_method_itype)
+
+           case (tidal_mixing_method_jayne,tidal_mixing_method_schmittner)
+             call tidal_compute_diff(WORK1,k,bid,this_block)
+
+           case (tidal_mixing_method_polzin)
+             call tidal_compute_diff_polzin(ZSTARP_INV,N2_AVG,DBLOC,k,bid)
+
+           case default
+             call document('ri_iwmix',' unknown tidal_mixing_method_itype',tidal_mixing_method_itype)
+             call exit_POP(sigAbort,'Fatal error')
+
+          end select
 
           if (lniw_mixing) then
            WORKN = VISC(:,:,k)
@@ -1645,26 +1836,6 @@
 
           WORK1 = Prandtl*min(WORKN(:,:)/Prandtl  &
                               + TIDAL_DIFF(:,:,k,bid), tidal_mix_max)
-
-          if( prnt ) then
-
-! use DS product point to test, global (i,j) = (5,103)
-             do j=1,ny_block
-               if( this_block%j_glob(j) .eq. 103 ) then
-               do i=1,nx_block
-                 if( this_block%i_glob(i) .eq. 5 ) then
-         if( k < KMT(i,j,bid) ) then
-   write(stdout,100) this_block%i_glob(i),this_block%j_glob(j),k, &
-                           TIDAL_DIFF(i,j,k,bid)
-   100 format(' tidal  i,j,k TIDAL_DIFF =',3(i3,1x),1pe11.4,1x)
-         endif
-                 endif
-               enddo ! i
-               endif
-             enddo ! j
-
-           endif
-
 
           if ( k < km ) then
             KVMIX_M(:,:,k) = WORK1(:,:)
@@ -1683,25 +1854,6 @@
 
           if (lrich) then
             VISC(:,:,k) = WORK1 + rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
-
-            if( prnt ) then
-
-! use DS product point to test, global (i,j) = (5,103)
-              do j=1,ny_block
-                if( this_block%j_glob(j) .eq. 103 ) then
-                do i=1,nx_block
-                  if( this_block%i_glob(i) .eq. 5 ) then
-          if( k < KMT(i,j,bid) ) then
-    write(stdout,200) this_block%i_glob(i),this_block%j_glob(j),k, &
-                            rich_mix*(c1 - FRI(i,j,k)*FRI(i,j,k))**3
-    200 format(' Rich  i,j,k DIFF =',3(i3,1x),1pe11.4,1x)
-          endif
-                  endif
-                enddo ! i
-                endif
-              enddo ! j
-
-            endif
 
             if ( k < km ) then
               VDC(:,:,k,2) = VDC(:,:,k,2) + rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
@@ -1789,26 +1941,48 @@
       endif ! lcvmix
 
    do k = 1,km
-      ! k index shifted because KVMIX and KVMIX_M are at cell bottom
-      ! while output axis is at cell top
-      call accumulate_tavg_field(KVMIX(:,:,k),tavg_KVMIX,bid,k)
-      call accumulate_tavg_field(KVMIX_M(:,:,k),tavg_KVMIX_M,bid,k)
+     ! k index shifted because KVMIX and KVMIX_M are at cell bottom
+     ! while output axis is at cell top
+     call accumulate_tavg_field(KVMIX(:,:,k),tavg_KVMIX,bid,k)
+     call accumulate_tavg_field(KVMIX_M(:,:,k),tavg_KVMIX_M,bid,k)
      
-      if (lniw_mixing) then
-      !*** accumulated in iw_reset
-      else
-      ! k index shifted because bckgrnd_vdc and bckgrnd_vvc are at cell bottom
-      ! while output axis is at cell top
-        call accumulate_tavg_field(bckgrnd_vdc(:,:,k,bid),tavg_VDC_BCK,bid,k)
-        call accumulate_tavg_field(bckgrnd_vvc(:,:,k,bid),tavg_VVC_BCK,bid,k)
-      endif
+     if (lniw_mixing) then
+     !*** accumulated in iw_reset
+     else
+     ! k index shifted because bckgrnd_vdc and bckgrnd_vvc are at cell bottom
+     ! while output axis is at cell top
+       call accumulate_tavg_field(bckgrnd_vdc(:,:,k,bid),tavg_VDC_BCK,bid,k)
+       call accumulate_tavg_field(bckgrnd_vvc(:,:,k,bid),tavg_VVC_BCK,bid,k)
+     endif
  
-      if (accumulate_tavg_now(tavg_TPOWER)) then
-         WORK1(:,:) = KVMIX(:,:,k)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
-            (zgrid(k) - zgrid(k+1))
-         call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
-      endif
+     if (accumulate_tavg_now(tavg_TPOWER)) then
+       WORK1(:,:) = KVMIX(:,:,k)*RHOMIX(:,:,k)*DBLOC(:,:,k)/(zgrid(k)-zgrid(k+1))
+       call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
+     endif
 
+     if (ltidal_mixing) then
+       !  compute tidal-diffusion diagnostic quantities for monitoring and for
+       !    comparison with Melet 2013 Figure 3
+       call tidal_accumulate_tavg(TIDAL_DIFF(:,:,k,bid),bid,k,'TIDAL_DIFF')
+
+       if (.not. lcvmix) then
+          if (partial_bottom_cells) then
+            TIDAL_N2(:,:,k,bid) = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + DZT(:,:,k+1,bid)))
+          else
+            TIDAL_N2(:,:,k,bid) = DBLOC(:,:,k)/(zgrid(k)-zgrid(k+1))
+          endif
+       endif
+       call tidal_accumulate_tavg(TIDAL_N2(:,:,k,bid),bid,k,'N2')
+
+       if (accumulate_tavg_now(tavg_TIDAL_COEF_3D)) then
+         if (lcvmix)  then
+           WORK1(:,:) = TIDAL_COEF_3D      (:,:,k,bid)
+         else
+           WORK1(:,:) = TIDAL_COEF_3D      (:,:,k,bid)
+         endif
+         call tidal_accumulate_tavg(WORK1(:,:),bid,k,'TIDAL_COEF_3D')
+       endif
+     endif
    end do
 
 !-----------------------------------------------------------------------
@@ -2474,6 +2648,7 @@
       z_up    = zgrid(kl)
 
    end do
+
    if (lcvmix) then
      do j=1,ny_block
        do i=1,nx_block

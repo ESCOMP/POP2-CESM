@@ -91,6 +91,7 @@
    use running_mean_mod, only: running_mean_init
    use mcog, only: init_mcog
    use software_eng_mod, only : lchange_ans, init_software_eng
+   use geoheatflux, only: init_geoheatflux
 
    implicit none
    private
@@ -109,6 +110,7 @@
 !-----------------------------------------------------------------------
 
    character (char_len) :: &
+      init_ts_option,      &! option for initializing t,s
       init_ts_file_fmt,    &! format (bin or nc) for input file
       exit_string           ! exit_POP message string
 
@@ -306,28 +308,6 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize niw driven mixing
-!
-!-----------------------------------------------------------------------
-   
-   call init_niw_mixing
-
-!-----------------------------------------------------------------------
-!
-!  initialize tidally driven mixing
-!
-!-----------------------------------------------------------------------
-
-   call init_tidal_mixing
-
-   if ( overflows_interactive  .and.  .not.ltidal_mixing ) then
-     exit_string = 'FATAL ERROR: overflow code is validated only with tidal mixing'
-     call document ('pop_init_phase1', exit_string)
-     call exit_POP (sigAbort,exit_string,out_unit=stdout)
-   endif
-
-!-----------------------------------------------------------------------
-!
 !  initialize barotropic elliptic solver
 !
 !-----------------------------------------------------------------------
@@ -393,6 +373,15 @@
 !-----------------------------------------------------------------------
 
    call init_ice
+
+!-----------------------------------------------------------------------
+!
+!  first initialization phase of tidally driven vertical mixing. Need
+!  to precede init_ts because of lunar cycle
+!
+!-----------------------------------------------------------------------
+
+   call init_tidal_mixing1
 
 !-----------------------------------------------------------------------
 !
@@ -528,14 +517,36 @@
 
    call running_mean_init(init_ts_file_fmt, read_restart_filename)
 
+
 !-----------------------------------------------------------------------
 !
 !  initialize vertical mixing variables
-!  initialize horizontal mixing variables
 !
 !-----------------------------------------------------------------------
 
    call init_vertical_mix
+
+!-----------------------------------------------------------------------
+!
+!  initialize niw driven mixing
+!
+!-----------------------------------------------------------------------
+   
+   call init_niw_mixing
+
+!-----------------------------------------------------------------------
+!
+!  initialize geothermal heat flux
+!
+!-----------------------------------------------------------------------
+
+   call init_geoheatflux
+
+!-----------------------------------------------------------------------
+!
+!  initialize horizontal mixing variables
+!
+!-----------------------------------------------------------------------
 
    call init_horizontal_mix(errorCode)
 
@@ -852,7 +863,6 @@
    integer (int_kind) :: nml_error ! namelist i/o error flag
 
    character (char_len) :: &
-      init_ts_option,      &! option for initializing t,s
       init_ts_suboption,   &! suboption for initializing t,s (rest or spunup)
       init_ts_file,        &! filename for input T,S file
       init_ts_outfile,     &! filename for output T,S file
@@ -1056,12 +1066,12 @@
    call broadcast_scalar(init_ts_outfile_fmt  , master_task)
    call broadcast_scalar(init_ts_perturb  , master_task)
 
+   call register_string(trim(init_ts_option))
 !-----------------------------------------------------------------------
 !
 !  initialize t,s or call restart based on init_ts_option
 !
 !-----------------------------------------------------------------------
-
 
    select case (init_ts_option)
 
@@ -1082,7 +1092,7 @@
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
       call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
-                        init_ts_file_fmt, errorCode)
+                        init_ts_file_fmt, init_ts_option, errorCode)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
@@ -1111,7 +1121,7 @@
       endif
 
       call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
-                        init_ts_file_fmt, errorCode)
+                        init_ts_file_fmt, init_ts_option, errorCode)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
@@ -1133,7 +1143,7 @@
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
       call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
-                        init_ts_file_fmt, errorCode)
+                        init_ts_file_fmt, init_ts_option, errorCode)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
@@ -1159,7 +1169,7 @@
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
       call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
-                        init_ts_file_fmt, errorCode)
+                        init_ts_file_fmt, init_ts_option, errorCode)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
@@ -2096,6 +2106,18 @@
         call document ('POP_check', exit_string)
         number_of_fatal_errors = number_of_fatal_errors + 1
      endif
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  overflow/tidal-mixing inconsistency check
+!
+!-----------------------------------------------------------------------
+
+   if ( overflows_interactive  .and.  .not.ltidal_mixing ) then
+     exit_string = 'FATAL ERROR: overflow code is validated only with tidal mixing'
+     call document ('pop_init_phase1', exit_string)
+     number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
 !-----------------------------------------------------------------------

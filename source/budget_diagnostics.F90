@@ -33,6 +33,7 @@
    use tavg
    use time_management
    use forcing_sfwf
+   use geoheatflux
 
    implicit none
    private
@@ -59,12 +60,14 @@
 !
 !-----------------------------------------------------------------------
 
+
    character (char_len)    :: exit_string
 
    integer (int_kind) :: &
       timer_diag_for_tracer_budgets
 
    integer (int_kind) ::              &
+      tavg_id_GEOHFLUX,               &
       tavg_id_SHF,                    &
       tavg_id_SFWF,                   &
       tavg_id_RESID_T,                &
@@ -280,7 +283,7 @@
      tavg_id_TFW_T        = tavg_id('TFW_T')
      tavg_id_TFW_S        = tavg_id('TFW_S')
      tavg_id_QFLUX        = tavg_id('QFLUX')
-
+     
    !*** determine in which stream the budget diagnostics fields reside
    !    (see also the test below)
 
@@ -301,6 +304,11 @@
     if (.not. set_in_tavg_contents(tavg_id_TFW_T))   budget_error_flag = -2000
     if (.not. set_in_tavg_contents(tavg_id_TFW_S))   budget_error_flag = -2000
     if (.not. set_in_tavg_contents(tavg_id_QFLUX))   budget_error_flag = -2000
+
+    if (lgeoheatflux .and.registry_match ('geoheatflux_choice_spatial')) then
+     tavg_id_GEOHFLUX  = tavg_id('GEOHFLUX')
+     if (.not. set_in_tavg_contents(tavg_id_GEOHFLUX)) budget_error_flag = -2000
+    endif
 
    endif
 
@@ -472,7 +480,7 @@
 ! !INTERFACE:
 
    subroutine diag_for_tracer_budgets (tracer_mean, modified_volume_t,  &
-                                       MASK_BUDGT, bgtarea_t_k, step_call)
+                                       MASK_TRBUDGET, bgtarea_t_k, step_call)
 
 ! !DESCRIPTION:
 !
@@ -488,7 +496,7 @@
 
    real (kind=r8), dimension(km), intent(in) :: bgtarea_t_k
 
-   real (kind=r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in) :: MASK_BUDGT
+   real (kind=r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in) :: MASK_TRBUDGET
    logical (kind=log_kind), optional, intent(in) :: step_call
 
 ! !OUTPUT PARAMETERS:
@@ -566,8 +574,8 @@
       endif
 
       if (lrobert_filter) then
-        WORK2(:,:,iblock) =WORK2(:,:,iblock)*MASK_BUDGT(:,:,k,iblock)
-        WORK4(:,:,iblock) =WORK4(:,:,iblock)*MASK_BUDGT(:,:,k,iblock)
+        WORK2(:,:,iblock) =WORK2(:,:,iblock)*MASK_TRBUDGET(:,:,k,iblock)
+        WORK4(:,:,iblock) =WORK4(:,:,iblock)*MASK_TRBUDGET(:,:,k,iblock)
       else
         WORK2(:,:,iblock) = merge(WORK2(:,:,iblock), c0, CALCT(:,:,iblock))
         WORK4(:,:,iblock) = merge(WORK4(:,:,iblock), c0, CALCT(:,:,iblock))
@@ -578,7 +586,6 @@
 
    srf_volume = global_sum(WORK2,distrb_clinic, field_loc_center)
 
-   !*** test this with fully coupled version (DEBUG)
    if (lrobert_filter) then
      modified_volume_t = volume_t - volume_t_marg
    else
@@ -586,7 +593,6 @@
    endif
 
    if (sfc_layer_type == sfc_layer_varthick ) then
-    !*** test this with fully coupled version (DEBUG)
      if (lrobert_filter) then
        modified_volume_t = modified_volume_t - bgtarea_t_k(k)*dz(k) + srf_volume
      else
@@ -613,14 +619,14 @@
          ! for k=1, WORK2 includes TAREA
 
          do k=2,km
-           WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + dz(k) * MASK_BUDGT(:,:,k,iblock) &
+           WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + dz(k) * MASK_TRBUDGET(:,:,k,iblock) &
              * ( TRACER(:,:,k,n,curtime,iblock) )
          enddo ! k
 
          WORKN(:,:,n,iblock) = TAREA(:,:,iblock) * WORKN(:,:,n,iblock)
 
          k = 1
-         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + MASK_BUDGT(:,:,k,iblock) &
+         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + MASK_TRBUDGET(:,:,k,iblock) &
            * ( TRACER(:,:,k,n,curtime,iblock) * WORK2(:,:,iblock) )
 
        else
@@ -629,7 +635,7 @@
          ! for k=1, WORK2 and WORK4 include TAREA
 
          do k=2,km
-           WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + dz(k) * MASK_BUDGT(:,:,k,iblock) &
+           WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + dz(k) * MASK_TRBUDGET(:,:,k,iblock) &
              * ( p5 * (TRACER(:,:,k,n,oldtime,iblock)  &
                      + TRACER(:,:,k,n,curtime,iblock)) )
          enddo ! k
@@ -637,7 +643,7 @@
          WORKN(:,:,n,iblock) = TAREA(:,:,iblock) * WORKN(:,:,n,iblock)
 
          k = 1
-         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + MASK_BUDGT(:,:,k,iblock) &
+         WORKN(:,:,n,iblock) = WORKN(:,:,n,iblock) + MASK_TRBUDGET(:,:,k,iblock) &
            * ( p5 * (TRACER(:,:,k,n,oldtime,iblock) * WORK4(:,:,iblock)  &
                    + TRACER(:,:,k,n,curtime,iblock) * WORK2(:,:,iblock)) )
 
@@ -679,10 +685,10 @@
 !BOP
 
 !BOP
-! !IROUTINE: tracer_budgets (MASK_BUDGT,bgtarea_t_k))
+! !IROUTINE: tracer_budgets (MASK_TRBUDGET,bgtarea_t_k))
 ! !INTERFACE:
 
-   subroutine tracer_budgets (MASK_BUDGT, bgtarea_t_k)
+   subroutine tracer_budgets (MASK_TRBUDGET, bgtarea_t_k)
 
 ! !DESCRIPTION:
 !
@@ -704,7 +710,7 @@
 
 ! !INPUT PARAMETERS:
 
-   real (kind=r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in) :: MASK_BUDGT
+   real (kind=r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in) :: MASK_TRBUDGET
    real (kind=r8), dimension(km), intent(in) :: bgtarea_t_k
 
 ! !REVISION HISTORY:
@@ -728,6 +734,7 @@
       fw_mean,       volume_change,  &
       tavg_norm,     sum, sumr,      &
       sumrmq0,       sumprnt
+
 
    integer (int_kind) ::  k, n
 
@@ -758,17 +765,17 @@
    if (lrobert_filter) then
      if (sfc_layer_type == sfc_layer_varthick .and.  &
           .not. lfw_as_salt_flx ) then
-       sfwf_mean = tavg_global_sum_2D(tavg_id_SFWF,MASK_BUDGT)*rho_sw*c10
+       sfwf_mean = tavg_global_sum_2D(tavg_id_SFWF,MASK_TRBUDGET)*rho_sw*c10
      else
-       sfwf_mean = tavg_global_sum_2D(tavg_id_SFWF,MASK_BUDGT)
+       sfwf_mean = tavg_global_sum_2D(tavg_id_SFWF,MASK_TRBUDGET)
      endif
 
-     shf_mean     =  tavg_global_sum_2D(tavg_id_SHF,MASK_BUDGT)
-     resid_t_mean = -tavg_global_sum_2D(tavg_id_RESID_T,MASK_BUDGT)
-     resid_s_mean = -tavg_global_sum_2D(tavg_id_RESID_S,MASK_BUDGT)
-     fw_mean      =  tavg_global_sum_2D(tavg_id_FW,MASK_BUDGT)
-     tfw_t_mean   =  tavg_global_sum_2D(tavg_id_TFW_T,MASK_BUDGT)
-     tfw_s_mean   =  tavg_global_sum_2D(tavg_id_TFW_S,MASK_BUDGT)
+     shf_mean     =  tavg_global_sum_2D(tavg_id_SHF,MASK_TRBUDGET)
+     resid_t_mean = -tavg_global_sum_2D(tavg_id_RESID_T,MASK_TRBUDGET)
+     resid_s_mean = -tavg_global_sum_2D(tavg_id_RESID_S,MASK_TRBUDGET)
+     fw_mean      =  tavg_global_sum_2D(tavg_id_FW,MASK_TRBUDGET)
+     tfw_t_mean   =  tavg_global_sum_2D(tavg_id_TFW_T,MASK_TRBUDGET)
+     tfw_s_mean   =  tavg_global_sum_2D(tavg_id_TFW_S,MASK_TRBUDGET)
 
      !    note that tavg_norm is from this budget interval
    else
@@ -792,7 +799,7 @@
    qflux_t_mean = c0
    if ( tavg_sum_qflux(tavg_in_which_stream(tavg_id_QFLUX)) /= c0 ) then
      if (lrobert_filter) then
-       qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'),MASK_BUDGT)
+       qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'),MASK_TRBUDGET)
      else
        qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'))
      endif
@@ -809,7 +816,7 @@
 
    !*** start computing time change of volume and tracers
 
-   call diag_for_tracer_budgets (tracer_mean_final, volume_t_final, MASK_BUDGT, bgtarea_t_k)
+   call diag_for_tracer_budgets (tracer_mean_final, volume_t_final, MASK_TRBUDGET, bgtarea_t_k)
 
    if ( my_task == master_task ) then
      write (stdout,999) volume_t_final,        &
@@ -888,28 +895,64 @@
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
 
+!-----------------------------------------------------------------------
+!
+!     heat budget
+!
+!-----------------------------------------------------------------------
+
+     !*** title
      write (stdout,1004)
+
+     !*** terms from model defaults
+     write (stdout, 1005) T_change, shf_mean, qflux_t_mean, &
+                          tfw_t_mean,  resid_t_mean 
      sum = - T_change+ shf_mean + qflux_t_mean + tfw_t_mean &
            + resid_t_mean
      explanation = ' Imbalance           = -tendency + SHF flux'  /&
        &/' + ice formation + FW heat content + free-srf non-consv. '
 
+     !*** terms from model options -- Robert Filter
      if (lrobert_filter .and. lrf_diag_apply_adj_now) then
-       sumr    = sum  + rf_adj(1)
+       write (stdout, 10051) rf_adj(1)
        explanation = trim(explanation) /&
                                         &/' + Robert adj'
-       write (stdout, 10051) T_change, shf_mean, qflux_t_mean,      &
-                             tfw_t_mean,  resid_t_mean, rf_adj(1), &
-                             sumr, explanation
-
-
-     else
-       write (stdout, 1005) T_change, shf_mean, qflux_t_mean, &
-                            tfw_t_mean,  resid_t_mean, sum,   &
-                            explanation
+       sum = sum  + rf_adj(1)
      endif
 
+     !*** terms from model options -- geothermal heat flux
+     if (lgeoheatflux) then
+       write (stdout, 10052) geo_mean
+       explanation = trim(explanation) /&
+                                        &/' + geothermal heat flux'
+       sum = sum  + geo_mean
+     endif
+
+     !*** now wrap up by printing imbalance and explanation
+     write (stdout, 10059) sum, trim(explanation)
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
+
+    if (my_task == master_task) then
+     write(stdout,*) ' '
+     sum = -T_change          ; write(stdout,'(7x,a,F26.15)') '     - T_change       = ', sum
+     sum = sum + shf_mean     ; write(stdout,'(7x,a,F26.15)') ' ... + shf_mean       = ', sum
+     sum = sum + qflux_t_mean ; write(stdout,'(7x,a,F26.15)') ' ... + qflux_t_mean   = ', sum
+     sum = sum + tfw_t_mean   ; write(stdout,'(7x,a,F26.15)') ' ... + tfw_t_mean     = ', sum
+     sum = sum + resid_t_mean ; write(stdout,'(7x,a,F26.15)') ' ... + resid_t_mean   = ', sum
+     if (lrobert_filter) &
+     sum = sum + rf_adj(1)    ; write(stdout,'(7x,a,F26.15)') ' ... + rf_adj(1)      = ', sum
+     write(stdout,*) ' '
+                                write(stdout,'(7x,a,F26.15)') '       geo_mean       = ', geo_mean
+     write(stdout,*) ' '
+     sum = sum + geo_mean     ; write(stdout,'(7x,a,F26.15)') ' ... + geo_mean       = ', sum
+     if (geo_mean .ne. c0)  then
+     write(stdout,*) ' '
+                                write(stdout,'(7x,a,F26.15)') '       ratio imbal(sum-geo_mean):geo_mean   = ', &
+                                                                        (sum-geo_mean)/geo_mean
+                                write(stdout,'(7x,a,F26.15)') '       hflux_factor   = ', hflux_factor
+                                write(stdout,'(7x,a,F26.15)') '       tavg_norm      = ', tavg_norm
+     endif ! geo_mean
+    endif ! master_task
 
      if (sfc_layer_type == sfc_layer_varthick .and.  &
           .not. lfw_as_salt_flx ) then
@@ -1117,18 +1160,13 @@
                /, 7x, ' SHF flux            = ', e18.12,                 &
                /, 7x, ' ice formation       = ', e18.12,                 &
                /, 7x, ' FW heat content     = ', e18.12,                 &
-               /, 7x, ' free-srf non-consv. = ', e18.12,                 &
-               /, 7x, ' Imbalance           = ', e18.12,                 &
+               /, 7x, ' free-srf non-consv. = ', e18.12)
+10051 format (    7x, ' Robert adj. term    = ', e18.12)
+10052 format (    7x, ' geothermal heat flux= ', e18.12)
+
+10059 format (    7x, ' Imbalance           = ', e18.12,                 &
                /, 7x,   a                              )
 
-10051 format  (/, 7x, ' tendency            = ', e18.12,                 &
-               /, 7x, ' SHF flux            = ', e18.12,                 &
-               /, 7x, ' ice formation       = ', e18.12,                 &
-               /, 7x, ' FW heat content     = ', e18.12,                 &
-               /, 7x, ' free-srf non-consv. = ', e18.12,                 &
-               /, 7x, ' Robert adj. term    = ', e18.12,                 &
-               /, 7x, ' Imbalance           = ', e18.12,                 &
-               /, 7x,   a                              )
 
 
  1006 format ( /, 5x, 'SALT BUDGET FOR THE GIVEN TAVG INTERVAL',         &

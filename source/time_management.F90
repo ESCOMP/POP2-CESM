@@ -1150,8 +1150,12 @@
 
     if (.not. allocated(interval_avg_ts)) then
       allocate(interval_avg_ts(nsteps_per_interval))
+    endif
+
+    if (.not. allocated(interval_cum_dayfrac)) then
       allocate(interval_cum_dayfrac(0:nsteps_per_interval))
     endif
+
     interval_cum_dayfrac(0) = c0
 
     do nfit = 1, fit_freq
