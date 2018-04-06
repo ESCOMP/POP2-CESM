@@ -1361,36 +1361,58 @@
       return
    endif
 
-   call POP_HaloUpdate(FINE_DUST_FLUX,POP_haloClinic,  &
-                       POP_gridHorzLocCenter,          &
-                       POP_fieldKindScalar, errorCode, &
+   call POP_HaloUpdate(ATM_FINE_DUST_FLUX,POP_haloClinic, &
+                       POP_gridHorzLocCenter,             &
+                       POP_fieldKindScalar, errorCode,    &
                        fillValue = 0.0_POP_r8)
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
-         'update_ghost_cells_coupler: error updating FINE_DUST_FLUX')
+         'update_ghost_cells_coupler: error updating ATM_FINE_DUST_FLUX')
       return
    endif
 
-   call POP_HaloUpdate(COARSE_DUST_FLUX,POP_haloClinic,&
-                       POP_gridHorzLocCenter,          &
-                       POP_fieldKindScalar, errorCode, &
+   call POP_HaloUpdate(ATM_COARSE_DUST_FLUX,POP_haloClinic, &
+                       POP_gridHorzLocCenter,               &
+                       POP_fieldKindScalar, errorCode,      &
                        fillValue = 0.0_POP_r8)
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
-         'update_ghost_cells_coupler: error updating COARSE_DUST_FLUX')
+         'update_ghost_cells_coupler: error updating ATM_COARSE_DUST_FLUX')
       return
    endif
 
-   call POP_HaloUpdate(BLACK_CARBON_FLUX,POP_haloClinic, &
-                       POP_gridHorzLocCenter,            &
-                       POP_fieldKindScalar, errorCode,   &
+   call POP_HaloUpdate(SEAICE_DUST_FLUX,POP_haloClinic, &
+                       POP_gridHorzLocCenter,           &
+                       POP_fieldKindScalar, errorCode,  &
                        fillValue = 0.0_POP_r8)
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
-         'update_ghost_cells_coupler: error updating BLACK_CARBON_FLUX')
+         'update_ghost_cells_coupler: error updating SEAICE_DUST_FLUX')
+      return
+   endif
+
+   call POP_HaloUpdate(ATM_BLACK_CARBON_FLUX,POP_haloClinic, &
+                       POP_gridHorzLocCenter,                &
+                       POP_fieldKindScalar, errorCode,       &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating ATM_BLACK_CARBON_FLUX')
+      return
+   endif
+
+   call POP_HaloUpdate(SEAICE_BLACK_CARBON_FLUX,POP_haloClinic, &
+                       POP_gridHorzLocCenter,                   &
+                       POP_fieldKindScalar, errorCode,          &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating SEAICE_BLACK_CARBON_FLUX')
       return
    endif
 

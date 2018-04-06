@@ -942,7 +942,8 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,FINE_DUST_FLUX,COARSE_DUST_FLUX,BLACK_CARBON_FLUX, &
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,ATM_FINE_DUST_FLUX,ATM_COARSE_DUST_FLUX,SEAICE_DUST_FLUX, &
+                                      ATM_BLACK_CARBON_FLUX,SEAICE_BLACK_CARBON_FLUX, &
                                       lvsf_river,MASK_ESTUARY,vsf_river_correction,STF,STF_RIV)
 
 ! !DESCRIPTION:
@@ -954,13 +955,15 @@
 ! !INPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
-      U10_SQR,           & ! 10m wind speed squared
-      ICE_FRAC,          & ! sea ice fraction (non-dimensional)
-      PRESS,             & ! sea level atmospheric pressure (Pascals)
-      FINE_DUST_FLUX,    & ! fine dust flux (g/cm^2/s)
-      COARSE_DUST_FLUX,  & ! coarse dust flux (g/cm^2/s)
-      BLACK_CARBON_FLUX, & ! black carbon flux (g/cm^2/s)
-      MASK_ESTUARY         ! mask for estuary model, 1 where it runs and 0 elsewhere
+      U10_SQR,                  & ! 10m wind speed squared
+      ICE_FRAC,                 & ! sea ice fraction (non-dimensional)
+      PRESS,                    & ! sea level atmospheric pressure (Pascals)
+      ATM_FINE_DUST_FLUX,       & ! fine dust flux from atm (g/cm^2/s)
+      ATM_COARSE_DUST_FLUX,     & ! coarse dust flux from atm (g/cm^2/s)
+      SEAICE_DUST_FLUX,         & ! coarse dust flux from seaice (g/cm^2/s)
+      ATM_BLACK_CARBON_FLUX,    & ! black carbon flux from atm (g/cm^2/s)
+      SEAICE_BLACK_CARBON_FLUX, & ! black carbon flux from seaice (g/cm^2/s)
+      MASK_ESTUARY                ! mask for estuary model, 1 where it runs and 0 elsewhere
 
   logical (log_kind), intent(in) :: &
       lvsf_river
@@ -1012,7 +1015,8 @@
 
    if (ecosys_on) then
       call ecosys_driver_set_sflux_forcing( &
-         U10_SQR, ICE_FRAC, PRESS, FINE_DUST_FLUX, COARSE_DUST_FLUX, BLACK_CARBON_FLUX, &
+         U10_SQR, ICE_FRAC, PRESS, ATM_FINE_DUST_FLUX, ATM_COARSE_DUST_FLUX, SEAICE_DUST_FLUX, &
+         ATM_BLACK_CARBON_FLUX, SEAICE_BLACK_CARBON_FLUX, &
          SST_FILT, SSS_FILT)
 
       call ecosys_driver_set_global_scalars('surface')

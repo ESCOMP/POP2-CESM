@@ -79,9 +79,11 @@
       tavg_TFW_T,        &! tavg_id for T flux due to freshwater flux
       tavg_TFW_S,        &! tavg_id for S flux due to freshwater flux
       tavg_U10_SQR,      &! tavg_id for U10_SQR 10m wind speed squared from cpl
-      tavg_FINE_DUST_FLUX_CPL,   &! tavg_id for FINE_DUST_FLUX from cpl
-      tavg_COARSE_DUST_FLUX_CPL, &! tavg_id for COARSE_DUST_FLUX from cpl
-      tavg_BLACK_CARBON_FLUX_CPL  ! tavg_id for BLACK_CARBON_FLUX from cpl
+      tavg_ATM_FINE_DUST_FLUX_CPL,      &! tavg_id for ATM_FINE_DUST_FLUX from atm from cpl
+      tavg_ATM_COARSE_DUST_FLUX_CPL,    &! tavg_id for ATM_COARSE_DUST_FLUX from atm from cpl
+      tavg_SEAICE_DUST_FLUX_CPL,        &! tavg_id for SEAICE_DUST_FLUX from seaice from cpl
+      tavg_ATM_BLACK_CARBON_FLUX_CPL,   &! tavg_id for ATM_BLACK_CARBON_FLUX from atm from cpl
+      tavg_SEAICE_BLACK_CARBON_FLUX_CPL  ! tavg_id for SEAICE_BLACK_CARBON_FLUX from seaice from cpl
 
 !-----------------------------------------------------------------------
 !
@@ -230,19 +232,29 @@
                           units='cm^2/^s', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_FINE_DUST_FLUX_CPL,'FINE_DUST_FLUX_CPL',2, &
-                          long_name='FINE_DUST_FLUX from cpl',       &
-                          units='g/cm^2/s', grid_loc='2110',    &
+   call define_tavg_field(tavg_ATM_FINE_DUST_FLUX_CPL,'ATM_FINE_DUST_FLUX_CPL',2, &
+                          long_name='ATM_FINE_DUST_FLUX from cpl',                &
+                          units='g/cm^2/s', grid_loc='2110',                      &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_COARSE_DUST_FLUX_CPL,'COARSE_DUST_FLUX_CPL',2, &
-                          long_name='COARSE_DUST_FLUX from cpl',       &
-                          units='g/cm^2/s', grid_loc='2110',    &
+   call define_tavg_field(tavg_ATM_COARSE_DUST_FLUX_CPL,'ATM_COARSE_DUST_FLUX_CPL',2, &
+                          long_name='ATM_COARSE_DUST_FLUX from cpl',                  &
+                          units='g/cm^2/s', grid_loc='2110',                          &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_BLACK_CARBON_FLUX_CPL,'BLACK_CARBON_FLUX_CPL',2, &
-                          long_name='BLACK_CARBON_FLUX from cpl',               &
-                          units='g/cm^2/s', grid_loc='2110',                    &
+   call define_tavg_field(tavg_SEAICE_DUST_FLUX_CPL,'SEAICE_DUST_FLUX_CPL',2, &
+                          long_name='SEAICE_DUST_FLUX from cpl',              &
+                          units='g/cm^2/s', grid_loc='2110',                  &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_ATM_BLACK_CARBON_FLUX_CPL,'ATM_BLACK_CARBON_FLUX_CPL',2, &
+                          long_name='ATM_BLACK_CARBON_FLUX from cpl',                   &
+                          units='g/cm^2/s', grid_loc='2110',                            &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_SEAICE_BLACK_CARBON_FLUX_CPL,'SEAICE_BLACK_CARBON_FLUX_CPL',2, &
+                          long_name='SEAICE_BLACK_CARBON_FLUX from cpl',                      &
+                          units='g/cm^2/s', grid_loc='2110',                                  &
                           coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
@@ -422,7 +434,8 @@
    call set_ap(ATM_PRESS)
 
    if (nt > 2) then
-      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,FINE_DUST_FLUX,COARSE_DUST_FLUX,BLACK_CARBON_FLUX, &
+      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,ATM_FINE_DUST_FLUX,ATM_COARSE_DUST_FLUX,SEAICE_DUST_FLUX, &
+                                     ATM_BLACK_CARBON_FLUX,SEAICE_BLACK_CARBON_FLUX, &
                                      lvsf_river,MASK_ESTUARY,vsf_river_correction,STF,STF_RIV)
    endif
 
@@ -558,9 +571,11 @@
       call accumulate_tavg_field(TFW(:,:,1,iblock)/hflux_factor, tavg_TFW_T,iblock,1)
       call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, tavg_TFW_S,iblock,1)
       call accumulate_tavg_field(U10_SQR(:,:,iblock), tavg_U10_SQR,iblock,1)
-      call accumulate_tavg_field(FINE_DUST_FLUX(:,:,iblock), tavg_FINE_DUST_FLUX_CPL,iblock,1)
-      call accumulate_tavg_field(COARSE_DUST_FLUX(:,:,iblock), tavg_COARSE_DUST_FLUX_CPL,iblock,1)
-      call accumulate_tavg_field(BLACK_CARBON_FLUX(:,:,iblock), tavg_BLACK_CARBON_FLUX_CPL,iblock,1)
+      call accumulate_tavg_field(ATM_FINE_DUST_FLUX(:,:,iblock), tavg_ATM_FINE_DUST_FLUX_CPL,iblock,1)
+      call accumulate_tavg_field(ATM_COARSE_DUST_FLUX(:,:,iblock), tavg_ATM_COARSE_DUST_FLUX_CPL,iblock,1)
+      call accumulate_tavg_field(SEAICE_DUST_FLUX(:,:,iblock), tavg_SEAICE_DUST_FLUX_CPL,iblock,1)
+      call accumulate_tavg_field(ATM_BLACK_CARBON_FLUX(:,:,iblock), tavg_ATM_BLACK_CARBON_FLUX_CPL,iblock,1)
+      call accumulate_tavg_field(SEAICE_BLACK_CARBON_FLUX(:,:,iblock), tavg_SEAICE_BLACK_CARBON_FLUX_CPL,iblock,1)
 
 
    end do
