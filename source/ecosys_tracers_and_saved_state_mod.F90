@@ -57,6 +57,7 @@ module ecosys_tracers_and_saved_state_mod
   integer(int_kind), public :: alk_alt_co2_ind
   integer(int_kind), public :: di13c_ind
   integer(int_kind), public :: di14c_ind
+  integer(int_kind), public :: o2_ind
   integer(int_kind), public :: no3_ind
   integer(int_kind), public :: po4_ind
   integer(int_kind), public :: don_ind
@@ -67,8 +68,8 @@ module ecosys_tracers_and_saved_state_mod
   integer(int_kind), public :: fe_ind
   integer(int_kind), public :: doc_ind
   integer(int_kind), public :: docr_ind
-  integer(int_kind), public :: do13c_ind
-  integer(int_kind), public :: do14c_ind
+  integer(int_kind), public :: do13ctot_ind
+  integer(int_kind), public :: do14ctot_ind
 
   !---------------------------------------------------------------------
   !  Private variables read in via &ecosys_tracer_init_nml
@@ -134,6 +135,8 @@ Contains
     use domain_size, only : km, nt
 
     use constants, only : delim_fmt, char_blank, ndelim_fmt
+
+    use ecosys_forcing_saved_state_mod, only : ecosys_forcing_saved_state_init
 
     integer (int_kind),                   intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
     logical,                              intent(in)    :: ciso_on
@@ -280,11 +283,12 @@ Contains
     !  initialize saved state
     !-----------------------------------------------------------------------
 
+    ecosys_restart_filename = char_blank
+
     select case (trim(init_ecosys_option))
 
     case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
 
-       ecosys_restart_filename = char_blank
        init_file_fmt = init_ecosys_init_file_fmt
        if (init_ecosys_init_file == 'same_as_TS') then
           if (read_restart_filename == 'undefined') then
@@ -311,6 +315,8 @@ Contains
        call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     end select
+
+    call ecosys_forcing_saved_state_init(ecosys_restart_filename)
 
     !-----------------------------------------------------------------------
     !  initialize tracers

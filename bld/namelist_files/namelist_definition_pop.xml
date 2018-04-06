@@ -5819,11 +5819,11 @@ id="abio_atm_d14c_opt"
 type="char*256"
 category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" 
-valid_values="file,const" >
+valid_values="file,const,lat_bands" >
 Source of atmos D14C.
 
-Valid Values: 'file', 'const'
-Default: '
+Valid Values: 'file', 'const', 'lat_bands'
+Default: 'lat_bands'
 </entry>
 
 <entry
@@ -5834,12 +5834,20 @@ group="abio_dic_dic14_nml" >
 Default:
 </entry>
 
+<entry 
+id="abio_atm_d14c_lat_band_vals"
+type="real(3)"
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default:
+</entry>
+
 <entry
 id="abio_atm_co2_const"
 type="real"
 category="Passive Tracers (Abiotic DIC & DIC14)"
 group="abio_dic_dic14_nml" >
-Default:
+Default: CCSM_CO2_PPMV value in env_run.xml
 </entry>
 
 <entry
@@ -5993,7 +6001,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc or fesedflux_gx1v6_etopo2v2_18gmol_cesm1_93_20161104.nc
+Default: fesedflux_gx3v7_cesm1_97_2017.nc or fesedflux_gx1v6_cesm2_2017.nc
 </entry>
 
 <entry
@@ -6034,7 +6042,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: feventflux_gx3v7_8gmol_constant_20161122.nc or feventflux_gx1v6_10gmol_constant_20161118.nc
+Default: feventflux_gx3v7_5gmol_cesm1_97_2017.nc or feventflux_gx1v6_5gmol_cesm1_97_2017.nc
 </entry>
 
 <entry
@@ -6536,7 +6544,7 @@ id="atm_co2_opt"
 type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
-valid_values="const,drv_prog,drv_diag" >
+valid_values="const,drv_prog,drv_diag,box_atm_co2" >
 Default: depends on OCN_CO2_TYPE in env_run.xml
 </entry>
 
@@ -6545,7 +6553,15 @@ id="atm_co2_const"
 type="real"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: CCSM_CO2_PPMV value in env_conf.xml
+Default: CCSM_CO2_PPMV value in env_run.xml
+</entry>
+
+<entry
+id="box_atm_co2_init_val"
+type="real"
+category="ecosys"
+group="ecosys_forcing_data_nml" >
+Default: CCSM_CO2_PPMV value in env_run.xml
 </entry>
 
 <entry
@@ -6553,7 +6569,7 @@ id="atm_alt_co2_opt"
 type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
-valid_values="const" >
+valid_values="const,box_atm_co2" >
 Default: 'const'
 </entry>
 
@@ -6562,7 +6578,7 @@ id="atm_alt_co2_const"
 type="real"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: CCSM_CO2_PPMV value in env_conf.xml
+Default: CCSM_CO2_PPMV value in env_run.xml
 </entry>
 
 <entry
@@ -6612,7 +6628,7 @@ id="ciso_atm_d14c_opt"
 type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
-valid_values="const,file,coupled" >
+valid_values="const,lat_bands,file" >
 Default:
 </entry>
 
@@ -6620,6 +6636,14 @@ Default:
 id="ciso_atm_d14c_const"
 type="real"
 category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default:
+</entry>
+
+<entry
+id="ciso_atm_d14c_lat_band_vals"
+type="real(3)"
+category="ecosys"
 group="ecosys_forcing_data_nml" >
 Default:
 </entry>
@@ -6786,31 +6810,52 @@ Default: 1944.0
 </entry>
 
 <entry
-id="iron_frac_in_fine_dust"
+id="iron_frac_in_atm_fine_dust"
 type="real"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
-fraction, by weight, of iron in fine dust
+fraction, by weight, of iron in fine dust from atm
 
-Default: 0.00035
+Default: 0.035
 </entry>
 
 <entry
-id="iron_frac_in_coarse_dust"
-type="real"
-category="marbl"
-group="ecosys_forcing_data_nml">
-fraction, by weight, of iron in coarse dust
-
-Default: 0.00035
-</entry>
-
-<entry
-id="iron_frac_in_bc"
+id="iron_frac_in_atm_coarse_dust"
 type="real"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
-fraction, by weight, of iron in black carbon
+fraction, by weight, of iron in coarse dust from atm
+
+Default: 0.035
+</entry>
+
+<entry
+id="iron_frac_in_seaice_dust"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml">
+fraction, by weight, of iron in dust from seaice
+
+Default: 0.035
+</entry>
+
+<entry
+id="iron_frac_in_atm_bc"
+type="real"
+category="ecosys"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml">
+fraction, by weight, of iron in black carbon from atm
+
+Default: 0.06
+</entry>
+
+<entry
+id="iron_frac_in_seaice_bc"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml">
+fraction, by weight, of iron in black carbon from seaice
 
 Default: 0.06
 </entry>
@@ -6834,7 +6879,7 @@ type="char*256"
 category="Ecosystem Model (Tracer Initialization)"
 group="ecosys_tracer_init_nml"
 input_pathname="abs" >
-Default: ecosys_jan_IC_gx3v7_20161123.nc or ecosys_jan_IC_gx1v6_20161123.nc (none provided for tripole grids)
+Default: ecosys_jan_IC_gx3v7_20180308.nc or ecosys_jan_IC_gx1v6_20180308.nc (none provided for tripole grids)
 </entry>
 
 <entry

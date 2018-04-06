@@ -1280,9 +1280,11 @@
 <abio_atm_co2_filename>ocn/pop/res_indpt/forcing/splco2_20140912.dat</abio_atm_co2_filename>
 
 <abio_atm_co2_opt>'const'</abio_atm_co2_opt>
-<abio_atm_d14c_opt>'const'</abio_atm_d14c_opt>
+<abio_atm_d14c_opt>'lat_bands'</abio_atm_d14c_opt>
 
 <abio_atm_d14c_const>0.0</abio_atm_d14c_const>
+
+<abio_atm_d14c_lat_band_vals>-2.3, -4.0, -5.8</abio_atm_d14c_lat_band_vals>
 
 <abio_atm_model_year>1</abio_atm_model_year>
 <abio_atm_data_year>1</abio_atm_data_year>
@@ -1312,7 +1314,7 @@
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
-<iron_flux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6.nc</iron_flux_input%filename>
+<iron_flux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
 <iron_flux_input%file_fmt>nc</iron_flux_input%file_fmt>
 <iron_flux_input%file_varname>DSTSF</iron_flux_input%file_varname>
 <!-- 6.2668e4 = kg/m^2/sec -> nmol/cm^2/sec, 3.5%Fe Wt. Dust file -->
@@ -1321,16 +1323,16 @@
 <iron_flux_input%scale_factor ocn_grid="gx1v6">1.79e6</iron_flux_input%scale_factor>
 <iron_flux_input%scale_factor ocn_grid="gx1v7">1.79e6</iron_flux_input%scale_factor>
 
-<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_etopo2v2_20gmol_cesm1_94_20161122.nc</fesedflux_input%filename>
-<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_18gmol_cesm1_93_20161104.nc</fesedflux_input%filename>
-<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_cesm1_97_2017.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 <fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
 <fesedflux_input%file_fmt>nc</fesedflux_input%file_fmt>
 <fesedflux_input%scale_factor>1.1574e-6</fesedflux_input%scale_factor>
 
-<feventflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/feventflux_gx3v7_8gmol_constant_20161122.nc</feventflux_input%filename>
-<feventflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/feventflux_gx1v6_10gmol_constant_20161118.nc</feventflux_input%filename>
-<feventflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/feventflux_gx1v6_10gmol_constant_20161118.nc</feventflux_input%filename>
+<feventflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/feventflux_gx3v7_5gmol_cesm1_97_2017.nc</feventflux_input%filename>
+<feventflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/feventflux_gx1v6_5gmol_cesm1_97_2017.nc</feventflux_input%filename>
+<feventflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/feventflux_gx1v6_5gmol_cesm1_97_2017.nc</feventflux_input%filename>
 <feventflux_input%file_varname>FESEDFLUXIN</feventflux_input%file_varname>
 <feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
@@ -1419,9 +1421,11 @@
 
 <ciso_atm_d13c_const>-6.610</ciso_atm_d13c_const>
 
-<ciso_atm_d14c_opt>const</ciso_atm_d14c_opt>
+<ciso_atm_d14c_opt>lat_bands</ciso_atm_d14c_opt>
 
 <ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
+
+<ciso_atm_d14c_lat_band_vals>-2.3, -4.0, -5.8</ciso_atm_d14c_lat_band_vals>
 
 <ciso_atm_d13c_filename>lnd/clm2/isotopes/atm_delta_C13_CMIP6_1850-2015_yearly_v2.0_c171012.nc</ciso_atm_d13c_filename>
 
@@ -1430,13 +1434,13 @@
 <ciso_atm_model_year>1</ciso_atm_model_year>
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
-<restorable_tracer_names>'PO4','NO3','SiO3','O2','ALK'</restorable_tracer_names>
+<restorable_tracer_names>'PO4','NO3','SiO3','O2','ALK','ALK_ALT_CO2'</restorable_tracer_names>
 
 <restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_POP_gx3v7_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
 
-<restore_data_file_varnames>'PO4','NO3','SiO3','O2','ALK'</restore_data_file_varnames>
+<restore_data_file_varnames>'PO4','NO3','SiO3','O2','ALK','ALK'</restore_data_file_varnames>
 
 <restore_inv_tau_opt>const</restore_inv_tau_opt>
 <restore_inv_tau_opt ocn_grid="gx3v7">file_time_invariant</restore_inv_tau_opt>
@@ -1457,18 +1461,20 @@
 <surf_avg_di13c_const>1944.0</surf_avg_di13c_const>
 <surf_avg_di14c_const>1944.0</surf_avg_di14c_const>
 
-<iron_frac_in_fine_dust>0.00035</iron_frac_in_fine_dust>
-<iron_frac_in_coarse_dust>0.00035</iron_frac_in_coarse_dust>
+<iron_frac_in_atm_fine_dust>0.035</iron_frac_in_atm_fine_dust>
+<iron_frac_in_atm_coarse_dust>0.035</iron_frac_in_atm_coarse_dust>
+<iron_frac_in_seaice_dust>0.035</iron_frac_in_seaice_dust>
 
-<iron_frac_in_bc>0.06</iron_frac_in_bc>
+<iron_frac_in_atm_bc>0.06</iron_frac_in_atm_bc>
+<iron_frac_in_seaice_bc>0.06</iron_frac_in_seaice_bc>
 
 <!----------------------------->
 <!-- ecosys_tracer_init_nml  -->
 <!----------------------------->
 
-<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20161123.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20161123.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20150108.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
@@ -1476,8 +1482,8 @@
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>
 <ciso_tracer_init_ext(1)%scale_factor>1.025</ciso_tracer_init_ext(1)%scale_factor>
 
-<ciso_tracer_init_ext(2)%mod_varname>DO13C</ciso_tracer_init_ext(2)%mod_varname>
-<ciso_tracer_init_ext(2)%file_varname>DOC</ciso_tracer_init_ext(2)%file_varname>
+<ciso_tracer_init_ext(2)%mod_varname>DO13Ctot</ciso_tracer_init_ext(2)%mod_varname>
+<ciso_tracer_init_ext(2)%file_varname>DOCtot</ciso_tracer_init_ext(2)%file_varname>
 <ciso_tracer_init_ext(2)%scale_factor>1.0</ciso_tracer_init_ext(2)%scale_factor>
 
 <ciso_tracer_init_ext(3)%mod_varname>zoo13C</ciso_tracer_init_ext(3)%mod_varname>
@@ -1488,8 +1494,8 @@
 <ciso_tracer_init_ext(4)%file_varname>DIC</ciso_tracer_init_ext(4)%file_varname>
 <ciso_tracer_init_ext(4)%scale_factor>0.9225</ciso_tracer_init_ext(4)%scale_factor>
 
-<ciso_tracer_init_ext(5)%mod_varname>DO14C</ciso_tracer_init_ext(5)%mod_varname>
-<ciso_tracer_init_ext(5)%file_varname>DOC</ciso_tracer_init_ext(5)%file_varname>
+<ciso_tracer_init_ext(5)%mod_varname>DO14Ctot</ciso_tracer_init_ext(5)%mod_varname>
+<ciso_tracer_init_ext(5)%file_varname>DOCtot</ciso_tracer_init_ext(5)%file_varname>
 <ciso_tracer_init_ext(5)%scale_factor>1.0</ciso_tracer_init_ext(5)%scale_factor>
 
 <ciso_tracer_init_ext(6)%mod_varname>zoo14C</ciso_tracer_init_ext(6)%mod_varname>

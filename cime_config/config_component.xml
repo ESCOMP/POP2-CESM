@@ -2,9 +2,11 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%DAR]"    >POP2 </desc>
+    <desc ocn="POP2[%1D][%ECO][%PHYS-CYCLE][%ECO-PHYS-CYCLE][%DAR]">POP2 </desc>
     <desc option="1D" >Single column </desc>
     <desc option="ECO">Ecosystem</desc>
+    <desc option="PHYS-CYCLE">phys cycle option</desc>
+    <desc option="ECO-PHYS-CYCLE">Ecosystem with phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
   </description>
 
@@ -158,7 +160,7 @@
   <!--- Note that positive second match will overwrite positive first match -->
   <entry id="OCN_CO2_TYPE">
     <type>char</type>
-    <valid_values>constant,prognostic,diagnostic</valid_values>
+    <valid_values>constant,prognostic,diagnostic,box_atm_co2</valid_values>
     <default_value>constant</default_value>
     <values>
       <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>

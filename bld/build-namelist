@@ -1461,6 +1461,7 @@ if ($abio_on eq "TRUE") {
     add_default($nl, 'abio_atm_d14c_opt');
     add_default($nl, 'abio_atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'abio_atm_d14c_const');
+    add_default($nl, 'abio_atm_d14c_lat_band_vals');
     add_default($nl, 'abio_atm_model_year');
     add_default($nl, 'abio_atm_data_year');
  }
@@ -1589,6 +1590,8 @@ if ($ecosys_on eq "TRUE") {
     $atm_co2_opt = "drv_prog";
   } elsif ($OCN_CO2_TYPE eq "diagnostic") {
     $atm_co2_opt = "drv_diag";
+  } elsif ($OCN_CO2_TYPE eq "box_atm_co2") {
+    $atm_co2_opt = "box_atm_co2";
   } else {
     print "error specifying atm_co2_opt \n";
     print "unknown OCN_CO2_TYPE:  $OCN_CO2_TYPE \n";
@@ -1596,12 +1599,13 @@ if ($ecosys_on eq "TRUE") {
   }
   add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
   add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
+  add_default($nl, 'box_atm_co2_init_val', 'val'=>"$CCSM_CO2_PPMV");
   add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
   add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
 
-  add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d13c_opt');
   add_default($nl, 'ciso_atm_d13c_const');
-  add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+  add_default($nl, 'ciso_atm_d14c_opt');
   add_default($nl, 'ciso_atm_d14c_const');
 
   my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
@@ -1610,6 +1614,9 @@ if ($ecosys_on eq "TRUE") {
   }
 
   my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
+  if ($ciso_atm_opt eq '\'lat_bands\'') {
+    add_default($nl, 'ciso_atm_d14c_lat_band_vals');
+  }
   if ($ciso_atm_opt eq '\'file\'') {
     add_default($nl, 'ciso_atm_d14c_filename');
   }
@@ -1641,9 +1648,11 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'surf_avg_di13c_const');
   add_default($nl, 'surf_avg_di14c_const');
 
-  add_default($nl, 'iron_frac_in_fine_dust');
-  add_default($nl, 'iron_frac_in_coarse_dust');
-  add_default($nl, 'iron_frac_in_bc');
+  add_default($nl, 'iron_frac_in_atm_fine_dust');
+  add_default($nl, 'iron_frac_in_atm_coarse_dust');
+  add_default($nl, 'iron_frac_in_seaice_dust');
+  add_default($nl, 'iron_frac_in_atm_bc');
+  add_default($nl, 'iron_frac_in_seaice_bc');
 }
 
 ##########################################
@@ -1758,9 +1767,6 @@ if ($ecosys_on eq "TRUE") {
 
     if ($atm_co2_opt eq $atm_alt_co2_opt) {
       # If both are set to 'const', then equivalence depends on the const value.
-      #   Currently atm_co2_opt=atm_alt_co2_opt implies atm_co2_opt=const,
-      #   because const is the only valid value for atm_alt_co2_opt. But leave
-      #   the check in, in case more valid values are added to atm_alt_co2_opt.
       if ($atm_co2_opt eq 'const') {
         my $atm_co2_const     = $nl->get_value('atm_co2_const');
         my $atm_alt_co2_const = $nl->get_value('atm_alt_co2_const');
@@ -1986,15 +1992,12 @@ if ($lmcog) {
    push(@OCN_TAVG_MODULES, "mcog");
 }
 
-if ($ecosys_cfg{"ciso_on"} eq ".true.") {
-   push(@OCN_TAVG_MODULES, "ciso");
-}
 for my $module (@OCN_TAVG_MODULES) {
 
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
-  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
-  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg, \%ecosys_cfg);
+  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET POPROOT=$SRCROOT/components/pop";
+  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg);
   if (-f "${my_path}/$file"){
       $sysmod = "$env ${my_path}/${file} $my_stream @tavg_script_args";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
@@ -2646,13 +2649,9 @@ sub module_tavg_script_args() {
   my $nl         = shift;
   my $module     = shift;
   my $cfg        = shift;
-  my $eco_cfg    = shift;
-  my %ecosys_cfg = %$eco_cfg;
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
-            $nl->get_value('lecosys_tavg_alt_co2'),
-            $ecosys_cfg{'ladjust_bury_coeff'},
-            $ecosys_cfg{'lvariable_PtoC'});
+            $nl->get_value('lecosys_tavg_alt_co2'));
   }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");

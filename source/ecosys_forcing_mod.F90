@@ -38,7 +38,7 @@ module ecosys_forcing_mod
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
-  use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13c_ind, do14c_ind
+  use ecosys_tracers_and_saved_state_mod, only : sio3_ind, fe_ind, doc_ind, docr_ind, do13ctot_ind, do14ctot_ind
 
   use forcing_timeseries_mod, only : forcing_timeseries_dataset
 
@@ -155,29 +155,30 @@ module ecosys_forcing_mod
   integer(int_kind)   :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
   character(char_len) :: ndep_shr_stream_file         ! file containing domain and input data
   real(r8)            :: ndep_shr_stream_scale_factor ! unit conversion factor
-  character(char_len) :: gas_flux_forcing_opt        ! option for forcing gas fluxes
+  character(char_len) :: gas_flux_forcing_opt         ! option for forcing gas fluxes
   character(char_len) :: gas_flux_forcing_file        ! file containing gas flux forcing fields
-  type(tracer_read)   :: gas_flux_fice               ! ice fraction for gas fluxes
-  type(tracer_read)   :: gas_flux_ws                 ! wind speed for gas fluxes
-  type(tracer_read)   :: gas_flux_ap                 ! atmospheric pressure for gas fluxes
-  character(char_len) :: atm_co2_opt                 ! option for atmospheric co2 concentration
+  type(tracer_read)   :: gas_flux_fice                ! ice fraction for gas fluxes
+  type(tracer_read)   :: gas_flux_ws                  ! wind speed for gas fluxes
+  type(tracer_read)   :: gas_flux_ap                  ! atmospheric pressure for gas fluxes
+  character(char_len) :: atm_co2_opt                  ! option for atmospheric co2 concentration
   real(r8)            :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
-  character(char_len) :: atm_alt_co2_opt             ! option for atmospheric alternative CO2
+  character(char_len) :: atm_alt_co2_opt              ! option for atmospheric alternative CO2
   real(r8)            :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
   logical(log_kind)   :: liron_patch                  ! flag for iron patch fertilization
   character(char_len) :: iron_patch_flux_filename     ! file containing name of iron patch file
   integer(int_kind)   :: iron_patch_month             ! integer month to add patch flux
-  integer(int_kind)   :: ciso_atm_model_year            ! arbitrary model year
-  integer(int_kind)   :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-  real(r8)            :: ciso_atm_d13c_const            ! atmospheric d13C constant [permil]
-  real(r8)            :: ciso_atm_d14c_const            ! atmospheric D14C constant [permil]
-  character(char_len) :: ciso_atm_d13c_opt              ! option for CO2 and d13C varying or constant forcing
-  character(char_len) :: ciso_atm_d13c_filename         ! filename for varying atm d13C
-  character(char_len) :: ciso_atm_d14c_opt              ! option for CO2 and d13C varying or constant forcing
-  character(char_len) :: ciso_atm_d14c_filename         ! filename for varying atm D14C
+  integer(int_kind)   :: ciso_atm_model_year          ! arbitrary model year
+  integer(int_kind)   :: ciso_atm_data_year           ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
+  real(r8)            :: ciso_atm_d13c_const          ! atmospheric d13C constant [permil]
+  real(r8)            :: ciso_atm_d14c_const          ! atmospheric D14C constant [permil]
+  real(r8),dimension(3)::ciso_atm_d14c_lat_band_vals  ! atmospheric D14C constant [permil]
+  character(char_len) :: ciso_atm_d13c_opt            ! option for d13C (varying or constant forcing)
+  character(char_len) :: ciso_atm_d13c_filename       ! filename for varying atm d13C
+  character(char_len) :: ciso_atm_d14c_opt            ! option for d14C (varying or constant forcing)
+  character(char_len) :: ciso_atm_d14c_filename       ! filename for varying atm D14C
 
   type (forcing_timeseries_dataset) :: &
-    ciso_atm_d13c_forcing_dataset                       ! data structure for atm d13C timeseries
+    ciso_atm_d13c_forcing_dataset                     ! data structure for atm d13C timeseries
 
   !-----------------------------------------------------------------------
   !  tracer restoring related variables
@@ -245,7 +246,8 @@ module ecosys_forcing_mod
   integer(int_kind) :: dust_dep_ind = 0, &
                        Fe_dep_ind   = 0, &
                        bc_dep_ind   = 0, &
-                       xco2_ind     = 0, &
+                       box_atm_co2_ind     = 0, &
+                       box_atm_co2_dup_ind = 0, &
                        ifrac_ind    = 0, &
                        ap_ind       = 0, &
                        sst_ind      = 0, &
@@ -271,7 +273,7 @@ module ecosys_forcing_mod
   integer(int_kind), public :: dustflux_ind       = 0, &
                        PAR_col_frac_ind   = 0, &
                        surf_shortwave_ind = 0, &
-                       temperature_ind    = 0, &
+                       potemp_ind         = 0, &
                        salinity_ind       = 0, &
                        pressure_ind       = 0, &
                        fesedflux_ind      = 0
@@ -283,9 +285,12 @@ module ecosys_forcing_mod
   ! Virtual fluxes
   real(r8), dimension(marbl_tracer_cnt) :: surf_avg                      ! average surface tracer values
 
-  real(r8) :: iron_frac_in_fine_dust
-  real(r8) :: iron_frac_in_coarse_dust
-  real(r8) :: iron_frac_in_bc
+  real(r8) :: iron_frac_in_atm_fine_dust
+  real(r8) :: iron_frac_in_atm_coarse_dust
+  real(r8) :: iron_frac_in_seaice_dust
+  real(r8) :: iron_frac_in_atm_bc
+  real(r8) :: iron_frac_in_seaice_bc
+
   real(r8) :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
 
   !*****************************************************************************
@@ -309,6 +314,8 @@ contains
     use domain, only : distrb_clinic
 
     use mcog, only : mcog_nbins
+
+    use ecosys_forcing_saved_state_mod, only : lbox_atm_co2, box_atm_co2_init_val
 
     logical,                         intent(in)    :: ciso_on
     logical,                         intent(in)    :: land_mask(:,:,:)
@@ -380,10 +387,12 @@ contains
          riv_flux_doc_file_varname, riv_flux_doc_scale_factor,                &
          gas_flux_forcing_opt,                                                &
          gas_flux_forcing_file, gas_flux_fice, gas_flux_ws, gas_flux_ap,      &
-         atm_co2_opt, atm_co2_const, atm_alt_co2_opt, atm_alt_co2_const,      &
+         atm_co2_opt, atm_co2_const, box_atm_co2_init_val,                    &
+         atm_alt_co2_opt, atm_alt_co2_const,                                  &
          liron_patch, iron_patch_flux_filename, iron_patch_month,             &
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename,      &
-         ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename,      &
+         ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
+         ciso_atm_d14c_filename,                                              &
          ciso_atm_model_year, ciso_atm_data_year, restorable_tracer_names,    &
          restore_data_filenames, restore_data_file_varnames,                  &
          restore_year_first, restore_year_last, restore_year_align,           &
@@ -391,7 +400,8 @@ contains
          restore_inv_tau_opt, restore_inv_tau_const, restore_inv_tau_input,   &
          surf_avg_alk_const, surf_avg_dic_const,                              &
          surf_avg_di13c_const, surf_avg_di14c_const,                          &
-         iron_frac_in_fine_dust, iron_frac_in_coarse_dust, iron_frac_in_bc
+         iron_frac_in_atm_fine_dust, iron_frac_in_atm_coarse_dust,            &
+         iron_frac_in_seaice_dust, iron_frac_in_atm_bc, iron_frac_in_seaice_bc
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -442,15 +452,17 @@ contains
     liron_patch              = .false.
     iron_patch_flux_filename = 'unknown_iron_patch_filename'
     iron_patch_month         = 1
-    atm_co2_opt   = 'const'
-    atm_co2_const = 280.0_r8
-    atm_alt_co2_opt   = 'const'
-    atm_alt_co2_const = 280.0_r8
+    atm_co2_opt          = 'const'
+    atm_co2_const        = 280.0_r8
+    box_atm_co2_init_val = 280.0_r8
+    atm_alt_co2_opt      = 'const'
+    atm_alt_co2_const    = 280.0_r8
     ciso_atm_d13c_opt                       = 'const'
     ciso_atm_d13c_const                     = -6.610_r8
     ciso_atm_d13c_filename                  = 'unknown'
-    ciso_atm_d14c_opt                       = 'const'
-    ciso_atm_d14c_const                     = 0.0_r8
+    ciso_atm_d14c_opt                       = 'lat_bands'
+    ciso_atm_d14c_const                     = c0
+    ciso_atm_d14c_lat_band_vals(:)          = (/ -2.3_r8, -4.0_r8, -5.8_r8 /)
     ciso_atm_d14c_filename                  = 'unknown'
     ciso_atm_model_year                     = 1
     ciso_atm_data_year                      = 1
@@ -472,9 +484,12 @@ contains
     surf_avg_dic_const       = 1944.0_r8
     surf_avg_di13c_const     = 1944.0_r8
     surf_avg_di14c_const     = 1944.0_r8
-    iron_frac_in_fine_dust   = 0.035_r8 * 0.01_r8
-    iron_frac_in_coarse_dust = 0.035_r8 * 0.01_r8
-    iron_frac_in_bc          = 0.06_r8
+
+    iron_frac_in_atm_fine_dust   = 0.035_r8
+    iron_frac_in_atm_coarse_dust = 0.035_r8
+    iron_frac_in_seaice_dust     = 0.035_r8
+    iron_frac_in_atm_bc          = 0.06_r8
+    iron_frac_in_seaice_bc       = 0.06_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -628,7 +643,6 @@ contains
                                driver_varname='SSS', rank=2, id=n)
 
         case ('xco2')
-          xco2_ind = n
           if (trim(atm_co2_opt).eq.'const') then
             call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
                                  marbl_varname=marbl_varname, field_units=units,   &
@@ -641,6 +655,11 @@ contains
             call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
                                  marbl_varname=marbl_varname, field_units=units,         &
                                  named_field='ATM_CO2_DIAG', rank=2, id=n)
+          else if (trim(atm_co2_opt).eq.'box_atm_co2') then
+            box_atm_co2_ind = n
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
+                                 driver_varname='box_atm_co2', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_co2_opt),                     &
                  'is not a valid option for atm_co2_opt'
@@ -653,6 +672,15 @@ contains
             call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
                                  marbl_varname=marbl_varname, field_units=units,   &
                                  field_constant=atm_alt_co2_const, rank=2, id=n)
+          else if (trim(atm_alt_co2_opt).eq.'box_atm_co2') then
+            if (trim(atm_co2_opt).eq.'box_atm_co2') then
+              box_atm_co2_dup_ind = n
+            else
+              box_atm_co2_ind = n
+            end if
+            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
+                                 marbl_varname=marbl_varname, field_units=units,      &
+                                 driver_varname='box_atm_co2', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_alt_co2_opt),                 &
                  'is not a valid option for atm_alt_co2_opt'
@@ -828,6 +856,10 @@ contains
     end do
 
     !--------------------------------------------------------------------------
+
+    lbox_atm_co2 = box_atm_co2_ind > 0
+
+    !--------------------------------------------------------------------------
     !  Interior forcing
     !--------------------------------------------------------------------------
 
@@ -927,8 +959,8 @@ contains
                           marbl_varname=marbl_varname, field_units=units,               &
                           driver_varname='surf_shortwave', rank=3, dim3_len=mcog_nbins, &
                           ldim3_is_depth=.false., id=n)
-          case ('Temperature')
-            temperature_ind = n
+          case ('Potential Temperature')
+            potemp_ind = n
             call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='temperature', rank=3, dim3_len=km, id=n)
@@ -1102,8 +1134,8 @@ contains
           lhas_riv_flux(doc_ind) = .true.
           lhas_riv_flux(docr_ind) = .true.
           if (ciso_on) then
-            lhas_riv_flux(do13c_ind) = .true.
-            lhas_riv_flux(do14c_ind) = .true.
+            lhas_riv_flux(do13ctot_ind) = .true.
+            lhas_riv_flux(do14ctot_ind) = .true.
           endif
         case default
           call document(subname, 'unhandled riv_flux file_varname ', file_varname)
@@ -1522,7 +1554,7 @@ contains
                 else
                   interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
                 end if
-              else if (field_index .eq. temperature_ind) then
+              else if (field_index .eq. potemp_ind) then
                 ! --- average 2 time levels into 1 ---
                 interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,1,oldtime,iblock) + TRACER(:,:,:,1,curtime,iblock))
@@ -1581,9 +1613,11 @@ contains
        u10_sqr,                               &
        ifrac,                                 &
        press,                                 &
-       fine_dust_flux,                        &
-       coarse_dust_flux,                      &
-       black_carbon_flux,                     &
+       atm_fine_dust_flux,                    &
+       atm_coarse_dust_flux,                  &
+       seaice_dust_flux,                      &
+       atm_black_carbon_flux,                 &
+       seaice_black_carbon_flux,              &
        sst,                                   &
        sss)
 
@@ -1608,18 +1642,23 @@ contains
     use passive_tracer_tools  , only : read_field
     use marbl_constants_mod   , only : molw_Fe
 
+    use ecosys_forcing_saved_state_mod , only : ecosys_forcing_saved_state_get_var_val
+    use ecosys_forcing_saved_state_mod , only : box_atm_co2_forcing_saved_state_id
+
     implicit none
 
     logical,   intent(in)  :: ciso_on
-    logical,   intent(in)  :: land_mask            (nx_block,ny_block,max_blocks_clinic)
-    real (r8), intent(in)  :: u10_sqr              (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
-    real (r8), intent(in)  :: ifrac                (nx_block,ny_block,max_blocks_clinic) ! sea ice fraction (non-dimensional)
-    real (r8), intent(in)  :: press                (nx_block,ny_block,max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8), intent(in)  :: fine_dust_flux       (nx_block,ny_block,max_blocks_clinic) ! fine dust flux (g/cm**2/s)
-    real (r8), intent(in)  :: coarse_dust_flux     (nx_block,ny_block,max_blocks_clinic) ! coarse dust flux (g/cm**2/s)
-    real (r8), intent(in)  :: black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux (g/cm**2/s)
-    real (r8), intent(in)  :: sst                  (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
-    real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
+    logical,   intent(in)  :: land_mask                (nx_block,ny_block,max_blocks_clinic)
+    real (r8), intent(in)  :: u10_sqr                  (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
+    real (r8), intent(in)  :: ifrac                    (nx_block,ny_block,max_blocks_clinic) ! sea ice fraction (non-dimensional)
+    real (r8), intent(in)  :: press                    (nx_block,ny_block,max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
+    real (r8), intent(in)  :: atm_fine_dust_flux       (nx_block,ny_block,max_blocks_clinic) ! fine dust flux from atm (g/cm**2/s)
+    real (r8), intent(in)  :: atm_coarse_dust_flux     (nx_block,ny_block,max_blocks_clinic) ! coarse dust flux from atm (g/cm**2/s)
+    real (r8), intent(in)  :: seaice_dust_flux         (nx_block,ny_block,max_blocks_clinic) ! dust flux from seaice (g/cm**2/s)
+    real (r8), intent(in)  :: atm_black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux from atm (g/cm**2/s)
+    real (r8), intent(in)  :: seaice_black_carbon_flux (nx_block,ny_block,max_blocks_clinic) ! black carbon flux from seaice (g/cm**2/s)
+    real (r8), intent(in)  :: sst                      (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
+    real (r8), intent(in)  :: sss                      (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1639,8 +1678,15 @@ contains
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     type(forcing_monthly_every_ts), pointer :: file
-    integer   (int_kind)          :: stream_index                                           ! index into surface_strdata_inputlist_ptr array
-    integer   (int_kind)          :: var_ind                                                ! var index in surface_strdata_inputlist_ptr entry
+    integer   (int_kind)           :: stream_index                                          ! index into surface_strdata_inputlist_ptr array
+    integer   (int_kind)           :: var_ind                                               ! var index in surface_strdata_inputlist_ptr entry
+
+    real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
+    real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
+    real      (r8), parameter      :: dust_ratio_thres = 60.0_r8
+    real      (r8), parameter      :: dust_ratio_to_fe_bioavail_frac = 1.0_r8 / 170.0_r8
+    real      (r8), parameter      :: fe_bioavail_frac_offset = 0.01_r8
+
     !-----------------------------------------------------------------------
 
     call timer_start(ecosys_pre_sflux_timer)
@@ -1819,6 +1865,10 @@ contains
                 else if (index == sss_ind) then
                    forcing_field%field_0d(:,:,iblock) = sss(:,:,iblock)
 
+                else if (index == box_atm_co2_ind .or. index == box_atm_co2_dup_ind) then
+                   forcing_field%field_0d(:,:,iblock) = &
+                        ecosys_forcing_saved_state_get_var_val(box_atm_co2_forcing_saved_state_id)
+
                 else if (index == ext_C_flux_ind) then
                    forcing_field%field_0d(:,:,iblock) = c0
 
@@ -1858,17 +1908,39 @@ contains
                    end if
 
                 else if (index == bc_dep_ind) then
-                   ! compute iron_flux in gFe/cm^2/s, then convert to nmolFe/cm^2/s
-                   forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) *   &
-                        ((fine_dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_fine_dust + &
-                         (coarse_dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_coarse_dust + &
-                         black_carbon_flux(:,:,iblock) * iron_frac_in_bc)
+                   ! compute iron_flux in g/cm^2/s
+
+                   ! compute component from atm
+
+                   where (atm_coarse_dust_flux(:,:,iblock) < dust_ratio_thres * atm_fine_dust_flux(:,:,iblock))
+                     atm_fe_bioavail_frac(:,:) = fe_bioavail_frac_offset + dust_ratio_to_fe_bioavail_frac * &
+                       (dust_ratio_thres - atm_coarse_dust_flux(:,:,iblock) / atm_fine_dust_flux(:,:,iblock))
+                   elsewhere
+                     atm_fe_bioavail_frac(:,:) = fe_bioavail_frac_offset
+                   end where
+
+                   forcing_field%field_0d(:,:,iblock) = atm_fe_bioavail_frac(:,:) * &
+                        (iron_frac_in_atm_fine_dust * atm_fine_dust_flux(:,:,iblock) + &
+                         iron_frac_in_atm_coarse_dust * atm_coarse_dust_flux(:,:,iblock) + &
+                         iron_frac_in_atm_bc * atm_black_carbon_flux(:,:,iblock))
+
+                   ! add component from seaice
+
+                   seaice_fe_bioavail_frac(:,:) = atm_fe_bioavail_frac(:,:)
+
+                   forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + seaice_fe_bioavail_frac(:,:) * &
+                        (iron_frac_in_seaice_dust * seaice_dust_flux(:,:,iblock) + &
+                         iron_frac_in_seaice_bc * seaice_black_carbon_flux(:,:,iblock))
+
+                   ! convert to nmol/cm^2/s
+                   forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) * forcing_field%field_0d(:,:,iblock)
 
                 else if (index == u10sqr_ind) then
                    forcing_field%field_0d(:,:,iblock) = u10_sqr(:,:,iblock)
 
                 else if (index == dust_dep_ind) then
-                   forcing_field%field_0d(:,:,iblock) = fine_dust_flux(:,:,iblock) + coarse_dust_flux(:,:,iblock)
+                   forcing_field%field_0d(:,:,iblock) = atm_fine_dust_flux(:,:,iblock) + atm_coarse_dust_flux(:,:,iblock) + &
+                        seaice_dust_flux(:,:,iblock)
 
                 else if (index == d13c_ind) then
                    forcing_field%field_0d(:,:,iblock) = d13c(:,:,iblock)
@@ -2049,10 +2121,10 @@ contains
 
       if (ciso_on) then
         conv_factor = (-27.6_r8 * p001 + c1) * R13C_std
-        stf_riv(:,:,do13c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+        stf_riv(:,:,do13ctot_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
 
         conv_factor = (-50.0_r8 * p001 + c1) * R14C_std
-        stf_riv(:,:,do14c_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
+        stf_riv(:,:,do14ctot_ind) = conv_factor * riv_flux_forcing_fields(riv_flux_ind)%field_0d(:,:,iblock)
       endif
     endif
 
@@ -2300,8 +2372,8 @@ contains
     !-------------------------------------------------------------------------
 
     call c14_atm_forcing_init('ecosys_forcing', ciso_atm_d14c_opt, &
-        ciso_atm_d14c_const, ciso_atm_d14c_filename, &
-        ciso_atm_model_year, ciso_atm_data_year)
+        ciso_atm_d14c_const, ciso_atm_d14c_lat_band_vals, &
+        ciso_atm_d14c_filename, ciso_atm_model_year, ciso_atm_data_year)
 
   end subroutine ciso_init_atm_D13_D14
 
@@ -2474,35 +2546,12 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     character(len=*), parameter :: subname = 'ecosys_forcing_mod:forcing_field_metadata_set'
-    character(len=char_len)     :: log_message
 
-    character(len=char_len), dimension(7) :: valid_field_sources
-    integer(kind=int_kind)  :: n
-    logical(log_kind)       :: has_valid_source
     logical(log_kind)       :: has_valid_inputs
     !-----------------------------------------------------------------------
 
-    valid_field_sources(1) = 'const'
-    valid_field_sources(2) = 'zero'
-    valid_field_sources(3) = 'internal'
-    valid_field_sources(4) = 'named_field'
-    valid_field_sources(5) = 'shr_stream'
-    valid_field_sources(6) = 'file_time_invariant'
-    valid_field_sources(7) = 'POP monthly calendar'
-
-    ! check for valid source
-    has_valid_source = .false.
-    do n = 1,size(valid_field_sources)
-       if (trim(field_source) .eq. trim(valid_field_sources(n))) has_valid_source = .true.
-    enddo
-    if (.not. has_valid_source) then
-       write(log_message,"(4A)") trim(field_source),                          &
-                                 " is not a valid source for reading the ",   &
-                                 trim(marbl_varname), " forcing field"
-
-       call document(subname, log_message)
-       call exit_POP(sigAbort, 'Stopping in ' // subname)
-    endif
+    call document(subname, "marbl_varname", marbl_varname)
+    call document(subname, "field_source", field_source)
 
     ! required variables for all forcing field sources
     this%field_source  = trim(field_source)
@@ -2526,26 +2575,17 @@ contains
        this%ltime_varying = .false.
        if (.not.present(field_constant)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding constant forcing_field_type for ", &
-                                    trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_constant_info%initialize(field_constant)
        endif
 
     case('zero')
        this%ltime_varying = .false.
-       write(log_message,"(2A)") "Adding constant (0) forcing_field_type for ", &
-                                 trim(this%marbl_varname)
-       call document(subname, log_message)
        call this%field_constant_info%initialize(c0)
 
     case('internal')
        this%ltime_varying = .true.
        if (.not.present(driver_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message, "(2A)") "Adding internal forcing_field_type for ",  &
-                                    trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_driver_info%initialize(driver_varname)
        endif
 
@@ -2553,9 +2593,6 @@ contains
        this%ltime_varying = .true.
        if (.not.present(named_field)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message, "(2A)") "Adding named field forcing_field_type for ",  &
-                                    trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_named_info%initialize(named_field)
        endif
 
@@ -2564,9 +2601,6 @@ contains
        if (.not.present(filename))     has_valid_inputs = .false.
        if (.not.present(file_varname)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
-                                   trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_file_info%initialize(&
                filename, file_varname, rank)
        endif
@@ -2580,9 +2614,6 @@ contains
        if (.not.present(year_align))            has_valid_inputs = .false.
        if (.not.present(strdata_inputlist_ptr)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding file forcing_field_type for ",     &
-                                   trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_file_info%initialize(&
                filename, file_varname, rank, &
                year_first=year_first, year_last=year_last, year_align=year_align, &
@@ -2594,19 +2625,17 @@ contains
        this%ltime_varying = .true.
        if (.not.present(forcing_calendar_name)) has_valid_inputs = .false.
        if (has_valid_inputs) then
-          write(log_message,"(2A)") "Adding calendar forcing_field_type for ", &
-                                   trim(this%marbl_varname)
-          call document(subname, log_message)
           call this%field_monthly_calendar_info%initialize(forcing_calendar_name)
        endif
+
+     case default
+       call document(subname, "unknown field_source")
+       call exit_POP(sigAbort, 'Stopping in ' // subname)
 
     end select
 
     if (.not.has_valid_inputs) then
-      write(log_message,"(3A)") "Call to forcing_field%init does not have ",  &
-                                "the correct optional arguments for ",        &
-                                trim(field_source)
-       call document(subname, log_message)
+       call document(subname, "required optional arguments for field_source not provided")
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
