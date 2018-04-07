@@ -60,7 +60,7 @@ if ($ltidal_mixing =~ ".true.") then
   echo "#..Tidal Mixing"     >> $CASEROOT/Buildconf/popconf/vmix_tavg_contents
   echo "$s1  TIDAL_DIFF"     >> $CASEROOT/Buildconf/popconf/vmix_tavg_contents
   echo "$sO  VERTICAL_FUNC"  >> $CASEROOT/Buildconf/popconf/vmix_tavg_contents
-  echo "$once_stream  REGION_BOX3D"  >> $CASEROOT/Buildconf/popconf/vmix_tavg_contents
+  echo "$sO  REGION_BOX3D"  >> $CASEROOT/Buildconf/popconf/vmix_tavg_contents
 
   #... these variables are also supported, but probably not of general interest:
   # echo "$s1  TIDAL_N2"       >> $CASEROOT/Buildconf/popconf/vmix_tavg_contents
