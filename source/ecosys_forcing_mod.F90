@@ -285,9 +285,12 @@ module ecosys_forcing_mod
   ! Virtual fluxes
   real(r8), dimension(marbl_tracer_cnt) :: surf_avg                      ! average surface tracer values
 
-  real(r8) :: iron_frac_in_fine_dust
-  real(r8) :: iron_frac_in_coarse_dust
-  real(r8) :: iron_frac_in_bc
+  real(r8) :: iron_frac_in_atm_fine_dust
+  real(r8) :: iron_frac_in_atm_coarse_dust
+  real(r8) :: iron_frac_in_seaice_dust
+  real(r8) :: iron_frac_in_atm_bc
+  real(r8) :: iron_frac_in_seaice_bc
+
   real(r8) :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
 
   !*****************************************************************************
@@ -397,7 +400,8 @@ contains
          restore_inv_tau_opt, restore_inv_tau_const, restore_inv_tau_input,   &
          surf_avg_alk_const, surf_avg_dic_const,                              &
          surf_avg_di13c_const, surf_avg_di14c_const,                          &
-         iron_frac_in_fine_dust, iron_frac_in_coarse_dust, iron_frac_in_bc
+         iron_frac_in_atm_fine_dust, iron_frac_in_atm_coarse_dust,            &
+         iron_frac_in_seaice_dust, iron_frac_in_atm_bc, iron_frac_in_seaice_bc
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -480,9 +484,12 @@ contains
     surf_avg_dic_const       = 1944.0_r8
     surf_avg_di13c_const     = 1944.0_r8
     surf_avg_di14c_const     = 1944.0_r8
-    iron_frac_in_fine_dust   = 0.035_r8 * 0.01_r8
-    iron_frac_in_coarse_dust = 0.035_r8 * 0.01_r8
-    iron_frac_in_bc          = 0.06_r8
+
+    iron_frac_in_atm_fine_dust   = 0.035_r8
+    iron_frac_in_atm_coarse_dust = 0.035_r8
+    iron_frac_in_seaice_dust     = 0.035_r8
+    iron_frac_in_atm_bc          = 0.06_r8
+    iron_frac_in_seaice_bc       = 0.06_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -1606,9 +1613,11 @@ contains
        u10_sqr,                               &
        ifrac,                                 &
        press,                                 &
-       fine_dust_flux,                        &
-       coarse_dust_flux,                      &
-       black_carbon_flux,                     &
+       atm_fine_dust_flux,                    &
+       atm_coarse_dust_flux,                  &
+       seaice_dust_flux,                      &
+       atm_black_carbon_flux,                 &
+       seaice_black_carbon_flux,              &
        sst,                                   &
        sss)
 
@@ -1639,15 +1648,17 @@ contains
     implicit none
 
     logical,   intent(in)  :: ciso_on
-    logical,   intent(in)  :: land_mask            (nx_block,ny_block,max_blocks_clinic)
-    real (r8), intent(in)  :: u10_sqr              (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
-    real (r8), intent(in)  :: ifrac                (nx_block,ny_block,max_blocks_clinic) ! sea ice fraction (non-dimensional)
-    real (r8), intent(in)  :: press                (nx_block,ny_block,max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8), intent(in)  :: fine_dust_flux       (nx_block,ny_block,max_blocks_clinic) ! fine dust flux (g/cm**2/s)
-    real (r8), intent(in)  :: coarse_dust_flux     (nx_block,ny_block,max_blocks_clinic) ! coarse dust flux (g/cm**2/s)
-    real (r8), intent(in)  :: black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux (g/cm**2/s)
-    real (r8), intent(in)  :: sst                  (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
-    real (r8), intent(in)  :: sss                  (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
+    logical,   intent(in)  :: land_mask                (nx_block,ny_block,max_blocks_clinic)
+    real (r8), intent(in)  :: u10_sqr                  (nx_block,ny_block,max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
+    real (r8), intent(in)  :: ifrac                    (nx_block,ny_block,max_blocks_clinic) ! sea ice fraction (non-dimensional)
+    real (r8), intent(in)  :: press                    (nx_block,ny_block,max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
+    real (r8), intent(in)  :: atm_fine_dust_flux       (nx_block,ny_block,max_blocks_clinic) ! fine dust flux from atm (g/cm**2/s)
+    real (r8), intent(in)  :: atm_coarse_dust_flux     (nx_block,ny_block,max_blocks_clinic) ! coarse dust flux from atm (g/cm**2/s)
+    real (r8), intent(in)  :: seaice_dust_flux         (nx_block,ny_block,max_blocks_clinic) ! dust flux from seaice (g/cm**2/s)
+    real (r8), intent(in)  :: atm_black_carbon_flux    (nx_block,ny_block,max_blocks_clinic) ! black carbon flux from atm (g/cm**2/s)
+    real (r8), intent(in)  :: seaice_black_carbon_flux (nx_block,ny_block,max_blocks_clinic) ! black carbon flux from seaice (g/cm**2/s)
+    real (r8), intent(in)  :: sst                      (nx_block,ny_block,max_blocks_clinic) ! sea surface temperature (c)
+    real (r8), intent(in)  :: sss                      (nx_block,ny_block,max_blocks_clinic) ! sea surface salinity (psu)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1667,8 +1678,15 @@ contains
     real      (r8)                 :: d13c(nx_block, ny_block, max_blocks_clinic)           ! atm 13co2 value
     real      (r8)                 :: d14c(nx_block, ny_block, max_blocks_clinic)           ! atm 14co2 value
     type(forcing_monthly_every_ts), pointer :: file
-    integer   (int_kind)          :: stream_index                                           ! index into surface_strdata_inputlist_ptr array
-    integer   (int_kind)          :: var_ind                                                ! var index in surface_strdata_inputlist_ptr entry
+    integer   (int_kind)           :: stream_index                                          ! index into surface_strdata_inputlist_ptr array
+    integer   (int_kind)           :: var_ind                                               ! var index in surface_strdata_inputlist_ptr entry
+
+    real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
+    real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
+    real      (r8), parameter      :: dust_ratio_thres = 60.0_r8
+    real      (r8), parameter      :: dust_ratio_to_fe_bioavail_frac = 1.0_r8 / 170.0_r8
+    real      (r8), parameter      :: fe_bioavail_frac_offset = 0.01_r8
+
     !-----------------------------------------------------------------------
 
     call timer_start(ecosys_pre_sflux_timer)
@@ -1890,17 +1908,39 @@ contains
                    end if
 
                 else if (index == bc_dep_ind) then
-                   ! compute iron_flux in gFe/cm^2/s, then convert to nmolFe/cm^2/s
-                   forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) *   &
-                        ((fine_dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_fine_dust + &
-                         (coarse_dust_flux(:,:,iblock) * 0.98_r8) * iron_frac_in_coarse_dust + &
-                         black_carbon_flux(:,:,iblock) * iron_frac_in_bc)
+                   ! compute iron_flux in g/cm^2/s
+
+                   ! compute component from atm
+
+                   where (atm_coarse_dust_flux(:,:,iblock) < dust_ratio_thres * atm_fine_dust_flux(:,:,iblock))
+                     atm_fe_bioavail_frac(:,:) = fe_bioavail_frac_offset + dust_ratio_to_fe_bioavail_frac * &
+                       (dust_ratio_thres - atm_coarse_dust_flux(:,:,iblock) / atm_fine_dust_flux(:,:,iblock))
+                   elsewhere
+                     atm_fe_bioavail_frac(:,:) = fe_bioavail_frac_offset
+                   end where
+
+                   forcing_field%field_0d(:,:,iblock) = atm_fe_bioavail_frac(:,:) * &
+                        (iron_frac_in_atm_fine_dust * atm_fine_dust_flux(:,:,iblock) + &
+                         iron_frac_in_atm_coarse_dust * atm_coarse_dust_flux(:,:,iblock) + &
+                         iron_frac_in_atm_bc * atm_black_carbon_flux(:,:,iblock))
+
+                   ! add component from seaice
+
+                   seaice_fe_bioavail_frac(:,:) = atm_fe_bioavail_frac(:,:)
+
+                   forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + seaice_fe_bioavail_frac(:,:) * &
+                        (iron_frac_in_seaice_dust * seaice_dust_flux(:,:,iblock) + &
+                         iron_frac_in_seaice_bc * seaice_black_carbon_flux(:,:,iblock))
+
+                   ! convert to nmol/cm^2/s
+                   forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) * forcing_field%field_0d(:,:,iblock)
 
                 else if (index == u10sqr_ind) then
                    forcing_field%field_0d(:,:,iblock) = u10_sqr(:,:,iblock)
 
                 else if (index == dust_dep_ind) then
-                   forcing_field%field_0d(:,:,iblock) = fine_dust_flux(:,:,iblock) + coarse_dust_flux(:,:,iblock)
+                   forcing_field%field_0d(:,:,iblock) = atm_fine_dust_flux(:,:,iblock) + atm_coarse_dust_flux(:,:,iblock) + &
+                        seaice_dust_flux(:,:,iblock)
 
                 else if (index == d13c_ind) then
                    forcing_field%field_0d(:,:,iblock) = d13c(:,:,iblock)

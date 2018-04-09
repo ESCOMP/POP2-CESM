@@ -1,5 +1,88 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    6 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n83_cesm_pop_2_1_20180406
+Tag Summary: Merge latest POP trunk tag (20180406); this should've been idenntical
+             to n82 but trunk testing on hobart found some bugs
+
+Testing:     None (identical to trunk tag modulo non-ecosys bug fixes)
+
+Files Modified:
+M       ChangeLog
+M       input_templates/ocn.vmix.tavg.csh
+M       source/tidal_mixing.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    6 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n82_cesm_pop_2_1_20180405
+Tag Summary: Merge latest POP trunk tag (20180405)
+
+Testing:     aux_pop on cheyenne, compared to trunk baselines rather than previous
+             marbl_dev_tag. Trunk changes include answer-changing modifications
+             to tidal mixing, so no need to compare against previous marbl_dev.
+             Results:
+             * NLCOMP failures for all ecosys tests and all abio tests
+             * BASELINE failures for the same, except the non-ecosys abio_transient
+               test is bit-for-bit
+
+Files Modified:
+M       ChangeLog
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    input_templates/ocn.base.tavg.csh.nstep
+A  +    input_templates/ocn.vmix.tavg.csh
+M       source/baroclinic.F90
+M       source/budget_diagnostics.F90
+A  +    source/geoheatflux.F90
+M       source/initial.F90
+M       source/niw_mixing.F90
+M       source/restart.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+M       source/time_management.F90
+M       source/vertical_mix.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    6 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n81_cesm_pop_2_1_20180205
+Tag Summary: Merge latest marbl_dev_klindsay (n117) into marbl_dev and update to
+             newer MARBL
+             1. update paramterization of bioavailable iron for 
+                iron_flux_source='driver-derived'
+             2. also introduce separate iron_frac settings for dust and bc from
+                seaice
+             3. MARBL update changes default parameter values for ~10
+                variables
+
+testing:     aux_pop_marbl on hobart (Keith ran on cheyenne). Without updated
+             MARBL, all tests will fail NLCOMP and the ecosys_dust_flux_driver
+             test will also fail BASELINE. With updated MARBL, all tests fail
+             both NLCOMP and BASELINE.
+
+Files Modified:
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/cpl/ocn_import_export.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    28 Mar 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n80_cesm_pop_2_1_20180205
