@@ -1,11 +1,25 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    4 Apr 2018
+Tag Date:    9 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n175_marbl_dev_n83_cesm_pop_2_1_20180406
+Tag Summary: Fix DO13C and DO14C (should be DO1[34]Ctot) in python script used
+             to generate POP diagnostics
+
+Testing:     Stand-alone ciso test to ensure model builds / runs
+             Tested with MARBL cead734 (on bugfix/244).
+
+Files Modified:
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 Apr 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n174_marbl_dev_n83_cesm_pop_2_1_20180406
 Tag Summary: merge latest marbl_dev tag (n83) onto marbl_dev_levy
 
-Testing:     None
+Testing:     Stand-alone ciso test to ensure model builds / runs
+             Tested with MARBL cead734 (on bugfix/244).
 
 Files Modified:
 M       BranchChangeLog
