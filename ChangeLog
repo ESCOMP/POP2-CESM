@@ -1,4 +1,21 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas, klindsay
+Tag Date:    12 Apr 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180412
+Tag Summary: update to testlist v.2 and CVMix v0.90.
+             - update from testlist v.1 (phased out as of cime5.4.0-alpha.25) to v.2
+             - correct exp_hab_zetar allocation both in CVMix and POP.
+             - bugfix for enable START_DATE on last day of month or year. (klindsay)
+
+Testing:     aux_pop on cheyenne (intel). bit-for-bit
+
+M       Externals_POP.cfg
+M       cime_config/testdefs/testlist_pop.xml
+M       drivers/cpl/ocn_comp_mct.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    6 Apr 2018
