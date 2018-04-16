@@ -2,6 +2,19 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n177_marbl_dev_n84_cesm_pop_2_1_20180406
+Tag Summary: Two MARBL ciso tracer names changed, requiring a change in
+             ciso_tracer_init_ext
+
+Testing:     Stand-alone ciso test on hobart built / ran
+             Tested with MARBL 6a9a3ec (on bugfix/240).
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Apr 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n176_marbl_dev_n84_cesm_pop_2_1_20180406
 Tag Summary: Zig-zag merge (make this branch identical to marbl_dev as of n84)
 
