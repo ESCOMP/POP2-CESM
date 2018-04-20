@@ -6,10 +6,7 @@ Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n180_marbl_dev_
 Tag Summary: Merge marbl_dev onto marbl_dev_levy
 
 Testing:     aux_pop_MARBL on hobart and cheyenne, compared to marbl_dev_levy_n179
-             All BASELINE tests pass, all NLCOMP tests fail (ciso tests fail
-             because change of ciso tracer name is reflected in
-             ciso_init_tracer_ext; non-ciso tests fail because ciso variables
-             are missing)
+             All BASELINE and NLCOMP tests pass
              Tested with MARBL d106c6d (on bugfix/240).
 
 Files Modified:
