@@ -1,4 +1,32 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    19 Apr 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180419
+Tag Summary: add testlist version to testlist_pop
+
+Testing:     aux_pop on cheyenne/intel. bfb
+
+M       cime_config/testdefs/testlist_pop.xml
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas, klindsay
+Tag Date:    12 Apr 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180412
+Tag Summary: update to testlist v.2 and CVMix v0.90.
+             - update from testlist v.1 (phased out as of cime5.4.0-alpha.25) to v.2
+             - correct exp_hab_zetar allocation both in CVMix and POP.
+             - bugfix for enable START_DATE on last day of month or year. (klindsay)
+
+Testing:     aux_pop on cheyenne (intel). bit-for-bit
+
+M       Externals_POP.cfg
+M       cime_config/testdefs/testlist_pop.xml
+M       drivers/cpl/ocn_comp_mct.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    6 Apr 2018
@@ -30,7 +58,7 @@ Tag Summary: Merge latest marbl_dev branch tag (n82) onto trunk
                   (users no longer need to inspect vertical integrals in
                   diagnostic output)
                 - new tunings to go with fe_bioavail fix
-             Also fixed bugs introduced in 
+             Also fixed bugs introduced in
 
 Testing:     aux_pop on cheyenne (intel)
              * NLCOMP failures for all ecosys tests and all abio tests
@@ -98,7 +126,7 @@ Tag Summary: Tidal PBC, JRA forcing updates, update testlist, correct unit
                 * added JRA tests to aux_pop and prebeta
              - Correct tavg_SST2 unit
 
-Testing:     - aux_pop on cheyenne/intel. all except gx1v7 bit for bit. gx1v7 differs due to new 
+Testing:     - aux_pop on cheyenne/intel. all except gx1v7 bit for bit. gx1v7 differs due to new
              ic and sfwf files
              - G.TL319_t13.startup two-month smoke test for tidal PBC
 
@@ -404,11 +432,11 @@ Developers:  altuntas
 Tag Date:    29 Dec 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171229
 Tag Summary: Incorporated the changes from branches/cesm_pop_2_1_20171214_marblbld
-             The change is because "the way that marbl_nt is currently handled in 
+             The change is because "the way that marbl_nt is currently handled in
              pop's buildcpp and buildnml is incompatible with a new version of CIME..."
              -jedwards. Also, added the following tavg fields for gx1v7 (for CMIP6):
              SSS2, HMXL_DR_2, XMXL_DR, and TMXL_DR, and removed HMXL_2.
-             Replaced kind=8 in time_management with POP_i8. 
+             Replaced kind=8 in time_management with POP_i8.
 
 Testing:     aux_pop. bit for bit
 
@@ -429,7 +457,7 @@ Tag Date:    14 Dec 2017
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20171214
 Tag Summary: Added tx01.v3 grid. Added GIAF_JRA and GIAF_JRA_HR compsets. Fixed
              half hourly coupling. Minor fixes in forcing.F90, step_mod.F90 and
-             tavg.F90 for high resolution runs. 
+             tavg.F90 for high resolution runs.
 
 Testing:     aux_pop. bit for bit
 

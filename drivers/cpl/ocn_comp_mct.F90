@@ -316,23 +316,35 @@ contains
       call shr_cal_date2ymd(start_ymd,start_year,start_month,start_day)
 
       if (iyear0 /= start_year) then
-	 if(master_task == my_task)   then
-            call document ('ocn_init_mct', 'iyear0     ', iyear0)
-            call document ('ocn_init_mct', 'start_year ', start_year)
+         call document ('ocn_init_mct', 'iyear0      ', iyear0)
+         call document ('ocn_init_mct', 'imonth0     ', imonth0)
+         call document ('ocn_init_mct', 'iday0       ', iday0)
+         call document ('ocn_init_mct', 'start_year  ', start_year)
+         call document ('ocn_init_mct', 'start_month ', start_month)
+         call document ('ocn_init_mct', 'start_day   ', start_day)
+         ! skip exit_POP if pop is 1 day ahead across a year boundary
+         if (.not. (iyear0 == start_year + 1 .and. &
+                    (imonth0 == 1 .and. start_month == 12) .and. &
+                    (iday0 == 1 .and. start_day == 31))) then
+            call exit_POP(sigAbort,' iyear0 does not match start_year')
          endif
-         call exit_POP(sigAbort,' iyear0 does not match start_year')
-      end if
-      if (imonth0 /= start_month) then
-	 if(master_task == my_task)   then
-            call document ('ocn_init_mct', 'imonth0     ', imonth0)
-            call document ('ocn_init_mct', 'start_month ', start_month)
+      else if (imonth0 /= start_month) then
+         call document ('ocn_init_mct', 'imonth0     ', imonth0)
+         call document ('ocn_init_mct', 'iday0       ', iday0)
+         call document ('ocn_init_mct', 'start_month ', start_month)
+         call document ('ocn_init_mct', 'start_day   ', start_day)
+         ! skip exit_POP if pop is 1 day ahead across a month boundary
+         !   this conditional doesn't confirm that start_day is the last day of the month,
+         !   only that iday0 is the first day of the month
+         if (.not. (imonth0 == start_month + 1 .and. iday0 == 1)) then
+            call exit_POP(sigAbort,' imonth0 does not match start_month')
          endif
-         call exit_POP(sigAbort,' imonth0 does not match start_year')
-      end if
-      if (iday0 /= start_day) then
-	 if(master_task == my_task)   then
-            call document ('ocn_init_mct', 'iday0     ', iday0)
-            call document ('ocn_init_mct', 'start_day ', start_day)
+      else if (iday0 /= start_day) then
+         call document ('ocn_init_mct', 'iday0       ', iday0)
+         call document ('ocn_init_mct', 'start_day   ', start_day)
+         ! skip exit_POP if pop is 1 day ahead
+         if (.not. (iday0 == start_day + 1)) then
+            call exit_POP(sigAbort,' iday0 does not match start_day')
          endif
       end if
    end if
