@@ -1,6 +1,39 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    25 Apr 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n86_cesm_pop_2_1_20180419
+Tag Summary: Merge latest marbl_dev_levy (n180) onto marbl_dev
+             -- clean up ecosys_cfg hash in build-namelist
+             -- only write ciso variables for ecosys namelists if MARBL
+                is running with ciso_on = .true.
+             -- MARBL tracer name change: zootot1[34]C instead of zoo1[34]Ctot
+             -- only write about successful read of marbl_in on master task
+
+Testing:     aux_pop on cheyenne compared to n85
+             NL_COMP failures for tests with BGC
+               -- more tracer name changes, and no ciso variables in pop_in
+                  for runs without carbon isotopes
+             Intermittent BGC BASELINE failures:
+               -- 6 of 19 tests with BGC turned on fail baseline comparison.
+                  This can be traced to a MARBL change where POP%prod is set
+                  to zero when it is negative (previously it was set to zero
+                  when POC%prod was not positive, which never happened). It
+                  seems like POP%prod < 0 is fairly rare, hence only some
+                  test failures.
+               -- 1 test failure: The same bug that caused the 6 BASELINE
+                  failures occasionally changes POP%prod enough to trigger
+                  an about due to  mass balance conservation in Jint_Ptot.
+                  This new issue will be fixed in a later MARBL tag.
+
+Files Modified:
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    20 Apr 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n85_cesm_pop_2_1_20180419
 Tag Summary: Merge latest trunk onto marbl_dev

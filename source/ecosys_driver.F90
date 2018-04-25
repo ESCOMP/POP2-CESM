@@ -386,7 +386,8 @@ contains
             ": IO ERROR reading ", trim(marbl_settings_file), ": ", nml_error
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     else
-       write(stdout, '(a, a, a)') "Read '", trim(marbl_settings_file), "' until EOF."
+       if (my_task == master_task) &
+         write(stdout, '(a, a, a)') "Read '", trim(marbl_settings_file), "' until EOF."
     end if
     if (my_task == master_task) close(nml_in)
 
