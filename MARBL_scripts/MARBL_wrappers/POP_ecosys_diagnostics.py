@@ -207,12 +207,12 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['DI13C']['diags']['FvPER_DI13C'] = 'medium_average'
         full_diag_dict['DI13C']['diags']['FvICE_DI13C'] = 'medium_average'
         full_diag_dict['DI13C']['properties']['has surface flux'] = True
-    # DO13C
-    if 'DO13C' in full_diag_dict.keys():
-        full_diag_dict['DO13C']['diags']['DO13C_RIV_FLUX'] = 'medium_average'
-        full_diag_dict['DO13C']['diags']['Jint_100m_DO13C'] = 'medium_average'
-        full_diag_dict['DO13C']['diags']['tend_zint_100m_DO13C'] = 'medium_average'
-        full_diag_dict['DO13C']['properties']['has surface flux'] = True
+    # DO13Ctot
+    if 'DO13Ctot' in full_diag_dict.keys():
+        full_diag_dict['DO13Ctot']['diags']['DO13Ctot_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DO13Ctot']['diags']['Jint_100m_DO13Ctot'] = 'medium_average'
+        full_diag_dict['DO13Ctot']['diags']['tend_zint_100m_DO13Ctot'] = 'medium_average'
+        full_diag_dict['DO13Ctot']['properties']['has surface flux'] = True
     # DI14C
     if 'DI14C' in full_diag_dict.keys():
         full_diag_dict['DI14C']['diags']['DI14C_RIV_FLUX'] = 'medium_average'
@@ -222,12 +222,12 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
         full_diag_dict['DI14C']['diags']['FvPER_DI14C'] = 'medium_average'
         full_diag_dict['DI14C']['diags']['FvICE_DI14C'] = 'medium_average'
         full_diag_dict['DI14C']['properties']['has surface flux'] = True
-    # DO14C
-    if 'DO14C' in full_diag_dict.keys():
-        full_diag_dict['DO14C']['diags']['DO14C_RIV_FLUX'] = 'medium_average'
-        full_diag_dict['DO14C']['diags']['Jint_100m_DO14C'] = 'medium_average'
-        full_diag_dict['DO14C']['diags']['tend_zint_100m_DO14C'] = 'medium_average'
-        full_diag_dict['DO14C']['properties']['has surface flux'] = True
+    # DO14Ctot
+    if 'DO14Ctot' in full_diag_dict.keys():
+        full_diag_dict['DO14Ctot']['diags']['DO14Ctot_RIV_FLUX'] = 'medium_average'
+        full_diag_dict['DO14Ctot']['diags']['Jint_100m_DO14Ctot'] = 'medium_average'
+        full_diag_dict['DO14Ctot']['diags']['tend_zint_100m_DO14Ctot'] = 'medium_average'
+        full_diag_dict['DO14Ctot']['properties']['has surface flux'] = True
 
     # 3. Per-autotroph diagnostics
     for autotroph_name in autotroph_list:
