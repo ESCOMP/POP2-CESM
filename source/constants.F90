@@ -16,7 +16,7 @@
 
    use kinds_mod
 #ifdef CCSMCOUPLED
-   use shr_kind_mod, only: SHR_KIND_R8
+   use shr_kind_mod, only: SHR_KIND_R8, SHR_KIND_CL
    use shr_const_mod
 #endif
    use netcdf
@@ -103,6 +103,9 @@
 
    character (5), parameter, public :: &
       blank_fmt = "(' ')"
+
+  ! common model doi url for all tavg outputs
+   character (SHR_KIND_CL), public  :: model_doi_url = ''
 
   !---------------------------------------------------------------------
   !     Gas exchange/piston velocity parameter

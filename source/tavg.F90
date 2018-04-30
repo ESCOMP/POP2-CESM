@@ -819,6 +819,7 @@
    call broadcast_scalar(ltavg_ignore_extra_streams,     master_task)
    call broadcast_scalar(ltavg_nino_diags_requested,     master_task)
    call broadcast_scalar(ltavg_streams_index_present,    master_task)
+   call broadcast_scalar(model_doi_url,                  master_task)
 
    do ns=1,nstreams
       call broadcast_scalar(tavg_freq(ns),               master_task)
@@ -2009,6 +2010,7 @@
     endif
 
     call add_attrib_file(tavg_file_desc(ns), 'time_period_freq', time_period_freq(ns))
+    call add_attrib_file(tavg_file_desc(ns), 'model_doi_url', model_doi_url)
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
       call tavg_add_attrib_file_ccsm (tavg_file_desc(ns))

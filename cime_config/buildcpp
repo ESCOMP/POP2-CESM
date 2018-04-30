@@ -213,10 +213,10 @@ def buildcpp(case):
         if out is not None:
             logger.debug("     %s"%out)
         if err is not None:
-            logger.debug("     %s"%err)
+            logger.info("     %s"%err)
 
         config = out.split()
-        if config[0] > 0:
+        if int(config[0]) > 0:
             case.set_value("POP_BLCKX", config[2])
             case.set_value("POP_BLCKY", config[3])
             case.set_value("POP_MXBLCKS",config[4])

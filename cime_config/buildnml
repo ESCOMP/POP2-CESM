@@ -194,7 +194,7 @@ def buildnml(case, caseroot, compname):
         if out is not None:
             logger.debug("     %s"%out)
         if err is not None:
-            logger.debug("     %s"%err)
+            logger.info("     %s"%err)
 
         # Note that pop's build-namelist invokes xmlchange - so must re-read the xml files variables
         # back into case
