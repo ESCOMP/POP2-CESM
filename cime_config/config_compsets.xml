@@ -43,6 +43,21 @@
   </compset>
 
   <compset>
+    <alias>C_HR</alias>
+    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <alias>C_JRA</alias>
+    <lname>2000_DATM%JRA_SLND_DICE%SSMI_POP2_DROF%JRA_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>C_JRA_HR</alias>
+    <lname>2000_DATM%JRA_SLND_DICE%SSMI_POP2_DROF%JRA_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
     <alias>CIAF</alias>
     <lname>2000_DATM%IAF_SLND_DICE%IAF_POP2_DROF%IAF_SGLC_WW3</lname>
   </compset>
@@ -67,6 +82,11 @@
   <compset>
     <alias>GIAF</alias>
     <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GIAF_HR</alias>
+    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_SWAV</lname>
   </compset>
 
   <compset>

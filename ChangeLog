@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
+Tag Date:    01 May 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180501
+Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false by default. 
+             - print error msg if pop decomp not set for the ocn grid. 
+             - add tx0.1v3 size to generate_pop_decomp.xml.
+             - add/change tx0.1v3 namelist defaults.
+             - update default nox_flux_monthly_input and nhy_flux_monthly_input
+             - add new test suite: aux_pop_tripole
+             - add new compsets for high-res testing: C_HR, C_JRA, C_JRA_HR, GIAF_HR
+             - unset verbose ocn.vmix.tavg.csh to prevent build-namelist printing the entire script
+
+Testing:     aux_pop on cheyenne (intel). bit-for-bit except ECO 
+             aux_pop_tripole
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
 Tag Date:    30 Apr 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180430
 Tag Summary: add model_doi_url. unsuppress error msg from build-namelist

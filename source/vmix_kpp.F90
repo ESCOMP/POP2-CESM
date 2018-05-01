@@ -1750,7 +1750,7 @@
             VISC(i,j,:) = VISC_COL
             VDC(i,j,:,1) = DIFF_COL
             VDC(i,j,:,2) = DIFF_COL
-            TIDAL_N2(i,j,nlev+1:km,bid) = c0
+            if (ltidal_mixing) TIDAL_N2(i,j,nlev+1:km,bid) = c0
           else
             VISC(i,j,:) = c0
             VDC(i,j,:,1) = c0

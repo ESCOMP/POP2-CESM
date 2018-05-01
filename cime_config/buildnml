@@ -192,8 +192,8 @@ def buildnml(case, caseroot, compname):
         rc, out, err = run_cmd(command, from_dir=confdir)
         expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
         if out is not None:
-            logger.debug("     %s"%out)
-        if err is not None:
+            logger.info("     %s"%out)
+        if err is not None and len(err)>0:
             logger.info("     %s"%err)
 
         # Note that pop's build-namelist invokes xmlchange - so must re-read the xml files variables
