@@ -1,11 +1,17 @@
 module ecosys_running_mean_saved_state_mod
 
+  !-----------------------------------------------------------------------
+  ! running-mean related saved state variables
+  !-----------------------------------------------------------------------
+
   use kinds_mod, only : int_kind, r8
 
   implicit none
   private
 
-  ! FIXME : move the following variables into MARBL
+  !-----------------------------------------------------------------------
+  ! module public variables
+  !-----------------------------------------------------------------------
 
   integer (int_kind), allocatable, target, dimension(:), public :: glo_avg_rmean_ind_interior
   integer (int_kind), allocatable, target, dimension(:), public :: glo_avg_rmean_ind_surface
@@ -16,7 +22,11 @@ module ecosys_running_mean_saved_state_mod
   public :: ecosys_running_mean_saved_state_get_var_val
   public :: ecosys_running_mean_saved_state_update
 
+  !***********************************************************************
+
 contains
+
+  !***********************************************************************
 
   subroutine ecosys_running_mean_state_init(ecosys_restart_filename, marbl_instances)
 
@@ -123,8 +133,6 @@ contains
     integer (int_kind), intent(in)                       :: index
     integer (int_kind), intent(in), optional             :: block
     integer (int_kind), intent(in), optional             :: k
-
- ! !OUTPUT PARAMETERS:
 
     real (r8), intent(out), optional                     :: vals_0d
     real (r8), intent(out), optional                     :: vals_1d_1klev
