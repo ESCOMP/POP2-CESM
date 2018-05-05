@@ -13,13 +13,13 @@ module ecosys_running_mean_saved_state_mod
   ! module public variables
   !-----------------------------------------------------------------------
 
-  integer (int_kind), allocatable, target, dimension(:), public :: glo_avg_rmean_ind_interior
-  integer (int_kind), allocatable, target, dimension(:), public :: glo_avg_rmean_ind_surface
-  integer (int_kind), allocatable, target, dimension(:), public :: glo_scalar_rmean_ind_interior
-  integer (int_kind), allocatable, target, dimension(:), public :: glo_scalar_rmean_ind_surface
+  integer (int_kind), allocatable, target, dimension(:) :: glo_avg_rmean_ind_interior
+  integer (int_kind), allocatable, target, dimension(:) :: glo_avg_rmean_ind_surface
+  integer (int_kind), allocatable, target, dimension(:) :: glo_scalar_rmean_ind_interior
+  integer (int_kind), allocatable, target, dimension(:) :: glo_scalar_rmean_ind_surface
 
   public :: ecosys_running_mean_state_init
-  public :: ecosys_running_mean_saved_state_get_var_val
+  public :: ecosys_running_mean_saved_state_get_var_vals
   public :: ecosys_running_mean_saved_state_update
 
   !***********************************************************************
@@ -28,60 +28,30 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_running_mean_state_init(ecosys_restart_filename, marbl_instances)
+  subroutine ecosys_running_mean_state_init(marbl_instance, ecosys_restart_filename)
 
     use marbl_interface,  only : marbl_interface_class
     use running_mean_mod, only : running_mean_get_var
 
-    character(len=*),            intent(in)  :: ecosys_restart_filename
-    type(marbl_interface_class), intent(inout) :: marbl_instances(:)
+    type(marbl_interface_class), intent(in) :: marbl_instance
+    character(len=*),            intent(in) :: ecosys_restart_filename
 
     integer :: n, iblock
     real(r8) :: rmean_val
 
     ! FIXME : move the setup of running means of global averages into MARBL
 
-    call init_rmean_var(marbl_instances(1)%glo_avg_rmean_interior, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_avg_rmean_interior, ecosys_restart_filename, &
          glo_avg_rmean_ind_interior)
 
-    call init_rmean_var(marbl_instances(1)%glo_avg_rmean_surface, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_avg_rmean_surface, ecosys_restart_filename, &
          glo_avg_rmean_ind_surface)
 
-    call init_rmean_var(marbl_instances(1)%glo_scalar_rmean_interior, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_scalar_rmean_interior, ecosys_restart_filename, &
          glo_scalar_rmean_ind_interior)
 
-    call init_rmean_var(marbl_instances(1)%glo_scalar_rmean_surface, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_scalar_rmean_surface, ecosys_restart_filename, &
          glo_scalar_rmean_ind_surface)
-
-    ! copy values from POP's running mean to MARBL interface
-
-    do n = 1, size(glo_avg_rmean_ind_interior(:))
-       call running_mean_get_var(glo_avg_rmean_ind_interior(n), vals_0d=rmean_val)
-       do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_val
-       end do
-    end do
-
-    do n = 1, size(glo_avg_rmean_ind_surface(:))
-       call running_mean_get_var(glo_avg_rmean_ind_surface(n), vals_0d=rmean_val)
-       do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_val
-       end do
-    end do
-
-    do n = 1, size(glo_scalar_rmean_ind_interior(:))
-       call running_mean_get_var(glo_scalar_rmean_ind_interior(n), vals_0d=rmean_val)
-       do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_val
-       end do
-    end do
-
-    do n = 1, size(glo_scalar_rmean_ind_surface(:))
-       call running_mean_get_var(glo_scalar_rmean_ind_surface(n), vals_0d=rmean_val)
-       do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_val
-       end do
-    end do
 
   end subroutine ecosys_running_mean_state_init
 
@@ -124,52 +94,67 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_running_mean_saved_state_get_var_val(index, block, k, vals_0d, &
-       vals_1d_1klev, vals_1d_klevs, vals_2d_1block, vals_2d_blocks, &
-       vals_3d_1klev_1block, vals_3d_1klev_blocks)
+  subroutine ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, array_out)
 
     use running_mean_mod , only : running_mean_get_var
 
-    integer (int_kind), intent(in)                       :: index
-    integer (int_kind), intent(in), optional             :: block
-    integer (int_kind), intent(in), optional             :: k
+    character(len=*),       intent(in)  :: field_source
+    logical,                intent(in)  :: lscalar
+    real(r8), dimension(:), intent(out) :: array_out
 
-    real (r8), intent(out), optional                     :: vals_0d
-    real (r8), intent(out), optional                     :: vals_1d_1klev
-    real (r8), intent(out), dimension(:), optional       :: vals_1d_klevs
-    real (r8), intent(out), dimension(:,:), optional     :: vals_2d_1block
-    real (r8), intent(out), dimension(:,:,:), optional   :: vals_2d_blocks
-    real (r8), intent(out), dimension(:,:), optional     :: vals_3d_1klev_1block
-    real (r8), intent(out), dimension(:,:,:), optional   :: vals_3d_1klev_blocks
+    integer, pointer, dimension(:) :: glo_rmean_ind
+    integer :: n
 
-    call running_mean_get_var(index, block, k, vals_0d, vals_1d_1klev, &
-         vals_1d_klevs, vals_2d_1block, vals_2d_blocks, vals_3d_1klev_1block, &
-         vals_3d_1klev_blocks)
+    if (trim(field_source) .eq. 'interior') then
+      if (lscalar) then
+        glo_rmean_ind => glo_scalar_rmean_ind_interior
+      else
+        glo_rmean_ind => glo_avg_rmean_ind_interior
+      end if
+    else
+      if (lscalar) then
+        glo_rmean_ind => glo_scalar_rmean_ind_surface
+      else
+        glo_rmean_ind => glo_avg_rmean_ind_surface
+      end if
+    end if
 
-  end subroutine ecosys_running_mean_saved_state_get_var_val
+    do n=1,size(glo_rmean_ind)
+      call running_mean_get_var(glo_rmean_ind(n), vals_0d = array_out(n))
+    end do
+
+  end subroutine ecosys_running_mean_saved_state_get_var_vals
 
   !***********************************************************************
 
-  subroutine ecosys_running_mean_saved_state_update(index, block, k, vals_0d, &
-       vals_1d_1klev, vals_1d_klevs, vals_2d_1block, vals_2d_blocks, &
-       vals_3d_1klev_1block, vals_3d_1klev_blocks)
+  subroutine ecosys_running_mean_saved_state_update(field_source, lscalar, array_out)
 
     use running_mean_mod , only : running_mean_update_var
 
-    integer (int_kind), intent(in)                      :: index
-    integer (int_kind), intent(in), optional            :: block
-    integer (int_kind), intent(in), optional            :: k
-    real (r8), intent(in), optional                     :: vals_0d
-    real (r8), intent(in), optional                     :: vals_1d_1klev
-    real (r8), intent(in), dimension(:), optional       :: vals_1d_klevs
-    real (r8), intent(in), dimension(:,:), optional     :: vals_2d_1block
-    real (r8), intent(in), dimension(:,:,:), optional   :: vals_2d_blocks
-    real (r8), intent(in), dimension(:,:), optional     :: vals_3d_1klev_1block
-    real (r8), intent(in), dimension(:,:,:), optional   :: vals_3d_1klev_blocks
+    character(len=*),       intent(in)  :: field_source
+    logical,                intent(in)  :: lscalar
+    real(r8), dimension(:), intent(out) :: array_out
 
-    call running_mean_update_var(index, block, k, vals_0d, &
-         vals_1d_1klev, vals_1d_klevs, vals_2d_1block, vals_2d_blocks, &
-         vals_3d_1klev_1block, vals_3d_1klev_blocks)
+    integer, pointer, dimension(:) :: glo_rmean_ind
+    integer :: n
+
+    if (trim(field_source) .eq. 'interior') then
+      if (lscalar) then
+        glo_rmean_ind => glo_scalar_rmean_ind_interior
+      else
+        glo_rmean_ind => glo_avg_rmean_ind_interior
+      end if
+    else
+      if (lscalar) then
+        glo_rmean_ind => glo_scalar_rmean_ind_surface
+      else
+        glo_rmean_ind => glo_avg_rmean_ind_surface
+      end if
+    end if
+
+    do n=1,size(glo_rmean_ind)
+      call running_mean_update_var(glo_rmean_ind(n), vals_0d=array_out(n))
+    end do
 
   end subroutine ecosys_running_mean_saved_state_update
 

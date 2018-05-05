@@ -97,7 +97,8 @@ Contains
 
   !-----------------------------------------------------------------------
 
-  subroutine ecosys_tracers_and_saved_state_init(ecosys_driver_ind_begin,     &
+  subroutine ecosys_tracers_and_saved_state_init(marbl_instance,              &
+                                                 ecosys_driver_ind_begin,     &
                                                  ciso_on,                     &
                                                  init_ts_file_fmt,            &
                                                  read_restart_filename,       &
@@ -106,7 +107,6 @@ Contains
                                                  tracer_nml,                  &
                                                  land_mask,                   &
                                                  TRACER_MODULE,               &
-                                                 marbl_instances,             &
                                                  errorCode)
 
     use POP_ErrorMod, only : POP_Success, POP_ErrorSet
@@ -142,6 +142,7 @@ Contains
 
     use marbl_interface, only : marbl_interface_class
 
+    type(marbl_interface_class),          intent(in)    :: marbl_instance
     integer (int_kind),                   intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
     logical,                              intent(in)    :: ciso_on
     character(len=*),                     intent(in)    :: init_ts_file_fmt        ! format (bin or nc) for input file
@@ -151,7 +152,6 @@ Contains
     character(len=*),                     intent(in)    :: tracer_nml
     logical(log_kind) , dimension(:,:,:), intent(in)    :: land_mask
     real(r8),                             intent(inout) :: tracer_module(:,:,:,:,:,:)
-    type(marbl_interface_class),          intent(inout) :: marbl_instances(:)
     integer(int_kind),                    intent(out)   :: errorCode
 
     !-----------------------------------------------------------------------
@@ -322,7 +322,7 @@ Contains
     end select
 
     call ecosys_forcing_saved_state_init(ecosys_restart_filename)
-    call ecosys_running_mean_state_init(ecosys_restart_filename, marbl_instances)
+    call ecosys_running_mean_state_init(marbl_instance, ecosys_restart_filename)
 
     !-----------------------------------------------------------------------
     !  initialize tracers
