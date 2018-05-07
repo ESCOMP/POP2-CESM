@@ -219,6 +219,7 @@ contains
     character(len=256)               :: marbl_nl_line
     character(len=pop_in_tot_len)    :: nl_str
     character(char_len_long)         :: ioerror_msg
+    logical(log_kind)                :: lscalar ! true => glo_scalar_rmean_ind, false => glo_avg_rmean_ind
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -504,7 +505,8 @@ contains
 
     ! copy values from POP's running mean to MARBL interface
     allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior)))
-    call ecosys_running_mean_saved_state_get_var_vals('interior', .false., rmean_vals(:))
+    lscalar = .false.
+    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_vals(n)
@@ -513,7 +515,8 @@ contains
     deallocate(rmean_vals)
 
     allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface)))
-    call ecosys_running_mean_saved_state_get_var_vals('surface', .false., rmean_vals(:))
+    lscalar = .false.
+    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_vals(n)
@@ -522,7 +525,8 @@ contains
     deallocate(rmean_vals)
 
     allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior)))
-    call ecosys_running_mean_saved_state_get_var_vals('interior', .true., rmean_vals(:))
+    lscalar = .true.
+    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
@@ -531,7 +535,8 @@ contains
     deallocate(rmean_vals)
 
     allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface)))
-    call ecosys_running_mean_saved_state_get_var_vals('surface', .true., rmean_vals(:))
+    lscalar = .true.
+    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
@@ -1100,14 +1105,16 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    real (r8), pointer          :: glo_avg_fields(:,:,:,:)
-    real (r8), allocatable      :: glo_avg(:)
-    real (r8), allocatable      :: glo_avg_rmean(:)
-    integer (int_kind)          :: glo_avg_field_cnt
-    integer (int_kind)          :: n, iblock
-    integer (int_kind), pointer :: timer
+    real(r8), pointer          :: glo_avg_fields(:,:,:,:)
+    real(r8), allocatable      :: glo_avg(:)
+    real(r8), allocatable      :: glo_avg_rmean(:)
+    integer(int_kind)          :: glo_avg_field_cnt
+    integer(int_kind)          :: n, iblock
+    integer(int_kind), pointer :: timer
+    logical(log_kind)          :: lscalar ! true => glo_scalar_rmean_ind, false => glo_avg_rmean_ind
     !-----------------------------------------------------------------------
 
+    lscalar = .false. ! all global means in this routine are glo_avg_rmean
     if (trim(field_source) == 'interior') then
        timer             => ecosys_interior_global_sum_timer
        glo_avg_fields    => glo_avg_fields_interior(:,:,:,:)
@@ -1133,8 +1140,8 @@ contains
           glo_avg(n) = glo_avg_norm_fact * global_sum_prod(glo_avg_fields(:,:,:,n), &
              glo_avg_area_masked(:,:,:), distrb_clinic, field_loc_center)
        end do
-       call ecosys_running_mean_saved_state_update(field_source, .false., glo_avg)
-       call ecosys_running_mean_saved_state_get_var_vals(field_source, .false., glo_avg_rmean)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, glo_avg)
+       call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, glo_avg_rmean)
 
        call timer_stop(timer)
 
@@ -1201,10 +1208,12 @@ contains
     character(len=*), parameter :: fmt_str_i = '(A,1X,A,1X,I0)'
     character(len=*), parameter :: fmt_str_e = '(A,1X,A,1X,E23.16)'
 
-    real (r8), allocatable :: rmean_vals(:)
-    integer (int_kind) :: n, iblock
+    real(r8), allocatable :: rmean_vals(:)
+    integer(int_kind) :: n, iblock
+    logical(log_kind) :: lscalar ! true => glo_scalar_rmean_ind, false => glo_avg_rmean_ind
     !-----------------------------------------------------------------------
 
+    lscalar = .true. ! all global means in this subroutine are glo_scalar_rmean
     if (trim(field_source) == 'interior') then
       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior)))
        do n = 1, size(rmean_vals)
@@ -1221,8 +1230,8 @@ contains
           end do
        end do
 
-       call ecosys_running_mean_saved_state_update(field_source, .true., marbl_instances(1)%glo_scalar_interior)
-       call ecosys_running_mean_saved_state_get_var_vals(field_source, .true., rmean_vals)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
        do iblock = 1, nblocks_clinic
           do n=1, size(rmean_vals)
              marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
@@ -1244,8 +1253,8 @@ contains
           end do
        end do
 
-       call ecosys_running_mean_saved_state_update(field_source, .true., marbl_instances(1)%glo_scalar_interior)
-       call ecosys_running_mean_saved_state_get_var_vals(field_source, .true., rmean_vals)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
        do iblock = 1, nblocks_clinic
           do n=1, size(rmean_vals)
              marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)

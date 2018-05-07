@@ -57,6 +57,48 @@ contains
 
   !***********************************************************************
 
+  subroutine ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, array_out)
+
+    use running_mean_mod , only : running_mean_get_var
+
+    character(len=*), intent(in)  :: field_source
+    logical,          intent(in)  :: lscalar
+    real(r8),         intent(out) :: array_out(:)
+
+    integer, pointer :: glo_rmean_ind(:)
+    integer :: n
+
+    call get_glo_rmean_ind_pointer(field_source, lscalar, glo_rmean_ind)
+
+    do n=1,size(glo_rmean_ind)
+      call running_mean_get_var(glo_rmean_ind(n), vals_0d = array_out(n))
+    end do
+
+  end subroutine ecosys_running_mean_saved_state_get_var_vals
+
+  !***********************************************************************
+
+  subroutine ecosys_running_mean_saved_state_update(field_source, lscalar, array_out)
+
+    use running_mean_mod , only : running_mean_update_var
+
+    character(len=*), intent(in)  :: field_source
+    logical,          intent(in)  :: lscalar
+    real(r8),         intent(out) :: array_out(:)
+
+    integer, pointer :: glo_rmean_ind(:)
+    integer :: n
+
+    call get_glo_rmean_ind_pointer(field_source, lscalar, glo_rmean_ind)
+
+    do n=1,size(glo_rmean_ind)
+      call running_mean_update_var(glo_rmean_ind(n), vals_0d=array_out(n))
+    end do
+
+  end subroutine ecosys_running_mean_saved_state_update
+
+  !***********************************************************************
+
   subroutine init_rmean_var(marbl_running_mean_var, ecosys_restart_filename, rmean_ind)
 
     use marbl_interface_public_types, only : marbl_running_mean_0d_type
@@ -94,69 +136,27 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, array_out)
+  subroutine get_glo_rmean_ind_pointer(field_source, lscalar, ptr_out)
 
-    use running_mean_mod , only : running_mean_get_var
-
-    character(len=*),       intent(in)  :: field_source
-    logical,                intent(in)  :: lscalar
-    real(r8), dimension(:), intent(out) :: array_out
-
-    integer, pointer, dimension(:) :: glo_rmean_ind
-    integer :: n
+    character(len=*), intent(in)  :: field_source
+    logical,          intent(in)  :: lscalar
+    integer, pointer, intent(out) :: ptr_out(:)
 
     if (trim(field_source) .eq. 'interior') then
       if (lscalar) then
-        glo_rmean_ind => glo_scalar_rmean_ind_interior
+        ptr_out => glo_scalar_rmean_ind_interior
       else
-        glo_rmean_ind => glo_avg_rmean_ind_interior
+        ptr_out => glo_avg_rmean_ind_interior
       end if
     else
       if (lscalar) then
-        glo_rmean_ind => glo_scalar_rmean_ind_surface
+        ptr_out => glo_scalar_rmean_ind_surface
       else
-        glo_rmean_ind => glo_avg_rmean_ind_surface
+        ptr_out => glo_avg_rmean_ind_surface
       end if
     end if
 
-    do n=1,size(glo_rmean_ind)
-      call running_mean_get_var(glo_rmean_ind(n), vals_0d = array_out(n))
-    end do
-
-  end subroutine ecosys_running_mean_saved_state_get_var_vals
-
-  !***********************************************************************
-
-  subroutine ecosys_running_mean_saved_state_update(field_source, lscalar, array_out)
-
-    use running_mean_mod , only : running_mean_update_var
-
-    character(len=*),       intent(in)  :: field_source
-    logical,                intent(in)  :: lscalar
-    real(r8), dimension(:), intent(out) :: array_out
-
-    integer, pointer, dimension(:) :: glo_rmean_ind
-    integer :: n
-
-    if (trim(field_source) .eq. 'interior') then
-      if (lscalar) then
-        glo_rmean_ind => glo_scalar_rmean_ind_interior
-      else
-        glo_rmean_ind => glo_avg_rmean_ind_interior
-      end if
-    else
-      if (lscalar) then
-        glo_rmean_ind => glo_scalar_rmean_ind_surface
-      else
-        glo_rmean_ind => glo_avg_rmean_ind_surface
-      end if
-    end if
-
-    do n=1,size(glo_rmean_ind)
-      call running_mean_update_var(glo_rmean_ind(n), vals_0d=array_out(n))
-    end do
-
-  end subroutine ecosys_running_mean_saved_state_update
+  end subroutine get_glo_rmean_ind_pointer
 
   !***********************************************************************
 
