@@ -1,5 +1,30 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    8 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n88_cesm_pop_2_1_20180419
+Tag Summary: Fix a couple of bugs in POP
+             1. running mean saved state comes from ecosys_restart_file, not
+                the CISO initialization file
+             2. build-namelist checks value of CPL_I2O_PER_CAT and only runs
+                xmlchange if variable needs to be changed (hoping this reduces
+                the frequency in which ww3 tries to build while pop writes a
+                new version of env_build.xml)
+             Also, update to latest version of MARBL (add calcToFloor
+             diagnostic)
+
+Testing:     aux_pop_MARBL on cheyenne and hobart
+             - All tests pass (note that there is a new diagnostic in all pop
+               history files but this does not trigger a cprnc failure)
+
+Files Modified:
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       source/ecosys_driver.F90
+A  +    source/ecosys_running_mean_saved_state_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    27 Apr 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n87_cesm_pop_2_1_20180419

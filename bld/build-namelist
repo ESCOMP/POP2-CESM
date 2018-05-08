@@ -1831,11 +1831,14 @@ if (@mcog_col_to_bin ne $mcog_ncols) {
 }
 
 # set CESM CPL_I2O_PER_CAT XML variable
+my $cpl_i2o_per_cat="FALSE";
 if ($lmcog) {
-  my $sysmod = "cd $CASEROOT ; ./xmlchange --noecho CPL_I2O_PER_CAT=TRUE";
-  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
-} else {
-  my $sysmod = "cd $CASEROOT ; ./xmlchange --noecho CPL_I2O_PER_CAT=FALSE";
+  $cpl_i2o_per_cat="TRUE";
+}
+my $cur_cpl_i2o_per_cat=`cd $CASEROOT ; ./xmlquery --value CPL_I2O_PER_CAT`;
+
+if ($cur_cpl_i2o_per_cat ne $cpl_i2o_per_cat) {
+  my $sysmod = "cd $CASEROOT ; ./xmlchange --noecho CPL_I2O_PER_CAT=$cpl_i2o_per_cat";
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 

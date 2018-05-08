@@ -83,7 +83,6 @@ module ecosys_driver
   public :: ecosys_driver_tracer_ref_val
   public :: ecosys_tracer_cnt
 
-  private :: ecosys_driver_init_rmean_var
   private :: ecosys_driver_update_scalar_rmeans
 
   !*****************************************************************************
@@ -134,13 +133,6 @@ module ecosys_driver
   integer, allocatable, dimension(:)   :: marbl_col_cnt                          ! nblocks_clinic
   integer, allocatable, dimension(:,:) :: marbl_col_to_pop_i, marbl_col_to_pop_j ! max(marbl_col_cnt) x nblocks_clinic
 
-  ! FIXME : move the following variables into MARBL
-
-  integer (int_kind), allocatable, target, dimension(:) :: glo_avg_rmean_ind_interior
-  integer (int_kind), allocatable, target, dimension(:) :: glo_avg_rmean_ind_surface
-  integer (int_kind), allocatable, target, dimension(:) :: glo_scalar_rmean_ind_interior
-  integer (int_kind), allocatable, target, dimension(:) :: glo_scalar_rmean_ind_surface
-
   !***********************************************************************
 
 contains
@@ -162,25 +154,26 @@ contains
     !  1) setting ecosys and ecosys_ciso module index bounds
     !  2) calling ecosys and ecosys_ciso module init subroutine
 
-    use grid                  , only : dz
-    use grid                  , only : zt
-    use grid                  , only : zw
-    use grid                  , only : region_mask
-    use grid                  , only : TAREA
-    use global_reductions     , only : global_sum
-    use constants             , only : field_loc_center
-    use broadcast             , only : broadcast_scalar
-    use time_management       , only : init_time_flag
-    use passive_tracer_tools  , only : set_tracer_indices
-    use prognostic            , only : curtime
-    use prognostic            , only : oldtime
-    use prognostic            , only : tracer_field_type => tracer_field
-    use mcog                  , only : mcog_nbins
-    use registry              , only : registry_match
-    use named_field_mod       , only : named_field_register
-    use running_mean_mod      , only : running_mean_get_var
-    use ecosys_forcing_mod    , only : ecosys_forcing_init
+    use grid, only : dz
+    use grid, only : zt
+    use grid, only : zw
+    use grid, only : region_mask
+    use grid, only : TAREA
 
+    use prognostic , only : curtime
+    use prognostic , only : oldtime
+    use prognostic , only : tracer_field_type => tracer_field
+
+    use global_reductions, only : global_sum
+    use constants, only : field_loc_center
+    use broadcast, only : broadcast_scalar
+    use time_management, only : init_time_flag
+    use passive_tracer_tools, only : set_tracer_indices
+    use mcog, only : mcog_nbins
+    use registry, only : registry_match
+    use named_field_mod, only : named_field_register
+    use ecosys_forcing_mod, only : ecosys_forcing_init
+    use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
 
     integer (int_kind)       , intent(in)    :: ecosys_driver_ind_begin ! starting index of ecosys tracers in global tracer
                                                                         ! array, passed through to rest_read_tracer_block
@@ -214,12 +207,11 @@ contains
     character (4)                    :: grid_loc
     integer (int_kind)               :: auto_ind                           ! autotroph functional group index
     integer (int_kind)               :: iblock                             ! index for looping over blocks
-    character (char_len)             :: ecosys_restart_filename            ! modified file name for restart file
     character (char_len)             :: init_file_fmt                      ! file format for option 'file'
     logical   (log_kind)             :: lmarginal_seas                     ! is ecosystem active in marginal seas?
     integer(int_kind)                :: marbl_actual_tracer_cnt            ! # of tracers actually in MARBL
     integer (int_kind)               :: glo_avg_field_cnt
-    real (r8)                        :: rmean_val
+    real (r8), allocatable           :: rmean_vals(:)
     ! Variables for processing namelists
     character (char_len)             :: marbl_settings_file                  ! name of file containing MARBL settings
     character(len=pop_in_nl_max_len) :: nl_buffer(pop_in_nl_cnt)
@@ -227,6 +219,7 @@ contains
     character(len=256)               :: marbl_nl_line
     character(len=pop_in_tot_len)    :: nl_str
     character(char_len_long)         :: ioerror_msg
+    logical(log_kind)                :: lscalar ! true => glo_scalar_rmean_ind, false => glo_avg_rmean_ind
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -493,6 +486,7 @@ contains
     tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_tracer_init_nml')
 
     call ecosys_tracers_and_saved_state_init(                    &
+       marbl_instances(1),                                       &
        ecosys_driver_ind_begin,                                  &
        ciso_on,                                                  &
        init_ts_file_fmt,                                         &
@@ -502,13 +496,53 @@ contains
        tmp_nl_buffer,                                            &
        land_mask,                                                &
        tracer_module(:,:,:,:,:,:),                               &
-       ecosys_restart_filename,                                  &
        errorCode)
 
     if (errorCode /= POP_Success) then
        call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_driver_init')
        return
     endif
+
+    ! copy values from POP's running mean to MARBL interface
+    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior)))
+    lscalar = .false.
+    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
+    do n = 1, size(rmean_vals)
+       do iblock = 1, size(marbl_instances)
+          marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_vals(n)
+       end do
+    end do
+    deallocate(rmean_vals)
+
+    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface)))
+    lscalar = .false.
+    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
+    do n = 1, size(rmean_vals)
+       do iblock = 1, size(marbl_instances)
+          marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_vals(n)
+       end do
+    end do
+    deallocate(rmean_vals)
+
+    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior)))
+    lscalar = .true.
+    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
+    do n = 1, size(rmean_vals)
+       do iblock = 1, size(marbl_instances)
+          marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
+       end do
+    end do
+    deallocate(rmean_vals)
+
+    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface)))
+    lscalar = .true.
+    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
+    do n = 1, size(rmean_vals)
+       do iblock = 1, size(marbl_instances)
+          marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
+       end do
+    end do
+    deallocate(rmean_vals)
 
     !--------------------------------------------------------------------
     !  Initialize ecosys_driver module variables
@@ -600,88 +634,7 @@ contains
        glo_avg_norm_fact = c1 / global_sum(glo_avg_area_masked(:,:,:), distrb_clinic, field_loc_center)
     end if
 
-    ! FIXME : move the setup of running means of global averages into MARBL
-
-    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_avg_rmean_interior, &
-                                      ecosys_restart_filename, glo_avg_rmean_ind_interior)
-
-    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_avg_rmean_surface, &
-                                      ecosys_restart_filename, glo_avg_rmean_ind_surface)
-
-    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_scalar_rmean_interior, &
-                                      ecosys_restart_filename, glo_scalar_rmean_ind_interior)
-
-    call ecosys_driver_init_rmean_var(marbl_instances(1)%glo_scalar_rmean_surface, &
-                                      ecosys_restart_filename, glo_scalar_rmean_ind_surface)
-
-    ! copy values from POP's running mean to MARBL interface
-
-    do n = 1, size(glo_avg_rmean_ind_interior(:))
-       call running_mean_get_var(glo_avg_rmean_ind_interior(n), vals_0d=rmean_val)
-       do iblock = 1, nblocks_clinic
-          marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_val
-       end do
-    end do
-
-    do n = 1, size(glo_avg_rmean_ind_surface(:))
-       call running_mean_get_var(glo_avg_rmean_ind_surface(n), vals_0d=rmean_val)
-       do iblock = 1, nblocks_clinic
-          marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_val
-       end do
-    end do
-
-    do n = 1, size(glo_scalar_rmean_ind_interior(:))
-       call running_mean_get_var(glo_scalar_rmean_ind_interior(n), vals_0d=rmean_val)
-       do iblock = 1, nblocks_clinic
-          marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_val
-       end do
-    end do
-
-    do n = 1, size(glo_scalar_rmean_ind_surface(:))
-       call running_mean_get_var(glo_scalar_rmean_ind_surface(n), vals_0d=rmean_val)
-       do iblock = 1, nblocks_clinic
-          marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_val
-       end do
-    end do
-
   end subroutine ecosys_driver_init
-
-  !-----------------------------------------------------------------------
-
-  subroutine ecosys_driver_init_rmean_var(marbl_running_mean_var, ecosys_restart_filename, rmean_ind)
-
-    use marbl_interface_public_types, only : marbl_running_mean_0d_type
-    use running_mean_mod, only : running_mean_define_var
-    use running_mean_mod, only : running_mean_init_var
-
-    type(marbl_running_mean_0d_type), intent(in)  :: marbl_running_mean_var(:)
-    character(char_len)             , intent(in)  :: ecosys_restart_filename
-    integer (int_kind), allocatable , intent(out) :: rmean_ind(:)
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    integer (int_kind) :: rmean_var_cnt
-    integer (int_kind) :: n
-
-    !-----------------------------------------------------------------------
-
-    rmean_var_cnt = size(marbl_running_mean_var, 1)
-    allocate(rmean_ind(rmean_var_cnt))
-
-    do n = 1, rmean_var_cnt
-       call running_mean_define_var(name=trim(marbl_running_mean_var(n)%sname), rank=0, &
-          timescale=marbl_running_mean_var(n)%timescale, index=rmean_ind(n))
-
-       if (marbl_running_mean_var(n)%linit_by_val) then
-          call running_mean_init_var(rmean_ind(n), vals_0d=marbl_running_mean_var(n)%init_val)
-       else
-          call running_mean_init_var(rmean_ind(n), filename=ecosys_restart_filename)
-       end if
-    end do
-
-  end subroutine ecosys_driver_init_rmean_var
 
   !***********************************************************************
 
@@ -1143,8 +1096,8 @@ contains
 
     use global_reductions, only : global_sum_prod
     use constants        , only : field_loc_center
-    use running_mean_mod , only : running_mean_update_var
-    use running_mean_mod , only : running_mean_get_var
+    use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_update
+    use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use POP_CommMod      , only : POP_Barrier
 
     character (*), intent(in) :: field_source ! 'interior' or 'surface'
@@ -1152,23 +1105,22 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    real (r8), pointer          :: glo_avg_fields(:,:,:,:)
-    integer (int_kind), pointer :: glo_avg_rmean_ind(:)
-    real (r8), allocatable      :: glo_avg(:)
-    real (r8), allocatable      :: glo_avg_rmean(:)
-    integer (int_kind)          :: glo_avg_field_cnt
-    integer (int_kind)          :: n, iblock
-    integer (int_kind), pointer :: timer
+    real(r8), pointer          :: glo_avg_fields(:,:,:,:)
+    real(r8), allocatable      :: glo_avg(:)
+    real(r8), allocatable      :: glo_avg_rmean(:)
+    integer(int_kind)          :: glo_avg_field_cnt
+    integer(int_kind)          :: n, iblock
+    integer(int_kind), pointer :: timer
+    logical(log_kind)          :: lscalar ! true => glo_scalar_rmean_ind, false => glo_avg_rmean_ind
     !-----------------------------------------------------------------------
 
+    lscalar = .false. ! all global means in this routine are glo_avg_rmean
     if (trim(field_source) == 'interior') then
        timer             => ecosys_interior_global_sum_timer
        glo_avg_fields    => glo_avg_fields_interior(:,:,:,:)
-       glo_avg_rmean_ind => glo_avg_rmean_ind_interior(:)
     else
        timer             => ecosys_surface_global_sum_timer
        glo_avg_fields    => glo_avg_fields_surface(:,:,:,:)
-       glo_avg_rmean_ind => glo_avg_rmean_ind_surface(:)
     end if
 
     glo_avg_field_cnt = size(glo_avg_fields, dim=4)
@@ -1187,9 +1139,9 @@ contains
        do n = 1, glo_avg_field_cnt
           glo_avg(n) = glo_avg_norm_fact * global_sum_prod(glo_avg_fields(:,:,:,n), &
              glo_avg_area_masked(:,:,:), distrb_clinic, field_loc_center)
-          call running_mean_update_var(glo_avg_rmean_ind(n), vals_0d=glo_avg(n))
-          call running_mean_get_var(glo_avg_rmean_ind(n), vals_0d=glo_avg_rmean(n))
        end do
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, glo_avg)
+       call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, glo_avg_rmean)
 
        call timer_stop(timer)
 
@@ -1242,8 +1194,8 @@ contains
     ! DESCRIPTION:
     ! update running means of scalar variables
 
-    use running_mean_mod , only : running_mean_update_var
-    use running_mean_mod , only : running_mean_get_var
+    use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_update
+    use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use io_types         , only : stdout
 
     character (*), intent(in) :: field_source ! 'interior' or 'surface'
@@ -1256,12 +1208,15 @@ contains
     character(len=*), parameter :: fmt_str_i = '(A,1X,A,1X,I0)'
     character(len=*), parameter :: fmt_str_e = '(A,1X,A,1X,E23.16)'
 
-    real (r8)          :: rmean_val
-    integer (int_kind) :: n, iblock
+    real(r8), allocatable :: rmean_vals(:)
+    integer(int_kind) :: n, iblock
+    logical(log_kind) :: lscalar ! true => glo_scalar_rmean_ind, false => glo_avg_rmean_ind
     !-----------------------------------------------------------------------
 
+    lscalar = .true. ! all global means in this subroutine are glo_scalar_rmean
     if (trim(field_source) == 'interior') then
-       do n = 1, size(glo_scalar_rmean_ind_interior(:))
+      allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior)))
+       do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_interior
           do iblock = 2, nblocks_clinic
              if (marbl_instances(iblock)%glo_scalar_interior(n) /= marbl_instances(1)%glo_scalar_interior(n)) then
@@ -1273,15 +1228,18 @@ contains
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
-
-          call running_mean_update_var(glo_scalar_rmean_ind_interior(n), vals_0d=marbl_instances(1)%glo_scalar_interior(n))
-          call running_mean_get_var(glo_scalar_rmean_ind_interior(n), vals_0d=rmean_val)
-          do iblock = 1, nblocks_clinic
-             marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_val
-          end do
        end do
+
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
+       do iblock = 1, nblocks_clinic
+          do n=1, size(rmean_vals)
+             marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
+          end do
+      end do
     else
-       do n = 1, size(glo_scalar_rmean_ind_surface(:))
+       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_surface)))
+       do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_surface
           do iblock = 2, nblocks_clinic
              if (marbl_instances(iblock)%glo_scalar_surface(n) /= marbl_instances(1)%glo_scalar_surface(n)) then
@@ -1293,11 +1251,13 @@ contains
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
+       end do
 
-          call running_mean_update_var(glo_scalar_rmean_ind_surface(n), vals_0d=marbl_instances(1)%glo_scalar_surface(n))
-          call running_mean_get_var(glo_scalar_rmean_ind_surface(n), vals_0d=rmean_val)
-          do iblock = 1, nblocks_clinic
-             marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_val
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
+       do iblock = 1, nblocks_clinic
+          do n=1, size(rmean_vals)
+             marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
           end do
        end do
     end if
