@@ -1,5 +1,5 @@
 #!/bin/csh -f
-set verbose
+#set verbose
 
 #------------------------------------------------------------
 #  This script adds mixing-related variables to the tavg_contents

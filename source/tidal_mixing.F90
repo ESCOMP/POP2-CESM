@@ -4051,6 +4051,8 @@ write(stdout,*) ' after REGION_BOX3D print test'
 !-----------------------------------------------------------------------
    real (r8), dimension(nx_block,ny_block) ::  WORK1,WORK2  !temporary work arrays
 
+   if (.not. ltidal_mixing) return
+
   select case (trim(field))
 
     case ('temp','TEMP','Temp')
@@ -4126,6 +4128,8 @@ write(stdout,*) ' after REGION_BOX3D print test'
 !   based upon which tidal mixing option is active
 !
 !------------------------------------------------------------------------
+
+   if (.not. ltidal_mixing) return
 
    !----------------------------------
    ! mixing-method-specific fields

@@ -212,17 +212,20 @@ def buildcpp(case):
         expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
         if out is not None:
             logger.debug("     %s"%out)
-        if err is not None:
-            logger.debug("     %s"%err)
+        if err is not None and len(err)>0:
+            logger.info("     %s"%err)
 
         config = out.split()
-        if config[0] > 0:
+        if int(config[0]) > 0:
             case.set_value("POP_BLCKX", config[2])
             case.set_value("POP_BLCKY", config[3])
             case.set_value("POP_MXBLCKS",config[4])
             case.set_value("POP_DECOMPTYPE", config[5])
             case.set_value("POP_NX_BLOCKS", config[6])
             case.set_value("POP_NY_BLOCKS", config[7])
+        else:
+            expect(False, "pop decomp not set for "+str(ocn_grid)+\
+                          " on "+str(ntasks)+" x "+str(nthrds_ocn)+" procs.")
 
     # set decomposition block sizes
     pop_blckx   = case.get_value("POP_BLCKX")

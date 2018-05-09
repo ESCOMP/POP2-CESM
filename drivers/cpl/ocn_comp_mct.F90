@@ -235,6 +235,8 @@ contains
 
     !TODO: check for consistency of pop runid and runtype with seq_infodata
    
+    call seq_infodata_GetData( infodata, model_doi_url=model_doi_url)
+
 !-----------------------------------------------------------------------
 !
 !  first initializaiton phase of pop2
