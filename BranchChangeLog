@@ -2,6 +2,31 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    9 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n90_cesm_pop_2_1_20180501
+Tag Summary: clean up cime_config/
+             1. remove yellowstone layouts from config_pes.xml
+             2. better pe layouts for hobart
+             3. add gx1v7 test to aux_pop_MARBL on hobart
+             4. Fix performance_eval test (no longer triggers
+                tracer_restore_var error in MARBL init)
+
+Testing:     aux_pop_MARBL on hobart (cheyenne is unavailable)
+             - all tests fail BASELINE and NLCOMP
+               1. BASELINE failures due to new pe layouts
+               2. pe layouts also generate failures in NLCOMP (ntasks in
+               drv_in and nprocs in pop_in)
+               3. new test fails due to lack of existing baseline
+             - The SMS_Ld1.T62_g17 test does not complete on intel, but
+               it does run successfully with nag and pgi
+
+Files Modified:
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_marbl
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 May 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n89_cesm_pop_2_1_20180501
 Tag Summary: Merge POP trunk onto branch
 

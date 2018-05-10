@@ -495,6 +495,11 @@
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
+  <test name="SMS_Ld1" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
+    <machines>
+      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
   <test name="SMS_Ld20" grid="T62_g17" compset="C" testmods="pop/performance_eval">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
