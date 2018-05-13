@@ -4,7 +4,8 @@ Developers:  mlevy
 Tag Date:    13 May 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n91_cesm_pop_2_1_20180501
 Tag Summary: Update river nutrient input for gx3v7 and add a prealpha
-             test to hobart_nag
+             test to hobart_nag. Also removed a print statement from
+             build-namelist
 
 Testing:     aux_pop_MARBL on hobart and cheyenne
              - all gx3v7 tests fail BASELINE and NLCOMP
@@ -12,6 +13,7 @@ Testing:     aux_pop_MARBL on hobart and cheyenne
 Files Modified:
 M       bld/namelist_files/namelist_defaults_pop.xml
 M       cime_config/testdefs/testlist_pop.xml
+M       bld/build-namelist
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
