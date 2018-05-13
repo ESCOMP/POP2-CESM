@@ -1386,7 +1386,7 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file>
 
-<riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20180511.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v7">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 
