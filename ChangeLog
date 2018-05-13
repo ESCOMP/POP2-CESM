@@ -1,5 +1,16 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  youngsun, dennis
+Tag Date:    12 May 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180512
+Tag Summary: Update to POP's halo update that improves model performance.
+
+M       mpi/POP_HaloMod.F90
+
+Testing:     aux_pop and aux_pop_tripole on cheyenne (intel). b4b
+
+===============================================================================
+Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    01 May 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180501
