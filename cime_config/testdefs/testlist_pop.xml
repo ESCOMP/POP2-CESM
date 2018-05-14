@@ -434,6 +434,7 @@
   </test>
   <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
@@ -491,6 +492,11 @@
     </machines>
   </test>
   <test name="SMS_Ld2" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_daily_r4_tavg">
+    <machines>
+      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld1" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
