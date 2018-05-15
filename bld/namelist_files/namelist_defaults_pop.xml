@@ -373,6 +373,8 @@
 <tidal_energy_file_fmt ocn_grid="gx1v6" tidal_energy_choice="'jayne'">'bin' </tidal_energy_file_fmt>
 <tidal_energy_file     ocn_grid="gx1v7" tidal_energy_choice="'jayne'">'ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8'     </tidal_energy_file>
 <tidal_energy_file_fmt ocn_grid="gx1v7" tidal_energy_choice="'jayne'">'bin' </tidal_energy_file_fmt>
+<tidal_energy_file     ocn_grid="tx0.1v3" tidal_energy_choice="'jayne'">'ocn/pop/tx0.1v3/forcing/tidal_energy_tx01v3_conserve_180304.ieeer8'     </tidal_energy_file>
+<tidal_energy_file_fmt ocn_grid="tx0.1v3" tidal_energy_choice="'jayne'">'bin' </tidal_energy_file_fmt>
 
 <!-------- ER03 ------------>
 <tidal_energy_file     ocn_grid="gx1v6" tidal_energy_choice="'ER03'">'ocn/pop/gx1v6/forcing/tidal_constituents.ER03.20140225.nc'</tidal_energy_file>
@@ -485,8 +487,10 @@
 <bckgrnd_vdc1 ocn_grid="tx0.1v2" lhoriz_varying_bckgrnd=".false." >0.55</bckgrnd_vdc1>
 <bckgrnd_vdc2 ocn_grid="tx0.1v2" lhoriz_varying_bckgrnd=".false." >0.303615</bckgrnd_vdc2>
 
-<bckgrnd_vdc1 ocn_grid="tx0.1v3" lhoriz_varying_bckgrnd=".false." >0.55</bckgrnd_vdc1>
-<bckgrnd_vdc2 ocn_grid="tx0.1v3" lhoriz_varying_bckgrnd=".false." >0.303615</bckgrnd_vdc2>
+<bckgrnd_vdc1 ocn_grid="tx0.1v3" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".true." >0.1</bckgrnd_vdc1>
+<bckgrnd_vdc2 ocn_grid="tx0.1v3" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".true." >0.0</bckgrnd_vdc2>
+<bckgrnd_vdc1 ocn_grid="tx0.1v3" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".false." >0.55</bckgrnd_vdc1>
+<bckgrnd_vdc2 ocn_grid="tx0.1v3" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".false." >0.303615</bckgrnd_vdc2>
 
 <bckgrnd_vdc_eq   ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".true." >0.01</bckgrnd_vdc_eq>
 <bckgrnd_vdc_psim ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".true." >0.13</bckgrnd_vdc_psim>
@@ -946,7 +950,7 @@
 <sfwf_filename ocn_grid="gx1v7"  >ocn/pop/gx1v7/forcing/sfwf_mm_WOA13v2_salx_flxio_gx1v7_20170706.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx1v1"  >ocn/pop/tx1v1/forcing/sfwf_mm_PHC2_salx_flxio_20080502.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
-<sfwf_filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/sfwf_mm_WOA13v2_salx_flxio_tx0.1v2_20180321.ieeer8</sfwf_filename>
 
 <sfwf_weak_restore ocn_grid="gx3v7"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx3v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
@@ -956,7 +960,7 @@
 <sfwf_weak_restore ocn_grid="gx1v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
-<sfwf_weak_restore ocn_grid="tx0.1v3">0.0115</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="tx0.1v3">0.046</sfwf_weak_restore>
 
 <precip_fact_const>1.0</precip_fact_const>
 
@@ -1347,14 +1351,14 @@
 <nhy_flux_monthly_input%file_varname>NHx_deposition</nhy_flux_monthly_input%file_varname>
 <nhy_flux_monthly_input%scale_factor>7.1429e+06</nhy_flux_monthly_input%scale_factor>
 
-<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c160716.nc</nox_flux_monthly_input%filename>
-<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c160716.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc</nhy_flux_monthly_input%filename>
 
-<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nox_flux_monthly_input%filename>
-<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
-<nhy_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nhy_flux_monthly_input%filename>
-<nox_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c160716.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
@@ -1382,7 +1386,7 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file>
 
-<riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20180511.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v7">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 
@@ -1576,6 +1580,8 @@
 <ebm_param_option ocn_grid="gx1v7">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
 <ebm_param_filename ocn_grid="gx1v7" datm_mode="CORE_IAF_JRA">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
+
+<estuary_option ocn_grid="tx0.1v3">on</estuary_option>
 
 <tide_amp>1.0</tide_amp>
 <W_h>2000.0</W_h> >

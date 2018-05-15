@@ -1,0 +1,4 @@
+./xmlchange ATM_NCPL="144"
+./xmlchange OCN_NCPL="48"
+./xmlchange JOB_WALLCLOCK_TIME=01:15:00
+./xmlchange --id CPL_SEQ_OPTION --val RASM_OPTION1

@@ -1,4 +1,136 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    14 May 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180514
+Tag Summary: Merge latest marbl_dev branch tag (n92) onto trunk
+
+             1) POP changes
+                - Running mean saved state comes from same restart file as
+                  ecosys base tracers, not ciso
+                - build-namelist checks value of CPL_I2O_PER_CAT and only
+                  calls xmlchange if needed
+                - Better pe layouts on hobart, remove references to yellowstone
+                  in config_pes.xml
+                - Add gx1v7 test to hobart_nag aux_pop_MARBL, and add a gx3v7
+                  with the ecosystem on to prealpha (also hobart_nag)
+                - performance_eval test works with ecosystem on
+                - New river nutrient input file for gx3v7 to be consistent with
+                  mapping files created April 30
+             2) MARBL changes
+                - New calcToFloor diagnostic
+
+Testing:     aux_pop on cheyenne (intel), aux_pop_MARBL on hobart (nag, intel,
+             and pgi)
+             - all gx3v7 tests with ecosystem on fail NLCOMP and BASELINE due
+               to new river nutrient input file
+             - all gx3v7 tests on hobart fail NLCOMP and BASELINE due to new
+               pe layout (so reverting river nutrient input will not be b4b
+               on that machine)
+             - gx1v7 hobart_intel test does not successfully run. PGI does
+               run and nag has ~50% success rate (resubmitting failed nag
+               test usually results in success)
+             - all other tests pass
+
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_marbl
+M       source/ecosys_driver.F90
+A  +    source/ecosys_running_mean_saved_state_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+===============================================================================
+Tag Creator: altuntas
+Developers:  youngsun, dennis
+Tag Date:    12 May 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180512
+Tag Summary: Update to POP's halo update that improves model performance.
+
+M       mpi/POP_HaloMod.F90
+
+Testing:     aux_pop and aux_pop_tripole on cheyenne (intel). b4b
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    01 May 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180501
+Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false by default. 
+             - print error msg if pop decomp not set for the ocn grid. 
+             - add tx0.1v3 size to generate_pop_decomp.xml.
+             - add/change tx0.1v3 namelist defaults.
+             - update default nox_flux_monthly_input and nhy_flux_monthly_input
+             - add new test suite: aux_pop_tripole
+             - add new compsets for high-res testing: C_HR, C_JRA, C_JRA_HR, GIAF_HR
+             - unset verbose ocn.vmix.tavg.csh to prevent build-namelist printing the entire script
+
+Testing:     aux_pop on cheyenne (intel). bit-for-bit except ECO 
+             aux_pop_tripole
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    30 Apr 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180430
+Tag Summary: add model_doi_url. unsuppress error msg from build-namelist
+
+Testing:     aux_pop on cheyenne (intel). bit-for-bit
+
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       drivers/cpl/ocn_comp_mct.F90
+M       source/constants.F90
+M       source/tavg.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    27 Apr 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180427
+Tag Summary: Merge latest marbl_dev branch tag (n87) onto trunk
+
+             1) POP changes
+                - Fix units of U10_SQR in diagnostics
+                - Change ciso_init_tracer_ext to account for changes from
+                  zoo1[34]C -> zootot1[34]C in MARBL tracer name
+                - clean up use of ecosys_cfg hash in build-namelist, and
+                  suppress ciso namelist variables from non-ciso runs
+                - only write about successful marbl_in read from master_task
+             2) MARBL changes
+                - only compute nhx_surface_emis if lcompute_nhx_surface_emis
+                  is .true. otherwise return zero (if requested)
+                - replace several 3D diagnostic fields with surface values and
+                  weighted average over 100m (full 3D fields available still
+                  but not included in default diagnostics)
+                - Rename zoo1[34]C to zootot1[34]C (in general, use zootot for
+                  all occurences of zoo in marbl_ciso_mod.F90)
+                - make caco3_bury_thres_omega_calc a tunable parameter
+                - increase Jint_Ctot_thres_molpm2pyr by order of magnitude
+                - Introduce new DOP_loss_P_bal to avoid Jint_Ptot inbalance
+                  when very small P:C ratio leads to POP%prod < 0
+
+Testing:     aux_pop on cheyenne (intel)
+             * NLCOMP failures for all ecosys tests (ciso variables changed
+               and non-ciso tests no longer include ciso variables)
+             * BASELINE failures for some ecosys tests
+               - ERI.T62_g17.C1850ECO.cheyenne_intel.pop-ecosys has O(1e-8)
+                 changes due to negative values of POP%prod far from zero
+                 being changed to zero
+               - Other tests have round-off level changes due to negative
+                 values of POP%prod close to zero being changed to zero
+             aux_pop_MARBL on hobart (nag, intel, pgi)
+             * no comparison to baselines but verified that model builds
+               and runs with these compilers.
+
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/ecosys_driver.F90
+M       source/forcing.F90
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    19 Apr 2018

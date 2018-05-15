@@ -609,7 +609,11 @@ if ($OCN_ONEDIM eq 'TRUE' && $RUN_TYPE eq 'startup') {
   } else {
     add_default($nl, 'init_ts_option'  , 'val'=>"ccsm_${RUN_TYPE}");
     add_default($nl, 'init_ts_file');
-    add_default($nl, 'init_ts_file_fmt', 'val'=>"$RESTART_INPUT_TS_FMT");
+    if ($OCN_GRID eq 'tx0.1v3') {
+      add_default($nl, 'init_ts_file_fmt');
+    } else {
+      add_default($nl, 'init_ts_file_fmt', 'val'=>"$RESTART_INPUT_TS_FMT");
+    }
   }
 }
 add_default($nl, 'init_ts_outfile'     , 'val'=>"${output_h}.ts_ic");
@@ -760,9 +764,10 @@ add_default($nl, 'ltidal_melet_plot');
 add_default($nl, 'tidal_energy_choice');
    my $tidal_energy_choice = $nl->get_value('tidal_energy_choice');
    $tidal_energy_choice =~ s/ //g;
-add_default($nl, 'tidal_energy_file',    'tidal_energy_choice'=>"$tidal_energy_choice");
-add_default($nl, 'tidal_energy_file_fmt','tidal_energy_choice'=>"$tidal_energy_choice");
-
+if ($ltidal_mixing eq ".true." ) {
+  add_default($nl, 'tidal_energy_file',    'tidal_energy_choice'=>"$tidal_energy_choice");
+  add_default($nl, 'tidal_energy_file_fmt','tidal_energy_choice'=>"$tidal_energy_choice");
+}
 add_default($nl, 'tidal_eps_n2');
 add_default($nl, 'tidal_vars_file_polz', 'nofail'=>1);
 if (not $nl->get_value('tidal_vars_file_polz')) {
@@ -2685,10 +2690,8 @@ sub module_tavg_script_args() {
   if ($module eq "vmix") {
     #-----------------------------------------------------------------------------------------------
     # Determine stream number of (first) 'once' stream; if no once stream, set stream number = -1
-    # Thanks, Mike!
     #-----------------------------------------------------------------------------------------------
     my @tavg_freq_opt = split(',| ',$nl->get_value('tavg_freq_opt'));
-    print "tavg_freq_opt: @tavg_freq_opt\n";
     my $once_ind = -1;
     my $tmp_ind = 0;
     for my $single_freq_opt (@tavg_freq_opt) {

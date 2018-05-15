@@ -1,5 +1,123 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    14 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n93_cesm_pop_2_1_20180514
+Tag Summary: Zig-zag merge of pop trunk (starting a "new" branch)
+
+Testing:     none (lots of testing of trunk tag)
+
+Files Modified:
+M       ChangeLog
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    14 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n92_cesm_pop_2_1_20180512
+Tag Summary: Merge latest pop trunk onto marbl_dev
+
+Testing:     aux_pop_MARBL on hobart and cheyenne
+             - all BASELINE and NLCOMP tests pass
+
+Files Modified:
+M       ChangeLog
+M       mpi/POP_HaloMod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n91_cesm_pop_2_1_20180501
+Tag Summary: Update river nutrient input for gx3v7 and add a prealpha
+             test to hobart_nag. Also removed a print statement from
+             build-namelist
+
+Testing:     aux_pop_MARBL on hobart and cheyenne
+             - all gx3v7 tests fail BASELINE and NLCOMP
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n90_cesm_pop_2_1_20180501
+Tag Summary: clean up cime_config/
+             1. remove yellowstone layouts from config_pes.xml
+             2. better pe layouts for hobart
+             3. add gx1v7 test to aux_pop_MARBL on hobart
+             4. Fix performance_eval test (no longer triggers
+                tracer_restore_var error in MARBL init)
+
+Testing:     aux_pop_MARBL on hobart (cheyenne is unavailable)
+             - all tests fail BASELINE and NLCOMP
+               1. BASELINE failures due to new pe layouts
+               2. pe layouts also generate failures in NLCOMP (ntasks in
+               drv_in and nprocs in pop_in)
+               3. new test fails due to lack of existing baseline
+             - The SMS_Ld1.T62_g17 test does not complete on intel, but
+               it does run successfully with nag and pgi
+
+Files Modified:
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/performance_eval/user_nl_marbl
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n89_cesm_pop_2_1_20180501
+Tag Summary: Merge POP trunk onto branch
+
+Testing:     aux_pop_MARBL on hobart (cheyenne is unavailable)
+             - NLCOMP and BASELINE failures due to changes in nox and nhy
+               forcing fields (all tests fail compared to n88)
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/hires_core2_cheyenne
+A  +    cime_config/testdefs/testmods_dirs/pop/hires_jra_cheyenne
+M       drivers/cpl/ocn_comp_mct.F90
+M       input_templates/ocn.vmix.tavg.csh
+M       source/constants.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    8 May 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n88_cesm_pop_2_1_20180419
+Tag Summary: Fix a couple of bugs in POP
+             1. running mean saved state comes from ecosys_restart_file, not
+                the CISO initialization file
+             2. build-namelist checks value of CPL_I2O_PER_CAT and only runs
+                xmlchange if variable needs to be changed (hoping this reduces
+                the frequency in which ww3 tries to build while pop writes a
+                new version of env_build.xml)
+             Also, update to latest version of MARBL (add calcToFloor
+             diagnostic)
+
+Testing:     aux_pop_MARBL on cheyenne and hobart
+             - All tests pass (note that there is a new diagnostic in all pop
+               history files but this does not trigger a cprnc failure)
+
+Files Modified:
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       source/ecosys_driver.F90
+A  +    source/ecosys_running_mean_saved_state_mod.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    27 Apr 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n87_cesm_pop_2_1_20180419
