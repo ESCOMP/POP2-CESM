@@ -67,11 +67,6 @@
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
-  <compset>
-    <alias>CMPAS</alias>
-    <lname>2000_DATM%NYF_SLND_DICE%SSMI_MPAS_SROF%NYF_SGLC_SWAV</lname>
-  </compset>
-
   <!-- G compsets -->
 
   <compset>
@@ -127,11 +122,6 @@
   </compset>
 
   <compset>
-    <alias>C1DECO</alias>
-    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%1D_POP2%ECO_DROF%NYF_SGLC_SWAV</lname>
-  </compset>
-
-  <compset>
     <alias>G1D</alias>
     <lname>2000_DATM%NYF_SLND_CICE_POP2%1D_DROF%NYF_SGLC_SWAV</lname>
   </compset>
@@ -159,19 +149,19 @@
 
   <compset>
     <alias>C_DWAV</alias>
-    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_DWAV%COPY</lname>
+    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_DWAV%CLIMO</lname>
   </compset>
   <compset>
     <alias>CIAF_DWAV</alias>
-    <lname>2000_DATM%IAF_SLND_DICE%IAF_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
+    <lname>2000_DATM%IAF_SLND_DICE%IAF_POP2_DROF%IAF_SGLC_DWAV%CLIMO</lname>
   </compset>
   <compset>
     <alias>G_DWAV</alias>
-    <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_DWAV%COPY</lname>
+    <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_DWAV%CLIMO</lname>
   </compset>
   <compset>
     <alias>GIAF_DWAV</alias>
-    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
+    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_DWAV%CLIMO</lname>
   </compset>
 
   <!-- ENTRIES -->

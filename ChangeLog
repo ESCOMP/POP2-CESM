@@ -1,4 +1,16 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    31 May 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180531
+Tag Summary: Remove/fix bad compsets. Get MARBL external from github repo, not from svn.
+
+Testing:     aux_pop on cheyenne (intel)
+
+M       Externals_POP.cfg
+M       cime_config/config_compsets.xml
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    14 May 2018
