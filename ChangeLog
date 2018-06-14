@@ -1,4 +1,18 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    14 June 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180614
+Tag Summary: Update MARBL to latest version and make python scripts compatible
+             with python3
+
+Testing:     built a single case on my laptop (no Fortran changes, so should
+             be bit-for-bit with previous tag)
+
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/__init__.py
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    31 May 2018
