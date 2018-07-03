@@ -1,6 +1,18 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    3 July 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n189_marbl_dev_n93_cesm_pop_2_1_20180514
+Tag Summary: MARBL renamed json files, and this POP tag uses those new names.
+
+Testing:     single [ciso] run on hobart_nag was bfb with marbl_dev_n93
+
+Files Modified:
+M       MARBL_scripts/MARBL_wrappers/MARBL_diagnostics.py
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    15 May 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n188_marbl_dev_n93_cesm_pop_2_1_20180514
 Tag Summary: Merge marbl_dev onto marbl_dev_levy (zig-zag merge)
