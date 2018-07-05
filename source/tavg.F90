@@ -6010,6 +6010,13 @@
                          units    ='erg/g',                       &
                          d0d_array =latent_heat_fusion)
 
+   !*** latent_heat_fusion_mks
+   ii=ii+1
+   ccsm_scalars(ii,ns) = construct_io_field('latent_heat_fusion_mks', &
+                         long_name='Latent Heat of Fusion',       &
+                         units    ='J/kg',                       &
+                         d0d_array =latent_heat_fusion_mks)
+
    !*** ocn_ref_salinity
    ii=ii+1
    ccsm_scalars(ii,ns) = construct_io_field('ocn_ref_salinity',      &

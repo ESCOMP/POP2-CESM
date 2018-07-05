@@ -354,6 +354,7 @@ my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
 my $DATM_MODE              = "$xmlvars{'DATM_MODE'}";
+my $OCN_NDEP_DRIVER    = "$xmlvars{'OCN_NDEP_DRIVER'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -1539,8 +1540,11 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_varname');
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
-
-  add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
+  if ($OCN_NDEP_DRIVER eq "TRUE"){
+      add_default($nl, 'ndep_data_type', 'val'=>'driver');
+  }else{
+      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
+  }
   my $ndep_data_type = $nl->get_value('ndep_data_type');
   # Need to strip the quotes
   $ndep_data_type =~ s/['"]//g;
@@ -2712,4 +2716,3 @@ sub module_tavg_script_args() {
   }
   return "";
 }
-
