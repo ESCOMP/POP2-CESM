@@ -111,8 +111,10 @@ def buildnml(case, caseroot, compname):
         if marbl_nt_build > 0:
             # Generate marbl_in and ecosys_diagnostics (files POP needs to read for MARBL)
             # Note that they are only needed when running with the ecosystem tracer module
-            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, marbl_nt_build)
-            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string)
+            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, case.get_value("MARBL_DEFAULT_SETTINGS"),
+                                srcroot, confdir, inst_string, marbl_nt_build)
+            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, case.get_value("MARBL_DEFAULT_SETTINGS"),
+                                          srcroot, confdir, inst_string)
 
         # If multi-instance = case does not have restart file,
         # use single-= case restart for each instance
@@ -229,7 +231,7 @@ def _copy_file(filename, src_dir, dest_dir, inst_string=None):
 
 ###############################################################################
 
-def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string, marbl_nt_build):
+def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, def_settings, srcroot, confdir, inst_string, marbl_nt_build):
     # import wrappers to some MARBL calls
     sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
     from MARBL_wrappers import MARBL_settings_for_POP
@@ -242,7 +244,7 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, con
     # (i) Generate MARBL_settings_for_POP object
     MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
     MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
-                                            run_type, continue_run)
+                                            run_type, continue_run, def_settings)
 
     # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
     #      Abort if values do not match
@@ -258,7 +260,7 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, srcroot, con
 
 ###############################################################################
 
-def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, srcroot, confdir, inst_string):
+def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, def_settings, srcroot, confdir, inst_string):
     # import wrappers to some MARBL calls
     sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
     from MARBL_wrappers import MARBL_settings_for_POP
@@ -282,7 +284,7 @@ def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, sr
     # (i) Generate MARBL_settings_for_POP object
     MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
     MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
-                                            run_type, continue_run)
+                                            run_type, continue_run, def_settings)
 
     # (ii) Create ecosys_diagnostics with POP-generated diagnostics
     write_ecosys_diagnostics_file(MARBL_settings.get_tracer_names(),

@@ -264,6 +264,14 @@
     <desc>pop marbl tracer count (this is runtime configurable in marbl but not in pop - do not edit)</desc>
   </entry>
 
+  <entry id="MARBL_DEFAULT_SETTINGS">
+    <type>char</type>
+    <valid_values>latest,cesm2.0</valid_values>
+    <default_value>latest</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>Version of MARBL tunings to use (default values can be overwritten by user_nl_marbl)</desc>
+  </entry>
 
   <entry id="POP_PHYS_CYCLE_YEARS_IN_CYCLE">
     <type>integer</type>
