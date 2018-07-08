@@ -5955,6 +5955,16 @@ Default: 'monthly-calendar'
 </entry>
 
 <entry
+id="dust_ratio_thres"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
+
+Default: 60.0
+</entry>
+
+<entry
 id="iron_flux_input%filename"
 type="char*256"
 category="Forcing (Ecosystem)"

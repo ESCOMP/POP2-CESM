@@ -143,6 +143,7 @@ module ecosys_forcing_mod
   character(char_len) :: dust_flux_source             ! option for atmospheric dust deposition
   type(tracer_read)   :: dust_flux_input              ! namelist input for dust_flux
   character(char_len) :: iron_flux_source             ! option for atmospheric iron deposition
+  real(r8)            :: dust_ratio_thres             ! coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
   type(tracer_read)   :: iron_flux_input              ! namelist input for iron_flux
   type(tracer_read)   :: fesedflux_input              ! namelist input for fesedflux
   type(tracer_read)   :: feventflux_input             ! namelist input for feventflux
@@ -368,7 +369,7 @@ contains
 
     namelist /ecosys_forcing_data_nml/                                        &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
-         iron_flux_input, fesedflux_input, feventflux_input,                  &
+         dust_ratio_thres, iron_flux_input, fesedflux_input, feventflux_input,&
          lignore_driver_ndep, ndep_data_type,                                 &
          nox_flux_monthly_input, nhy_flux_monthly_input,                      &
          ndep_shr_stream_year_first, ndep_shr_stream_year_last,               &
@@ -415,6 +416,7 @@ contains
     dust_flux_source             = 'monthly-calendar'
     call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
     iron_flux_source             = 'monthly-calendar'
+    dust_ratio_thres             = 60.0_r8
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
     call set_defaults_tracer_read(feventflux_input, file_varname='FESEDFLUXIN')
@@ -1683,7 +1685,6 @@ contains
 
     real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
-    real      (r8), parameter      :: dust_ratio_thres = 60.0_r8
     real      (r8), parameter      :: dust_ratio_to_fe_bioavail_frac = 1.0_r8 / 170.0_r8
     real      (r8), parameter      :: fe_bioavail_frac_offset = 0.01_r8
 

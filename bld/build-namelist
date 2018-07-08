@@ -1526,6 +1526,7 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
   add_default($nl, 'iron_flux_source','ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'dust_ratio_thres');
   add_default($nl, 'iron_flux_input%filename');
   add_default($nl, 'iron_flux_input%file_fmt');
   add_default($nl, 'iron_flux_input%file_varname');

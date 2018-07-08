@@ -1316,6 +1316,8 @@
 <iron_flux_source ocn_coupling="partial">monthly-calendar</iron_flux_source>
 <iron_flux_source                       >driver-derived  </iron_flux_source>
 
+<dust_ratio_thres>60.0</dust_ratio_thres>
+
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
