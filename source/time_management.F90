@@ -1088,7 +1088,7 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r8)     :: dummy
+   real (r8)     :: dummy1, dummy2, dummy3 ! arguments for unused arguments to hms
    real (r8),save:: test_timestep_eps = 0.0000001_r8
 
    integer (int_kind) :: nfit,nn ! dummy indices
@@ -1248,7 +1248,7 @@
 !
 !-----------------------------------------------------------------------
     call hms (seconds_this_day, hour_at_interval(nfit), min_at_interval(nfit),  &
-              sec_at_interval(nfit), dummy,dummy,dummy)
+              sec_at_interval(nfit), dummy1, dummy2, dummy3)
       if(master_task == my_task )  then 
          write(stdout,1103) ' hour, min, sec at end of interval = ',         &
                          hour_at_interval(nfit), min_at_interval(nfit), &

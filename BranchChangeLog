@@ -1,5 +1,21 @@
 ===============================================================================
 Tag Creator: klindsay
+Developers:  mlevy, klindsay
+Tag Date:    9 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n03_cesm_pop_2_1_20180705
+Tag Summary: correct illegal argument aliasing in time_management.F90
+
+Testing:
+MARBL commit 28020470509f544938c6579010fb36204907aaae klindsay28/final_CMIP6_BGC branch
+
+ERS.T62_g17.G1850ECO.cheyenne_intel.pop-cice_ecosys_dust_flux_driver:
+test passed, including BASELINE compare to CESM2.0 release
+
+Files Modified:
+M       BranchChangeLog
+M       source/time_management.F90
+===============================================================================
+Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    8 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n02_cesm_pop_2_1_20180705
