@@ -111,9 +111,9 @@ def buildnml(case, caseroot, compname):
         if marbl_nt_build > 0:
             # Generate marbl_in and ecosys_diagnostics (files POP needs to read for MARBL)
             # Note that they are only needed when running with the ecosystem tracer module
-            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, case.get_value("MARBL_DEFAULT_SETTINGS"),
+            _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, case.get_value("OCN_BGC_CONFIG"),
                                 srcroot, confdir, inst_string, marbl_nt_build)
-            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, case.get_value("MARBL_DEFAULT_SETTINGS"),
+            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, case.get_value("OCN_BGC_CONFIG"),
                                           srcroot, confdir, inst_string)
 
         # If multi-instance = case does not have restart file,

@@ -1,6 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    9 July 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n191_marbl_dev_n93_cesm_pop_2_1_20180514
+Tag Summary: Add a new test to the testlist using the cesm2.0 default settings
+             for MARBL; also fix a bug in time_management.F90 that was being
+             caught by nag in DEBUG mode (only by nag 6.2, 6.1 was fine with
+             it). Also renamed MARBL_DEFAULT_SETTINGS -> OCN_BGC_CONFIG.
+
+Testing:     aux_pop_MARBL is b4b with marbl_dev_n93 on hobart
+             (plus the _D nag tests finish successfully)
+
+Files Modified:
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings/shell_commands
+M       source/time_management.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    5 July 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n190_marbl_dev_n93_cesm_pop_2_1_20180514
 Tag Summary: Add MARBL_DEFAULT_SETTINGS to env_run.xml to take advantage of

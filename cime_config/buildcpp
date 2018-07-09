@@ -117,7 +117,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 from MARBL_wrappers import MARBL_settings_for_POP
                 MARBL_settings = MARBL_settings_for_POP(MARBL_dir, input_file, caseroot, ocn_grid,
                                        case.get_value("RUN_TYPE"), case.get_value("CONTINUE_RUN"),
-                                       case.get_value("MARBL_DEFAULT_SETTINGS"))
+                                       case.get_value("OCN_BGC_CONFIG"))
                 # (ii) get MARBL_NT
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
                 NT = NT + MARBL_NT
