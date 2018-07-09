@@ -7460,6 +7460,7 @@
         tavg_N_SALT, 'N_SALT', 4,                       &
         long_name='Northward Salt Transport',           &
         units='gram centimeter^3/kg/s',                 &
+        scale_factor=1000.0_r8,                         &
         coordinates='lat_aux_grid transport_components transport_regions time',&
         nftype='float',                                 &
         nstd_fields=avail_tavg_nstd_fields,             &

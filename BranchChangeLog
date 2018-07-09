@@ -2,6 +2,25 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    8 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n02_cesm_pop_2_1_20180705
+Tag Summary: enable some CMIP6 diagnostics
+
+Testing:
+MARBL commit 28020470509f544938c6579010fb36204907aaae klindsay28/final_CMIP6_BGC branch
+
+ERS.T62_g17.G1850ECO.cheyenne_intel.pop-cice_ecosys_dust_flux_driver:
+test passed, including BASELINE compare to CESM2.0 release
+
+Files Modified:
+M       BranchChangeLog
+M       input_templates/gx1v7_tavg_contents
+M       source/baroclinic.F90
+M       source/diagnostics.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    8 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n01_cesm_pop_2_1_20180705
 Tag Summary: make dust_ratio_thres a namelist variable
 
