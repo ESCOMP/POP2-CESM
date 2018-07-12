@@ -2,7 +2,7 @@
 """
 
 class MARBL_settings_for_POP(object):
-    def __init__(self, MARBL_dir, input_file, caseroot, ocn_grid, run_type, continue_run, def_settings):
+    def __init__(self, MARBL_dir, input_file, caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config):
 
         import sys, os
 
@@ -15,7 +15,7 @@ class MARBL_settings_for_POP(object):
         # 4. saved_state_vars_source: "settings_file" for startup run, otherwise GCM
         MARBL_args = dict()
 
-        settings_file = "settings_"+def_settings+".json"
+        settings_file = "settings_"+ocn_bgc_config+".json"
         # User can put settings_file in SourceMods, otherwise use file provided by MARBL
         MARBL_args["default_settings_file"] = os.path.join(caseroot,"SourceMods","src.pop", settings_file)
         if not os.path.isfile(MARBL_args["default_settings_file"]):
