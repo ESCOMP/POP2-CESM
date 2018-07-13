@@ -1343,6 +1343,18 @@
 <feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
 
+<o2_consumption_scalef_opt>const</o2_consumption_scalef_opt>
+<o2_consumption_scalef_const>1.0</o2_consumption_scalef_const>
+<o2_consumption_scalef_input%file_varname>o2_consumption_scalef</o2_consumption_scalef_input%file_varname>
+<o2_consumption_scalef_input%file_fmt>nc</o2_consumption_scalef_input%file_fmt>
+<o2_consumption_scalef_input%scale_factor>1.0</o2_consumption_scalef_input%scale_factor>
+
+<p_remin_scalef_opt>const</p_remin_scalef_opt>
+<p_remin_scalef_const>1.0</p_remin_scalef_const>
+<p_remin_scalef_input%file_varname>p_remin_scalef</p_remin_scalef_input%file_varname>
+<p_remin_scalef_input%file_fmt>nc</p_remin_scalef_input%file_fmt>
+<p_remin_scalef_input%scale_factor>1.0</p_remin_scalef_input%scale_factor>
+
 <ndep_data_type ocn_transient="unset">monthly-calendar</ndep_data_type>
 <ndep_data_type ocn_transient="CORE2">monthly-calendar</ndep_data_type>
 

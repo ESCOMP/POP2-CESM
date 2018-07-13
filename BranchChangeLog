@@ -1,5 +1,32 @@
 ===============================================================================
 Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    13 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n04_cesm_pop_2_1_20180705
+Tag Summary: add support for providing o2_consumption_scalef, p_remin_scalef to MARBL
+
+default is to pass all 1's for o2_consumption_scalef and p_remin_scalef
+though file_time_invariant support is provided
+
+also pass grid=CESM_x1 to MARBL only for gx1 grids
+grids besides gx1 and gx3 are identified as CESM_other
+
+Testing:
+MARBL commit f11b6038f93cdb8464b3fd5cbe4726911abf41b7 klindsay28/final_CMIP6_BGC branch
+
+ERS.T62_g17.G1850ECO.cheyenne_intel.pop-cice_ecosys_dust_flux_driver
+ERS.T62_g37.C1850ECO.cheyenne_intel.pop-ecosys
+test passed, including BASELINE compare to CESM2.0 release
+
+Files Modified:
+M       BranchChangeLog
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: klindsay
 Developers:  mlevy, klindsay
 Tag Date:    9 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n03_cesm_pop_2_1_20180705

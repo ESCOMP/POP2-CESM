@@ -1541,6 +1541,27 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_varname');
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
+
+  add_default($nl, 'o2_consumption_scalef_opt');
+  if ($nl->get_value('o2_consumption_scalef_opt') eq '\'file_time_invariant\'') {
+    add_default($nl, 'o2_consumption_scalef_input%filename');
+    add_default($nl, 'o2_consumption_scalef_input%file_varname');
+    add_default($nl, 'o2_consumption_scalef_input%file_fmt');
+    add_default($nl, 'o2_consumption_scalef_input%scale_factor');
+  } else {
+    add_default($nl, 'o2_consumption_scalef_const');
+  }
+
+  add_default($nl, 'p_remin_scalef_opt');
+  if ($nl->get_value('p_remin_scalef_opt') eq '\'file_time_invariant\'') {
+    add_default($nl, 'p_remin_scalef_input%filename');
+    add_default($nl, 'p_remin_scalef_input%file_varname');
+    add_default($nl, 'p_remin_scalef_input%file_fmt');
+    add_default($nl, 'p_remin_scalef_input%scale_factor');
+  } else {
+    add_default($nl, 'p_remin_scalef_const');
+  }
+
   if ($OCN_NDEP_DRIVER eq "TRUE"){
       add_default($nl, 'ndep_data_type', 'val'=>'driver');
   }else{
