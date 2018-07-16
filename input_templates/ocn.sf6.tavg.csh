@@ -34,6 +34,8 @@ $s1  HDIFB_SF6
 $s1  UE_SF6
 $s1  VN_SF6
 $s1  WT_SF6
+$s1  TEND_SF6
+$s1  RF_TEND_SF6
 EOF
 endif
 
