@@ -2,6 +2,28 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    15 July 2018
+Tag Name:    pop2/branch_tags/cmip6_diag_update_kl_tags/cmip6_diag_update_kl_n02_cesm_pop_2_1_20180531
+Tag Summary: correct tend_zint_100m_TRACER tavg var, accumulate passive tracer tavg vars with TEMP and SALT
+
+tend_zint_100m_TRACER now computed in subroutine accumulate_tavg_var_tend, instead of
+subroutine tavg_passive_tracers_baroclinic_correct, which has been removed
+This ensures that if lrobert_filter=.true., then accumulate is called after the Robert filter.
+
+Testing:
+aux_pop intel/cheyenne, baseline to CESM2
+tests passed, except for the following, BASELINE compare to CESM2.0 release passed
+  BASELINE failed for all grid=x1 tests (because passive tracer results changed for Robert filter,
+    which is used for grid=x1)
+  BASELINE failed for all ecosystem tests (because tend_zint_100m_TRACER is accumulated differently)
+
+Files Modified:
+M       BranchChangeLog
+M       source/baroclinic.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    15 July 2018
 Tag Name:    pop2/branch_tags/cmip6_diag_update_kl_tags/cmip6_diag_update_kl_n01_cesm_pop_2_1_20180531
 Tag Summary: correct TEND_TRACER tavg var, introduce RF_TEND_TRACER tavg var
 

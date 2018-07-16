@@ -60,7 +60,6 @@
    use forcing_s_interior, only: set_s_interior
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers, &
-       tavg_passive_tracers_baroclinic_correct, &
        set_interior_passive_tracers_3D
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
@@ -743,8 +742,6 @@
 
          endif
 
-         if (nt > 2) call tavg_passive_tracers(iblock,k)
-
 
 !-----------------------------------------------------------------------
 !
@@ -1365,10 +1362,6 @@
         endif
       endif
 
-      if (mix_pass /= 1) then
-         if (nt > 2) call tavg_passive_tracers_baroclinic_correct(iblock)
-      endif
-
 !-----------------------------------------------------------------------
 !
 !     call passive tracer reset subroutines
@@ -1432,8 +1425,8 @@
 !  same as module
 
    use time_management, only: robert_newtime, robert_curtime, lrf_nonzero_newtime
-   use passive_tracers, only: tavg_var_tend, tavg_var_rf_tend
-   use grid, only: RCALCT_OPEN_OCEAN_3D
+   use passive_tracers, only: tavg_var_tend, tavg_var_tend_zint_100m, tavg_var_rf_tend
+   use grid, only: zw, RCALCT_OPEN_OCEAN_3D
 
 ! !INPUT PARAMETERS:
 
@@ -1454,24 +1447,32 @@
       k,                  &! vertical level index
       n                    ! tracer index
 
-   real (r8) :: grav_dz_r ! 1/grav/dz
+   real (r8) :: grav_dz_r  ! 1/grav/dz
 
    real (r8), dimension(nx_block,ny_block) :: &
-      WORK
+      WORK,               &! tracer tendency term
+      WORK_ZINT            ! vertical integral of WORK over top 100m
 
 !-----------------------------------------------------------------------
 
    grav_dz_r = c1 / (grav * dz(1))
 
    do n = 1,nt
-      if (accumulate_tavg_now(tavg_var_tend(n))) then
+      if (accumulate_tavg_now(tavg_var_tend(n)) .or. accumulate_tavg_now(tavg_var_tend_zint_100m(n))) then
          k = 1
-         WORK = (c1 / c2dtt(k)) * &
-              ((c1 + grav_dz_r*PSURF(:,:,newtime,iblock))*TRACER(:,:,k,n,newtime,iblock) - &
-               (c1 + grav_dz_r*PSURF(:,:,oldtime,iblock))*TRACER(:,:,k,n,oldtime,iblock))
+         if (sfc_layer_type == sfc_layer_varthick) then
+            WORK = (c1 / c2dtt(k)) * &
+                 ((c1 + grav_dz_r*PSURF(:,:,newtime,iblock))*TRACER(:,:,k,n,newtime,iblock) - &
+                  (c1 + grav_dz_r*PSURF(:,:,oldtime,iblock))*TRACER(:,:,k,n,oldtime,iblock))
+         else
+            WORK = (c1 / c2dtt(k)) * &
+                 (TRACER(:,:,k,n,newtime,iblock) - &
+                  TRACER(:,:,k,n,oldtime,iblock))
+         endif
 
          ! add curtime Robert filter terms and change in curtime TRACER from frazil ice formation
          ! oldtime Robert filter terms are already included in TRACER newtime
+         ! Robert filter only works with sfc_layer_varthick, so we don't implement non-sfc_layer_varthick here
          if (lrobert_filter) then
            WORK = WORK + (dzr(1)*(robert_curtime)/c2dtt(k)) * STORE_RF(:,:,k,n,iblock)
            WORK = WORK - rf_conservation_factor(n)*((robert_curtime)/c2dtt(k)) * &
@@ -1481,6 +1482,8 @@
          endif
 
          call accumulate_tavg_field(WORK, tavg_var_tend(n), iblock, k)
+
+         WORK_ZINT = dz(k) * merge(WORK, c0, k<=KMT(:,:,iblock))
 
          do k=2,km
             WORK = (c1 / c2dtt(k)) * &
@@ -1496,10 +1499,23 @@
             endif
 
             call accumulate_tavg_field(WORK, tavg_var_tend(n), iblock, k)
+
+            if (zw(k-1) < 100.0e2_r8) then
+               if (partial_bottom_cells) then
+                  WORK_ZINT = WORK_ZINT + &
+                    merge(min(100.0e2_r8 - zw(k-1), DZT(:,:,k,iblock)) * WORK, c0, k<=KMT(:,:,iblock))
+               else
+                  WORK_ZINT = WORK_ZINT + &
+                    merge(min(100.0e2_r8 - zw(k-1), dz(k)) * WORK, c0, k<=KMT(:,:,iblock))
+               endif
+            endif
          end do
+
+         call accumulate_tavg_field(WORK_ZINT, tavg_var_tend_zint_100m(n), iblock, 1)
       endif
 
       ! accumulate Robert filter term
+      ! Robert filter only works with sfc_layer_varthick, so we don't implement non-sfc_layer_varthick here
       if (lrobert_filter .and. accumulate_tavg_now(tavg_var_rf_tend(n))) then
          k = 1
          WORK = (dzr(1)*(robert_newtime+robert_curtime)/c2dtt(k)) * STORE_RF(:,:,k,n,iblock)
@@ -2323,6 +2339,8 @@
         call accumulate_tavg_field(WORK1,tavg_RESID_S,iblock,k)
     endif
   endif  ! sfc_layer_type
+
+  if (nt > 2) call tavg_passive_tracers(iblock,k)
 
 
 !-----------------------------------------------------------------------
