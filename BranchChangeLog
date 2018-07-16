@@ -2,6 +2,27 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    16 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n06_cesm_pop_2_1_20180705
+Tag Summary: incorporate latest settings from CESM2-CMIP6 spinup
+
+changes answers for all ECO compsets
+
+Testing: aux_pop intel/cheyenne
+MARBL commit 79008234faea4b81008f4f3b8e642a1a8ed7d8f7 klindsay28/final_CMIP6_BGC branch
+tests pass, including non-ECO BASELINE to final_CMIP6_BGC_n05
+BASELINE to final_CMIP6_BGC_n05 for ECO compsets fail because of changed answers
+NLCOMP for ECO compsets fail for same reason
+
+Files Modified:
+M       BranchChangeLog
+M       Externals_POP.cfg
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/ecosys_forcing_mod.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    16 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n05_cesm_pop_2_1_20180705
 Tag Summary: merge tag n02 from cmip6_diag_update_kl branch
 

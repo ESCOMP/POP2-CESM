@@ -425,7 +425,7 @@ contains
     dust_flux_source             = 'monthly-calendar'
     call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
     iron_flux_source             = 'monthly-calendar'
-    dust_ratio_thres             = 60.0_r8
+    dust_ratio_thres             = 55.0_r8
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
     call set_defaults_tracer_read(feventflux_input, file_varname='FESEDFLUXIN')

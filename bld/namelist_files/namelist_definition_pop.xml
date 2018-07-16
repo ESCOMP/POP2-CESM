@@ -5961,7 +5961,7 @@ category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
 
-Default: 60.0
+Default: 55.0
 </entry>
 
 <entry
@@ -6011,7 +6011,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: fesedflux_gx3v7_cesm1_97_2017.nc or fesedflux_gx1v6_cesm2_2017.nc
+Default: fesedflux_gx3v7_cesm1_97_2017.nc or fesedfluxTot_gx1v6_cesm2_2018_c180618.nc
 </entry>
 
 <entry
@@ -6097,6 +6097,7 @@ option for specification of o2_consumption_scalef
 
 Valid Values: 'const', 'file_time_invariant'
 Default: 'const'
+'file_time_invariant' (gx1v6,gx1v7)
 </entry>
 
 <entry
@@ -6114,7 +6115,8 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: none provided
+Default: 
+o2_consumption_scalef_0.30_POP_gx1v6_20180623.nc (gx1v6,gx1v7)
 </entry>
 
 <entry
@@ -6236,7 +6238,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
+Default: ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc or ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc
 </entry>
 
 <entry
