@@ -1,0 +1,38 @@
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    15 July 2018
+Tag Name:    pop2/branch_tags/cmip6_diag_update_kl_tags/cmip6_diag_update_kl_n01_cesm_pop_2_1_20180531
+Tag Summary: correct TEND_TRACER tavg var, introduce RF_TEND_TRACER tavg var
+
+TEND_TRACER now gives the correct results when lrobert_filter=.true.
+
+The following tavg vars are now on by default for gx3 and gx1 grids: TEND_TEMP, TEND_SALT
+
+The following tavg vars are now on by default for gx1 grids: RF_TEND_TEMP, RF_TEND_SALT
+
+Testing:
+aux_pop intel/cheyenne, baseline to CESM2
+tests passed, including BASELINE compare to CESM2.0 release
+
+Files Modified:
+A       BranchChangeLog
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx1v7_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.sf6.tavg.csh
+M       source/baroclinic.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    8 June 2018
+Tag Name:    pop2/branch_tags/cmip6_diag_update_kl_tags/cmip6_diag_update_kl_n00_cesm_pop_2_1_20180531
+Tag Summary: Initial branch tag, identical to cesm_pop_2_1_20180531 trunk tag
+===============================================================================

@@ -33,11 +33,13 @@ $s1  HDIFB_IAGE
 $s1  UE_IAGE
 $s1  VN_IAGE
 $s1  WT_IAGE
+$s1  TEND_IAGE
+$s1  RF_TEND_IAGE
 EOF
 endif
 
 #  disable the following until they are computed correctly
-#  IAGE_SQR 
+#  IAGE_SQR
 #  UE_IAGE
 #  VN_IAGE
 #  WT_IAGE
@@ -48,4 +50,3 @@ endif
 #  RESID_IAGE
 #  FvPER_IAGE
 #  FvICE_IAGE
-

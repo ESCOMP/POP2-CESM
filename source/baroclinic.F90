@@ -5,7 +5,7 @@
 ! !MODULE: baroclinic
 !
 ! !DESCRIPTION:
-!  Contains main driver routines and variables for computing the 
+!  Contains main driver routines and variables for computing the
 !  baroclinic velocities and tracer fields.
 !
 ! !REVISION HISTORY:
@@ -16,13 +16,13 @@
    use POP_KindsMod
    use POP_ErrorMod
    use POP_CommMod
-   use POP_FieldMod 
+   use POP_FieldMod
    use POP_GridHorzMod
-   use POP_HaloMod 
+   use POP_HaloMod
 
    use kinds_mod, only: int_kind, r8, log_kind, r4, rtavg
    use blocks, only: nx_block, ny_block, block, get_block
-!   use distribution, only: 
+!   use distribution, only:
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, POP_haloClinic
    use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
@@ -61,13 +61,13 @@
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers, &
        tavg_passive_tracers_baroclinic_correct, &
-       set_interior_passive_tracers_3D, tavg_TEND_TRACER
+       set_interior_passive_tracers_3D
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
    use tidal_mixing, only: ltidal_melet_plot, ltidal_mixing, tidal_accumulate_tavg, &
                            tidal_ts_driver
-   use estuary_vsf_mod   
+   use estuary_vsf_mod
    use running_mean_mod, only: running_mean_test_update_var
 
    implicit none
@@ -79,7 +79,8 @@
    public :: init_baroclinic,          &
              baroclinic_driver,        &
              baroclinic_correct_adjust,&
-             tracer_accumulate_tavg
+             tracer_accumulate_tavg,   &
+             accumulate_tavg_var_tend
 
 
    integer (int_kind), public :: &
@@ -94,7 +95,6 @@
       tavg_TEMP,         &! tavg id for temperature
       tavg_TEMP_MAX,     &! tavg id for maximum temperature
       tavg_TEMP_MIN,     &! tavg id for maximum temperature
-      tavg_TEMP_RF,      &! tavg id for Robert Filter temperature adjustment
       tavg_dTEMP_POS_3D, &! tavg id for positive temperature timestep difference
       tavg_dTEMP_POS_2D, &! tavg id for positive temperature timestep difference
       tavg_dTEMP_NEG_3D, &! tavg id for negative temperature timestep difference
@@ -104,7 +104,6 @@
       tavg_SALT,         &! tavg id for salinity
       tavg_SALT_MAX,     &! tavg id for maximum salinity
       tavg_SALT_MIN,     &! tavg id for minimum salinity
-      tavg_SALT_RF,      &! tavg id for Robert Filter salinity adjustment
       tavg_SSS2,         &! tavg id for surface salinity
       tavg_TEMP2,        &! tavg id for temperature squared
       tavg_TEMP_27,      &! tavg id for temperature at level 27
@@ -367,11 +366,6 @@
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
-   call define_tavg_field(tavg_TEMP_RF,'TEMP_RF',3,                     &
-                          long_name='Robert Filter Potential Temperature Adjustment',&
-                          units='degC', grid_loc='3111',                &
-                          coordinates='TLONG TLAT z_t time')
-
    call define_tavg_field(tavg_dTEMP_POS_3D,'dTEMP_POS_3D',3,          &
                           tavg_method=tavg_method_max,                 &
                           long_name='max pos temperature timestep diff', &
@@ -424,12 +418,6 @@
                           long_name='Minimum Salinity',                &
                           units='gram/kilogram', grid_loc='3111',      &
                           scale_factor=1000.0_r8,                      &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_SALT_RF,'SALT_RF',3,                     &
-                          long_name='Robert Filter Salinity Adjustment',&
-                          units='gram/kilogram', grid_loc='3111',       &
-                          scale_factor=1000.0_r8,                       &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_SSS2,'SSS2',2,                          &
@@ -522,11 +510,11 @@
 
 ! !DESCRIPTION:
 !  This routine is the main driver for the explicit time integration of
-!  baroclinic velocities $(u',v')$ and tracer fields $T$. 
+!  baroclinic velocities $(u',v')$ and tracer fields $T$.
 !
 !  Tracer equations:
 !  \begin{equation}
-!     (T^{n+1}-T^{n-1})/(2 \Delta t) = -L(T^n) + D_H(T^{n-1}) + 
+!     (T^{n+1}-T^{n-1})/(2 \Delta t) = -L(T^n) + D_H(T^{n-1}) +
 !                                      D_V(T^{n-1}) + S
 !  \end{equation}
 !  where $S$ are source terms, $L$ is the advection operator and
@@ -551,8 +539,8 @@
 !
 !  The above equations are written for the case of (leapfrog)
 !  implicit treatment of the coriolis terms.  if these terms are
-!  treated explicitly then the coriolis terms appear only in the 
-!  forcing terms $(F_x,F_y)$, which are calculated in clinic. 
+!  treated explicitly then the coriolis terms appear only in the
+!  forcing terms $(F_x,F_y)$, which are calculated in clinic.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -586,7 +574,7 @@
       iblock,             &! counter for block loops
       kp1,km1              ! level index for k+1, k-1 levels
 
-   real (r8), dimension(nx_block,ny_block) :: & 
+   real (r8), dimension(nx_block,ny_block) :: &
       FX,FY,              &! sum of r.h.s. forcing terms
       WORK1,WORK2,        &! local work space
       WUK,                &! vertical velocity at top of U box
@@ -638,9 +626,9 @@
 
    !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,kp1,km1,WTK,WORK1,factor)
    do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)  
+      this_block = get_block(blocks_clinic(iblock),iblock)
 
-      do k = 1,km 
+      do k = 1,km
 
          kp1 = k+1
          km1 = k-1
@@ -700,7 +688,7 @@
                                PSURF  (:,:    ,oldtime,iblock), &
                                PSURF  (:,:    ,curtime,iblock), &
                                this_block)
-         
+
 
 
 !-----------------------------------------------------------------------
@@ -741,13 +729,13 @@
 
          !*** accumulate tavg TRACER diagnostics if requested
          if (.not. lrobert_filter) then
-           call tracer_accumulate_tavg (TRACER (:,:,k,:,oldtime,iblock),  &
-                                        TRACER (:,:,k,:,curtime,iblock),  &
-                                        RHO    (:,:,k  ,curtime,iblock),  &
+           call tracer_accumulate_tavg (TRACER (:,:,:,:,oldtime,iblock),  &
+                                        TRACER (:,:,:,:,curtime,iblock),  &
+                                        RHO    (:,:,:  ,curtime,iblock),  &
                                         PSURF  (:,:    ,curtime,iblock),  &
                                         DH     (:,:            ,iblock),  &
                                         k,iblock)
-         !*** accumulate some tidal-mixing tavg diagnostics if requested; 
+         !*** accumulate some tidal-mixing tavg diagnostics if requested;
          !      testing is internal to tidal_accumulate_tavg
 
          if (ltidal_melet_plot) &
@@ -821,7 +809,7 @@
 
             !*** predictor update of T,S
             !*** with PSURF(curtime) on the LHS at k=1
- 
+
             call impvmixt(TRACER(:,:,:,:,newtime,iblock), &
                           TRACER(:,:,:,:,oldtime,iblock), &
                           PSURF (:,:,curtime,iblock),     &
@@ -888,7 +876,7 @@
 
    do iblock = 1,nblocks_clinic
 
-      this_block = get_block(blocks_clinic(iblock),iblock)  
+      this_block = get_block(blocks_clinic(iblock),iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -949,8 +937,8 @@
 
             WORK1 = c2dtu*beta*FCOR(:,:,iblock)
             WORK2 = c2dtu/(c1 + WORK1**2)
-            UVEL(:,:,k,newtime,iblock) = (FX + WORK1*FY)*WORK2 
-            VVEL(:,:,k,newtime,iblock) = (FY - WORK1*FX)*WORK2 
+            UVEL(:,:,k,newtime,iblock) = (FX + WORK1*FY)*WORK2
+            VVEL(:,:,k,newtime,iblock) = (FY - WORK1*FX)*WORK2
 
 
 
@@ -993,14 +981,14 @@
 
 !-----------------------------------------------------------------------
 !
-!     solve tridiagonal system with implicit treatment of vertical 
+!     solve tridiagonal system with implicit treatment of vertical
 !     diffusion of velocity.
 !
 !-----------------------------------------------------------------------
 
       if (implicit_vertical_mix)                   &
          call impvmixu(UVEL(:,:,:,newtime,iblock), &
-                       VVEL(:,:,:,newtime,iblock), & 
+                       VVEL(:,:,:,newtime,iblock), &
                        this_block)
 
 !-----------------------------------------------------------------------
@@ -1057,7 +1045,7 @@
               UVEL(:,:,k,newtime,iblock) - WORK1
               VVEL(:,:,k,newtime,iblock) = &
               VVEL(:,:,k,newtime,iblock) - WORK2
-           elsewhere 
+           elsewhere
               UVEL(:,:,k,newtime,iblock) = c0
               VVEL(:,:,k,newtime,iblock) = c0
            endwhere
@@ -1076,11 +1064,11 @@
 
 !-----------------------------------------------------------------------
 !
-!     note:  at this point UVEL(newtime) and VVEL(newtime) contain only 
+!     note:  at this point UVEL(newtime) and VVEL(newtime) contain only
 !     the baroclinic velocities (Up,Vp) at the new time.  they are later
 !     updated to the full velocities in step after barotropic is
 !     is called, which calculates the barotropic velocites ([U],[V])
-!     at the new time.  UVEL and VVEL at time levels oldtime ond curtime 
+!     at the new time.  UVEL and VVEL at time levels oldtime ond curtime
 !     always contain the full velocites.
 !
 !-----------------------------------------------------------------------
@@ -1161,13 +1149,10 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::  & 
+   integer (int_kind) ::  &
       k,                  &! vertical level index
       n,                  &! tracer index
       iblock               ! block index
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK
 
    real (r8), dimension(nx_block,ny_block,nt) :: &
       RHS1                 ! r.h.s. for impvmix on corrector step
@@ -1189,11 +1174,11 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,n,RHS1)
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,n,RHS1,k)
 
    do iblock = 1,nblocks_clinic
 
-      this_block = get_block(blocks_clinic(iblock),iblock)  
+      this_block = get_block(blocks_clinic(iblock),iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -1210,7 +1195,7 @@
             !*** tracers with tridiagonal solves
 
             if (lpressure_avg .and. leapfrogts) then
-        
+
                do n = 1,2   ! corrector for T,S only
                   where (KMT(:,:,iblock) > 0)  ! corrector RHS at k=1
                      RHS1(:,:,n)=((c2*TRACER(:,:,1,n,curtime,iblock) - &
@@ -1220,7 +1205,7 @@
                                 - TRACER(:,:,1,n,newtime,iblock)*      &
                                   (PSURF(:,:,newtime,iblock) -         &
                                    PSURF(:,:,curtime,iblock)))/        &
-                                   (grav*dz(1)) 
+                                   (grav*dz(1))
                   elsewhere
                      RHS1(:,:,n) = c0
                   endwhere
@@ -1236,7 +1221,7 @@
                   where (KMT(:,:,iblock) > 0)
                      TRACER(:,:,1,n,newtime,iblock) =               &
                                    TRACER(:,:,1,n,newtime,iblock) - &
-                                   TRACER(:,:,1,n,oldtime,iblock)   & 
+                                   TRACER(:,:,1,n,oldtime,iblock)   &
                                    *(PSURF(:,:,newtime,iblock) -    &
                                      PSURF(:,:,oldtime,iblock))/    &
                                      (grav*dz(1))
@@ -1261,7 +1246,7 @@
                   where (KMT(:,:,iblock) > 0)
                      TRACER(:,:,1,n,newtime,iblock) = &
                      TRACER(:,:,1,n,newtime,iblock) - &
-                     TRACER(:,:,1,n,oldtime,iblock)   & 
+                     TRACER(:,:,1,n,oldtime,iblock)   &
                      *(PSURF(:,:,newtime,iblock) -    &
                        PSURF(:,:,mixtime,iblock))/(grav*dz(1))
                   endwhere
@@ -1293,7 +1278,7 @@
                             TRACER(:,:,1,n,oldtime,iblock))     &
                        *(PSURF(:,:,curtime,iblock) -            &
                          PSURF(:,:,oldtime,iblock))/grav)       &
-                       /(dz(1) + PSURF(:,:,newtime,iblock)/grav) 
+                       /(dz(1) + PSURF(:,:,newtime,iblock)/grav)
                   elsewhere
                      TRACER(:,:,1,n,newtime,iblock) = c0 ! zero on land pts
                   endwhere
@@ -1353,7 +1338,7 @@
 
 !-----------------------------------------------------------------------
 !
-!     convective adjustment of tracers - 
+!     convective adjustment of tracers -
 !     convad routine does nothing if convective adjustment not chosen
 !     otherwise it performs convective adjustment and recomputes
 !     density
@@ -1396,24 +1381,11 @@
 
 !-----------------------------------------------------------------------
 !
-!     compute tendency of thickness weighted TEMP and SALT
+!     compute tendency of thickness weighted tracers
 !
 !-----------------------------------------------------------------------
 
-      if (mix_pass /= 1) then
-        do n = 1,nt
-            k = 1
-            WORK = c1 / c2dtt(k) *    &
-              ((c1 + PSURF(:,:,newtime,iblock)/grav/dz(k))*TRACER(:,:,k,n,newtime,iblock) - &
-               (c1 + PSURF(:,:,oldtime,iblock)/grav/dz(k))*TRACER(:,:,k,n,oldtime,iblock))
-            call accumulate_tavg_field(WORK, tavg_TEND_TRACER(n), iblock, k)
-            do k=2,km
-               WORK = (TRACER(:,:,k,n,newtime,iblock) -             &
-                       TRACER(:,:,k,n,oldtime,iblock)) / c2dtt(k)
-               call accumulate_tavg_field(WORK, tavg_TEND_TRACER(n), iblock, k)
-            end do
-        end do
-      endif
+      if (.not. lrobert_filter) call accumulate_tavg_var_tend(iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -1424,7 +1396,7 @@
       do k = 1,km  ! recalculate new density
 
          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                        TRACER(:,:,k,2,newtime,iblock), & 
+                        TRACER(:,:,k,2,newtime,iblock), &
                         this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
 
       enddo
@@ -1443,6 +1415,114 @@
 !EOC
 
  end subroutine baroclinic_correct_adjust
+
+!***********************************************************************
+!BOP
+! !IROUTINE: accumulate_tavg_var_tend
+! !INTERFACE:
+
+ subroutine accumulate_tavg_var_tend(iblock, STORE_RF, rf_conservation_factor, dTRACER_CUR_FRAZIL)
+
+! !DESCRIPTION:
+!  compute tendency of thickness weighted tracers
+!  modularized to enable it to be called from different locations,
+!  depending on lrobert_filter
+!
+! !REVISION HISTORY:
+!  same as module
+
+   use time_management, only: robert_newtime, robert_curtime, lrf_nonzero_newtime
+   use passive_tracers, only: tavg_var_tend, tavg_var_rf_tend
+   use grid, only: RCALCT_OPEN_OCEAN_3D
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: iblock
+   real (r8), intent(in), optional :: STORE_RF(:,:,:,:,:)         ! (nlon,nlat,km,nt,block)
+   real (r8), intent(in), optional :: rf_conservation_factor(:)   ! (nt)
+   real (r8), intent(in), optional :: dTRACER_CUR_FRAZIL(:,:,:,:) ! (nlon,nlat,nt,block)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::  &
+      k,                  &! vertical level index
+      n                    ! tracer index
+
+   real (r8) :: grav_dz_r ! 1/grav/dz
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
+
+!-----------------------------------------------------------------------
+
+   grav_dz_r = c1 / (grav * dz(1))
+
+   do n = 1,nt
+      if (accumulate_tavg_now(tavg_var_tend(n))) then
+         k = 1
+         WORK = (c1 / c2dtt(k)) * &
+              ((c1 + grav_dz_r*PSURF(:,:,newtime,iblock))*TRACER(:,:,k,n,newtime,iblock) - &
+               (c1 + grav_dz_r*PSURF(:,:,oldtime,iblock))*TRACER(:,:,k,n,oldtime,iblock))
+
+         ! add curtime Robert filter terms and change in curtime TRACER from frazil ice formation
+         ! oldtime Robert filter terms are already included in TRACER newtime
+         if (lrobert_filter) then
+           WORK = WORK + (dzr(1)*(robert_curtime)/c2dtt(k)) * STORE_RF(:,:,k,n,iblock)
+           WORK = WORK - rf_conservation_factor(n)*((robert_curtime)/c2dtt(k)) * &
+             (c1 + grav_dz_r*PSURF(:,:,curtime,iblock)) * RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
+           WORK = WORK + (c1 / c2dtt(k)) * &
+             (c1 + grav_dz_r*PSURF(:,:,curtime,iblock)) * dTRACER_CUR_FRAZIL(:,:,n,iblock)
+         endif
+
+         call accumulate_tavg_field(WORK, tavg_var_tend(n), iblock, k)
+
+         do k=2,km
+            WORK = (c1 / c2dtt(k)) * &
+                 (TRACER(:,:,k,n,newtime,iblock) - &
+                  TRACER(:,:,k,n,oldtime,iblock))
+
+            ! add curtime Robert filter terms
+            ! oldtime Robert filter terms are already included in TRACER newtime
+            if (lrobert_filter) then
+               WORK = WORK + ((robert_curtime)/c2dtt(k)) * STORE_RF(:,:,k,n,iblock)
+               WORK = WORK - rf_conservation_factor(n)*((robert_curtime)/c2dtt(k)) * &
+                 RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
+            endif
+
+            call accumulate_tavg_field(WORK, tavg_var_tend(n), iblock, k)
+         end do
+      endif
+
+      ! accumulate Robert filter term
+      if (lrobert_filter .and. accumulate_tavg_now(tavg_var_rf_tend(n))) then
+         k = 1
+         WORK = (dzr(1)*(robert_newtime+robert_curtime)/c2dtt(k)) * STORE_RF(:,:,k,n,iblock)
+         WORK = WORK - rf_conservation_factor(n)*((robert_curtime)/c2dtt(k)) * &
+            (c1 + grav_dz_r*PSURF(:,:,curtime,iblock)) * RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
+         if (lrf_nonzero_newtime) &
+         WORK = WORK - rf_conservation_factor(n)*((robert_newtime)/c2dtt(k)) * &
+            (c1 + grav_dz_r*PSURF(:,:,newtime,iblock)) * RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
+         call accumulate_tavg_field(WORK, tavg_var_rf_tend(n),iblock,k)
+
+         do k=2,km
+            WORK = ((robert_newtime+robert_curtime)/c2dtt(k)) * STORE_RF(:,:,k,n,iblock)
+            WORK = WORK - rf_conservation_factor(n)*((robert_newtime+robert_curtime)/c2dtt(k)) * &
+               RCALCT_OPEN_OCEAN_3D(:,:,k,iblock)
+            call accumulate_tavg_field(WORK, tavg_var_rf_tend(n),iblock,k)
+         end do
+      endif
+   end do
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine accumulate_tavg_var_tend
 
 !***********************************************************************
 !BOP
@@ -1472,12 +1552,12 @@
 !       +fv &\rightarrow& +fv^{n-1} \\
 !       -fu &\rightarrow& -fu^{n-1}
 !  \end{eqnarray}
-!  on Matsuno timesteps, where $\gamma$ is a parameter used to vary 
-!  the time-centering of the Coriolis and pressure gradient terms on 
+!  on Matsuno timesteps, where $\gamma$ is a parameter used to vary
+!  the time-centering of the Coriolis and pressure gradient terms on
 !  leapfrog steps.
 !
 !  The small metric terms for advection and diffusion of the
-!  velocity field are calculated in the advection and horizontal 
+!  velocity field are calculated in the advection and horizontal
 !  diffusion routines.
 !
 ! !REVISION HISTORY:
@@ -1512,8 +1592,8 @@
 ! !OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block), intent(out) :: &
-      FX,       &! sum of terms contributing to Fx at level k 
-      FY         ! sum of terms contributing to Fy at level k 
+      FX,       &! sum of terms contributing to Fx at level k
+      FY         ! sum of terms contributing to Fy at level k
 
 !EOP
 !BOC
@@ -1537,14 +1617,14 @@
 !-----------------------------------------------------------------------
 
    bid = this_block%local_id
- 
+
    if (k == 1) WUK = DHU_BLOCK  ! free surface
 
    if (.not.l1Ddyn) then
 
      call advu(k, WORKX, WORKY, WUK, UCUR, VCUR, this_block)
 
-     FX =  -WORKX   ! advu returns WORKX = +L(U) 
+     FX =  -WORKX   ! advu returns WORKX = +L(U)
      FY =  -WORKY   ! advu returns WORKY = +L(V)
 
      call accumulate_tavg_field(WORKX,tavg_ADVU,bid,k)
@@ -1567,7 +1647,7 @@
                                                    VCUR(:,:,k)*WORKY)
       else
          DIAG_KE_ADV_2D(:,:,bid) = DIAG_KE_ADV_2D(:,:,bid) -  &
-                                   dz(k)*(UCUR(:,:,k)*WORKX + & 
+                                   dz(k)*(UCUR(:,:,k)*WORKX + &
                                           VCUR(:,:,k)*WORKY)
       endif
    endif
@@ -1582,7 +1662,7 @@
 
       FX = FX + FCOR(:,:,bid)*(      gamma* VCUR(:,:,k) + &
                                (c1 - gamma)*VOLD(:,:,k))
-      FY = FY - FCOR(:,:,bid)*(      gamma* UCUR(:,:,k) + & 
+      FY = FY - FCOR(:,:,bid)*(      gamma* UCUR(:,:,k) + &
                                (c1 - gamma)*UOLD(:,:,k))
 
    elseif(.not.impcor .and. leapfrogts) then  ! explicit, leapfrog
@@ -1624,7 +1704,7 @@
       WORKX =  -DZU(:,:,k,bid)*(UCUR(:,:,k)*WORKX + &
                                 VCUR(:,:,k)*WORKY)
    else
-      WORKX =  -dz(k)*(UCUR(:,:,k)*WORKX + & 
+      WORKX =  -dz(k)*(UCUR(:,:,k)*WORKX + &
                        VCUR(:,:,k)*WORKY)
    endif
 
@@ -1664,7 +1744,7 @@
                                                   VCUR(:,:,k)*WORKY)
       else
          DIAG_KE_HMIX_2D(:,:,bid) = DIAG_KE_HMIX_2D(:,:,bid) + &
-                                    dz(k)*(UCUR(:,:,k)*WORKX + & 
+                                    dz(k)*(UCUR(:,:,k)*WORKX + &
                                            VCUR(:,:,k)*WORKY)
       endif
    endif
@@ -1690,7 +1770,7 @@
                                            VCUR(:,:,k)*WORKY)
       else
          DIAG_KE_VMIX_2D(:,:,bid) = DIAG_KE_VMIX_2D(:,:,bid) + &
-                                    dz(k)*(UCUR(:,:,k)*WORKX + & 
+                                    dz(k)*(UCUR(:,:,k)*WORKX + &
                                            VCUR(:,:,k)*WORKY)
       endif
    endif
@@ -1724,7 +1804,7 @@
 ! !DESCRIPTION:
 !  Computes explicit forcing for tracer equations:
 !  \begin{equation}
-!     (T^{n+1}-T^{n-1})/(2 \Delta t) = -L(T) + D_H(T^{n-1}) + 
+!     (T^{n+1}-T^{n-1})/(2 \Delta t) = -L(T) + D_H(T^{n-1}) +
 !                                              D_V(T^{n-1}) + S
 !  \end{equation}
 !  where $L$ is the advection operator, $D_{H,V}$ are the diffusion
@@ -1772,7 +1852,7 @@
 !EOP
 !BOC
 !-----------------------------------------------------------------------
-!         
+!
 !  local variables:
 !
 !-----------------------------------------------------------------------
@@ -1783,7 +1863,7 @@
 
    real (r8), dimension(nx_block,ny_block,nt) :: &
       FT,                &! sum of terms in dT/dt for the nth tracer
-      WORKN               ! work array used for various dT/dt terms 
+      WORKN               ! work array used for various dT/dt terms
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORKSW
@@ -1830,7 +1910,7 @@
 
 
             where (k <= KMT(:,:,bid))            &
-               DIAG_TRACER_HDIFF_2D(:,:,n,bid) = & 
+               DIAG_TRACER_HDIFF_2D(:,:,n,bid) = &
                DIAG_TRACER_HDIFF_2D(:,:,n,bid) + &
                WORKN(:,:,n)*dz(k)
          end do
@@ -1868,7 +1948,7 @@
 
       else
 
-         !*** For energetic consistency, we use dzw even for 
+         !*** For energetic consistency, we use dzw even for
          !*** partial bottom cell case
 
          where (k <= KMT(:,:,bid))
@@ -1884,7 +1964,7 @@
    if (.not.l1Ddyn) then
 
      call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
-     FT = FT - WORKN   ! advt returns WORKN = +L(T) 
+     FT = FT - WORKN   ! advt returns WORKN = +L(T)
 
    else
 
@@ -1895,7 +1975,7 @@
    if (ldiag_global) then
      if (partial_bottom_cells) then
        do n=1,nt
-         where (k <= KMT(:,:,bid)) DIAG_TRACER_ADV_2D(:,:,n,bid) = & 
+         where (k <= KMT(:,:,bid)) DIAG_TRACER_ADV_2D(:,:,n,bid) = &
                                    DIAG_TRACER_ADV_2D(:,:,n,bid) - &
                                    WORKN(:,:,n)*DZT(:,:,k,bid)
        end do
@@ -1906,7 +1986,7 @@
                                    DIAG_TRACER_ADV_2D(:,:,n,bid) - &
                                    WORKN(:,:,n)*dz(k)
        end do
-     endif 
+     endif
    endif
 
 !-----------------------------------------------------------------------
@@ -1981,7 +2061,7 @@
 !  add source terms from KPP and from shortwave solar absorption
 !    if necessary.
 !  NOTE:  this is here instead of in set_{pt,s}_interior in case
-!    KPP and/or shortwave solar absorption are turned on but 
+!    KPP and/or shortwave solar absorption are turned on but
 !    bulk restoring is not.
 !
 !-----------------------------------------------------------------------
@@ -2020,8 +2100,8 @@
 !  save the explicit part of the RHS in TRACER(newtime)
 !  if there is implicit vertical mixing
 !
-!  with pressure averaging and variable thickness surface layer, 
-!  the RHS contains the surface height contribution for the 
+!  with pressure averaging and variable thickness surface layer,
+!  the RHS contains the surface height contribution for the
 !  predictor step (for T,S at k=1 only)
 !
 !-----------------------------------------------------------------------
@@ -2056,7 +2136,7 @@
 !-----------------------------------------------------------------------
 !
 !  for variable thickness surface layer, update all but surface
-!    layers. 
+!    layers.
 !  at the surface:
 !    if explicit vertical mixing and pressure averaging:
 !      predict surface T,S and store RHS for all other tracers
@@ -2064,7 +2144,7 @@
 !      store RHS for all tracers for later update with new Psurf
 !
 !  if not a variable thickness surface layer, update tracers here
-!     
+!
 !-----------------------------------------------------------------------
 
    else ! no implicit_vertical_mix
@@ -2141,19 +2221,21 @@
 
    integer (int_kind), intent(in) :: iblock, k
 
-   real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
-      TOLD,     &! tracers at level k, old     time level, block iblock
-      TCUR       ! tracers at level k, current time level, block iblock
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TOLD,     &! tracers at old     time level, block iblock
+      TCUR       ! tracers at current time level, block iblock
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      RHOCUR     ! density at current time level, block iblock
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      RHOCUR,   &! density at level k, current time level, block iblock
-      PSURF,    &!         at          current time level, block iblock
-      DH         !         at                              block iblock
+      PSURF,    &!         at current time level, block iblock
+      DH         !         at                     block iblock
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
-!         
+!
 !  local variables:
 !
 !-----------------------------------------------------------------------
@@ -2161,67 +2243,67 @@
    real (r8), dimension(nx_block,ny_block) :: WORK1 ! local work space
    real (r8)  ::  factor
 
-   call accumulate_tavg_field(TCUR(:,:,1),    tavg_TEMP,    iblock,k)
-   call accumulate_tavg_field(TCUR(:,:,1),    tavg_TEMP_MAX,iblock,k)
-   call accumulate_tavg_field(TCUR(:,:,1),    tavg_TEMP_MIN,iblock,k)
-   call accumulate_tavg_field(TCUR(:,:,1)**2, tavg_TEMP2,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,1),    tavg_TEMP,    iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,1),    tavg_TEMP_MAX,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,1),    tavg_TEMP_MIN,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,1)**2, tavg_TEMP2,iblock,k)
 
    if (k == 1)  then
-      call accumulate_tavg_field(TCUR(:,:,1),    tavg_SST, iblock,1)
-      call accumulate_tavg_field(TCUR(:,:,1)**2, tavg_SST2,iblock,1)
+      call accumulate_tavg_field(TCUR(:,:,k,1),    tavg_SST, iblock,1)
+      call accumulate_tavg_field(TCUR(:,:,k,1)**2, tavg_SST2,iblock,1)
    endif
 
-   call accumulate_tavg_field(max(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_POS_2D,iblock,1)
-   call accumulate_tavg_field(min(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_NEG_2D,iblock,1)
+   call accumulate_tavg_field(max(TCUR(:,:,k,1)-TOLD(:,:,k,1),c0),tavg_dTEMP_POS_2D,iblock,1)
+   call accumulate_tavg_field(min(TCUR(:,:,k,1)-TOLD(:,:,k,1),c0),tavg_dTEMP_NEG_2D,iblock,1)
 
-   if (k <= 8) call accumulate_tavg_field(TCUR(:,:,1), tavg_T1_8,iblock,k)
+   if (k <= 8) call accumulate_tavg_field(TCUR(:,:,k,1), tavg_T1_8,iblock,k)
 
-   call accumulate_tavg_field(max(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_POS_3D,iblock,k)
-   call accumulate_tavg_field(min(TCUR(:,:,1)-TOLD(:,:,1),c0),tavg_dTEMP_NEG_3D,iblock,k)
-    
-   call accumulate_tavg_field(TCUR(:,:,2), tavg_SALT,    iblock,k)
-   call accumulate_tavg_field(TCUR(:,:,2), tavg_SALT_MAX,iblock,k)
-   call accumulate_tavg_field(TCUR(:,:,2), tavg_SALT_MIN,iblock,k)
+   call accumulate_tavg_field(max(TCUR(:,:,k,1)-TOLD(:,:,k,1),c0),tavg_dTEMP_POS_3D,iblock,k)
+   call accumulate_tavg_field(min(TCUR(:,:,k,1)-TOLD(:,:,k,1),c0),tavg_dTEMP_NEG_3D,iblock,k)
 
-   if (k <= 8) call accumulate_tavg_field(TCUR(:,:,2), tavg_S1_8,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,2), tavg_SALT,    iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,2), tavg_SALT_MAX,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,2), tavg_SALT_MIN,iblock,k)
 
-   call accumulate_tavg_field(TCUR(:,:,2)**2, tavg_SALT2,iblock,k)
+   if (k <= 8) call accumulate_tavg_field(TCUR(:,:,k,2), tavg_S1_8,iblock,k)
 
-   call accumulate_tavg_field(TCUR(:,:,1)*TCUR(:,:,2), tavg_ST,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,2)**2, tavg_SALT2,iblock,k)
 
-   call accumulate_tavg_field(RHOCUR(:,:), tavg_RHO,iblock,k)
+   call accumulate_tavg_field(TCUR(:,:,k,1)*TCUR(:,:,k,2), tavg_ST,iblock,k)
+
+   call accumulate_tavg_field(RHOCUR(:,:,k), tavg_RHO,iblock,k)
 
    if (k == 1)  then
-      call accumulate_tavg_field(TCUR(:,:,2)**2, tavg_SSS2,iblock,1)
+      call accumulate_tavg_field(TCUR(:,:,k,2)**2, tavg_SSS2,iblock,1)
    endif
 
-!   if (partial_bottom_cells) then 
-!      WORK1 = RHOCUR(:,:) * DZT(:,:,k,iblock)
+!   if (partial_bottom_cells) then
+!      WORK1 = RHOCUR(:,:,k) * DZT(:,:,k,iblock)
 !   else
-!      WORK1 = RHOCUR(:,:) * dz(k)
+!      WORK1 = RHOCUR(:,:,k) * dz(k)
 !   endif
    if (sfc_layer_type == sfc_layer_varthick .and. &
              k == 1) then
      where (k <= KMT(:,:,iblock))
-       WORK1 = RHOCUR(:,:) * ( dz(k) + PSURF(:,:)/grav )
+       WORK1 = RHOCUR(:,:,k) * ( dz(k) + PSURF(:,:)/grav )
      elsewhere
        WORK1 = c0
      endwhere
    else
      if (partial_bottom_cells) then
        where (k <= KMT(:,:,iblock))
-         WORK1 = RHOCUR(:,:) * DZT(:,:,k,iblock)
+         WORK1 = RHOCUR(:,:,k) * DZT(:,:,k,iblock)
        elsewhere
          WORK1 = c0
        endwhere
      else
        where (k <= KMT(:,:,iblock))
-         WORK1 = RHOCUR(:,:) * dz(k)
+         WORK1 = RHOCUR(:,:,k) * dz(k)
        elsewhere
          WORK1 = c0
        endwhere
      endif
-   endif 
+   endif
    call accumulate_tavg_field(WORK1,tavg_RHO_VINT,iblock,k)
 
   if ( sfc_layer_type /= sfc_layer_varthick .and. k == 1) then
@@ -2229,7 +2311,7 @@
         WORK1 = c0
         factor = c1/hflux_factor  ! converts to W/m^2
         where (CALCT(:,:,iblock))  &
-          WORK1=DH(:,:)*TCUR(:,:,1)*factor
+          WORK1=DH(:,:)*TCUR(:,:,k,1)*factor
         call accumulate_tavg_field(WORK1,tavg_RESID_T,iblock,k)
     endif
 
@@ -2237,7 +2319,7 @@
         WORK1 = c0
         factor = c1/salinity_factor  ! converts to kg(freshwater)/m^2/s
         where (CALCT(:,:,iblock)) &
-          WORK1 = DH(:,:)*TCUR(:,:,2)*factor
+          WORK1 = DH(:,:)*TCUR(:,:,k,2)*factor
         call accumulate_tavg_field(WORK1,tavg_RESID_S,iblock,k)
     endif
   endif  ! sfc_layer_type

@@ -121,7 +121,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), dimension(nt), public :: &
-      tavg_TEND_TRACER    ! tavg id for tracer tendency
+      tavg_var_tend,            & ! tavg id for tracer tendency
+      tavg_var_rf_tend            ! tavg id for Robert Filter tracer adjustment
 
    integer (int_kind), dimension (3:nt) ::  &
       tavg_var,                 & ! tracer
@@ -191,7 +192,7 @@
 
    real (r8), dimension(:, :, :, :, :), pointer :: &
         ecosys_source_sink_3d ! (nx_block, ny_block, km, nt, nblocks_clinic)
-   
+
 !EOC
 !***********************************************************************
 
@@ -371,7 +372,7 @@
 !  by default, all tracers are written to tavg as full depth
 !-----------------------------------------------------------------------
 
-   tracer_d(3:nt)%lfull_depth_tavg = .true.
+   tracer_d(1:nt)%lfull_depth_tavg = .true.
 
 !-----------------------------------------------------------------------
 !  by default, all tracers have scale_factor equal to one
@@ -681,14 +682,36 @@
    enddo
 
    do n=1,nt
-     call define_tavg_field(tavg_TEND_TRACER(n), 'TEND_' /&
-                                           &/ trim(tracer_d(n)%short_name),3, &
-                            long_name='Tendency of Thickness Weighted '/&
-                                           &/ trim(tracer_d(n)%short_name),   &
-                            units=trim(tracer_d(n)%tend_units),               &
-                            scale_factor=tracer_d(n)%scale_factor,            &
-                            grid_loc='3111',                                  &
-                            coordinates='TLONG TLAT z_t time')
+      sname = 'TEND_' /&
+           &/ trim(tracer_d(n)%short_name)
+      lname = 'Tendency of Thickness Weighted '/&
+           &/ trim(tracer_d(n)%short_name)
+      units = tracer_d(n)%tend_units
+      if (tracer_d(n)%lfull_depth_tavg) then
+         grid_loc = '3111'
+         coordinates = 'TLONG TLAT z_t time'
+      else
+         grid_loc = '3114'
+         coordinates = 'TLONG TLAT z_t_150m time'
+      end if
+
+      call define_tavg_field(tavg_var_tend(n),                      &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates=coordinates)
+
+      sname = 'RF_TEND_' /&
+           &/ trim(tracer_d(n)%short_name)
+      lname = 'Robert Filter Tendency for '/&
+           &/ trim(tracer_d(n)%short_name)
+
+      call define_tavg_field(tavg_var_rf_tend(n),                   &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates=coordinates)
+
    end do
 
 !-----------------------------------------------------------------------
@@ -866,7 +889,7 @@
 
    use domain, only : blocks_clinic
    use blocks, only : get_block
-   
+
 ! !INPUT PARAMETERS:
    real (r8), dimension(nx_block,ny_block,km,nt,max_blocks_clinic), intent(in) :: &
         TRACER_OLD, & ! previous timestep tracer tendencies
@@ -1719,7 +1742,7 @@
  subroutine passive_tracers_send_time
 
 ! !DESCRIPTION:
-!  sends POP time information 
+!  sends POP time information
 !
 ! !REVISION HISTORY:
 !  same as module

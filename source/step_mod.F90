@@ -31,7 +31,6 @@
    use diagnostics
    use state_mod, only: state
    use time_management
-   use baroclinic
    use barotropic
    use surface_hgt
    use tavg
@@ -42,7 +41,6 @@
    use forcing_shf
    use geoheatflux
    use ice
-   use passive_tracers
    use registry
    use communicate
    use global_reductions
@@ -141,7 +139,11 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use baroclinic, only : baroclinic_driver, baroclinic_correct_adjust
    use estuary_vsf_mod, only : lvsf_river, MASK_ESTUARY, FLUX_ROFF_VSF_SRF
+   use passive_tracers, only : passive_tracers_send_time
+   use passive_tracers, only : passive_tracers_tavg_sflux
+   use passive_tracers, only : passive_tracers_tavg_FvICE
 
 !EOP
 !BOC
@@ -923,6 +925,9 @@
 ! !REVISION HISTORY:
 !  added July 2016 njn01
 
+   use baroclinic, only : tracer_accumulate_tavg, accumulate_tavg_var_tend
+   use passive_tracers, only : tavg_var_tend, tavg_var_rf_tend
+
 ! !INPUT PARAMETERS:
 
    real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: DH
@@ -943,15 +948,15 @@
       iblock,          &! block counter
       tmptime           ! temp space for time index swapping
 
-   real (POP_r8)    :: rf_conservation_factor
+   real (POP_r8)    :: rf_conservation_factor(nt)
    real (POP_r8)    :: rf_conserve_factor_new
    real (POP_r8)    :: rf_conserve_factor_cur
+   real (POP_r8)    :: grav_dz_r ! 1/grav/dz
 
    real (POP_r8), dimension(nx_block,ny_block,nt,max_blocks_clinic) :: WORKN
 
    type (block)     :: this_block  ! block information for current block
 
-   logical (log_kind) :: lrf_accumulate_RF_terms
    logical (log_kind) :: lrf_step_diagnostics = .false.
 
 !-----------------------------------------------------------------------
@@ -969,28 +974,6 @@
 !     begin Robert Filtering
 !
 !-----------------------------------------------------------------------
-
-   lrf_accumulate_RF_terms = .false.
-   if (lrf_accumulate_RF_terms) then
-    !*** accumulate TEMP_RF and SALT_RF for off-line budget diagnostics
-    !    surface is only approximate
-
-     !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
-     do iblock = 1,nblocks_clinic
-       do n=1,2
-       do k=1,km
-         STORE_RF(:,:,k,n,iblock) = &
-         TRACER(:,:,k,n,oldtime,iblock) + TRACER(:,:,k,n,newtime,iblock)  &
-                                     - c2*TRACER(:,:,k,n,curtime,iblock)
-         if (n == 1 )  &
-         call accumulate_tavg_field(STORE_RF(:,:,k,n,iblock), tavg_TEMP_RF,iblock,k)
-         if (n == 2) &
-         call accumulate_tavg_field(STORE_RF(:,:,k,n,iblock), tavg_SALT_RF,iblock,k)
-       enddo ! k
-       enddo ! n
-     end do ! block loop (iblock)
-    !$OMP END PARALLEL DO
-   endif
 
    !$OMP PARALLEL DO PRIVATE(iblock,k,n,WORK1,WORK2)
    do iblock = 1,nblocks_clinic
@@ -1061,7 +1044,6 @@
 
          TRACER(:,:,k,n,curtime,iblock) = TRACER(:,:,k,n,curtime,iblock) +  &
                                           robert_curtime*STORE_RF(:,:,k,n,iblock)
-
        enddo ! k
      enddo ! n
    end do ! block loop
@@ -1109,7 +1091,6 @@
            !*** form RF TRACER conservation adjustment term at surface;
            !    compute surface rf_Svol (thickness is already included in STORE_RF(k=1))
            WORKN(:,:,n,iblock) = TAREA(:,:,iblock)*MASK_TRBUDGET(:,:,k,iblock)*STORE_RF(:,:,k,n,iblock)
-
        enddo ! n
      end do ! block loop
      !$OMP END PARALLEL DO
@@ -1117,27 +1098,24 @@
      rf_Svol(:) = rf_Svol(:) + global_sum(WORKN,distrb_clinic,field_loc_center)
 
      !*** filter PSURF
-     k=1
-     n=1
      !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
-       STORE_RF(:,:,k,n,iblock) =  &
+       WORKB(:,:,iblock) =  &
          PSURF(:,:,oldtime,iblock) + PSURF(:,:,newtime,iblock) - c2*PSURF(:,:,curtime,iblock)
 
        if (lrf_nonzero_newtime) &
        PSURF(:,:,newtime,iblock) =  &
-       PSURF(:,:,newtime,iblock) + robert_newtime*STORE_RF(:,:,k,n,iblock)
+       PSURF(:,:,newtime,iblock) + robert_newtime*WORKB(:,:,iblock)
 
        PSURF(:,:,curtime,iblock) =  &
-       PSURF(:,:,curtime,iblock) + robert_curtime*STORE_RF(:,:,k,n,iblock)
+       PSURF(:,:,curtime,iblock) + robert_curtime*WORKB(:,:,iblock)
 
      end do ! block loop (iblock)
      !$OMP END PARALLEL DO
 
      !*** compute RF conservation adjustment term for PSURF
      k=1
-     n=1
-     rf_sump = global_sum(STORE_RF(:,:,k,n,:)*TAREA(:,:,:),  &
+     rf_sump = global_sum(WORKB(:,:,:)*TAREA(:,:,:),  &
                           distrb_clinic,field_loc_center, MASK_TRBUDGET(:,:,k,:))
      rf_sump = rf_sump/bgtarea_t_k(k)
 
@@ -1180,7 +1158,6 @@
    endif ! sfc_layer_type == sfc_layer_varthick
          ! ====================================
 
-
    !*** add time-dependent surface volume to time-invariant volume
    WORKB(:,:,:) = TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav)
 
@@ -1200,18 +1177,19 @@
      rf_S(n) = rf_Svol(n)/rf_ocean_norm
 
      if (.not. rf_S_prev_valid(n) .or. lrf_nonzero_newtime .or. lrf_conserveVT) then
-       rf_conservation_factor = rf_S(n)
+       rf_conservation_factor(n) = rf_S(n)
        !*** placeholder for lrf_nonzero_newtime; this is not correct
      else
        !*** control numerical instability when robert_alpha = 1
-       rf_conservation_factor = p5*(rf_S(n)+rf_S_prev(n))
+       rf_conservation_factor(n) = p5*(rf_S(n)+rf_S_prev(n))
      endif
 
-     rf_conserve_factor_new = rf_conservation_factor*robert_newtime
-     rf_conserve_factor_cur = rf_conservation_factor*robert_curtime
+     rf_conserve_factor_new = rf_conservation_factor(n)*robert_newtime
+     rf_conserve_factor_cur = rf_conservation_factor(n)*robert_curtime
 
      if (lrf_conserveVT) call step_RF_doc ('conserve', n, rf_conserve_factor_cur)
 
+     grav_dz_r = c1 / (grav * dz(1))
 
      !***  apply RF conservation adjustment to TRACERs at all vertical levels
      !$OMP PARALLEL DO PRIVATE(iblock,k)
@@ -1269,11 +1247,17 @@
      !*** form ice now, after RF adjustments have been made
      if (liceform .and. mix_pass /= 1) then
 
+       !*** track changes in curtime TRACER for off-line budget diagnostics
+       !*** only surface vals are currently handled
+       WORKN(:,:,:,iblock) = TRACER(:,:,1,:,curtime,iblock)
+
        !*** form ice from Robert-filtered TRACER(curtime)
        call ice_formation(TRACER(:,:,:,:,curtime,iblock),          &
                           PSURF(:,:,curtime,iblock),               &
                           STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
                           iblock,this_block,lfw_as_salt_flx)
+
+       WORKN(:,:,:,iblock) = TRACER(:,:,1,:,curtime,iblock) - WORKN(:,:,:,iblock)
      endif
    end do ! block loop (iblock)
    !$OMP END PARALLEL DO
@@ -1306,13 +1290,15 @@
 
      !*** accumulate TRACERs after RF curtime adjustment
      do k = 1,km
-       call tracer_accumulate_tavg(TRACER (:,:,k,:,oldtime,iblock),  &
-                                   TRACER (:,:,k,:,curtime,iblock),  &
-                                   RHO    (:,:,k  ,curtime,iblock),  &
+       call tracer_accumulate_tavg(TRACER (:,:,:,:,oldtime,iblock),  &
+                                   TRACER (:,:,:,:,curtime,iblock),  &
+                                   RHO    (:,:,:  ,curtime,iblock),  &
                                    PSURF  (:,:    ,curtime,iblock),  &
                                    DH     (:,:            ,iblock),  &
                                    k,iblock)
      enddo !k
+
+     call accumulate_tavg_var_tend(iblock, STORE_RF, rf_conservation_factor, WORKN)
 
    end do ! block loop (iblock)
    !$OMP END PARALLEL DO
@@ -1653,6 +1639,8 @@
 ! !REVISION HISTORY:
 !  added 11 May 2016 njn01
 
+   use baroclinic, only : tavg_TEMP_27
+
 ! !INPUT PARAMETERS:
 
    integer (POP_i4), intent(in) :: iblock
@@ -1681,7 +1669,7 @@
    endif
 
    !*** optionally document rf_S values
-   
+
    if (lrf_prnt_conserve_adj) then
      if (my_task == master_task .and. iblock == 1) then
        do n=1,nt
