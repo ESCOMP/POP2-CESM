@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    17 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n07_cesm_pop_2_1_20180705
+Tag Summary: update MARBL tag from final_CMIP6_BGC_20180716.01 to final_CMIP6_BGC_20180717.01
+
+add _r8 to some floating point constants
+
+Testing: aux_pop intel/cheyenne
+MARBL commit 56bc933f50ace787efff59bdcc8ef9303ec6bb7c klindsay28/final_CMIP6_BGC branch
+tests pass, including BASELINE to final_CMIP6_BGC_n06
+
+Files Modified:
+M       BranchChangeLog
+M       Externals_POP.cfg
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    16 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n06_cesm_pop_2_1_20180705
 Tag Summary: incorporate latest settings from CESM2-CMIP6 spinup
