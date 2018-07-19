@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    19 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n08_cesm_pop_2_1_20180705
+Tag Summary: set OCN_CO2_TYPE=diagnostic for all _CAM compsets
+
+Testing: aux_pop intel/cheyenne NLCOMP only
+MARBL commit 56bc933f50ace787efff59bdcc8ef9303ec6bb7c klindsay28/final_CMIP6_BGC branch
+tests pass, including BASELINE to final_CMIP6_BGC_n07
+
+also verified that OCN_CO2_TYPE=diagnostic is picked up in a BW1850 compset
+
+Files Modified:
+M       BranchChangeLog
+M       cime_config/config_component.xml
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    17 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n07_cesm_pop_2_1_20180705
 Tag Summary: update MARBL tag from final_CMIP6_BGC_20180716.01 to final_CMIP6_BGC_20180717.01
