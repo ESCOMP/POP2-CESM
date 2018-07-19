@@ -176,6 +176,7 @@
     <valid_values>constant,prognostic,diagnostic,box_atm_co2</valid_values>
     <default_value>constant</default_value>
     <values>
+      <value compset="_CAM">diagnostic</value>
       <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%ECO.*_BGC%BDRD">diagnostic</value>
       <value compset="_DATM%CPLHIST.*_POP2%ECO">diagnostic</value>

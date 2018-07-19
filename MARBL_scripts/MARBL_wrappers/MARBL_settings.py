@@ -26,10 +26,12 @@ class MARBL_settings_for_POP(object):
             MARBL_args["input_file"] = None
 
         # Specify grid
-        if ocn_grid == "gx3v7":
+        if ocn_grid.startswith("gx3"):
             MARBL_args["grid"] = "CESM_x3"
-        else:
+        elif ocn_grid.startswith("gx1"):
             MARBL_args["grid"] = "CESM_x1"
+        else:
+            MARBL_args["grid"] = "CESM_other"
 
         # If not a startup run, MARBL may want initial bury coefficient from restart file
         if run_type == "startup" and not continue_run:
