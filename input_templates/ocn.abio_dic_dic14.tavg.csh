@@ -14,10 +14,10 @@ if ($my_stream < 1) then
 endif
 
 @ s1 = 1   # use base-model stream 1
-   
+
 cat >! $CASEROOT/Buildconf/popconf/abio_dic_dic14_tavg_contents << EOF
 $s1  ABIO_DIC
-$s1  ABIO_DIC14 
+$s1  ABIO_DIC14
 $s1  ABIO_D14Cocn
 $s1  FvICE_ABIO_DIC
 $s1  FvPER_ABIO_DIC
@@ -57,6 +57,10 @@ $s1  VN_ABIO_DIC14
 $s1  VN_ABIO_DIC
 $s1  WT_ABIO_DIC14
 $s1  WT_ABIO_DIC
+$s1  TEND_ABIO_DIC14
+$s1  TEND_ABIO_DIC
+$s1  RF_TEND_ABIO_DIC14
+$s1  RF_TEND_ABIO_DIC
 EOF
 endif
 

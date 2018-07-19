@@ -143,9 +143,16 @@ module ecosys_forcing_mod
   character(char_len) :: dust_flux_source             ! option for atmospheric dust deposition
   type(tracer_read)   :: dust_flux_input              ! namelist input for dust_flux
   character(char_len) :: iron_flux_source             ! option for atmospheric iron deposition
+  real(r8)            :: dust_ratio_thres             ! coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
   type(tracer_read)   :: iron_flux_input              ! namelist input for iron_flux
   type(tracer_read)   :: fesedflux_input              ! namelist input for fesedflux
   type(tracer_read)   :: feventflux_input             ! namelist input for feventflux
+  character(char_len) :: o2_consumption_scalef_opt    ! option for specification of o2_consumption_scalef
+  real(r8)            :: o2_consumption_scalef_const  ! constant for o2_consumption_scalef_opt=const
+  type(tracer_read)   :: o2_consumption_scalef_input  ! file info for o2_consumption_scalef_opt=file_time_invariant
+  character(char_len) :: p_remin_scalef_opt           ! option for specification of p_remin_scalef
+  real(r8)            :: p_remin_scalef_const         ! constant for p_remin_scalef_opt=const
+  type(tracer_read)   :: p_remin_scalef_input         ! file info for p_remin_scalef_opt=file_time_invariant
   logical(log_kind)   :: lignore_driver_ndep
   character(char_len) :: ndep_data_type               ! type of ndep forcing
   type(tracer_read)   :: nox_flux_monthly_input       ! namelist input for nox_flux_monthly
@@ -368,7 +375,10 @@ contains
 
     namelist /ecosys_forcing_data_nml/                                        &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
-         iron_flux_input, fesedflux_input, feventflux_input,                  &
+         dust_ratio_thres, iron_flux_input, fesedflux_input, feventflux_input,&
+         o2_consumption_scalef_opt, o2_consumption_scalef_const,              &
+         o2_consumption_scalef_input,                                         &
+         p_remin_scalef_opt, p_remin_scalef_const, p_remin_scalef_input,      &
          lignore_driver_ndep, ndep_data_type,                                 &
          nox_flux_monthly_input, nhy_flux_monthly_input,                      &
          ndep_shr_stream_year_first, ndep_shr_stream_year_last,               &
@@ -415,9 +425,16 @@ contains
     dust_flux_source             = 'monthly-calendar'
     call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
     iron_flux_source             = 'monthly-calendar'
+    dust_ratio_thres             = 55.0_r8
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
     call set_defaults_tracer_read(feventflux_input, file_varname='FESEDFLUXIN')
+    o2_consumption_scalef_opt   = 'const'
+    o2_consumption_scalef_const = c1
+    call set_defaults_tracer_read(o2_consumption_scalef_input, file_varname='o2_consumption_scalef')
+    p_remin_scalef_opt   = 'const'
+    p_remin_scalef_const = c1
+    call set_defaults_tracer_read(p_remin_scalef_input, file_varname='p_remin_scalef')
     lignore_driver_ndep = .false.
     ndep_data_type = 'monthly-calendar'
     call set_defaults_tracer_read(nox_flux_monthly_input, file_varname='nox_flux')
@@ -983,6 +1000,42 @@ contains
                           file_varname=fesedflux_input%file_varname,          &
                           unit_conv_factor=fesedflux_input%scale_factor,      &
                           rank=3, dim3_len=km, id=n)
+          case ('O2 Consumption Scale Factor')
+            select case (trim(o2_consumption_scalef_opt))
+            case ('const')
+              call interior_forcing_fields(n)%add_forcing_field(field_source='const', &
+                   marbl_varname=marbl_varname, field_units=units, &
+                   field_constant=o2_consumption_scalef_const, rank=3, dim3_len=km, id=n)
+            case ('file_time_invariant')
+              call interior_forcing_fields(n)%add_forcing_field( &
+                   field_source='file_time_invariant', &
+                   marbl_varname=marbl_varname, field_units=units, &
+                   filename=o2_consumption_scalef_input%filename, &
+                   file_varname=o2_consumption_scalef_input%file_varname, &
+                   unit_conv_factor=o2_consumption_scalef_input%scale_factor, &
+                   rank=3, dim3_len=km, id=n)
+            case default
+              call document(subname, 'unknown o2_consumption_scalef_opt', o2_consumption_scalef_opt)
+              call exit_POP(sigAbort, 'Stopping in ' // subname)
+            end select
+          case ('Particulate Remin Scale Factor')
+            select case (trim(p_remin_scalef_opt))
+            case ('const')
+              call interior_forcing_fields(n)%add_forcing_field(field_source='const', &
+                   marbl_varname=marbl_varname, field_units=units, &
+                   field_constant=p_remin_scalef_const, rank=3, dim3_len=km, id=n)
+            case ('file_time_invariant')
+              call interior_forcing_fields(n)%add_forcing_field( &
+                   field_source='file_time_invariant', &
+                   marbl_varname=marbl_varname, field_units=units, &
+                   filename=p_remin_scalef_input%filename, &
+                   file_varname=p_remin_scalef_input%file_varname, &
+                   unit_conv_factor=p_remin_scalef_input%scale_factor, &
+                   rank=3, dim3_len=km, id=n)
+            case default
+              call document(subname, 'unknown p_remin_scalef_opt', p_remin_scalef_opt)
+              call exit_POP(sigAbort, 'Stopping in ' // subname)
+            end select
           case DEFAULT
             write(err_msg, "(A,1X,A)") trim(marbl_req_interior_forcing_fields(n)%metadata%varname), &
                            'is not a valid interior forcing field name.'
@@ -1683,7 +1736,6 @@ contains
 
     real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
-    real      (r8), parameter      :: dust_ratio_thres = 60.0_r8
     real      (r8), parameter      :: dust_ratio_to_fe_bioavail_frac = 1.0_r8 / 170.0_r8
     real      (r8), parameter      :: fe_bioavail_frac_offset = 0.01_r8
 
