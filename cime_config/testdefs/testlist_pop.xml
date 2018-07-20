@@ -427,7 +427,6 @@
   </test>
   <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_cesm2_0_settings">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
