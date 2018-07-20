@@ -5,7 +5,9 @@ Tag Date:    20 July 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n193_marbl_dev_n94_cesm_pop_2_1_20180716
 Tag Summary: Merge latest marbl_dev. Also edit namelist_defaults to allow for
              differences between OCN_BGC_CONFIG=cesm2.0 and cesm2.1 (this also
-             required adding ocn_bgc_config to config_cache.xml via buildcpp)
+             required adding ocn_bgc_config to config_cache.xml via buildcpp).
+             Added a gx1v7 test with cesm2.0 defaults to aux_pop_MARBL on
+             cheyenne.
 
 Testing:     aux_pop_MARBL is b4b with cesm_pop_2_1_20180716 (which does not
              have a cesm2.0 test) on both hobart and cheyenne. For cesm2.0
@@ -26,6 +28,7 @@ M       bld/namelist_files/namelist_definition_pop.xml
 M       cime_config/buildcpp
 M       cime_config/config_component.xml
 M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
 M       input_templates/gx1v6_tavg_contents
 M       input_templates/gx1v7_tavg_contents
 M       input_templates/gx3v7_tavg_contents

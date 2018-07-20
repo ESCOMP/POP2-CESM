@@ -194,7 +194,7 @@
     <default_value>latest</default_value>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
-    <desc>Version of MARBL tunings to use (default values can be overwritten by user_nl_marbl)</desc>
+    <desc>Version of ocean BGC tunings to use (default values can be overwritten by user_nl_pop and user_nl_marbl)</desc>
   </entry>
 
   <entry id="POP_TAVG_R8">
