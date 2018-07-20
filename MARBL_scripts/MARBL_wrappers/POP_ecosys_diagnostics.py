@@ -258,7 +258,7 @@ def write_ecosys_diagnostics_file(active_tracers, autotroph_list, zooplankton_li
             value = "never_average"
 
         # These diagnostics should be included by default for tracers requested budget terms
-        for key in ['UE', 'VN', 'WT', 'DIA_IMPVF', 'HDIFE', 'HDIFN', 'HDIFB']:
+        for key in ['UE', 'VN', 'WT', 'DIA_IMPVF', 'HDIFE', 'HDIFN', 'HDIFB', 'TEND', 'RF_TEND']:
             specific_key = '%s_%s' % (key, tracer_short_name)
             if specific_key not in full_diag_dict[tracer_short_name]['diags'].keys():
                 full_diag_dict[tracer_short_name]['diags'][specific_key] = value

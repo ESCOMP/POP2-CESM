@@ -1,6 +1,48 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    20 July 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n193_marbl_dev_n94_cesm_pop_2_1_20180716
+Tag Summary: Merge latest marbl_dev. Also edit namelist_defaults to allow for
+             differences between OCN_BGC_CONFIG=cesm2.0 and cesm2.1 (this also
+             required adding ocn_bgc_config to config_cache.xml via buildcpp)
+
+Testing:     aux_pop_MARBL is b4b with cesm_pop_2_1_20180716 (which does not
+             have a cesm2.0 test) on both hobart and cheyenne. For cesm2.0
+             test, I ran a single ciso test with old code base (including a
+             bugfix in marbl_mod where two instances of cski should have been
+             csk) and confirmed that is bit-for-bit on hobart as well.
+
+Files Modified:
+M       BranchChangeLog
+M       ChangeLog
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       MARBL_scripts/MARBL_wrappers/__init__.py
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx1v7_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.sf6.tavg.csh
+M       source/baroclinic.F90
+M       source/diagnostics.F90
+M       source/ecosys_forcing_mod.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    12 July 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n192_marbl_dev_n93_cesm_pop_2_1_20180514
 Tag Summary: Small updates following code review

@@ -1088,7 +1088,7 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r8)     :: dummy1, dummy2, dummy3
+   real (r8)     :: dummy1, dummy2, dummy3 ! arguments for unused arguments to hms
    real (r8),save:: test_timestep_eps = 0.0000001_r8
 
    integer (int_kind) :: nfit,nn ! dummy indices

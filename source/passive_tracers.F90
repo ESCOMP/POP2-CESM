@@ -104,7 +104,6 @@
       reset_passive_tracers,                  &
       write_restart_passive_tracers,          &
       tavg_passive_tracers,                   &
-      tavg_passive_tracers_baroclinic_correct,&
       passive_tracers_tavg_sflux,             &
       passive_tracers_tavg_fvice,             &
       passive_tracers_timer_print_all,        &
@@ -121,7 +120,9 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), dimension(nt), public :: &
-      tavg_TEND_TRACER    ! tavg id for tracer tendency
+      tavg_var_tend,            & ! tavg id for tracer tendency
+      tavg_var_tend_zint_100m,  & ! vertically integrated tracer tendency, 0-100m
+      tavg_var_rf_tend            ! tavg id for Robert Filter tracer adjustment
 
    integer (int_kind), dimension (3:nt) ::  &
       tavg_var,                 & ! tracer
@@ -131,7 +132,6 @@
       tavg_var_J,               & ! tracer source sink term
       tavg_var_Jint,            & ! vertically integrated tracer source sink term
       tavg_var_Jint_100m,       & ! vertically integrated tracer source sink term, 0-100m
-      tavg_var_tend_zint_100m,  & ! vertically integrated tracer tendency, 0-100m
       tavg_var_stf,             & ! surface tracer flux
       tavg_var_stf_riv,         & ! riverine tracer flux
       tavg_var_resid,           & ! tracer residual surface flux
@@ -191,7 +191,7 @@
 
    real (r8), dimension(:, :, :, :, :), pointer :: &
         ecosys_source_sink_3d ! (nx_block, ny_block, km, nt, nblocks_clinic)
-   
+
 !EOC
 !***********************************************************************
 
@@ -371,7 +371,7 @@
 !  by default, all tracers are written to tavg as full depth
 !-----------------------------------------------------------------------
 
-   tracer_d(3:nt)%lfull_depth_tavg = .true.
+   tracer_d(1:nt)%lfull_depth_tavg = .true.
 
 !-----------------------------------------------------------------------
 !  by default, all tracers have scale_factor equal to one
@@ -608,17 +608,6 @@
                              scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
 
-      sname = 'tend_zint_100m_' /&
-                            &/ trim(tracer_d(n)%short_name)
-      lname = trim(tracer_d(n)%long_name) /&
-                                           &/ ' Tendency Vertical Integral, 0-100m'
-      units = tracer_d(n)%flux_units
-      call define_tavg_field(tavg_var_tend_zint_100m(n),            &
-                             sname, 2, long_name=lname,             &
-                             units=units, grid_loc='2110',          &
-                             scale_factor=tracer_d(n)%scale_factor, &
-                             coordinates='TLONG TLAT time')
-
       sname = 'STF_' /&
                       &/ trim(tracer_d(n)%short_name)
       lname = trim(tracer_d(n)%long_name) /&
@@ -681,14 +670,48 @@
    enddo
 
    do n=1,nt
-     call define_tavg_field(tavg_TEND_TRACER(n), 'TEND_' /&
-                                           &/ trim(tracer_d(n)%short_name),3, &
-                            long_name='Tendency of Thickness Weighted '/&
-                                           &/ trim(tracer_d(n)%short_name),   &
-                            units=trim(tracer_d(n)%tend_units),               &
-                            scale_factor=tracer_d(n)%scale_factor,            &
-                            grid_loc='3111',                                  &
-                            coordinates='TLONG TLAT z_t time')
+      sname = 'TEND_' /&
+           &/ trim(tracer_d(n)%short_name)
+      lname = 'Tendency of Thickness Weighted '/&
+           &/ trim(tracer_d(n)%short_name)
+      units = tracer_d(n)%tend_units
+      if (tracer_d(n)%lfull_depth_tavg) then
+         grid_loc = '3111'
+         coordinates = 'TLONG TLAT z_t time'
+      else
+         grid_loc = '3114'
+         coordinates = 'TLONG TLAT z_t_150m time'
+      end if
+
+      call define_tavg_field(tavg_var_tend(n),                      &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates=coordinates)
+
+      sname = 'tend_zint_100m_' /&
+                            &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Tendency Vertical Integral, 0-100m'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_tend_zint_100m(n),            &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates='TLONG TLAT time')
+
+      sname = 'RF_TEND_' /&
+           &/ trim(tracer_d(n)%short_name)
+      lname = 'Robert Filter Tendency for '/&
+           &/ trim(tracer_d(n)%short_name)
+      units = tracer_d(n)%tend_units
+
+      call define_tavg_field(tavg_var_rf_tend(n),                   &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates=coordinates)
+
    end do
 
 !-----------------------------------------------------------------------
@@ -866,7 +889,7 @@
 
    use domain, only : blocks_clinic
    use blocks, only : get_block
-   
+
 ! !INPUT PARAMETERS:
    real (r8), dimension(nx_block,ny_block,km,nt,max_blocks_clinic), intent(in) :: &
         TRACER_OLD, & ! previous timestep tracer tendencies
@@ -1337,77 +1360,6 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: tavg_passive_tracers_baroclinic_correct
-! !INTERFACE:
-
- subroutine tavg_passive_tracers_baroclinic_correct(bid)
-
-! !DESCRIPTION:
-!  accumulate common tavg fields for tracers
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   integer (int_kind), intent(in) :: bid  ! vertical level index
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) ::  &
-      n,                  &! tracer index
-      k                    ! vertical level index
-
-   real (r8) :: &
-      ztop                 ! depth of top of cell
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK
-
-!-----------------------------------------------------------------------
-
-   do n = 3, nt
-      if (accumulate_tavg_now(tavg_var_tend_zint_100m(n))) then
-            ztop = c0
-            do k=1,km
-               if (k > 1) ztop = zw(k-1)
-               if (ztop >= 100.0e2_r8) exit
-               if (sfc_layer_type == sfc_layer_varthick .and. k == 1) then
-                  WORK = merge( &
-                     ((dz(k)+PSURF(:,:,newtime,bid)/grav) &
-                      * TRACER(:,:,k,n,newtime,bid) - &
-                      (dz(k)+PSURF(:,:,oldtime,bid)/grav) &
-                      * TRACER(:,:,k,n,oldtime,bid)) / c2dtt(k), c0, k<=KMT(:,:,bid))
-               else
-                  if (partial_bottom_cells) then
-                     WORK = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) &
-                                  * (TRACER(:,:,k,n,newtime,bid) &
-                                     - TRACER(:,:,k,n,oldtime,bid)) / c2dtt(k), &
-                                  c0, k<=KMT(:,:,bid))
-                  else
-                     WORK = merge(min(100.0e2_r8 - ztop, dz(k)) &
-                                  * (TRACER(:,:,k,n,newtime,bid) &
-                                     - TRACER(:,:,k,n,oldtime,bid)) / c2dtt(k), &
-                                  c0, k<=KMT(:,:,bid))
-                  endif
-               endif
-               call accumulate_tavg_field(WORK,tavg_var_tend_zint_100m(n),bid,k)
-            end do
-      endif
-   enddo
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine tavg_passive_tracers_baroclinic_correct
-
-
-!***********************************************************************
-!BOP
 ! !IROUTINE: passive_tracers_tavg_sflux
 ! !INTERFACE:
 
@@ -1719,7 +1671,7 @@
  subroutine passive_tracers_send_time
 
 ! !DESCRIPTION:
-!  sends POP time information 
+!  sends POP time information
 !
 ! !REVISION HISTORY:
 !  same as module

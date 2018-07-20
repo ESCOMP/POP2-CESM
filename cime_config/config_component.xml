@@ -2,12 +2,13 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%PHYS-CYCLE][%ECO-PHYS-CYCLE][%DAR]">POP2 </desc>
+    <desc ocn="POP2[%1D][%ECO][%PHYS-CYCLE][%ECO-PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
     <desc option="1D" >Single column </desc>
     <desc option="ECO">Ecosystem</desc>
     <desc option="PHYS-CYCLE">phys cycle option</desc>
     <desc option="ECO-PHYS-CYCLE">Ecosystem with phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
+    <desc option="NDEP">Nitrogen Deposition from Coupler</desc>
   </description>
 
   <entry id="COMP_OCN">
@@ -76,6 +77,18 @@
     <group>run_component_pop</group>
     <file>env_run.xml</file>
     <desc>TRUE turns off all horizontal motion in POP (single column)</desc>
+  </entry>
+
+  <entry id="OCN_NDEP_DRIVER">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <values>
+      <value compset = "_POP2%[^_]*NDEP">TRUE</value>
+    </values>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>TRUE means pop uses nitrogen deposition provided by coupler</desc>
   </entry>
 
   <entry id="OCN_TRACER_MODULES">
@@ -163,6 +176,7 @@
     <valid_values>constant,prognostic,diagnostic,box_atm_co2</valid_values>
     <default_value>constant</default_value>
     <values>
+      <value compset="_CAM">diagnostic</value>
       <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%ECO.*_BGC%BDRD">diagnostic</value>
       <value compset="_DATM%CPLHIST.*_POP2%ECO">diagnostic</value>

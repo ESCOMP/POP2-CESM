@@ -5811,7 +5811,7 @@ valid_values="file,const,drv_diag" >
 Source of atmos CO2 and D14C.
 
 Valid Values: 'file', 'const', 'drv_diag'
-Default: '
+Default: 'const'
 </entry>
 
 <entry
@@ -5955,6 +5955,16 @@ Default: 'monthly-calendar'
 </entry>
 
 <entry
+id="dust_ratio_thres"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
+
+Default: 55.0
+</entry>
+
+<entry
 id="iron_flux_input%filename"
 type="char*256"
 category="Forcing (Ecosystem)"
@@ -6001,7 +6011,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: fesedflux_gx3v7_cesm1_97_2017.nc or fesedflux_gx1v6_cesm2_2017.nc
+Default: fesedflux_gx3v7_cesm1_97_2017.nc or fesedfluxTot_gx1v6_cesm2_2018_c180618.nc
 </entry>
 
 <entry
@@ -6078,6 +6088,132 @@ Default: none provided
 </entry>
 
 <entry
+id="o2_consumption_scalef_opt"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml"
+valid_values="const,file_time_invariant" >
+option for specification of o2_consumption_scalef
+
+Valid Values: 'const', 'file_time_invariant'
+Default: 'const'
+'file_time_invariant' (gx1v6,gx1v7)
+</entry>
+
+<entry
+id="o2_consumption_scalef_const"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+constant for o2_consumption_scalef_opt=const
+Default: 1.0
+</entry>
+
+<entry
+id="o2_consumption_scalef_input%filename"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml"
+input_pathname="abs" >
+Default: 
+o2_consumption_scalef_0.30_POP_gx1v6_20180623.nc (gx1v6,gx1v7)
+</entry>
+
+<entry
+id="o2_consumption_scalef_input%file_varname"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: 'o2_consumption_scalef'
+</entry>
+
+<entry
+id="o2_consumption_scalef_input%file_fmt"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: 'nc'
+</entry>
+
+<entry
+id="o2_consumption_scalef_input%scale_factor"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry
+id="o2_consumption_scalef_input%default_val"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: none provided
+</entry>
+
+<entry
+id="p_remin_scalef_opt"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml"
+valid_values="const,file_time_invariant" >
+option for specification of p_remin_scalef
+
+Valid Values: 'const', 'file_time_invariant'
+Default: 'const'
+</entry>
+
+<entry
+id="p_remin_scalef_const"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+constant for p_remin_scalef_opt=const
+Default: 1.0
+</entry>
+
+<entry
+id="p_remin_scalef_input%filename"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml"
+input_pathname="abs" >
+Default: none provided
+</entry>
+
+<entry
+id="p_remin_scalef_input%file_varname"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: 'p_remin_scalef'
+</entry>
+
+<entry
+id="p_remin_scalef_input%file_fmt"
+type="char*256"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: 'nc'
+</entry>
+
+<entry
+id="p_remin_scalef_input%scale_factor"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: 1.0
+</entry>
+
+<entry
+id="p_remin_scalef_input%default_val"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+Default: none provided
+</entry>
+
+<entry
 id="ndep_data_type"
 type="char*256"
 category="Forcing (Ecosystem)"
@@ -6102,7 +6238,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
+Default: ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc or ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc
 </entry>
 
 <entry
