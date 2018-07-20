@@ -2,6 +2,19 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    20 July 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n194_marbl_dev_n96_cesm_pop_2_1_20180720
+Tag Summary: Merge marbl_dev onto marbl_dev_levy (zig-zag merge)
+
+Testing:     NONE
+
+Files Modified:
+M       BranchChangeLog
+M       ChangeLog
+M       Externals_POP.cfg
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    20 July 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n193_marbl_dev_n94_cesm_pop_2_1_20180716
 Tag Summary: Merge latest marbl_dev. Also edit namelist_defaults to allow for
              differences between OCN_BGC_CONFIG=cesm2.0 and cesm2.1 (this also
