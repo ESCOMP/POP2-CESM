@@ -1,6 +1,34 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    20 July 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n95_cesm_pop_2_1_20180716
+Tag Summary: Merge latest marbl_dev_levy (n193) onto marbl_dev to provide
+             support for running with old tunings (e.g. the CESM 2.0 parameter
+             settings)
+             -- New OCN_BGC_CONFIG variable in env_run.xml determines which
+                tunings to use
+             -- Some namelist variables have different defaults depending on
+                OCN_BGC_CONFIG
+             -- New version of MARBL contains multiple default settings files
+             -- New test run in aux_pop and aux_pop_MARBL ensures no
+                unexpected changes to old tunings
+
+Testing:     Verify single case builds (lots of testing on marbl_dev_levy)
+
+Files Modified:
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_diagnostics.py
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 July 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n94_cesm_pop_2_1_20180716
 Tag Summary: Merge latest pop trunk onto marbl_dev

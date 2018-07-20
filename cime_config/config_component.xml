@@ -188,6 +188,15 @@
       The default is constant.</desc>
   </entry>
 
+  <entry id="OCN_BGC_CONFIG">
+    <type>char</type>
+    <valid_values>latest,cesm2.0</valid_values>
+    <default_value>latest</default_value>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>Version of ocean BGC tunings to use (default values can be overwritten by user_nl_pop and user_nl_marbl)</desc>
+  </entry>
+
   <entry id="POP_TAVG_R8">
     <type>logical</type>
     <valid_values>TRUE,FALSE</valid_values>
@@ -277,7 +286,6 @@
     <file>env_build.xml</file>
     <desc>pop marbl tracer count (this is runtime configurable in marbl but not in pop - do not edit)</desc>
   </entry>
-
 
   <entry id="POP_PHYS_CYCLE_YEARS_IN_CYCLE">
     <type>integer</type>
