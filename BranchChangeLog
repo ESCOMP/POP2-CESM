@@ -2,6 +2,35 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    31 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n10_cesm_pop_2_1_20180720
+Tag Summary: merge trunk tag cesm_pop_2_1_20180720
+
+Testing: aux_pop intel/cheyenne
+MARBL tag marbl0.31.0 from marbl-ecosys/MARBL
+tests pass, including BASELINE to final_CMIP6_BGC_n09
+  NLCOMP and BASELINE fails from new test
+    SMS.T62_g17.C1850ECO.cheyenne_intel.pop-ecosys_cesm2_0_settings
+  some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       ChangeLog
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_diagnostics.py
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
+ M      drivers/cpl
+ M      drivers/cpl_none
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    31 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n09_cesm_pop_2_1_20180716
 Tag Summary: merge trunk tag cesm_pop_2_1_20180716
 

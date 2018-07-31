@@ -28,6 +28,7 @@ _config_cache_template = """<?xml version="1.0"?>
 <entry id="irf_mode" value="{IRF_MODE}" list="" valid_values="NK_precond,offline_transport">IRF tracer module mode</entry>
 <entry id="irf_nt" value="{IRF_NT}" list="" valid_values="">Number of IRF tracers</entry>
 <entry id="marbl_nt" value="{MARBL_NT}" list="" valid_values="">Number of MARBL tracers</entry>
+<entry id="ocn_bgc_config" value="{ocn_bgc_config}" list="" valid_values="">Version of BGC tunings to use</entry>
 <entry id="ocn_grid" value="{ocn_grid}" list="" valid_values="">Ocean grid used for POP</entry>
 <entry id="use_abio" value="{use_abio}" list="" valid_values="FALSE,TRUE">Use abio tracer module</entry>
 <entry id="use_cfc" value="{use_cfc}" list="" valid_values="FALSE,TRUE">Use cfc tracer module</entry>
@@ -116,7 +117,8 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 sys.path.append(os.path.join(srcroot,"components","pop","MARBL_scripts"))
                 from MARBL_wrappers import MARBL_settings_for_POP
                 MARBL_settings = MARBL_settings_for_POP(MARBL_dir, input_file, caseroot, ocn_grid,
-                                       case.get_value("RUN_TYPE"), case.get_value("CONTINUE_RUN"))
+                                       case.get_value("RUN_TYPE"), case.get_value("CONTINUE_RUN"),
+                                       case.get_value("OCN_BGC_CONFIG"))
                 # (ii) get MARBL_NT
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
                 NT = NT + MARBL_NT
@@ -162,6 +164,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
         IRF_MODE=IRF_MODE,
         IRF_NT=IRF_NT,
         MARBL_NT=MARBL_NT,
+        ocn_bgc_config=case.get_value("OCN_BGC_CONFIG"),
         ocn_grid=case.get_value("OCN_GRID"),
         use_abio=use_abio,
         use_cfc=use_cfc,

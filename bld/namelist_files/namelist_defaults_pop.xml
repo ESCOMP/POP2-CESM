@@ -1317,6 +1317,7 @@
 <iron_flux_source                       >driver-derived  </iron_flux_source>
 
 <dust_ratio_thres>55.0</dust_ratio_thres>
+<dust_ratio_thres ocn_bgc_config="cesm2.0">60.0</dust_ratio_thres>
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
@@ -1332,6 +1333,9 @@
 <fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_cesm1_97_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
+
 <fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
 <fesedflux_input%file_fmt>nc</fesedflux_input%file_fmt>
 <fesedflux_input%scale_factor>1.1574e-6</fesedflux_input%scale_factor>
@@ -1346,6 +1350,8 @@
 <o2_consumption_scalef_opt>const</o2_consumption_scalef_opt>
 <o2_consumption_scalef_opt ocn_grid="gx1v6">file_time_invariant</o2_consumption_scalef_opt>
 <o2_consumption_scalef_opt ocn_grid="gx1v7">file_time_invariant</o2_consumption_scalef_opt>
+<o2_consumption_scalef_opt ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">const</o2_consumption_scalef_opt>
+<o2_consumption_scalef_opt ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">const</o2_consumption_scalef_opt>
 
 <o2_consumption_scalef_const>1.0</o2_consumption_scalef_const>
 <o2_consumption_scalef_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/o2_consumption_scalef_0.30_POP_gx1v6_20180623.nc</o2_consumption_scalef_input%filename>
@@ -1375,9 +1381,13 @@
 
 <nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nox_flux_monthly_input%filename>
 <nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
 <nox_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nox_flux_monthly_input%filename>
 <nhy_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
