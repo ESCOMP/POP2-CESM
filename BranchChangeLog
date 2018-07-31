@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    31 July 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n09_cesm_pop_2_1_20180716
+Tag Summary: merge trunk tag cesm_pop_2_1_20180716
+
+Testing: aux_pop intel/cheyenne
+MARBL tag marbl0.30.0 from marbl-ecosys/MARBL
+tests pass, including BASELINE to final_CMIP6_BGC_n07
+  some MEMCOMP failures
+
+Files Modified:
+ M      .
+M       BranchChangeLog
+M       ChangeLog
+M       Externals_POP.cfg
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    19 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n08_cesm_pop_2_1_20180705
 Tag Summary: set OCN_CO2_TYPE=diagnostic for all _CAM compsets

@@ -1,11 +1,51 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    16 July 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180716
+Tag Summary: Tune ocean BGC for CMIP 6 -- this requires an updated MARBL tag
+             and some new POP namelist options to control new features in MARBL.
+             Also, three bugfixes:
+
+             1. Missing scale_factor for N_SALT diagnostic
+             2. Correct illegal argument aliasing in time_management.F90
+             3. Tracer states and some other diagnostics were computed incorrectly
+                when the Robert filter was enabled (i.e. in gx1v7 runs)
+
+Testing:     aux_pop on cheyenne/intel - all POP2%ECO tests fail BASELINE and
+             NLCOMP; all non-ECO gx1v7 tests fail BASELINE (but pass NLCOMP),
+             all non-ECO gx3v7 tests pass both BASELINE and NLCOMP.
+
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+M       MARBL_scripts/MARBL_wrappers/POP_ecosys_diagnostics.py
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx1v7_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.sf6.tavg.csh
+M       source/baroclinic.F90
+M       source/diagnostics.F90
+M       source/ecosys_forcing_mod.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/time_management.F90
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  jedwards, altuntas
 Tag Date:    5 July 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180705
 Tag Summary: Add optional NDEP modifier for POP compsets. The modifier
              determines whether OCN_NDEP_DRIVER is to be set to True. Also
-             added latent_heat_fusion_mks field for CMIP6 vars. 
+             added latent_heat_fusion_mks field for CMIP6 vars.
 
 Testing:     aux_pop on cheyenne/intel. b4b.
 
