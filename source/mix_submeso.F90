@@ -88,6 +88,9 @@
       tavg_HLS_SUBM          ! horizontal length scale used in horizontal
                              !  buoyancy gradient scaling in submeso
 
+   integer (int_kind), dimension(nt) :: &
+      tavg_SUBM_ADV_TEND_TRACER ! tavg id for submeso advective tendency of tracer
+
    real (r8), dimension(:,:,:), allocatable :: &
       TIME_SCALE             ! time scale used in horizontal length scale
                              !  calculation
@@ -143,6 +146,8 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use prognostic, only : tracer_d
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -152,6 +157,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      n,                 &   ! dummy loop index
       nml_error,         &   ! error flag for namelist
       iblock                 ! block index
 
@@ -309,6 +315,18 @@
                  scale_factor=1000.0_r8,                                          &
                  units='gram/kilogram/s', grid_loc='3121',                        &
                  coordinates='TLONG ULAT z_t time')
+
+   do n = 1,nt
+      call define_tavg_field(tavg_SUBM_ADV_TEND_TRACER(n),                &
+                             'SUBM_ADV_TEND_' /&
+                                     &/ trim(tracer_d(n)%short_name),3,   &
+                             long_name='Submeso advective tendency for ' /&
+                                     &/trim(tracer_d(n)%short_name),      &
+                             units=trim(tracer_d(n)%tend_units),          &
+                             scale_factor=tracer_d(n)%scale_factor,       &
+                             grid_loc='3111',                             &
+                             coordinates='TLONG TLAT z_t time' )
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC
@@ -972,6 +990,8 @@
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFB_TRACER(n),bid,k)
           endif
+
+         call accumulate_tavg_field(GTK(:,:,n),tavg_SUBM_ADV_TEND_TRACER(n),bid,k)
       endif   ! mix_pass ne 1
 
 	   

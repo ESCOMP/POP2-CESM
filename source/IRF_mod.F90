@@ -86,11 +86,9 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-!   type (tracer_field), dimension(IRF_tracer_cnt), intent(inout) :: &
    type (tracer_field), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
-!   real(r8), dimension(nx_block,ny_block,km,IRF_tracer_cnt,3,max_blocks_clinic), &
    real(r8), dimension(:,:,:,:,:,:), &
       intent(inout) :: TRACER_MODULE
 
@@ -290,10 +288,10 @@ contains
 
 !***********************************************************************
 !BOP
-! !IROUTINE: IRF_reset(TRACER_MODULE_OLD, TRACER_MODULE_NEW)
+! !IROUTINE: IRF_reset
 ! !INTERFACE:
 
- subroutine IRF_reset(TRACER_MODULE_OLD, TRACER_MODULE_NEW)
+ subroutine IRF_reset(TRACER_MODULE_OLD, TRACER_MODULE_RESET)
 
 ! !DESCRIPTION:
 !  reset IRF newtime values to oldtime values
@@ -303,21 +301,19 @@ contains
 
 ! !INPUT PARAMETERS:
 
-!   real(r8), dimension(nx_block,ny_block,km,IRF_tracer_cnt), intent(in) :: &
    real(r8), dimension(:,:,:,:), intent(in) :: &
-      TRACER_MODULE_OLD  ! IRF tracers at oldtime
+      TRACER_MODULE_OLD    ! IRF tracers at oldtime
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-!   real(r8), dimension(nx_block,ny_block,km,IRF_tracer_cnt), intent(inout) :: &
    real(r8), dimension(:,:,:,:), intent(inout) :: &
-      TRACER_MODULE_NEW  ! IRF tracers at new
+      TRACER_MODULE_RESET  ! IRF tracers at time level being reset
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 
-   TRACER_MODULE_NEW = TRACER_MODULE_OLD
+   TRACER_MODULE_RESET = TRACER_MODULE_OLD
 
 !-----------------------------------------------------------------------
 !EOC

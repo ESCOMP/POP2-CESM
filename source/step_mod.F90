@@ -926,7 +926,7 @@
 !  added July 2016 njn01
 
    use baroclinic, only : tracer_accumulate_tavg, accumulate_tavg_var_tend
-   use passive_tracers, only : tavg_var_tend, tavg_var_rf_tend
+   use passive_tracers, only : reset_passive_tracers
 
 ! !INPUT PARAMETERS:
 
@@ -1237,34 +1237,31 @@
    ! after filtering, recompute and accumulate for time averaging
    !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k)
    do iblock = 1,nblocks_clinic
      this_block = get_block(blocks_clinic(iblock),iblock)
 
      !*** same as standard leapfrog
      FW_OLD(:,:,iblock) = FW(:,:,iblock)
 
+     !*** track changes in curtime TRACER for off-line budget diagnostics
+     !*** only surface vals are currently handled
+     WORKN(:,:,:,iblock) = TRACER(:,:,1,:,curtime,iblock)
+
      !*** form ice now, after RF adjustments have been made
      if (liceform .and. mix_pass /= 1) then
-
-       !*** track changes in curtime TRACER for off-line budget diagnostics
-       !*** only surface vals are currently handled
-       WORKN(:,:,:,iblock) = TRACER(:,:,1,:,curtime,iblock)
-
        !*** form ice from Robert-filtered TRACER(curtime)
        call ice_formation(TRACER(:,:,:,:,curtime,iblock),          &
                           PSURF(:,:,curtime,iblock),               &
                           STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
                           iblock,this_block,lfw_as_salt_flx)
-
-       WORKN(:,:,:,iblock) = TRACER(:,:,1,:,curtime,iblock) - WORKN(:,:,:,iblock)
      endif
-   end do ! block loop (iblock)
-   !$OMP END PARALLEL DO
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k)
-   do iblock = 1,nblocks_clinic
-     this_block = get_block(blocks_clinic(iblock),iblock)
+     if (nt > 2) call reset_passive_tracers(  &
+       TRACER(:,:,:,:,oldtime,iblock), &
+       TRACER(:,:,:,:,curtime,iblock), iblock)
+
+     WORKN(:,:,:,iblock) = TRACER(:,:,1,:,curtime,iblock) - WORKN(:,:,:,iblock)
 
      !*** form ice now, after RF adjustments have been made
      if (liceform .and. mix_pass /= 1) then
@@ -1276,16 +1273,19 @@
                           iblock,this_block,lfw_as_salt_flx)
      endif
 
+     if (lrf_nonzero_newtime) then
+       if (nt > 2) call reset_passive_tracers(  &
+         TRACER(:,:,:,:,oldtime,iblock), &
+         TRACER(:,:,:,:,newtime,iblock), iblock)
+     endif
+
      !*** recalculate densities from averaged tracers
      do k = 1,km
-
-         !*** call state (newtime) every timestep -- is this ok?
-!      if (lrf_nonzero_newtime) &
-       call state(k,k,TRACER(:,:,k,1,newtime,iblock), TRACER(:,:,k,2,newtime,iblock), &
-                      this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
-
        call state(k,k,TRACER(:,:,k,1,curtime,iblock), TRACER(:,:,k,2,curtime,iblock), &
                   this_block, RHOOUT=RHO(:,:,k,curtime,iblock))
+
+       call state(k,k,TRACER(:,:,k,1,newtime,iblock), TRACER(:,:,k,2,newtime,iblock), &
+                      this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
      enddo !k
 
      !*** accumulate TRACERs after RF curtime adjustment

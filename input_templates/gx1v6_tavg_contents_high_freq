@@ -61,26 +61,11 @@
 1  KAPPA_THIC
 1  HOR_DIFF
 1  PV
-1  UISOP
-2  VISOP       ! daily for MOAR (yeager/MOC)
-2  WISOP       ! daily for MOAR (yeager/MOC)
-1  ADVT_ISOP
-1  ADVS_ISOP
-1  VNT_ISOP
-1  VNS_ISOP
 1  KVMIX
 1  TPOWER
 1  DIA_DEPTH
 1  TLT
 1  INT_DEPTH
-1  USUBM
-2  VSUBM       ! daily for MOAR (yeager/MOC)
-2  WSUBM       ! daily for MOAR (yeager/MOC)
-1  ADVT_SUBM
-1  ADVS_SUBM
-1  VNT_SUBM
-1  VNS_SUBM
-1  HLS_SUBM
 2  SST
 2  SST2
 1  VDC_T

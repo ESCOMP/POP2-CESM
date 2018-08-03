@@ -1,6 +1,44 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    3 August 2018
+Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n11_cesm_pop_2_1_20180720
+Tag Summary: correct IAGE reset when lrobert_filter=.true., add CMIP tracer budget diagnostics
+
+Testing: aux_pop intel/cheyenne
+MARBL tag marbl0.31.0 from marbl-ecosys/MARBL
+tests pass, including BASELINE to final_CMIP6_BGC_n10
+  BASELINE fails for lrobert_filter=.true., because IAGE changed
+  some MEMCOMP failures
+
+Files Modified:
+M       BranchChangeLog
+M       bld/build-namelist
+A       input_templates/gm_bolus_terms_tavg_contents
+A       input_templates/gm_bolus_terms_tavg_contents_high_freq
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx1v6_tavg_contents_high_freq
+M       input_templates/gx1v7_tavg_contents
+M       input_templates/gx1v7_tavg_contents_high_freq
+M       input_templates/gx3v5_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.sf6.tavg.csh
+A       input_templates/submeso_terms_tavg_contents
+A       input_templates/submeso_terms_tavg_contents_high_freq
+M       source/IRF_mod.F90
+M       source/hmix_gm.F90
+M       source/hmix_gm_aniso.F90
+A       source/hmix_gm_share.F90
+M       source/horizontal_mix.F90
+M       source/mix_submeso.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    31 July 2018
 Tag Name:    pop2/branch_tags/final_CMIP6_BGC_tags/final_CMIP6_BGC_n10_cesm_pop_2_1_20180720
 Tag Summary: merge trunk tag cesm_pop_2_1_20180720

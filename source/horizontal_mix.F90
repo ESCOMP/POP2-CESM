@@ -622,6 +622,9 @@
 
  subroutine iso_impvmixt_tavg(TNEW, bid)
 
+   use hmix_gm_share, only : diag_gm_bolus
+   use hmix_gm_share, only : tavg_Redi_TEND_TRACER
+
 ! !INPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
@@ -638,32 +641,81 @@
 !-----------------------------------------------------------------------
 
    real (r8), dimension(nx_block,ny_block) :: & 
-      WORK1, WORK2
+      WORK1, WORK2, WORK2_km1, WORK3
+
+   real (r8), dimension(nx_block,ny_block,km) :: & 
+      DZTR
 
    integer (int_kind) ::  &
-      k,n                  ! dummy loop indices
+      k,n                      ! dummy loop indices
+
+   logical (log_kind) :: &
+      lcompute_HDIFB, lcompute_Redi_TEND
 
 !-----------------------------------------------------------------------
 
    if (hmix_tracer_itype /= hmix_tracer_type_gm .and. &
        hmix_tracer_itype /= hmix_tracer_type_gm_aniso) return
 
+   if (partial_bottom_cells) then
+      do k=1,km-1
+         DZTR(:,:,k) = c1 / DZT(:,:,k,bid)
+      enddo
+   endif
+
    do n = 1,nt
-      if (accumulate_tavg_now(tavg_HDIFB_TRACER(n))) then
-         do k=1,km-1
-            WORK1 = VDC_GM(:,:,k,bid)
-            if (partial_bottom_cells) then
+      lcompute_HDIFB = accumulate_tavg_now(tavg_HDIFB_TRACER(n))
+      if ( diag_gm_bolus ) then
+         lcompute_Redi_TEND = accumulate_tavg_now(tavg_Redi_TEND_TRACER(n))
+      else
+         lcompute_Redi_TEND = .false.
+      endif
+      if ( lcompute_HDIFB .or. lcompute_Redi_TEND ) then
+         WORK2 = c0
+         if ( partial_bottom_cells ) then
+            do k=1,km-1
+               WORK2_km1 = WORK2
+               WORK1 = VDC_GM(:,:,k,bid)
                WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))/        &
                              (p5*(DZT(:,:,k,bid) + DZT(:,:,k+1,bid)))        &
-                             ,c0, k < KMT(:,:,bid))*dzr(k)
-            else
-               WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))*dzwr(k) &
-                             ,c0, k < KMT(:,:,bid))*dzr(k)
+                             ,c0, k < KMT(:,:,bid))
+               if ( lcompute_HDIFB ) then
+                  WORK3 = WORK2*DZTR(:,:,k)
+                  call accumulate_tavg_field(WORK3,tavg_HDIFB_TRACER(n),bid,k)
+               endif
+               if ( lcompute_Redi_TEND ) then
+                  WORK3 = (WORK2_km1 - WORK2)*DZTR(:,:,k)
+                  call accumulate_tavg_field(WORK3,tavg_Redi_TEND_TRACER(n),bid,k)
+               endif
+            enddo
+            k = km
+            if ( lcompute_Redi_TEND ) then
+               WORK3 = WORK2*DZTR(:,:,k)
+               call accumulate_tavg_field(WORK3,tavg_Redi_TEND_TRACER(n),bid,k)
             endif
-            call accumulate_tavg_field(WORK2,tavg_HDIFB_TRACER(n),bid,k)
-         end do
+         else
+            do k=1,km-1
+               WORK2_km1 = WORK2
+               WORK1 = VDC_GM(:,:,k,bid)
+               WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))*dzwr(k) &
+                             ,c0, k < KMT(:,:,bid))
+               if ( lcompute_HDIFB ) then
+                  WORK3 = WORK2*dzr(k)
+                  call accumulate_tavg_field(WORK3,tavg_HDIFB_TRACER(n),bid,k)
+               endif
+               if ( lcompute_Redi_TEND ) then
+                  WORK3 = (WORK2_km1 - WORK2)*dzr(k)
+                  call accumulate_tavg_field(WORK3,tavg_Redi_TEND_TRACER(n),bid,k)
+               endif
+            enddo
+            k = km
+            if ( lcompute_Redi_TEND ) then
+               WORK3 = WORK2*dzr(k)
+               call accumulate_tavg_field(WORK3,tavg_Redi_TEND_TRACER(n),bid,k)
+            endif
+         endif
       endif
-   end do
+   enddo
 
  end subroutine iso_impvmixt_tavg
 

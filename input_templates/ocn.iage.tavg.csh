@@ -35,6 +35,7 @@ $s1  VN_IAGE
 $s1  WT_IAGE
 $s1  TEND_IAGE
 $s1  RF_TEND_IAGE
+$s1  Redi_TEND_IAGE
 EOF
 endif
 
