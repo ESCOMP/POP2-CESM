@@ -46,9 +46,12 @@ $s1  WT_CFC11
 $s1  WT_CFC12
 $s1  TEND_CFC11
 $s1  TEND_CFC12
-$s1  RF_TEND_CFC11
-$s1  RF_TEND_CFC12
 EOF
+#  disable the following until they can be added based on model settings
+#  RF_TEND_CFC11
+#  RF_TEND_CFC12
+#  Redi_TEND_CFC11
+#  Redi_TEND_CFC12
 endif
 
 #===============================================================================

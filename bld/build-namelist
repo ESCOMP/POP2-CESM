@@ -2026,6 +2026,52 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
+#-------------------------
+# 2b. gm_bolus tavg contents
+#-------------------------
+my $gm_bolus_tavg_file = "${CASEROOT}/Buildconf/popconf/gm_bolus_terms_tavg_contents";
+if ($OCN_TAVG_HIFREQ eq "TRUE") {
+  # High-frequency tavg contents
+  $file = "gm_bolus_terms_tavg_contents_high_freq";
+} else {
+  $file = "gm_bolus_terms_tavg_contents";
+}
+if ($nl->get_value('diag_gm_bolus') eq '.true.') {
+  # gm_bolus tavg contents
+  if (-f "${my_path}/$file") {
+    $sysmod = "cp -fp ${my_path}/$file $gm_bolus_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+  } else {
+    $sysmod = "cp -fp ${SRCROOT}/components/pop/input_templates/$file $gm_bolus_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+  }
+  $sysmod = "cat $gm_bolus_tavg_file >> $pop_tavg_file";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
+
+#-------------------------
+# 2c. submeso tavg contents
+#-------------------------
+my $submeso_tavg_file = "${CASEROOT}/Buildconf/popconf/submeso_terms_tavg_contents";
+if ($OCN_TAVG_HIFREQ eq "TRUE") {
+  # High-frequency tavg contents
+  $file = "submeso_terms_tavg_contents_high_freq";
+} else {
+  $file = "submeso_terms_tavg_contents";
+}
+if ($nl->get_value('lsubmesoscale_mixing') eq '.true.') {
+  # submeso tavg contents
+  if (-f "${my_path}/$file") {
+    $sysmod = "cp -fp ${my_path}/$file $submeso_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+  } else {
+    $sysmod = "cp -fp ${SRCROOT}/components/pop/input_templates/$file $submeso_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+  }
+  $sysmod = "cat $submeso_tavg_file >> $pop_tavg_file";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
+
 #------------------------------------------
 # 3. tracer and model physics tavg contents
 #------------------------------------------

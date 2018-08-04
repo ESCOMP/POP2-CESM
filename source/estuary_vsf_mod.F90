@@ -421,6 +421,7 @@
    call define_tavg_field(tavg_FLUX_ROFF_VSF_SRF(2),'S_FLUX_ROFF_VSF_SRF',2,     &
                     long_name='Surface Salt Virtual Salt Flux Associated with Rivers',&
                           units='g/kg*cm/s', grid_loc='2110',                    &
+                          scale_factor=1000.0_r8,                                &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_FLUX_EXCH_INTRF(1),'T_FLUX_EXCH_INTRF',2,         &
@@ -431,6 +432,7 @@
    call define_tavg_field(tavg_FLUX_EXCH_INTRF(2),'S_FLUX_EXCH_INTRF',2,         &
          long_name='Vertical Salt Flux Across Upper/Lower Layer Interface (FromEBM)',&
                           units='g/kg*cm/s', grid_loc='2110',                    &
+                          scale_factor=1000.0_r8,                                &
                           coordinates='TLONG TLAT time')
 
     call define_tavg_field(tavg_FLUX_ROFF_VSF(1),'T_FLUX_ROFF_VSF',3,             &
@@ -441,6 +443,7 @@
      call define_tavg_field(tavg_FLUX_ROFF_VSF(2),'S_FLUX_ROFF_VSF',3,             &
                           long_name='Vertical salt fluxes across the cell interface from ROFF',  &
                           units='g/kg*cm/s', grid_loc='3112',                    &
+                          scale_factor=1000.0_r8,                                &
                           coordinates='TLONG TLAT z_w time')
 
      call define_tavg_field(tavg_FLUX_EXCH(1),'T_FLUX_EXCH',3,                     &
@@ -451,6 +454,7 @@
      call define_tavg_field(tavg_FLUX_EXCH(2),'S_FLUX_EXCH',3,                     &
          long_name='Vertical salt fluxes across the cell interface from exchange circ',&
                           units='g/kg*cm/s', grid_loc='3112',                    &
+                          scale_factor=1000.0_r8,                                &
                           coordinates='TLONG TLAT z_w time')
 
    do n=3,nt
@@ -459,6 +463,7 @@
                             long_name='Surface '//trim(tracer_d(n)%short_name)/&
                                       &/' Virtual Salt Flux Associatedwith Rivers',&
                             units=trim(tracer_d(n)%tend_units),                    &
+                            scale_factor=tracer_d(n)%scale_factor,                 &
                             grid_loc='2110',                                       &
                             coordinates='TLONG TLAT time')
 
@@ -476,6 +481,7 @@
                           long_name='Vertical '//trim(tracer_d(n)%short_name)/&
                                   &/' fluxes across the cellinterface from ROFF',&
                           units=trim(tracer_d(n)%tend_units),                    &
+                          scale_factor=tracer_d(n)%scale_factor,                 &
                           grid_loc='3112',                                       &
                           coordinates='TLONG TLAT z_w time')
 
@@ -943,11 +949,11 @@
           endif
 
           if (k == 1)  then
-            call accumulate_tavg_field(FLUX_EXCH_INTRF(:,:,n,bid),  &
+            call accumulate_tavg_field(FLUX_EXCH_INTRF(:,:,n,bid)*MASK_ESTUARY(:,:,bid),  &
                                       tavg_FLUX_EXCH_INTRF(n),bid,1)
-            call accumulate_tavg_field(tracer_lower_layer(:,:,n,bid), &
-                                      tavg_S_lower_layer,bid,1)
             if (n == 2) then
+              call accumulate_tavg_field(tracer_lower_layer(:,:,n,bid), &
+                                        tavg_S_lower_layer,bid,1)
               call accumulate_tavg_field(S_upper_layer(:,:,bid), &
                                         tavg_S_upper_layer,bid,1)
               call accumulate_tavg_field(Q_lower(:,:,bid), &
