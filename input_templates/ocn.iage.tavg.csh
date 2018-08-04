@@ -34,9 +34,14 @@ $s1  UE_IAGE
 $s1  VN_IAGE
 $s1  WT_IAGE
 $s1  TEND_IAGE
-$s1  RF_TEND_IAGE
-$s1  Redi_TEND_IAGE
+$s1  ADV_3D_IAGE
 EOF
+#  disable the following until they can be added based on model settings
+#  RF_TEND_IAGE
+#  Redi_TEND_IAGE
+#  IAGE_FLUX_EXCH_INTRF
+#  ISOP_ADV_TEND_IAGE
+#  SUBM_ADV_TEND_IAGE
 endif
 
 #  disable the following until they are computed correctly

@@ -35,9 +35,10 @@ $s1  UE_SF6
 $s1  VN_SF6
 $s1  WT_SF6
 $s1  TEND_SF6
-$s1  RF_TEND_SF6
-$s1  Redi_TEND_SF6
 EOF
+#  disable the following until they can be added based on model settings
+#  RF_TEND_SF6
+#  Redi_TEND_SF6
 endif
 
 #===============================================================================
