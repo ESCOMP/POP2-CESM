@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    20 August 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n195_marbl_dev_n96_cesm_pop_2_1_20180720
+Tag Summary: Update ecosys_* routines to account for changes to MARBL interface
+             MARBL has lots of updates in addition to the interface change:
+             * lots of refactoring (see PR #308)
+               - through commit 0055290 => all surface flux renames
+             * code clean-up to reduce warnings from gfortran and nagfor
+             * improvements to testing done by Travis CI
+
+Testing:     aux_pop_MARBL on hobart (nag, pgi) and cheyenne (intel, gnu).
+             All tests pass, including BASELINE and NLCOMP compared to
+             marbl_dev_96.
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    20 July 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n194_marbl_dev_n96_cesm_pop_2_1_20180720
 Tag Summary: Merge marbl_dev onto marbl_dev_levy (zig-zag merge)

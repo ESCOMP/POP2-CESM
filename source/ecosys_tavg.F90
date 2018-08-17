@@ -47,7 +47,7 @@
   !-----------------------------------------------------------------------
 
   integer (int_kind), allocatable :: tavg_ids_interior_forcing(:,:)
-  integer (int_kind), allocatable :: tavg_ids_surface_forcing(:,:)
+  integer (int_kind), allocatable :: tavg_ids_surface_flux(:,:)
   integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
 
   integer (int_kind), allocatable :: tavg_ids_scalar_rmean_interior(:)
@@ -90,21 +90,21 @@ contains
 
     associate(&
          interior_forcing => marbl_instance%interior_forcing_diags, &
-         surface_forcing => marbl_instance%surface_forcing_diags    &
+         surface_flux     => marbl_instance%surface_flux_diags      &
          )
 
-      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_forcing, interior_forcing)
+      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_flux, interior_forcing)
 
       allocate(tavg_ids_interior_forcing(size(interior_forcing%diags), max_marbl_diags_stream_cnt))
-      allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_diags_stream_cnt))
+      allocate(tavg_ids_surface_flux(size(surface_flux%diags), max_marbl_diags_stream_cnt))
 
       call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing, &
            stream_cnt=marbl_diags_stream_cnt_interior, &
            tavg_ids=tavg_ids_interior_forcing)
 
-      call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing,  &
+      call ecosys_tavg_define_from_diag(marbl_diags=surface_flux,  &
            stream_cnt=marbl_diags_stream_cnt_surface, &
-           tavg_ids=tavg_ids_surface_forcing)
+           tavg_ids=tavg_ids_surface_flux)
 
     end associate
 
@@ -147,13 +147,13 @@ contains
 
     !-----------------------------------------------------------------------
 
-    ! Accumulate surface_forcing_diags
+    ! Accumulate surface_flux_diags
     call ecosys_tavg_accumulate_from_diag(marbl_col_to_pop_i(:), &
          marbl_col_to_pop_j(:), bid, &
-         marbl_diags = marbl_instance%surface_forcing_diags, &
+         marbl_diags = marbl_instance%surface_flux_diags, &
          marbl_diags_stream_cnt = marbl_diags_stream_cnt_surface, &
-         tavg_ids = tavg_ids_surface_forcing, &
-         num_elements = marbl_instance%surface_forcing_diags%num_elements)
+         tavg_ids = tavg_ids_surface_flux, &
+         num_elements = marbl_instance%surface_flux_diags%num_elements)
 
     call accumulate_tavg_field(STF(:,:,o2_ind), tavg_O2_GAS_FLUX_2, bid, 1)
 
