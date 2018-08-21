@@ -89,7 +89,7 @@ contains
     !-----------------------------------------------------------------------
 
     associate(&
-         interior_forcing => marbl_instance%interior_forcing_diags, &
+         interior_forcing => marbl_instance%interior_tendency_diags, &
          surface_flux     => marbl_instance%surface_flux_diags      &
          )
 
@@ -173,12 +173,12 @@ contains
 
     !-----------------------------------------------------------------------
 
-    ! Accumulate diagnostics from marbl_interior_forcing_diags
+    ! Accumulate diagnostics from marbl_interior_tendency_diags
     call ecosys_tavg_accumulate_from_diag((/i/), (/c/), bid, &
-         marbl_diags = marbl_instance%interior_forcing_diags, &
+         marbl_diags = marbl_instance%interior_tendency_diags, &
          marbl_diags_stream_cnt = marbl_diags_stream_cnt_interior, &
          tavg_ids = tavg_ids_interior_forcing, &
-         num_elements = marbl_instance%interior_forcing_diags%num_elements)
+         num_elements = marbl_instance%interior_tendency_diags%num_elements)
 
   end subroutine ecosys_tavg_accumulate_interior
 

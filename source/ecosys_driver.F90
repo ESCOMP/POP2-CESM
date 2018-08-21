@@ -455,7 +455,7 @@ contains
     call ecosys_forcing_init(ciso_on,                                         &
                              land_mask,                                       &
                              marbl_instances(1)%surface_flux_forcings,        &
-                             marbl_instances(1)%interior_input_forcings,      &
+                             marbl_instances(1)%interior_tendency_forcings,   &
                              tmp_nl_buffer,                                   &
                              lhas_riv_flux)
 
@@ -672,7 +672,7 @@ contains
     use grid               , only : DZT
     use grid               , only : partial_bottom_cells
     use grid               , only : TLOND, TLATD
-    use ecosys_forcing_mod , only : interior_forcing_fields
+    use ecosys_forcing_mod , only : interior_tendency_forcings
 
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_OLD ! old tracer values
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_CUR ! current tracer values
@@ -715,20 +715,20 @@ contains
 
              ! --- set forcing fields ---
 
-             do n = 1, size(interior_forcing_fields)
-               if (interior_forcing_fields(n)%rank == 2) then
-                 marbl_instances(bid)%interior_input_forcings(n)%field_0d(1) = &
-                      interior_forcing_fields(n)%field_0d(i,c,bid)
+             do n = 1, size(interior_tendency_forcings)
+               if (interior_tendency_forcings(n)%rank == 2) then
+                 marbl_instances(bid)%interior_tendency_forcings(n)%field_0d(1) = &
+                      interior_tendency_forcings(n)%field_0d(i,c,bid)
                else
-                 marbl_instances(bid)%interior_input_forcings(n)%field_1d(1,:) = &
-                      interior_forcing_fields(n)%field_1d(i,c,:,bid)
+                 marbl_instances(bid)%interior_tendency_forcings(n)%field_1d(1,:) = &
+                      interior_tendency_forcings(n)%field_1d(i,c,:,bid)
                end if
              end do
 
              ! --- set column tracers, averaging 2 time levels into 1 ---
 
              do n = 1, ecosys_tracer_cnt
-                marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
+                marbl_instances(bid)%tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
              end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
@@ -767,17 +767,17 @@ contains
              !-----------------------------------------------------------
 
              do k = 1, KMT(i, c, bid)
-                if (any(shr_infnan_isnan(marbl_instances(bid)%column_dtracers(:, k)))) then
+                if (any(shr_infnan_isnan(marbl_instances(bid)%interior_tendencies(:, k)))) then
                    write(stdout, *) subname, ': NaN in dtracer_module, (i,j,k)=(', &
                       this_block%i_glob(i), ',', this_block%j_glob(c), ',', k, ')'
                    write(stdout, *) '(lon,lat)=(', TLOND(i,c,bid), ',', TLATD(i,c,bid), ')'
                    do n = 1, ecosys_tracer_cnt
                       write(stdout, *) trim(marbl_instances(1)%tracer_metadata(n)%short_name), ' ', &
-                         marbl_instances(bid)%column_tracers(n, k), ' ', &
-                         marbl_instances(bid)%column_dtracers(n, k)
+                         marbl_instances(bid)%tracers(n, k), ' ', &
+                         marbl_instances(bid)%interior_tendencies(n, k)
                    end do
-                   do n = 1, size(interior_forcing_fields)
-                      associate (forcing_field => interior_forcing_fields(n))
+                   do n = 1, size(interior_tendency_forcings)
+                      associate (forcing_field => interior_tendency_forcings(n))
                          write(stdout, *) trim(forcing_field%metadata%marbl_varname)
                          if (forcing_field%rank == 2) then
                             write(stdout, *) forcing_field%field_0d(i,c,bid)
@@ -795,7 +795,7 @@ contains
              end do
 
              do n = 1, ecosys_tracer_cnt
-                dtracer_module(i, c, 1:KMT(i, c, bid), n) = marbl_instances(bid)%column_dtracers(n, 1:KMT(i, c, bid))
+                dtracer_module(i, c, 1:KMT(i, c, bid), n) = marbl_instances(bid)%interior_tendencies(n, 1:KMT(i, c, bid))
              end do
 
              ! copy values to be used in computing requested global averages
@@ -876,8 +876,8 @@ contains
   !***********************************************************************
 
   subroutine ecosys_driver_set_sflux( &
-       surface_vals_old,              &
-       surface_vals_cur,              &
+       tracers_at_surface_old,        &
+       tracers_at_surface_cur,        &
        stf_module,                    &
        stf_riv_module,                &
        iblock)
@@ -885,14 +885,14 @@ contains
     ! DESCRIPTION:
     ! Calls marbl to compute surface tracer fluxes
 
-    use ecosys_forcing_mod   , only : surface_flux_forcing_fields
+    use ecosys_forcing_mod   , only : surface_flux_forcings
     use ecosys_forcing_mod   , only : ecosys_forcing_comp_stf_riv
     use blocks               , only : get_block
     use domain               , only : blocks_clinic
     use grid                 , only : TLOND, TLATD
 
-    real (r8), dimension(:,:,:), intent(in)    :: surface_vals_old
-    real (r8), dimension(:,:,:), intent(in)    :: surface_vals_cur  ! module tracers
+    real (r8), dimension(:,:,:), intent(in)    :: tracers_at_surface_old
+    real (r8), dimension(:,:,:), intent(in)    :: tracers_at_surface_cur  ! module tracers
     real (r8), dimension(:,:,:), intent(inout) :: stf_module
     real (r8), dimension(:,:,:), intent(inout) :: stf_riv_module
     integer (int_kind)         , intent(in)    :: iblock
@@ -927,14 +927,14 @@ contains
        i = marbl_col_to_pop_i(index_marbl,iblock)
        j = marbl_col_to_pop_j(index_marbl,iblock)
 
-       do n = 1,size(surface_flux_forcing_fields)
+       do n = 1,size(surface_flux_forcings)
           marbl_instances(iblock)%surface_flux_forcings(n)%field_0d(index_marbl) = &
-               surface_flux_forcing_fields(n)%field_0d(i,j,iblock)
+               surface_flux_forcings(n)%field_0d(i,j,iblock)
        end do
 
        do n = 1,ecosys_tracer_cnt
-          marbl_instances(iblock)%surface_vals(index_marbl,n) = &
-               p5*(surface_vals_old(i,j,n) + surface_vals_cur(i,j,n))
+          marbl_instances(iblock)%tracers_at_surface(index_marbl,n) = &
+               p5*(tracers_at_surface_old(i,j,n) + tracers_at_surface_cur(i,j,n))
        end do
 
        do n=1,size(saved_state_surf)
@@ -986,11 +986,11 @@ contains
           write(stdout, *) '(lon,lat)=(', TLOND(i,j,iblock), ',', TLATD(i,j,iblock), ')'
           do n = 1, ecosys_tracer_cnt
              write(stdout, *) trim(marbl_instances(1)%tracer_metadata(n)%short_name), ' ', &
-                marbl_instances(iblock)%surface_vals(index_marbl,n), ' ', &
+                marbl_instances(iblock)%tracers_at_surface(index_marbl,n), ' ', &
                 marbl_instances(iblock)%surface_fluxes(index_marbl,n)
           end do
-          do n = 1, size(surface_flux_forcing_fields)
-             associate (forcing_field => surface_flux_forcing_fields(n))
+          do n = 1, size(surface_flux_forcings)
+             associate (forcing_field => surface_flux_forcings(n))
                 write(stdout, *) trim(forcing_field%metadata%marbl_varname)
                 if (forcing_field%rank == 2) then
                    write(stdout, *) forcing_field%field_0d(i,j,iblock)
