@@ -48,8 +48,8 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
-  use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
-  use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
+  use ecosys_tracers_and_saved_state_mod, only : surface_flux_saved_state
+  use ecosys_tracers_and_saved_state_mod, only : interior_tendency_saved_state
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : o2_ind, no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
@@ -463,10 +463,10 @@ contains
     !  Initialize ecosys tracers and saved state
     !--------------------------------------------------------------------
 
-    call ecosys_saved_state_setup(saved_state_surf,                    &
-         marbl_instances(1)%surface_saved_state)
-    call ecosys_saved_state_setup(saved_state_interior,                &
-         marbl_instances(1)%interior_saved_state)
+    call ecosys_saved_state_setup(surface_flux_saved_state, &
+         marbl_instances(1)%surface_flux_saved_state)
+    call ecosys_saved_state_setup(interior_tendency_saved_state, &
+         marbl_instances(1)%interior_tendency_saved_state)
 
     ! Initialize tracer_d_module input argument (needed before reading
     ! tracers from restart file)
@@ -505,7 +505,7 @@ contains
     ! copy values from POP's running mean to MARBL interface
     allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior)))
     lscalar = .false.
-    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('interior_tendency', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_vals(n)
@@ -515,7 +515,7 @@ contains
 
     allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface)))
     lscalar = .false.
-    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('surface_flux', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_vals(n)
@@ -525,7 +525,7 @@ contains
 
     allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior)))
     lscalar = .true.
-    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('interior_tendency', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
@@ -535,7 +535,7 @@ contains
 
     allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface)))
     lscalar = .true.
-    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('surface_flux', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
           marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
@@ -732,9 +732,9 @@ contains
              end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
-             do n=1,size(saved_state_interior)
-               marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
-                 saved_state_interior(n)%field_3d(:,i,c,bid)
+             do n=1,size(interior_tendency_saved_state)
+               marbl_instances(bid)%interior_tendency_saved_state%state(n)%field_3d(:,1) = &
+                 interior_tendency_saved_state(n)%field_3d(:,i,c,bid)
              end do
              call timer_stop(ecosys_interior_pop_to_marbl, block_id=bid)
 
@@ -757,9 +757,9 @@ contains
 
              call timer_start(ecosys_interior_marbl_to_pop, block_id=bid)
 
-             do n=1,size(saved_state_interior)
-               saved_state_interior(n)%field_3d(:,i,c,bid) =               &
-                 marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
+             do n=1,size(interior_tendency_saved_state)
+               interior_tendency_saved_state(n)%field_3d(:,i,c,bid) =               &
+                 marbl_instances(bid)%interior_tendency_saved_state%state(n)%field_3d(:,1)
              end do
 
              !-----------------------------------------------------------
@@ -837,7 +837,7 @@ contains
        sss)
 
     ! DESCRIPTION:
-    ! Sets surface forcing data
+    ! Sets surface flux forcing data
 
     use ecosys_forcing_mod   , only : ecosys_forcing_set_surface_time_varying_forcing_data
 
@@ -853,7 +853,7 @@ contains
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sss                      ! sea surface salinity (psu)
 
     !-----------------------------------------------------------------------
-    ! Set surface forcing data
+    ! Set surface flux forcing data
     !-----------------------------------------------------------------------
 
     call ecosys_forcing_set_surface_time_varying_forcing_data( &
@@ -937,9 +937,9 @@ contains
                p5*(tracers_at_surface_old(i,j,n) + tracers_at_surface_cur(i,j,n))
        end do
 
-       do n=1,size(saved_state_surf)
-         marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl) = &
-           saved_state_surf(n)%field_2d(i,j,iblock)
+       do n=1,size(surface_flux_saved_state)
+         marbl_instances(iblock)%surface_flux_saved_state%state(n)%field_2d(index_marbl) = &
+           surface_flux_saved_state(n)%field_2d(i,j,iblock)
        end do
 
     end do
@@ -966,9 +966,9 @@ contains
        i = marbl_col_to_pop_i(index_marbl,iblock)
        j = marbl_col_to_pop_j(index_marbl,iblock)
 
-       do n=1,size(saved_state_surf)
-         saved_state_surf(n)%field_2d(i,j,iblock) = &
-           marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl)
+       do n=1,size(surface_flux_saved_state)
+         surface_flux_saved_state(n)%field_2d(i,j,iblock) = &
+           marbl_instances(iblock)%surface_flux_saved_state%state(n)%field_2d(index_marbl)
        end do
 
        do n=1,sfo_cnt
@@ -1099,7 +1099,7 @@ contains
     use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use POP_CommMod      , only : POP_Barrier
 
-    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+    character (*), intent(in) :: field_source ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1114,7 +1114,7 @@ contains
     !-----------------------------------------------------------------------
 
     lscalar = .false. ! all global means in this routine are glo_avg_rmean
-    if (trim(field_source) == 'interior') then
+    if (trim(field_source) == 'interior_tendency') then
        timer             => ecosys_interior_global_sum_timer
        glo_avg_fields    => glo_avg_fields_interior(:,:,:,:)
     else
@@ -1145,7 +1145,7 @@ contains
        call timer_stop(timer)
 
        ! store global means, and their running means, into appropriate component of marbl_instances
-       if (trim(field_source) == 'interior') then
+       if (trim(field_source) == 'interior_tendency') then
           do iblock = 1, nblocks_clinic
              marbl_instances(iblock)%glo_avg_averages_interior(:)    = glo_avg(:)
              marbl_instances(iblock)%glo_avg_rmean_interior(:)%rmean = glo_avg_rmean(:)
@@ -1167,7 +1167,7 @@ contains
 
   subroutine ecosys_driver_set_global_scalars(field_source)
 
-    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+    character (*), intent(in) :: field_source ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1197,7 +1197,7 @@ contains
     use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use io_types         , only : stdout
 
-    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+    character (*), intent(in) :: field_source ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1213,7 +1213,7 @@ contains
     !-----------------------------------------------------------------------
 
     lscalar = .true. ! all global means in this subroutine are glo_scalar_rmean
-    if (trim(field_source) == 'interior') then
+    if (trim(field_source) == 'interior_tendency') then
       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior)))
        do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_interior
@@ -1310,15 +1310,15 @@ contains
     !-----------------------------------------------------------------------
 
     if (.not. allocated(surface_iodesc)) then
-       allocate(surface_iodesc(size(saved_state_surf)))
-       allocate(interior_iodesc(size(saved_state_interior)))
+       allocate(surface_iodesc(size(surface_flux_saved_state)))
+       allocate(interior_iodesc(size(interior_tendency_saved_state)))
        allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))
     end if
 
     call ecosys_saved_state_write_restart(restart_file, action,               &
-                                          saved_state_surf, surface_iodesc)
+                                          surface_flux_saved_state, surface_iodesc)
     call ecosys_saved_state_write_restart(restart_file, action,               &
-                                          saved_state_interior, interior_iodesc)
+                                          interior_tendency_saved_state, interior_iodesc)
 
     if (trim(action) == 'write') then
        deallocate(saved_state_field_3d)

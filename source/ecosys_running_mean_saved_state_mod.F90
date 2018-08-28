@@ -142,7 +142,7 @@ contains
     logical,          intent(in)  :: lscalar
     integer, pointer, intent(out) :: ptr_out(:)
 
-    if (trim(field_source) .eq. 'interior') then
+    if (trim(field_source) .eq. 'interior_tendency') then
       if (lscalar) then
         ptr_out => glo_scalar_rmean_ind_interior
       else

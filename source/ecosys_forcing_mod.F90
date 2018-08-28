@@ -1,11 +1,13 @@
 module ecosys_forcing_mod
 
   ! !DESCRIPTION:
-  !  This module sets up data types to keep track of the surface forcing data
+  !  This module sets up data types to keep track of the forcing data
   !  being sent to MARBL. Data may be passed through to MARBL from the flux
   !  coupler, read from a file, or set to a constant value based on namelist
-  !  variables. Additionally, this module handles some interior forcing --
-  !  namely tracer restoring.
+  !  variables.
+  !
+  !  This module mostly handles surface flux forcing, but also handles some
+  !  interior tendency forcing -- namely tracer restoring.
 
   use constants, only : c0, c1
 
@@ -210,7 +212,7 @@ module ecosys_forcing_mod
   logical(log_kind), public :: ldriver_has_atm_co2_diag
   logical(log_kind), public :: ldriver_has_atm_co2_prog
 
-  ! Data type for reading interior forcing from shr_stream
+  ! Data type for reading interior tendency forcing from shr_stream
   type (strdata_input_type), pointer :: interior_strdata_inputlist_ptr(:)
 
   !-----------------------------------------------------------------------
@@ -220,7 +222,7 @@ module ecosys_forcing_mod
   type (strdata_input_type), pointer :: riv_flux_strdata_inputlist_ptr(:)
 
   !-----------------------------------------------------------------------
-  !  input surface forcing
+  !  surface flux forcing
   !-----------------------------------------------------------------------
 
   ! These variables are necessary because of the way POP uses pointers store
@@ -237,7 +239,7 @@ module ecosys_forcing_mod
 
   type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
 
-  ! Surface and interior forcing fields
+  ! Surface flux and interior tendency forcing fields
   real(r8), allocatable, target :: iron_patch_flux(:,:,:)
   real(r8)                      :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
@@ -249,7 +251,7 @@ module ecosys_forcing_mod
   integer (int_kind) :: ecosys_surface_strdata_advance_timer
   integer (int_kind) :: ecosys_interior_strdata_advance_timer
 
-  ! Some surface forcing fields need special treatment, so we store indices
+  ! Some surface flux forcing fields need special treatment, so we store indices
   integer(int_kind) :: dust_dep_ind = 0, &
                        Fe_dep_ind   = 0, &
                        bc_dep_ind   = 0, &
@@ -276,7 +278,7 @@ module ecosys_forcing_mod
                        alk_riv_flux_ind = 0, &
                        doc_riv_flux_ind = 0
 
-  ! We also need to track the indices of all the interior forcing fields
+  ! We also need to track the indices of all the interior tendency forcing fields
   integer(int_kind), public :: dustflux_ind       = 0, &
                        PAR_col_frac_ind   = 0, &
                        surf_shortwave_ind = 0, &
@@ -608,10 +610,10 @@ contains
          lhas_riv_flux)
 
     !--------------------------------------------------------------------------
-    !  Surface forcing
+    !  Surface flux forcing
     !--------------------------------------------------------------------------
 
-    ! Set up where surface forcing data will come from
+    ! Set up where surface flux forcing data will come from
     fice_file_loc%input             = gas_flux_fice
     xkw_file_loc%input              = gas_flux_ws
     ap_file_loc%input               = gas_flux_ap
@@ -866,7 +868,7 @@ contains
 
         case DEFAULT
           write(err_msg, "(A,1X,A)") trim(marbl_req_surface_flux_forcings(n)%metadata%varname), &
-                         'is not a valid surface forcing field name.'
+                         'is not a valid surface flux forcing field name.'
           call document(subname, err_msg)
           call exit_POP(sigAbort, 'Stopping in ' // subname)
       end select
@@ -877,7 +879,7 @@ contains
     lbox_atm_co2 = box_atm_co2_ind > 0
 
     !--------------------------------------------------------------------------
-    !  Interior forcing
+    !  Interior tendency forcing
     !--------------------------------------------------------------------------
 
     allocate(interior_tendency_forcings(size(marbl_req_interior_tendency_forcings)))
@@ -1038,7 +1040,7 @@ contains
             end select
           case DEFAULT
             write(err_msg, "(A,1X,A)") trim(marbl_req_interior_tendency_forcings(n)%metadata%varname), &
-                           'is not a valid interior forcing field name.'
+                           'is not a valid interior tendency forcing field name.'
             call document(subname, err_msg)
             call exit_POP(sigAbort, 'Stopping in ' // subname)
         end select
@@ -1277,7 +1279,7 @@ contains
     integer :: m, n, iblock
 
     !--------------------------------------------------------------------------
-    !  For POP monthly calendar surface forcing fields, read all
+    !  For POP monthly calendar surface flux forcing fields, read all
     !  12 months of data
     !--------------------------------------------------------------------------
 
@@ -1360,7 +1362,7 @@ contains
       endif
 
       !-----------------------------------------------------------------------
-      ! apply unit_conv_factor to all non-time-varying interior and surface forcing fields
+      ! apply unit_conv_factor to all non-time-varying interior and surface flux forcing fields
       !-----------------------------------------------------------------------
 
       do n=1,size(surface_flux_forcings)
@@ -1654,8 +1656,8 @@ contains
   !***********************************************************************
 
   subroutine adjust_interior_time_varying_data()
-    ! This subroutine is empty because there are no interior forcing fields
-    ! that need to be modified before being passed to MARBL
+    ! This subroutine is empty because there are no interior tendency forcing
+    ! fields that need to be modified before being passed to MARBL
   end subroutine adjust_interior_time_varying_data
 
   !*****************************************************************************
@@ -1834,7 +1836,7 @@ contains
     end do  ! index
 
     !-----------------------------------------------------------------------
-    !  loop through surface forcing fields
+    !  loop through surface flux forcing fields
     !-----------------------------------------------------------------------
 
     do index = 1, size(surface_flux_forcings)
@@ -2198,7 +2200,7 @@ contains
     integer :: index, iblock
 
     !-----------------------------------------------------------------------
-    ! Some surface forcing fields need to be modified before being
+    ! Some surface flux forcing fields need to be modified before being
     ! sent to MARBL
     !-----------------------------------------------------------------------
 
