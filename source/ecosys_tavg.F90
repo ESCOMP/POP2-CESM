@@ -41,13 +41,13 @@
   public :: ecosys_tavg_accumulate_scalar_rmeans
 
   !-----------------------------------------------------------------------
-  !  define tavg id for interior diagnostics, diagnostics related to
-  !  restoring, surface forcing diagnostics, and duplicate surface forcing
+  !  define tavg id for interior tendency diagnostics, diagnostics related
+  !  to restoring, surface flux diagnostics, and duplicate surface flux
   !  variables
   !-----------------------------------------------------------------------
 
-  integer (int_kind), allocatable :: tavg_ids_interior_forcing(:,:)
-  integer (int_kind), allocatable :: tavg_ids_surface_forcing(:,:)
+  integer (int_kind), allocatable :: tavg_ids_interior_tendency(:,:)
+  integer (int_kind), allocatable :: tavg_ids_surface_flux(:,:)
   integer (int_kind) :: tavg_O2_GAS_FLUX_2  ! O2 flux duplicate
 
   integer (int_kind), allocatable :: tavg_ids_scalar_rmean_interior(:)
@@ -89,22 +89,22 @@ contains
     !-----------------------------------------------------------------------
 
     associate(&
-         interior_forcing => marbl_instance%interior_forcing_diags, &
-         surface_forcing => marbl_instance%surface_forcing_diags    &
+         interior_tendency => marbl_instance%interior_tendency_diags, &
+         surface_flux      => marbl_instance%surface_flux_diags       &
          )
 
-      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_forcing, interior_forcing)
+      call ecosys_diagnostics_operators_init(marbl_diag_file, surface_flux, interior_tendency)
 
-      allocate(tavg_ids_interior_forcing(size(interior_forcing%diags), max_marbl_diags_stream_cnt))
-      allocate(tavg_ids_surface_forcing(size(surface_forcing%diags), max_marbl_diags_stream_cnt))
+      allocate(tavg_ids_interior_tendency(size(interior_tendency%diags), max_marbl_diags_stream_cnt))
+      allocate(tavg_ids_surface_flux(size(surface_flux%diags), max_marbl_diags_stream_cnt))
 
-      call ecosys_tavg_define_from_diag(marbl_diags=interior_forcing, &
+      call ecosys_tavg_define_from_diag(marbl_diags=interior_tendency, &
            stream_cnt=marbl_diags_stream_cnt_interior, &
-           tavg_ids=tavg_ids_interior_forcing)
+           tavg_ids=tavg_ids_interior_tendency)
 
-      call ecosys_tavg_define_from_diag(marbl_diags=surface_forcing,  &
+      call ecosys_tavg_define_from_diag(marbl_diags=surface_flux,  &
            stream_cnt=marbl_diags_stream_cnt_surface, &
-           tavg_ids=tavg_ids_surface_forcing)
+           tavg_ids=tavg_ids_surface_flux)
 
     end associate
 
@@ -113,18 +113,18 @@ contains
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior)
+    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior_tendency)
     allocate(tavg_ids_scalar_rmean_interior(rmean_var_cnt))
     do n = 1, rmean_var_cnt
       call define_tavg_field(tavg_ids_scalar_rmean_interior(n), &
-                             marbl_instance%glo_scalar_rmean_interior(n)%sname, 0)
+                             marbl_instance%glo_scalar_rmean_interior_tendency(n)%sname, 0)
     end do
 
-    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface)
+    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface_flux)
     allocate(tavg_ids_scalar_rmean_surface(rmean_var_cnt))
     do n = 1, rmean_var_cnt
       call define_tavg_field(tavg_ids_scalar_rmean_surface(n), &
-                             marbl_instance%glo_scalar_rmean_surface(n)%sname, 0)
+                             marbl_instance%glo_scalar_rmean_surface_flux(n)%sname, 0)
     end do
 
   end subroutine ecosys_tavg_init
@@ -147,13 +147,13 @@ contains
 
     !-----------------------------------------------------------------------
 
-    ! Accumulate surface_forcing_diags
+    ! Accumulate surface_flux_diags
     call ecosys_tavg_accumulate_from_diag(marbl_col_to_pop_i(:), &
          marbl_col_to_pop_j(:), bid, &
-         marbl_diags = marbl_instance%surface_forcing_diags, &
+         marbl_diags = marbl_instance%surface_flux_diags, &
          marbl_diags_stream_cnt = marbl_diags_stream_cnt_surface, &
-         tavg_ids = tavg_ids_surface_forcing, &
-         num_elements = marbl_instance%surface_forcing_diags%num_elements)
+         tavg_ids = tavg_ids_surface_flux, &
+         num_elements = marbl_instance%surface_flux_diags%num_elements)
 
     call accumulate_tavg_field(STF(:,:,o2_ind), tavg_O2_GAS_FLUX_2, bid, 1)
 
@@ -173,12 +173,12 @@ contains
 
     !-----------------------------------------------------------------------
 
-    ! Accumulate diagnostics from marbl_interior_forcing_diags
+    ! Accumulate diagnostics from marbl_interior_tendency_diags
     call ecosys_tavg_accumulate_from_diag((/i/), (/c/), bid, &
-         marbl_diags = marbl_instance%interior_forcing_diags, &
+         marbl_diags = marbl_instance%interior_tendency_diags, &
          marbl_diags_stream_cnt = marbl_diags_stream_cnt_interior, &
-         tavg_ids = tavg_ids_interior_forcing, &
-         num_elements = marbl_instance%interior_forcing_diags%num_elements)
+         tavg_ids = tavg_ids_interior_tendency, &
+         num_elements = marbl_instance%interior_tendency_diags%num_elements)
 
   end subroutine ecosys_tavg_accumulate_interior
 
@@ -230,7 +230,7 @@ contains
     implicit none
 
     type(marbl_interface_class), intent(in) :: marbl_instance
-    character (*),               intent(in) :: field_source   ! 'interior' or 'surface'
+    character (*),               intent(in) :: field_source   ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -238,14 +238,14 @@ contains
     integer :: n
     !-----------------------------------------------------------------------
 
-    if (trim(field_source) == 'interior') then
-      do n = 1, size(marbl_instance%glo_scalar_rmean_interior)
-        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior(n)%rmean, &
+    if (trim(field_source) == 'interior_tendency') then
+      do n = 1, size(marbl_instance%glo_scalar_rmean_interior_tendency)
+        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior_tendency(n)%rmean, &
                                    tavg_ids_scalar_rmean_interior(n))
       end do
     else
-      do n = 1, size(marbl_instance%glo_scalar_rmean_surface)
-        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface(n)%rmean, &
+      do n = 1, size(marbl_instance%glo_scalar_rmean_surface_flux)
+        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface_flux(n)%rmean, &
                                    tavg_ids_scalar_rmean_surface(n))
       end do
     end if

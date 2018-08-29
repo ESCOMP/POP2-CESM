@@ -48,8 +48,8 @@ module ecosys_driver
   use ecosys_tracers_and_saved_state_mod, only : ecosys_tracers_and_saved_state_init
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_setup
   use ecosys_tracers_and_saved_state_mod, only : ecosys_saved_state_type
-  use ecosys_tracers_and_saved_state_mod, only : saved_state_surf
-  use ecosys_tracers_and_saved_state_mod, only : saved_state_interior
+  use ecosys_tracers_and_saved_state_mod, only : surface_flux_saved_state
+  use ecosys_tracers_and_saved_state_mod, only : interior_tendency_saved_state
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
   use ecosys_tracers_and_saved_state_mod, only : di13c_ind, di14c_ind
   use ecosys_tracers_and_saved_state_mod, only : o2_ind, no3_ind, po4_ind, don_ind, donr_ind, dop_ind, dopr_ind
@@ -113,12 +113,12 @@ module ecosys_driver
   logical   (log_kind) , public      :: ecosys_qsw_distrb_const
   logical   (log_kind)               :: ciso_on
   logical   (log_kind) , allocatable :: land_mask(:, :, :)
-  real      (r8)       , allocatable :: surface_forcing_diags(:, :, :, :)
+  real      (r8)       , allocatable :: surface_flux_diags(:, :, :, :)
 
   integer   (int_kind)               :: sfo_cnt
   integer   (int_kind)               :: flux_co2_id
   integer   (int_kind)               :: totalChl_id
-  real      (r8)       , allocatable :: surface_forcing_outputs(:, :, :, :)
+  real      (r8)       , allocatable :: surface_flux_outputs(:, :, :, :)
 
 
   ! Variables related to global averages
@@ -393,7 +393,7 @@ contains
        call marbl_instances(iblock)%init(                                     &
             gcm_num_levels = km,                                              &
             gcm_num_PAR_subcols = mcog_nbins,                                 &
-            gcm_num_elements_surface_forcing = marbl_col_cnt(iblock),         &
+            gcm_num_elements_surface_flux = marbl_col_cnt(iblock),            &
             gcm_delta_z = dz,                                                 &
             gcm_zw = zw,                                                      &
             gcm_zt = zt,                                                      &
@@ -450,13 +450,12 @@ contains
 
     ! pass ecosys_forcing_data_nml
     ! to ecosys_forcing_init()
-    ! Also pass marbl_instance%surface_forcing_metadata
     tmp_nl_buffer = namelist_find(nl_buffer, 'ecosys_forcing_data_nml')
 
     call ecosys_forcing_init(ciso_on,                                         &
                              land_mask,                                       &
-                             marbl_instances(1)%surface_input_forcings,       &
-                             marbl_instances(1)%interior_input_forcings,      &
+                             marbl_instances(1)%surface_flux_forcings,        &
+                             marbl_instances(1)%interior_tendency_forcings,   &
                              tmp_nl_buffer,                                   &
                              lhas_riv_flux)
 
@@ -464,10 +463,10 @@ contains
     !  Initialize ecosys tracers and saved state
     !--------------------------------------------------------------------
 
-    call ecosys_saved_state_setup(saved_state_surf,                    &
-         marbl_instances(1)%surface_saved_state)
-    call ecosys_saved_state_setup(saved_state_interior,                &
-         marbl_instances(1)%interior_saved_state)
+    call ecosys_saved_state_setup(surface_flux_saved_state, &
+         marbl_instances(1)%surface_flux_saved_state)
+    call ecosys_saved_state_setup(interior_tendency_saved_state, &
+         marbl_instances(1)%interior_tendency_saved_state)
 
     ! Initialize tracer_d_module input argument (needed before reading
     ! tracers from restart file)
@@ -504,42 +503,42 @@ contains
     endif
 
     ! copy values from POP's running mean to MARBL interface
-    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior_tendency)))
     lscalar = .false.
-    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('interior_tendency', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_avg_rmean_interior_tendency(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
 
-    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface_flux)))
     lscalar = .false.
-    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('surface_flux', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_avg_rmean_surface_flux(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
 
-    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior_tendency)))
     lscalar = .true.
-    call ecosys_running_mean_saved_state_get_var_vals('interior', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('interior_tendency', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_scalar_rmean_interior_tendency(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
 
-    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface_flux)))
     lscalar = .true.
-    call ecosys_running_mean_saved_state_get_var_vals('surface', lscalar, rmean_vals(:))
+    call ecosys_running_mean_saved_state_get_var_vals('surface_flux', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_scalar_rmean_surface_flux(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
@@ -548,11 +547,11 @@ contains
     !  Initialize ecosys_driver module variables
     !--------------------------------------------------------------------
 
-    associate(diags => marbl_instances(1)%surface_forcing_diags%diags)
-      allocate(surface_forcing_diags(nx_block, ny_block, size(diags), nblocks_clinic))
+    associate(diags => marbl_instances(1)%surface_flux_diags%diags)
+      allocate(surface_flux_diags(nx_block, ny_block, size(diags), nblocks_clinic))
     end associate
 
-    surface_forcing_diags = c0
+    surface_flux_diags = c0
 
     tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
 
@@ -569,42 +568,42 @@ contains
 
     sfo_cnt = 0
 
-    ! Register flux_co2 with MARBL surface forcing outputs
+    ! Register flux_co2 with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
     do iblock=1, nblocks_clinic
-       call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
+       call marbl_instances(iblock)%surface_flux_output%add_sfo(              &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "flux_co2",                                      &
               sfo_id       = flux_co2_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, &
-                                     ")%surface_forcing_output%add_sfo(flux_co2)"
+                                     ")%surface_flux_output%add_sfo(flux_co2)"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
     end do
 
-    ! Register totalChl with MARBL surface forcing outputs
+    ! Register totalChl with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
     do iblock=1, nblocks_clinic
-       call marbl_instances(iblock)%surface_forcing_output%add_sfo(           &
+       call marbl_instances(iblock)%surface_flux_output%add_sfo(              &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "totalChl",                                      &
               sfo_id       = totalChl_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, &
-                                     ")%surface_forcing_output%add_sfo(totalChl)"
+                                     ")%surface_flux_output%add_sfo(totalChl)"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
     end do
 
-    allocate(surface_forcing_outputs(nx_block,ny_block,nblocks_clinic,sfo_cnt))
-    surface_forcing_outputs = c0
+    allocate(surface_flux_outputs(nx_block,ny_block,nblocks_clinic,sfo_cnt))
+    surface_flux_outputs = c0
 
     call named_field_register('SFLUX_CO2'        , sflux_co2_nf_ind)
     call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
@@ -613,10 +612,10 @@ contains
     ! allocate space for fields for which global averages are to be computed
     !--------------------------------------------------------------------
 
-    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_interior, dim=1)
+    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_interior_tendency, dim=1)
     allocate(glo_avg_fields_interior(nx_block, ny_block, nblocks_clinic, glo_avg_field_cnt))
 
-    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_surface, dim=2)
+    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_surface_flux, dim=2)
     allocate(glo_avg_fields_surface(nx_block, ny_block, nblocks_clinic, glo_avg_field_cnt))
 
     ! initialize to zero so that values not set at runtime don't cause problems in global sum function
@@ -673,7 +672,7 @@ contains
     use grid               , only : DZT
     use grid               , only : partial_bottom_cells
     use grid               , only : TLOND, TLATD
-    use ecosys_forcing_mod , only : interior_forcing_fields
+    use ecosys_forcing_mod , only : interior_tendency_forcings
 
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_OLD ! old tracer values
     real (r8), dimension(:,:,:,:), intent(in)    :: TRACER_MODULE_CUR ! current tracer values
@@ -716,26 +715,26 @@ contains
 
              ! --- set forcing fields ---
 
-             do n = 1, size(interior_forcing_fields)
-               if (interior_forcing_fields(n)%rank == 2) then
-                 marbl_instances(bid)%interior_input_forcings(n)%field_0d(1) = &
-                      interior_forcing_fields(n)%field_0d(i,c,bid)
+             do n = 1, size(interior_tendency_forcings)
+               if (interior_tendency_forcings(n)%rank == 2) then
+                 marbl_instances(bid)%interior_tendency_forcings(n)%field_0d(1) = &
+                      interior_tendency_forcings(n)%field_0d(i,c,bid)
                else
-                 marbl_instances(bid)%interior_input_forcings(n)%field_1d(1,:) = &
-                      interior_forcing_fields(n)%field_1d(i,c,:,bid)
+                 marbl_instances(bid)%interior_tendency_forcings(n)%field_1d(1,:) = &
+                      interior_tendency_forcings(n)%field_1d(i,c,:,bid)
                end if
              end do
 
              ! --- set column tracers, averaging 2 time levels into 1 ---
 
              do n = 1, ecosys_tracer_cnt
-                marbl_instances(bid)%column_tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
+                marbl_instances(bid)%tracers(n, :) = p5*(tracer_module_old(i, c, :, n) + tracer_module_cur(i, c, :, n))
              end do
 
              ! --- copy data from slab to column for marbl_saved_state ---
-             do n=1,size(saved_state_interior)
-               marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1) = &
-                 saved_state_interior(n)%field_3d(:,i,c,bid)
+             do n=1,size(interior_tendency_saved_state)
+               marbl_instances(bid)%interior_tendency_saved_state%state(n)%field_3d(:,1) = &
+                 interior_tendency_saved_state(n)%field_3d(:,i,c,bid)
              end do
              call timer_stop(ecosys_interior_pop_to_marbl, block_id=bid)
 
@@ -743,7 +742,7 @@ contains
              !  compute time derivatives for ecosystem state variables
              !-----------------------------------------------------------
 
-             call marbl_instances(bid)%set_interior_forcing()
+             call marbl_instances(bid)%interior_tendency_compute()
              if (marbl_instances(bid)%StatusLog%labort_marbl) then
                 write(log_message,"(A,I0,A)") "marbl_instances(", bid, &
                                               ")%set_interior_forcing()"
@@ -758,9 +757,9 @@ contains
 
              call timer_start(ecosys_interior_marbl_to_pop, block_id=bid)
 
-             do n=1,size(saved_state_interior)
-               saved_state_interior(n)%field_3d(:,i,c,bid) =               &
-                 marbl_instances(bid)%interior_saved_state%state(n)%field_3d(:,1)
+             do n=1,size(interior_tendency_saved_state)
+               interior_tendency_saved_state(n)%field_3d(:,i,c,bid) =               &
+                 marbl_instances(bid)%interior_tendency_saved_state%state(n)%field_3d(:,1)
              end do
 
              !-----------------------------------------------------------
@@ -768,17 +767,17 @@ contains
              !-----------------------------------------------------------
 
              do k = 1, KMT(i, c, bid)
-                if (any(shr_infnan_isnan(marbl_instances(bid)%column_dtracers(:, k)))) then
+                if (any(shr_infnan_isnan(marbl_instances(bid)%interior_tendencies(:, k)))) then
                    write(stdout, *) subname, ': NaN in dtracer_module, (i,j,k)=(', &
                       this_block%i_glob(i), ',', this_block%j_glob(c), ',', k, ')'
                    write(stdout, *) '(lon,lat)=(', TLOND(i,c,bid), ',', TLATD(i,c,bid), ')'
                    do n = 1, ecosys_tracer_cnt
                       write(stdout, *) trim(marbl_instances(1)%tracer_metadata(n)%short_name), ' ', &
-                         marbl_instances(bid)%column_tracers(n, k), ' ', &
-                         marbl_instances(bid)%column_dtracers(n, k)
+                         marbl_instances(bid)%tracers(n, k), ' ', &
+                         marbl_instances(bid)%interior_tendencies(n, k)
                    end do
-                   do n = 1, size(interior_forcing_fields)
-                      associate (forcing_field => interior_forcing_fields(n))
+                   do n = 1, size(interior_tendency_forcings)
+                      associate (forcing_field => interior_tendency_forcings(n))
                          write(stdout, *) trim(forcing_field%metadata%marbl_varname)
                          if (forcing_field%rank == 2) then
                             write(stdout, *) forcing_field%field_0d(i,c,bid)
@@ -796,12 +795,12 @@ contains
              end do
 
              do n = 1, ecosys_tracer_cnt
-                dtracer_module(i, c, 1:KMT(i, c, bid), n) = marbl_instances(bid)%column_dtracers(n, 1:KMT(i, c, bid))
+                dtracer_module(i, c, 1:KMT(i, c, bid), n) = marbl_instances(bid)%interior_tendencies(n, 1:KMT(i, c, bid))
              end do
 
              ! copy values to be used in computing requested global averages
              ! arrays have zero extent if none are requested
-             glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
+             glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior_tendency(:)
              call timer_stop(ecosys_interior_marbl_to_pop, block_id=bid)
 
              !-----------------------------------------------------------
@@ -838,7 +837,7 @@ contains
        sss)
 
     ! DESCRIPTION:
-    ! Sets surface input forcing data
+    ! Sets surface flux forcing data
 
     use ecosys_forcing_mod   , only : ecosys_forcing_set_surface_time_varying_forcing_data
 
@@ -854,7 +853,7 @@ contains
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic) , intent(in)    :: sss                      ! sea surface salinity (psu)
 
     !-----------------------------------------------------------------------
-    ! Set input surface forcing data
+    ! Set surface flux forcing data
     !-----------------------------------------------------------------------
 
     call ecosys_forcing_set_surface_time_varying_forcing_data( &
@@ -877,8 +876,8 @@ contains
   !***********************************************************************
 
   subroutine ecosys_driver_set_sflux( &
-       surface_vals_old,              &
-       surface_vals_cur,              &
+       tracers_at_surface_old,        &
+       tracers_at_surface_cur,        &
        stf_module,                    &
        stf_riv_module,                &
        iblock)
@@ -886,14 +885,14 @@ contains
     ! DESCRIPTION:
     ! Calls marbl to compute surface tracer fluxes
 
-    use ecosys_forcing_mod   , only : surface_forcing_fields
+    use ecosys_forcing_mod   , only : surface_flux_forcings
     use ecosys_forcing_mod   , only : ecosys_forcing_comp_stf_riv
     use blocks               , only : get_block
     use domain               , only : blocks_clinic
     use grid                 , only : TLOND, TLATD
 
-    real (r8), dimension(:,:,:), intent(in)    :: surface_vals_old
-    real (r8), dimension(:,:,:), intent(in)    :: surface_vals_cur  ! module tracers
+    real (r8), dimension(:,:,:), intent(in)    :: tracers_at_surface_old
+    real (r8), dimension(:,:,:), intent(in)    :: tracers_at_surface_cur  ! module tracers
     real (r8), dimension(:,:,:), intent(inout) :: stf_module
     real (r8), dimension(:,:,:), intent(inout) :: stf_riv_module
     integer (int_kind)         , intent(in)    :: iblock
@@ -928,32 +927,32 @@ contains
        i = marbl_col_to_pop_i(index_marbl,iblock)
        j = marbl_col_to_pop_j(index_marbl,iblock)
 
-       do n = 1,size(surface_forcing_fields)
-          marbl_instances(iblock)%surface_input_forcings(n)%field_0d(index_marbl) = &
-               surface_forcing_fields(n)%field_0d(i,j,iblock)
+       do n = 1,size(surface_flux_forcings)
+          marbl_instances(iblock)%surface_flux_forcings(n)%field_0d(index_marbl) = &
+               surface_flux_forcings(n)%field_0d(i,j,iblock)
        end do
 
        do n = 1,ecosys_tracer_cnt
-          marbl_instances(iblock)%surface_vals(index_marbl,n) = &
-               p5*(surface_vals_old(i,j,n) + surface_vals_cur(i,j,n))
+          marbl_instances(iblock)%tracers_at_surface(index_marbl,n) = &
+               p5*(tracers_at_surface_old(i,j,n) + tracers_at_surface_cur(i,j,n))
        end do
 
-       do n=1,size(saved_state_surf)
-         marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl) = &
-           saved_state_surf(n)%field_2d(i,j,iblock)
+       do n=1,size(surface_flux_saved_state)
+         marbl_instances(iblock)%surface_flux_saved_state%state(n)%field_2d(index_marbl) = &
+           surface_flux_saved_state(n)%field_2d(i,j,iblock)
        end do
 
     end do
 
     !-----------------------------------------------------------------------
-    ! Determine surface forcing flux - marbl
+    ! Compute surface fluxes in MARBL
     !-----------------------------------------------------------------------
 
-    call marbl_instances(iblock)%set_surface_forcing()
+    call marbl_instances(iblock)%surface_flux_compute()
 
     if (marbl_instances(iblock)%StatusLog%labort_marbl) then
        write(log_message,"(A,I0,A)") "marbl_instances(", iblock, &
-                                     ")%set_surface_forcing()"
+                                     ")%surface_flux_compute()"
        call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
     end if
     call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
@@ -967,31 +966,31 @@ contains
        i = marbl_col_to_pop_i(index_marbl,iblock)
        j = marbl_col_to_pop_j(index_marbl,iblock)
 
-       do n=1,size(saved_state_surf)
-         saved_state_surf(n)%field_2d(i,j,iblock) = &
-           marbl_instances(iblock)%surface_saved_state%state(n)%field_2d(index_marbl)
+       do n=1,size(surface_flux_saved_state)
+         surface_flux_saved_state(n)%field_2d(i,j,iblock) = &
+           marbl_instances(iblock)%surface_flux_saved_state%state(n)%field_2d(index_marbl)
        end do
 
        do n=1,sfo_cnt
-         surface_forcing_outputs(i,j,iblock,n) = &
-            marbl_instances(iblock)%surface_forcing_output%sfo(n)%forcing_field(index_marbl)
+         surface_flux_outputs(i,j,iblock,n) = &
+            marbl_instances(iblock)%surface_flux_output%sfo(n)%forcing_field(index_marbl)
        end do
 
        !-----------------------------------------------------------
        ! before copying surface fluxes, check to see if any are NaNs
        !-----------------------------------------------------------
 
-       if (any(shr_infnan_isnan(marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,:)))) then
+       if (any(shr_infnan_isnan(marbl_instances(iblock)%surface_fluxes(index_marbl,:)))) then
           write(stdout, *) subname, ': NaN in stf_module, (i,j)=(', &
              this_block%i_glob(i), ',', this_block%j_glob(j), ')'
           write(stdout, *) '(lon,lat)=(', TLOND(i,j,iblock), ',', TLATD(i,j,iblock), ')'
           do n = 1, ecosys_tracer_cnt
              write(stdout, *) trim(marbl_instances(1)%tracer_metadata(n)%short_name), ' ', &
-                marbl_instances(iblock)%surface_vals(index_marbl,n), ' ', &
-                marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
+                marbl_instances(iblock)%tracers_at_surface(index_marbl,n), ' ', &
+                marbl_instances(iblock)%surface_fluxes(index_marbl,n)
           end do
-          do n = 1, size(surface_forcing_fields)
-             associate (forcing_field => surface_forcing_fields(n))
+          do n = 1, size(surface_flux_forcings)
+             associate (forcing_field => surface_flux_forcings(n))
                 write(stdout, *) trim(forcing_field%metadata%marbl_varname)
                 if (forcing_field%rank == 2) then
                    write(stdout, *) forcing_field%field_0d(i,j,iblock)
@@ -1005,17 +1004,17 @@ contains
 
        do n = 1,ecosys_tracer_cnt
           stf_module(i,j,n) = &
-               marbl_instances(iblock)%surface_tracer_fluxes(index_marbl,n)
+               marbl_instances(iblock)%surface_fluxes(index_marbl,n)
        end do
 
-       do n=1,size(marbl_instances(1)%surface_forcing_diags%diags)
-          surface_forcing_diags(i,j,n,iblock) = &
-               marbl_instances(iblock)%surface_forcing_diags%diags(n)%field_2d(index_marbl)
+       do n=1,size(marbl_instances(1)%surface_flux_diags%diags)
+          surface_flux_diags(i,j,n,iblock) = &
+               marbl_instances(iblock)%surface_flux_diags%diags(n)%field_2d(index_marbl)
        end do
 
        ! copy values to be used in computing requested global averages
        ! arrays have zero extent if none are requested
-       glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface(index_marbl,:)
+       glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface_flux(index_marbl,:)
     end do
 
     !-----------------------------------------------------------------------
@@ -1052,7 +1051,7 @@ contains
     integer (int_kind) :: errorCode ! halo update error code
     !-----------------------------------------------------------------------
 
-    ! Added halo update for totalChl surface forcing output because sw_absorption
+    ! Added halo update for totalChl surface flux output because sw_absorption
     ! had issue with prognostic Chl and we didn't track down why the halo cells
     ! mattered in that case
     ! klindsay thought -- KPP smooths boundary layer depth; CVMix computes KPP
@@ -1060,7 +1059,7 @@ contains
     ! so computing vertical mixing coefficients only on phys points will require
     ! halo update for HBLT (and we may be able to remove this halo update as a
     ! result)
-    call POP_HaloUpdate(surface_forcing_outputs(:,:,:,totalChl_id), POP_haloclinic, &
+    call POP_HaloUpdate(surface_flux_outputs(:,:,:,totalChl_id), POP_haloclinic, &
          POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
     if (errorCode /= POP_Success) then
        call document(subname, 'error updating SFO halo for totalChl from MARBL')
@@ -1071,18 +1070,18 @@ contains
     ! Update ecosys_forcing_saved_state fields
     !-----------------------------------------------------------------------
 
-    call ecosys_forcing_saved_state_update(surface_forcing_outputs(:,:,:,flux_co2_id))
+    call ecosys_forcing_saved_state_update(surface_flux_outputs(:,:,:,flux_co2_id))
 
     !-----------------------------------------------------------------------
     ! Update named fields
     !-----------------------------------------------------------------------
 
-    call named_field_set(totChl_surf_nf_ind, surface_forcing_outputs(:,:,:,totalChl_id))
+    call named_field_set(totChl_surf_nf_ind, surface_flux_outputs(:,:,:,totalChl_id))
 
     !  set air-sea co2 gas flux named field, converting units from
     !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
     do iblock = 1, nblocks_clinic
-       call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_forcing_outputs(:,:,iblock,flux_co2_id))
+       call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * surface_flux_outputs(:,:,iblock,flux_co2_id))
     end do
 
   end subroutine ecosys_driver_post_set_sflux
@@ -1100,7 +1099,7 @@ contains
     use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use POP_CommMod      , only : POP_Barrier
 
-    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+    character (*), intent(in) :: field_source ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1115,7 +1114,7 @@ contains
     !-----------------------------------------------------------------------
 
     lscalar = .false. ! all global means in this routine are glo_avg_rmean
-    if (trim(field_source) == 'interior') then
+    if (trim(field_source) == 'interior_tendency') then
        timer             => ecosys_interior_global_sum_timer
        glo_avg_fields    => glo_avg_fields_interior(:,:,:,:)
     else
@@ -1146,15 +1145,15 @@ contains
        call timer_stop(timer)
 
        ! store global means, and their running means, into appropriate component of marbl_instances
-       if (trim(field_source) == 'interior') then
+       if (trim(field_source) == 'interior_tendency') then
           do iblock = 1, nblocks_clinic
-             marbl_instances(iblock)%glo_avg_averages_interior(:)    = glo_avg(:)
-             marbl_instances(iblock)%glo_avg_rmean_interior(:)%rmean = glo_avg_rmean(:)
+             marbl_instances(iblock)%glo_avg_averages_interior_tendency(:)    = glo_avg(:)
+             marbl_instances(iblock)%glo_avg_rmean_interior_tendency(:)%rmean = glo_avg_rmean(:)
           end do
        else
           do iblock = 1, nblocks_clinic
-             marbl_instances(iblock)%glo_avg_averages_surface(:)    = glo_avg(:)
-             marbl_instances(iblock)%glo_avg_rmean_surface(:)%rmean = glo_avg_rmean(:)
+             marbl_instances(iblock)%glo_avg_averages_surface_flux(:)    = glo_avg(:)
+             marbl_instances(iblock)%glo_avg_rmean_surface_flux(:)%rmean = glo_avg_rmean(:)
           end do
        end if
 
@@ -1168,7 +1167,7 @@ contains
 
   subroutine ecosys_driver_set_global_scalars(field_source)
 
-    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+    character (*), intent(in) :: field_source ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1198,7 +1197,7 @@ contains
     use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use io_types         , only : stdout
 
-    character (*), intent(in) :: field_source ! 'interior' or 'surface'
+    character (*), intent(in) :: field_source ! 'interior_tendency' or 'surface_flux'
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1214,50 +1213,51 @@ contains
     !-----------------------------------------------------------------------
 
     lscalar = .true. ! all global means in this subroutine are glo_scalar_rmean
-    if (trim(field_source) == 'interior') then
-      allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior)))
+    if (trim(field_source) == 'interior_tendency') then
+      allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior_tendency)))
        do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_interior
           do iblock = 2, nblocks_clinic
-             if (marbl_instances(iblock)%glo_scalar_interior(n) /= marbl_instances(1)%glo_scalar_interior(n)) then
+             if (marbl_instances(iblock)%glo_scalar_interior_tendency(n) /= &
+                 marbl_instances(1)%glo_scalar_interior_tendency(n)) then
                 write(stdout, fmt_str)   subname, 'mismatch in glo_scalar_interior values across MARBL instances'
                 write(stdout, fmt_str_i) subname, 'rmean index', n
-                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_interior(n)
+                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_interior_tendency(n)
                 write(stdout, fmt_str_i) subname, 'iblock', iblock
-                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_interior(n)
+                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_interior_tendency(n)
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
        end do
 
-       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior_tendency)
        call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
        do iblock = 1, nblocks_clinic
           do n=1, size(rmean_vals)
-             marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
+             marbl_instances(iblock)%glo_scalar_rmean_interior_tendency(n)%rmean = rmean_vals(n)
           end do
       end do
     else
-       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_surface)))
+       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_surface_flux)))
        do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_surface
           do iblock = 2, nblocks_clinic
-             if (marbl_instances(iblock)%glo_scalar_surface(n) /= marbl_instances(1)%glo_scalar_surface(n)) then
+             if (marbl_instances(iblock)%glo_scalar_surface_flux(n) /= marbl_instances(1)%glo_scalar_surface_flux(n)) then
                 write(stdout, fmt_str)   subname, 'mismatch in glo_scalar_surface values across MARBL instances'
                 write(stdout, fmt_str_i) subname, 'rmean index', n
-                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_surface(n)
+                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_surface_flux(n)
                 write(stdout, fmt_str_i) subname, 'iblock', iblock
-                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_surface(n)
+                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_surface_flux(n)
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
        end do
 
-       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_surface_flux)
        call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
        do iblock = 1, nblocks_clinic
           do n=1, size(rmean_vals)
-             marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
+             marbl_instances(iblock)%glo_scalar_rmean_surface_flux(n)%rmean = rmean_vals(n)
           end do
        end do
     end if
@@ -1311,15 +1311,15 @@ contains
     !-----------------------------------------------------------------------
 
     if (.not. allocated(surface_iodesc)) then
-       allocate(surface_iodesc(size(saved_state_surf)))
-       allocate(interior_iodesc(size(saved_state_interior)))
+       allocate(surface_iodesc(size(surface_flux_saved_state)))
+       allocate(interior_iodesc(size(interior_tendency_saved_state)))
        allocate(saved_state_field_3d(nx_block, ny_block, km, max_blocks_clinic))
     end if
 
     call ecosys_saved_state_write_restart(restart_file, action,               &
-                                          saved_state_surf, surface_iodesc)
+                                          surface_flux_saved_state, surface_iodesc)
     call ecosys_saved_state_write_restart(restart_file, action,               &
-                                          saved_state_interior, interior_iodesc)
+                                          interior_tendency_saved_state, interior_iodesc)
 
     if (trim(action) == 'write') then
        deallocate(saved_state_field_3d)

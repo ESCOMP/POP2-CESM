@@ -908,7 +908,7 @@
 !  ECOSYS DRIVER modules 3D source-sink terms
 !-----------------------------------------------------------------------
    if (ecosys_on) then
-      call ecosys_driver_set_global_scalars('interior')
+      call ecosys_driver_set_global_scalars('interior_tendency')
 
       call ecosys_driver_set_interior_forcing(FRACR_BIN, QSW_RAW_BIN, QSW_BIN)
 
@@ -927,7 +927,7 @@
       end do
       !$OMP END PARALLEL DO
 
-      call ecosys_driver_comp_global_averages('interior')
+      call ecosys_driver_comp_global_averages('interior_tendency')
    end if
 
 !-----------------------------------------------------------------------
@@ -1042,7 +1042,7 @@
          ATM_BLACK_CARBON_FLUX, SEAICE_BLACK_CARBON_FLUX, &
          SST_FILT, SSS_FILT)
 
-      call ecosys_driver_set_global_scalars('surface')
+      call ecosys_driver_set_global_scalars('surface_flux')
 
       !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1,nblocks_clinic
@@ -1056,7 +1056,7 @@
 
       call ecosys_driver_post_set_sflux()
 
-      call ecosys_driver_comp_global_averages('surface')
+      call ecosys_driver_comp_global_averages('surface_flux')
    end if
 
 !-----------------------------------------------------------------------
