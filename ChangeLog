@@ -1,8 +1,8 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    22 August 2018
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180822
+Tag Date:    29 August 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180829
 Tag Summary: Update manage_externals to manic-v1.1.5
              (Also updated the .git remote)
              -- Requested by Bill Sacks due to bug in older versions
