@@ -1,6 +1,111 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    30 August 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n98_cesm_pop_2_1_20180829
+Tag Summary: Merge latest pop trunk onto marbl_dev
+             -- latest changes from final_CMIP6_BGC branch (tag n13)
+             -- latest version of manage_externals (v1.1.5)
+
+Testing:     aux_pop_MARBL (cheyenne_intel, cheyenne_gnu, hobart_nag, and
+             hobart_pgi) and aux_pop (cheyenne_intel); all tests pass
+             (including NLCOMP and BASELINE) compared to 20180804 trunk.
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A  +    externals/manage_externals/.git/FETCH_HEAD
+M       externals/manage_externals/.git/HEAD
+M       externals/manage_externals/.git/config
+M       externals/manage_externals/.git/index
+M       externals/manage_externals/.git/logs/HEAD
+D       externals/manage_externals/.git/logs/refs/remotes/origin/HEAD
+A  +    externals/manage_externals/.git/logs/refs/remotes/origin/master
+A  +    externals/manage_externals/.git/logs/refs/remotes/origin/release-v1.0
+A  +    externals/manage_externals/.git/logs/refs/remotes/origin/release-v1.1
+A  +    externals/manage_externals/.git/objects/pack/pack-0e74279ae92a00678add3c01036be38825487d41.idx
+A  +    externals/manage_externals/.git/objects/pack/pack-0e74279ae92a00678add3c01036be38825487d41.pack
+M       externals/manage_externals/.git/packed-refs
+D       externals/manage_externals/.git/refs/remotes/origin/HEAD
+A  +    externals/manage_externals/.git/refs/remotes/origin/master
+A  +    externals/manage_externals/.git/refs/remotes/origin/release-v1.0
+A  +    externals/manage_externals/.git/refs/remotes/origin/release-v1.1
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.0.0
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.0.1
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.0.2
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.1.0
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.1.1
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.1.2
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.1.3
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.1.4
+A  +    externals/manage_externals/.git/refs/tags/manic-v1.1.5
+M       externals/manage_externals/.travis.yml
+M       externals/manage_externals/README.md
+M       externals/manage_externals/manic/__init__.py
+M       externals/manage_externals/manic/checkout.py
+M       externals/manage_externals/manic/externals_description.py
+M       externals/manage_externals/manic/repository.py
+M       externals/manage_externals/manic/repository_git.py
+M       externals/manage_externals/manic/repository_svn.py
+M       externals/manage_externals/manic/sourcetree.py
+M       externals/manage_externals/manic/utils.py
+M       externals/manage_externals/test/.pylint.rc
+M       externals/manage_externals/test/Makefile
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/00
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/01
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/14
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/15
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/1f
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/38
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/6e
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/6f
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/93
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/95
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/a9
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/objects/e8
+M       externals/manage_externals/test/repos/mixed-cont-ext.git/refs/heads/master
+A  +    externals/manage_externals/test/repos/mixed-cont-ext.git/refs/heads/new-feature
+A  +    externals/manage_externals/test/repos/simple-ext.git/objects/09
+A  +    externals/manage_externals/test/repos/simple-ext.git/objects/31
+A  +    externals/manage_externals/test/repos/simple-ext.git/objects/60
+A  +    externals/manage_externals/test/repos/simple-ext.git/objects/63
+A  +    externals/manage_externals/test/repos/simple-ext.git/objects/95
+A  +    externals/manage_externals/test/repos/simple-ext.git/objects/df
+A  +    externals/manage_externals/test/repos/simple-ext.git/refs/heads/feature3
+M       externals/manage_externals/test/test_sys_checkout.py
+A  +    externals/manage_externals/test/test_sys_repository_git.py
+M       externals/manage_externals/test/test_unit_externals_description.py
+M       externals/manage_externals/test/test_unit_repository.py
+M       externals/manage_externals/test/test_unit_repository_git.py
+M       externals/manage_externals/test/test_unit_repository_svn.py
+A  +    input_templates/gm_bolus_terms_tavg_contents
+A  +    input_templates/gm_bolus_terms_tavg_contents_high_freq
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx1v6_tavg_contents_high_freq
+M       input_templates/gx1v7_tavg_contents
+M       input_templates/gx1v7_tavg_contents_high_freq
+M       input_templates/gx3v5_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.sf6.tavg.csh
+A  +    input_templates/submeso_terms_tavg_contents
+A  +    input_templates/submeso_terms_tavg_contents_high_freq
+M       source/IRF_mod.F90
+M       source/estuary_vsf_mod.F90
+M       source/hmix_gm.F90
+M       source/hmix_gm_aniso.F90
+A  +    source/hmix_gm_share.F90
+M       source/horizontal_mix.F90
+M       source/mix_submeso.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    29 August 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n97_cesm_pop_2_1_20180720
 Tag Summary: Merge latest marbl_dev_levy (n197) onto marbl_dev

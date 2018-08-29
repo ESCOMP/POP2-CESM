@@ -32,6 +32,8 @@
       use exit_mod
       use registry
       use hmix_gm_submeso_share
+      use hmix_gm_share, only: init_gm_share, hdifft_gm_share
+      use hmix_gm_share, only: UIT, VIT, WTOP_ISOP, WBOT_ISOP, diag_gm_bolus
 
 #ifdef CCSMCOUPLED
    use shr_sys_mod
@@ -45,8 +47,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-      public :: init_gm,   &
-                hdifft_gm
+      public :: init_gm
+      public :: hdifft_gm
 
 !EOP
 !BOC
@@ -68,9 +70,7 @@
          RB,         &        ! Rossby radius
          RBR,        &        ! inverse of Rossby radius
          BTP,        &        ! beta plane approximation
-         BL_DEPTH,   &        ! boundary layer depth
-         UIT, VIT,   &        ! work arrays for isopycnal mixing velocities
-         WTOP_ISOP, WBOT_ISOP ! vertical component of isopycnal velocities
+         BL_DEPTH             ! boundary layer depth
 
       real (r8), dimension(:,:,:,:,:,:), allocatable :: &
          SF_SLX, SF_SLY       ! components of the merged streamfunction
@@ -175,9 +175,6 @@
          slope_control          ! choice for slope control
 
       logical (log_kind) ::  &
-         diag_gm_bolus          ! true for diagnostic bolus velocity computation 
-
-      logical (log_kind) ::  &
          diag_gm_steer          ! true for diagnostic steering level eddy flux computation 
 
 !-----------------------------------------------------------------------
@@ -256,23 +253,12 @@
 !-----------------------------------------------------------------------
 
       integer (int_kind) :: &
-         tavg_UISOP,        &   ! zonal      isopycnal velocity
-         tavg_VISOP,        &   ! meridional isopycnal velocity
-         tavg_WISOP,        &   ! vertical   isopycnal velocity
          tavg_KAPPA_ISOP,   &   ! isopycnal  diffusion coefficient 
          tavg_KAPPA_THIC,   &   ! thickness  diffusion coefficient
          tavg_HOR_DIFF,     &   ! horizontal diffusion coefficient
          tavg_DIA_DEPTH,    &   ! depth of the diabatic region at the surface
          tavg_TLT,          &   ! transition layer thickness
          tavg_INT_DEPTH,    &   ! depth at which the interior region starts
-         tavg_ADVT_ISOP,    &   ! vertically-integrated T eddy-induced
-                                !  advection tendency
-         tavg_ADVS_ISOP,    &   ! vertically-integrated S eddy-induced
-                                !  advection tendency
-         tavg_VNT_ISOP,     &   ! heat flux tendency in grid-y direction
-                                !  due to eddy-induced velocity
-         tavg_VNS_ISOP,     &   ! salt flux tendency in grid-y direction
-                                !  due to eddy-induced velocity
          tavg_VDC_GM            ! GM contribution to VDC
 
 !-----------------------------------------------------------------------
@@ -1093,74 +1079,15 @@
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  allocate and initialize bolus velocity arrays if requested
-!  define tavg fields related to bolus velocity
-!
-!-----------------------------------------------------------------------
-
-   if ( diag_gm_bolus ) then
-
-     call register_string ('diag_gm_bolus')
-
-     allocate(WTOP_ISOP(nx_block,ny_block,nblocks_clinic), &
-              WBOT_ISOP(nx_block,ny_block,nblocks_clinic), &
-                    UIT(nx_block,ny_block,nblocks_clinic), &
-                    VIT(nx_block,ny_block,nblocks_clinic))
-
-     WTOP_ISOP = c0
-     WBOT_ISOP = c0
-     UIT       = c0
-     VIT       = c0
-
-     call define_tavg_field (tavg_UISOP, 'UISOP', 3,                &
-      long_name='Bolus Velocity in grid-x direction (diagnostic)',  &
-                   units='cm/s', grid_loc='3211',                   &
-                   coordinates='ULONG TLAT z_t time')
-
-     call define_tavg_field (tavg_VISOP, 'VISOP', 3,                &
-      long_name='Bolus Velocity in grid-y direction (diagnostic)',  &
-                   units='cm/s', grid_loc='3121',                   &
-                   coordinates='TLONG ULAT z_t time')
-
-     call define_tavg_field (tavg_WISOP, 'WISOP', 3,                &
-      long_name='Vertical Bolus Velocity (diagnostic)',             &
-                   units='cm/s', grid_loc='3112',                   &
-                   coordinates='TLONG TLAT z_w time')
-
-     call define_tavg_field (tavg_ADVT_ISOP, 'ADVT_ISOP', 2,                            &
-      long_name='Vertically-Integrated T Eddy-Induced Advection Tendency (diagnostic)', &
-                   units='cm degC/s', grid_loc='2110',                                  &
-                   coordinates='TLONG TLAT time')
-
-     call define_tavg_field (tavg_ADVS_ISOP, 'ADVS_ISOP', 2,                            &
-      long_name='Vertically-Integrated S Eddy-Induced Advection Tendency (diagnostic)', &
-                   scale_factor=1000.0_r8,                                              &
-                   units='cm gram/kilogram/s', grid_loc='2110',                         &
-                   coordinates='TLONG TLAT time')
-
-     call define_tavg_field (tavg_VNT_ISOP, 'VNT_ISOP', 3,                               &
-      long_name='Heat Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   units='degC/s', grid_loc='3121',                                      &
-                   coordinates='TLONG ULAT z_t time')
-
-     call define_tavg_field (tavg_VNS_ISOP, 'VNS_ISOP', 3,                               &
-      long_name='Salt Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   scale_factor=1000.0_r8,                                               &
-                   units='gram/kilogram/s', grid_loc='3121',                             &
-                   coordinates='TLONG ULAT z_t time')
-
-   endif
-
    call define_tavg_field(tavg_VDC_GM,'VDC_GM',3, &
                           long_name='vertical mixing coeff, GM contribution', &
                           units='cm^2/s', grid_loc='3113', &
                           coordinates='TLONG TLAT z_w_bot time')
 
-      call get_timer(timer_nloop,'HMIX_TRACER_GM_NLOOP', &
-                                  nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_nloop,'HMIX_TRACER_GM_NLOOP', &
+                               nblocks_clinic, distrb_clinic%nprocs)
 
+   call init_gm_share
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2157,7 +2084,7 @@
 !     diagnostic computation of the bolus velocities 
 !
 !-----------------------------------------------------------------------
-      
+
       if ( diag_gm_bolus ) then
 
         do j=1,ny_block-1
@@ -2281,114 +2208,10 @@
 
         endif
 
-        if ( diag_gm_bolus ) then
-
-            call accumulate_tavg_field (U_ISOP, tavg_UISOP, bid, k) 
-            call accumulate_tavg_field (V_ISOP, tavg_VISOP, bid, k) 
-            call accumulate_tavg_field (WTOP_ISOP(:,:,bid), tavg_WISOP,bid, k)
-
-          if (accumulate_tavg_now(tavg_ADVT_ISOP)) then
-
-            WORK1 = p5 * HTE(:,:,bid) * U_ISOP * ( TMIX(:,:,k,1)  &
-                      + eoshift(TMIX(:,:,k,1), dim=1, shift=1) )
-            WORK2 = eoshift(WORK1, dim=1, shift=-1)
-            WORK3 = WORK1 - WORK2
-
-            WORK1 = p5 * HTN(:,:,bid) * V_ISOP * ( TMIX(:,:,k,1)  &
-                      + eoshift(TMIX(:,:,k,1), dim=2, shift=1) )  
-            WORK2 = eoshift(WORK1, dim=2, shift=-1)
-            WORK3 = WORK3 + WORK1 - WORK2
-
-            WORK1 = c0
-            do j=this_block%jb,this_block%je
-              do i=this_block%ib,this_block%ie
-                if ( k <= KMT(i,j,bid) ) then
-                  WORK1(i,j) = - dz(k) * TAREA_R(i,j,bid) * WORK3(i,j)
-                endif
-              enddo
-            enddo
-
-            call accumulate_tavg_field (WORK1, tavg_ADVT_ISOP, bid, k)
-
-          endif
-
-           if (accumulate_tavg_now(tavg_ADVS_ISOP)) then
-
-            WORK1 = p5 * HTE(:,:,bid) * U_ISOP * ( TMIX(:,:,k,2)  &
-                      + eoshift(TMIX(:,:,k,2), dim=1, shift=1) )
-            WORK2 = eoshift(WORK1, dim=1, shift=-1)
-            WORK3 = WORK1 - WORK2
-
-            WORK1 = p5 * HTN(:,:,bid) * V_ISOP * ( TMIX(:,:,k,2)  &
-                      + eoshift(TMIX(:,:,k,2), dim=2, shift=1) )
-            WORK2 = eoshift(WORK1, dim=2, shift=-1)
-            WORK3 = WORK3 + WORK1 - WORK2
-
-            WORK1 = c0
-            do j=this_block%jb,this_block%je
-              do i=this_block%ib,this_block%ie
-                if ( k <= KMT(i,j,bid) ) then
-                  WORK1(i,j) = - dz(k) * TAREA_R(i,j,bid) * WORK3(i,j)
-                endif
-              enddo
-            enddo
-
-            call accumulate_tavg_field (WORK1, tavg_ADVS_ISOP, bid, k)
-
-          endif
-
-          if ( accumulate_tavg_now(tavg_VNT_ISOP)  .or.  &
-               accumulate_tavg_now(tavg_VNS_ISOP) ) then
-
-            WORK1 = p5 * V_ISOP * HTN(:,:,bid) * TAREA_R(:,:,bid) 
-
-            if (accumulate_tavg_now(tavg_VNT_ISOP)) then
-              WORK2 = WORK1 * (    TMIX(:,:,k,1)  &
-                         + eoshift(TMIX(:,:,k,1), dim=2, shift=1) )
-              call accumulate_tavg_field (WORK2, tavg_VNT_ISOP, bid, k) 
-            endif
-
-            if (accumulate_tavg_now(tavg_VNS_ISOP)) then
-              WORK2 = WORK1 * (    TMIX(:,:,k,2)  &
-                         + eoshift(TMIX(:,:,k,2), dim=2, shift=1) )
-              call accumulate_tavg_field (WORK2, tavg_VNS_ISOP, bid, k)
-            endif
-
-          endif
-
-        endif ! bolus velocity option on
-
-        do n = 1,nt
-          if (accumulate_tavg_now(tavg_HDIFE_TRACER(n))) then
-            do j=this_block%jb,this_block%je
-            do i=this_block%ib,this_block%ie
-              WORK1(i,j) = FX(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
-            enddo
-            enddo
-            call accumulate_tavg_field(WORK1,tavg_HDIFE_TRACER(n),bid,k)
-          endif
-
-          if (accumulate_tavg_now(tavg_HDIFN_TRACER(n))) then
-            do j=this_block%jb,this_block%je
-            do i=this_block%ib,this_block%ie
-              WORK1(i,j) = FY(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
-            enddo
-            enddo
-            call accumulate_tavg_field(WORK1,tavg_HDIFN_TRACER(n),bid,k)
-          endif
-
-          if (accumulate_tavg_now(tavg_HDIFB_TRACER(n))) then
-            do j=this_block%jb,this_block%je
-            do i=this_block%ib,this_block%ie
-              WORK1(i,j) = FZTOP(i,j,n,bid)*dzr(k)*TAREA_R(i,j,bid)
-            enddo
-            enddo
-            call accumulate_tavg_field(WORK1,tavg_HDIFB_TRACER(n),bid,k)
-          endif
-        enddo
-
       endif   ! mix_pass ne 1
 
+      call hdifft_gm_share (k, GTK, TMIX, U_ISOP, V_ISOP, FX, FY, FZTOP(:,:,:,bid), &
+           tavg_HDIFE_TRACER, tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
 
 !-----------------------------------------------------------------------
 !EOC

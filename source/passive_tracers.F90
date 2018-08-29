@@ -1217,7 +1217,7 @@
 ! !IROUTINE: reset_passive_tracers
 ! !INTERFACE:
 
- subroutine reset_passive_tracers(TRACER_OLD, TRACER_NEW, bid)
+ subroutine reset_passive_tracers(TRACER_OLD, TRACER_RESET, bid)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module to reset tracer values
@@ -1233,7 +1233,7 @@
 
    real (r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
       TRACER_OLD,   & ! all tracers at old time for a given block
-      TRACER_NEW      ! all tracers at new time for a given block
+      TRACER_RESET    ! all tracers at time level being reset for a given block
 
 !EOP
 !BOC
@@ -1256,7 +1256,7 @@
 
    if (iage_on) then
       call iage_reset(  &
-         TRACER_NEW(:,:,:,iage_ind_begin:iage_ind_end), bid)
+         TRACER_RESET(:,:,:,iage_ind_begin:iage_ind_end), bid)
    end if
 
 !-----------------------------------------------------------------------
@@ -1270,7 +1270,7 @@
    if (IRF_on) then
       call IRF_reset( &
          TRACER_OLD(:,:,:,IRF_ind_begin:IRF_ind_end), &
-         TRACER_NEW(:,:,:,IRF_ind_begin:IRF_ind_end) )
+         TRACER_RESET(:,:,:,IRF_ind_begin:IRF_ind_end) )
    end if
 
 !-----------------------------------------------------------------------
