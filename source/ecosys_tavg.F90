@@ -113,18 +113,18 @@ contains
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior)
+    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_interior_tendency)
     allocate(tavg_ids_scalar_rmean_interior(rmean_var_cnt))
     do n = 1, rmean_var_cnt
       call define_tavg_field(tavg_ids_scalar_rmean_interior(n), &
-                             marbl_instance%glo_scalar_rmean_interior(n)%sname, 0)
+                             marbl_instance%glo_scalar_rmean_interior_tendency(n)%sname, 0)
     end do
 
-    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface)
+    rmean_var_cnt = size(marbl_instance%glo_scalar_rmean_surface_flux)
     allocate(tavg_ids_scalar_rmean_surface(rmean_var_cnt))
     do n = 1, rmean_var_cnt
       call define_tavg_field(tavg_ids_scalar_rmean_surface(n), &
-                             marbl_instance%glo_scalar_rmean_surface(n)%sname, 0)
+                             marbl_instance%glo_scalar_rmean_surface_flux(n)%sname, 0)
     end do
 
   end subroutine ecosys_tavg_init
@@ -239,13 +239,13 @@ contains
     !-----------------------------------------------------------------------
 
     if (trim(field_source) == 'interior_tendency') then
-      do n = 1, size(marbl_instance%glo_scalar_rmean_interior)
-        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior(n)%rmean, &
+      do n = 1, size(marbl_instance%glo_scalar_rmean_interior_tendency)
+        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_interior_tendency(n)%rmean, &
                                    tavg_ids_scalar_rmean_interior(n))
       end do
     else
-      do n = 1, size(marbl_instance%glo_scalar_rmean_surface)
-        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface(n)%rmean, &
+      do n = 1, size(marbl_instance%glo_scalar_rmean_surface_flux)
+        call accumulate_tavg_field(marbl_instance%glo_scalar_rmean_surface_flux(n)%rmean, &
                                    tavg_ids_scalar_rmean_surface(n))
       end do
     end if

@@ -503,42 +503,42 @@ contains
     endif
 
     ! copy values from POP's running mean to MARBL interface
-    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_interior_tendency)))
     lscalar = .false.
     call ecosys_running_mean_saved_state_get_var_vals('interior_tendency', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_avg_rmean_interior(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_avg_rmean_interior_tendency(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
 
-    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_avg_rmean_surface_flux)))
     lscalar = .false.
     call ecosys_running_mean_saved_state_get_var_vals('surface_flux', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_avg_rmean_surface(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_avg_rmean_surface_flux(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
 
-    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_interior_tendency)))
     lscalar = .true.
     call ecosys_running_mean_saved_state_get_var_vals('interior_tendency', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_scalar_rmean_interior_tendency(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
 
-    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface)))
+    allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_rmean_surface_flux)))
     lscalar = .true.
     call ecosys_running_mean_saved_state_get_var_vals('surface_flux', lscalar, rmean_vals(:))
     do n = 1, size(rmean_vals)
        do iblock = 1, size(marbl_instances)
-          marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
+          marbl_instances(iblock)%glo_scalar_rmean_surface_flux(n)%rmean = rmean_vals(n)
        end do
     end do
     deallocate(rmean_vals)
@@ -612,10 +612,10 @@ contains
     ! allocate space for fields for which global averages are to be computed
     !--------------------------------------------------------------------
 
-    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_interior, dim=1)
+    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_interior_tendency, dim=1)
     allocate(glo_avg_fields_interior(nx_block, ny_block, nblocks_clinic, glo_avg_field_cnt))
 
-    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_surface, dim=2)
+    glo_avg_field_cnt = size(marbl_instances(1)%glo_avg_fields_surface_flux, dim=2)
     allocate(glo_avg_fields_surface(nx_block, ny_block, nblocks_clinic, glo_avg_field_cnt))
 
     ! initialize to zero so that values not set at runtime don't cause problems in global sum function
@@ -800,7 +800,7 @@ contains
 
              ! copy values to be used in computing requested global averages
              ! arrays have zero extent if none are requested
-             glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior(:)
+             glo_avg_fields_interior(i, c, bid, :) = marbl_instances(bid)%glo_avg_fields_interior_tendency(:)
              call timer_stop(ecosys_interior_marbl_to_pop, block_id=bid)
 
              !-----------------------------------------------------------
@@ -1014,7 +1014,7 @@ contains
 
        ! copy values to be used in computing requested global averages
        ! arrays have zero extent if none are requested
-       glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface(index_marbl,:)
+       glo_avg_fields_surface(i,j,iblock,:) = marbl_instances(iblock)%glo_avg_fields_surface_flux(index_marbl,:)
     end do
 
     !-----------------------------------------------------------------------
@@ -1147,13 +1147,13 @@ contains
        ! store global means, and their running means, into appropriate component of marbl_instances
        if (trim(field_source) == 'interior_tendency') then
           do iblock = 1, nblocks_clinic
-             marbl_instances(iblock)%glo_avg_averages_interior(:)    = glo_avg(:)
-             marbl_instances(iblock)%glo_avg_rmean_interior(:)%rmean = glo_avg_rmean(:)
+             marbl_instances(iblock)%glo_avg_averages_interior_tendency(:)    = glo_avg(:)
+             marbl_instances(iblock)%glo_avg_rmean_interior_tendency(:)%rmean = glo_avg_rmean(:)
           end do
        else
           do iblock = 1, nblocks_clinic
-             marbl_instances(iblock)%glo_avg_averages_surface(:)    = glo_avg(:)
-             marbl_instances(iblock)%glo_avg_rmean_surface(:)%rmean = glo_avg_rmean(:)
+             marbl_instances(iblock)%glo_avg_averages_surface_flux(:)    = glo_avg(:)
+             marbl_instances(iblock)%glo_avg_rmean_surface_flux(:)%rmean = glo_avg_rmean(:)
           end do
        end if
 
@@ -1214,49 +1214,50 @@ contains
 
     lscalar = .true. ! all global means in this subroutine are glo_scalar_rmean
     if (trim(field_source) == 'interior_tendency') then
-      allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior)))
+      allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_interior_tendency)))
        do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_interior
           do iblock = 2, nblocks_clinic
-             if (marbl_instances(iblock)%glo_scalar_interior(n) /= marbl_instances(1)%glo_scalar_interior(n)) then
+             if (marbl_instances(iblock)%glo_scalar_interior_tendency(n) /= &
+                 marbl_instances(1)%glo_scalar_interior_tendency(n)) then
                 write(stdout, fmt_str)   subname, 'mismatch in glo_scalar_interior values across MARBL instances'
                 write(stdout, fmt_str_i) subname, 'rmean index', n
-                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_interior(n)
+                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_interior_tendency(n)
                 write(stdout, fmt_str_i) subname, 'iblock', iblock
-                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_interior(n)
+                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_interior_tendency(n)
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
        end do
 
-       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior_tendency)
        call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
        do iblock = 1, nblocks_clinic
           do n=1, size(rmean_vals)
-             marbl_instances(iblock)%glo_scalar_rmean_interior(n)%rmean = rmean_vals(n)
+             marbl_instances(iblock)%glo_scalar_rmean_interior_tendency(n)%rmean = rmean_vals(n)
           end do
       end do
     else
-       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_surface)))
+       allocate(rmean_vals(size(marbl_instances(1)%glo_scalar_surface_flux)))
        do n = 1, size(rmean_vals)
           ! verify that all instances have same value of glo_scalar_surface
           do iblock = 2, nblocks_clinic
-             if (marbl_instances(iblock)%glo_scalar_surface(n) /= marbl_instances(1)%glo_scalar_surface(n)) then
+             if (marbl_instances(iblock)%glo_scalar_surface_flux(n) /= marbl_instances(1)%glo_scalar_surface_flux(n)) then
                 write(stdout, fmt_str)   subname, 'mismatch in glo_scalar_surface values across MARBL instances'
                 write(stdout, fmt_str_i) subname, 'rmean index', n
-                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_surface(n)
+                write(stdout, fmt_str_e) subname, 'iblock 1 value', marbl_instances(1)%glo_scalar_surface_flux(n)
                 write(stdout, fmt_str_i) subname, 'iblock', iblock
-                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_surface(n)
+                write(stdout, fmt_str_e) subname, 'mismatched value', marbl_instances(iblock)%glo_scalar_surface_flux(n)
                 call exit_POP(sigAbort, 'Stopping in ' // subname)
              end if
           end do
        end do
 
-       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_interior)
+       call ecosys_running_mean_saved_state_update(field_source, lscalar, marbl_instances(1)%glo_scalar_surface_flux)
        call ecosys_running_mean_saved_state_get_var_vals(field_source, lscalar, rmean_vals)
        do iblock = 1, nblocks_clinic
           do n=1, size(rmean_vals)
-             marbl_instances(iblock)%glo_scalar_rmean_surface(n)%rmean = rmean_vals(n)
+             marbl_instances(iblock)%glo_scalar_rmean_surface_flux(n)%rmean = rmean_vals(n)
           end do
        end do
     end if

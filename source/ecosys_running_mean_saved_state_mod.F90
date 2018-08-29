@@ -41,16 +41,16 @@ contains
 
     ! FIXME : move the setup of running means of global averages into MARBL
 
-    call init_rmean_var(marbl_instance%glo_avg_rmean_interior, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_avg_rmean_interior_tendency, ecosys_restart_filename, &
          glo_avg_rmean_ind_interior)
 
-    call init_rmean_var(marbl_instance%glo_avg_rmean_surface, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_avg_rmean_surface_flux, ecosys_restart_filename, &
          glo_avg_rmean_ind_surface)
 
-    call init_rmean_var(marbl_instance%glo_scalar_rmean_interior, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_scalar_rmean_interior_tendency, ecosys_restart_filename, &
          glo_scalar_rmean_ind_interior)
 
-    call init_rmean_var(marbl_instance%glo_scalar_rmean_surface, ecosys_restart_filename, &
+    call init_rmean_var(marbl_instance%glo_scalar_rmean_surface_flux, ecosys_restart_filename, &
          glo_scalar_rmean_ind_surface)
 
   end subroutine ecosys_running_mean_state_init
