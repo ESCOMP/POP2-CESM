@@ -1,11 +1,13 @@
 module ecosys_forcing_mod
 
   ! !DESCRIPTION:
-  !  This module sets up data types to keep track of the surface forcing data
+  !  This module sets up data types to keep track of the forcing data
   !  being sent to MARBL. Data may be passed through to MARBL from the flux
   !  coupler, read from a file, or set to a constant value based on namelist
-  !  variables. Additionally, this module handles some interior forcing --
-  !  namely tracer restoring.
+  !  variables.
+  !
+  !  This module mostly handles surface flux forcing, but also handles some
+  !  interior tendency forcing -- namely tracer restoring.
 
   use constants, only : c0, c1
 
@@ -133,8 +135,8 @@ module ecosys_forcing_mod
   end type forcing_fields_type
 
   type(forcing_fields_type), dimension(:), allocatable, public :: riv_flux_forcing_fields
-  type(forcing_fields_type), dimension(:), allocatable, public :: surface_forcing_fields
-  type(forcing_fields_type), dimension(:), allocatable, public :: interior_forcing_fields
+  type(forcing_fields_type), dimension(:), allocatable, public :: surface_flux_forcings
+  type(forcing_fields_type), dimension(:), allocatable, public :: interior_tendency_forcings
 
   !---------------------------------------------------------------------
   !  Variables read in via &ecosys_forcing_data_nml
@@ -210,7 +212,7 @@ module ecosys_forcing_mod
   logical(log_kind), public :: ldriver_has_atm_co2_diag
   logical(log_kind), public :: ldriver_has_atm_co2_prog
 
-  ! Data type for reading interior forcing from shr_stream
+  ! Data type for reading interior tendency forcing from shr_stream
   type (strdata_input_type), pointer :: interior_strdata_inputlist_ptr(:)
 
   !-----------------------------------------------------------------------
@@ -220,7 +222,7 @@ module ecosys_forcing_mod
   type (strdata_input_type), pointer :: riv_flux_strdata_inputlist_ptr(:)
 
   !-----------------------------------------------------------------------
-  !  input surface forcing
+  !  surface flux forcing
   !-----------------------------------------------------------------------
 
   ! These variables are necessary because of the way POP uses pointers store
@@ -237,7 +239,7 @@ module ecosys_forcing_mod
 
   type (strdata_input_type), pointer :: surface_strdata_inputlist_ptr(:)
 
-  ! Surface and interior forcing fields
+  ! Surface flux and interior tendency forcing fields
   real(r8), allocatable, target :: iron_patch_flux(:,:,:)
   real(r8)                      :: dust_flux_in(nx_block, ny_block, max_blocks_clinic)
 
@@ -249,7 +251,7 @@ module ecosys_forcing_mod
   integer (int_kind) :: ecosys_surface_strdata_advance_timer
   integer (int_kind) :: ecosys_interior_strdata_advance_timer
 
-  ! Some surface forcing fields need special treatment, so we store indices
+  ! Some surface flux forcing fields need special treatment, so we store indices
   integer(int_kind) :: dust_dep_ind = 0, &
                        Fe_dep_ind   = 0, &
                        bc_dep_ind   = 0, &
@@ -276,7 +278,7 @@ module ecosys_forcing_mod
                        alk_riv_flux_ind = 0, &
                        doc_riv_flux_ind = 0
 
-  ! We also need to track the indices of all the interior forcing fields
+  ! We also need to track the indices of all the interior tendency forcing fields
   integer(int_kind), public :: dustflux_ind       = 0, &
                        PAR_col_frac_ind   = 0, &
                        surf_shortwave_ind = 0, &
@@ -306,10 +308,10 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_forcing_init(ciso_on, land_mask,                &
-                                 marbl_req_surface_forcing_fields,  &
-                                 marbl_req_interior_forcing_fields, &
-                                 forcing_nml,                       &
+  subroutine ecosys_forcing_init(ciso_on, land_mask,                     &
+                                 marbl_req_surface_flux_forcings,        &
+                                 marbl_req_interior_tendency_forcings,   &
+                                 forcing_nml,                            &
                                  lhas_riv_flux)
 
     use ecosys_tracers_and_saved_state_mod, only : set_defaults_tracer_read
@@ -326,8 +328,8 @@ contains
 
     logical,                         intent(in)    :: ciso_on
     logical,                         intent(in)    :: land_mask(:,:,:)
-    type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_forcing_fields(:)
-    type(marbl_forcing_fields_type), intent(in)    :: marbl_req_interior_forcing_fields(:)
+    type(marbl_forcing_fields_type), intent(in)    :: marbl_req_surface_flux_forcings(:)
+    type(marbl_forcing_fields_type), intent(in)    :: marbl_req_interior_tendency_forcings(:)
     character(len=*),                intent(in)    :: forcing_nml
     logical,                         intent(out)   :: lhas_riv_flux(:) ! true if a tracer has a riverine flux
 
@@ -608,10 +610,10 @@ contains
          lhas_riv_flux)
 
     !--------------------------------------------------------------------------
-    !  Surface forcing
+    !  Surface flux forcing
     !--------------------------------------------------------------------------
 
-    ! Set up where surface forcing data will come from
+    ! Set up where surface flux forcing data will come from
     fice_file_loc%input             = gas_flux_fice
     xkw_file_loc%input              = gas_flux_ws
     ap_file_loc%input               = gas_flux_ap
@@ -620,63 +622,63 @@ contains
     nox_flux_monthly_file_loc%input = nox_flux_monthly_input
     nhy_flux_monthly_file_loc%input = nhy_flux_monthly_input
 
-    allocate(surface_forcing_fields(size(marbl_req_surface_forcing_fields)))
+    allocate(surface_flux_forcings(size(marbl_req_surface_flux_forcings)))
 
     ! allocating to zero size eases the implementation of growing the array
     allocate(surface_strdata_inputlist_ptr(0))
 
-    do n=1,size(surface_forcing_fields)
-      marbl_varname = marbl_req_surface_forcing_fields(n)%metadata%varname
-      units         = marbl_req_surface_forcing_fields(n)%metadata%field_units
-      select case (trim(marbl_req_surface_forcing_fields(n)%metadata%varname))
+    do n=1,size(surface_flux_forcings)
+      marbl_varname = marbl_req_surface_flux_forcings(n)%metadata%varname
+      units         = marbl_req_surface_flux_forcings(n)%metadata%field_units
+      select case (trim(marbl_req_surface_flux_forcings(n)%metadata%varname))
         case ('d13c')
           d13c_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='d13C', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='d13C', rank=2, id=n)
 
         case ('d14c')
           d14c_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='D14C', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='D14C', rank=2, id=n)
 
         case ('u10_sqr')
           u10sqr_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='U10_SQR', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='U10_SQR', rank=2, id=n)
 
         case ('sst')
           sst_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='SST', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='SST', rank=2, id=n)
 
         case ('sss')
           sss_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='SSS', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='SSS', rank=2, id=n)
 
         case ('xco2')
           if (trim(atm_co2_opt).eq.'const') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
-                                 marbl_varname=marbl_varname, field_units=units,   &
-                                 field_constant=atm_co2_const, rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='const', &
+                 marbl_varname=marbl_varname, field_units=units,                        &
+                 field_constant=atm_co2_const, rank=2, id=n)
           else if (trim(atm_co2_opt).eq.'drv_prog') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
-                                 marbl_varname=marbl_varname, field_units=units,         &
-                                 named_field='ATM_CO2_PROG', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='named_field', &
+                 marbl_varname=marbl_varname, field_units=units,                              &
+                 named_field='ATM_CO2_PROG', rank=2, id=n)
           else if (trim(atm_co2_opt).eq.'drv_diag') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
-                                 marbl_varname=marbl_varname, field_units=units,         &
-                                 named_field='ATM_CO2_DIAG', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='named_field', &
+                 marbl_varname=marbl_varname, field_units=units,                              &
+                 named_field='ATM_CO2_DIAG', rank=2, id=n)
           else if (trim(atm_co2_opt).eq.'box_atm_co2') then
             box_atm_co2_ind = n
-            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
-                                 driver_varname='box_atm_co2', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+                 marbl_varname=marbl_varname, field_units=units,                           &
+                 driver_varname='box_atm_co2', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_co2_opt),                     &
                  'is not a valid option for atm_co2_opt'
@@ -686,18 +688,18 @@ contains
 
         case ('xco2_alt_co2')
           if (trim(atm_alt_co2_opt).eq.'const') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='const', &
-                                 marbl_varname=marbl_varname, field_units=units,   &
-                                 field_constant=atm_alt_co2_const, rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='const', &
+                 marbl_varname=marbl_varname, field_units=units,                        &
+                 field_constant=atm_alt_co2_const, rank=2, id=n)
           else if (trim(atm_alt_co2_opt).eq.'box_atm_co2') then
             if (trim(atm_co2_opt).eq.'box_atm_co2') then
               box_atm_co2_dup_ind = n
             else
               box_atm_co2_ind = n
             end if
-            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
-                                 driver_varname='box_atm_co2', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+                 marbl_varname=marbl_varname, field_units=units,                           &
+                 driver_varname='box_atm_co2', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(atm_alt_co2_opt),                 &
                  'is not a valid option for atm_alt_co2_opt'
@@ -708,16 +710,16 @@ contains
         case ('Ice Fraction')
           ifrac_ind = n
           if (trim(gas_flux_forcing_opt).eq.'drv') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
-                                 driver_varname='ICE Fraction', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+                 marbl_varname=marbl_varname, field_units=units,                           &
+                 driver_varname='ICE Fraction', rank=2, id=n)
           else if (trim(gas_flux_forcing_opt).eq.'file') then
             file_details => fice_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, rank=2, id=n)
+            call init_monthly_surface_flux_forcing_metadata(file_details)
+            call surface_flux_forcings(n)%add_forcing_field(                    &
+                 field_source='POP monthly calendar',                                 &
+                 marbl_varname=marbl_varname, field_units=units,                      &
+                 forcing_calendar_name=file_details, rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
                  'is not a valid option for gas_flux_forcing_opt'
@@ -728,15 +730,15 @@ contains
         case ('Atmospheric Pressure')
           ap_ind = n
           if (trim(gas_flux_forcing_opt).eq.'drv') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
-                                 driver_varname='AP_FILE_INPUT', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+                 marbl_varname=marbl_varname, field_units=units,                           &
+                 driver_varname='AP_FILE_INPUT', rank=2, id=n)
           else if (trim(gas_flux_forcing_opt).eq.'file') then
             file_details => ap_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
+            call init_monthly_surface_flux_forcing_metadata(file_details)
+            call surface_flux_forcings(n)%add_forcing_field(                    &
+                 field_source='POP monthly calendar',                                 &
+                 marbl_varname=marbl_varname, field_units=units,                      &
                                  forcing_calendar_name=file_details, rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(gas_flux_forcing_opt),            &
@@ -748,16 +750,16 @@ contains
         case ('Dust Flux')
           dust_dep_ind = n
           if (trim(dust_flux_source).eq.'driver') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
-                                 driver_varname='DUST_FLUX', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+                 marbl_varname=marbl_varname, field_units=units,                           &
+                 driver_varname='DUST_FLUX', rank=2, id=n)
           else if (trim(dust_flux_source).eq.'monthly-calendar') then
             file_details => dust_flux_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, rank=2, id=n)
+            call init_monthly_surface_flux_forcing_metadata(file_details)
+            call surface_flux_forcings(n)%add_forcing_field(                    &
+                 field_source='POP monthly calendar',                                 &
+                 marbl_varname=marbl_varname, field_units=units,                      &
+                 forcing_calendar_name=file_details, rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(dust_flux_source),                &
                  'is not a valid option for dust_flux_source'
@@ -768,17 +770,17 @@ contains
         case ('Iron Flux')
           if (trim(iron_flux_source).eq.'driver-derived') then
             bc_dep_ind = n
-            call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                                 marbl_varname=marbl_varname, field_units=units,      &
-                                 driver_varname='BLACK_CARBON_FLUX', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+                 marbl_varname=marbl_varname, field_units=units,                           &
+                 driver_varname='BLACK_CARBON_FLUX', rank=2, id=n)
           else if (trim(iron_flux_source).eq.'monthly-calendar') then
             Fe_dep_ind = n
             file_details => iron_flux_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, rank=2, id=n)
+            call init_monthly_surface_flux_forcing_metadata(file_details)
+            call surface_flux_forcings(n)%add_forcing_field(                    &
+                 field_source='POP monthly calendar',                                 &
+                 marbl_varname=marbl_varname, field_units=units,                      &
+                 forcing_calendar_name=file_details, rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(iron_flux_source),                &
                  'is not a valid option for iron_flux_source'
@@ -788,27 +790,27 @@ contains
 
         case ('NOx Flux')
           if (trim(ndep_data_type).eq.'shr_stream') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                                 strdata_inputlist_ptr=surface_strdata_inputlist_ptr,   &
-                                 marbl_varname=marbl_varname, field_units=units,        &
-                                 unit_conv_factor=ndep_shr_stream_scale_factor,         &
-                                 file_varname='NOy_deposition',                         &
-                                 year_first = ndep_shr_stream_year_first,               &
-                                 year_last = ndep_shr_stream_year_last,                 &
-                                 year_align = ndep_shr_stream_year_align,               &
-                                 filename = ndep_shr_stream_file,                       &
-                                 rank = 2, id = n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='shr_stream', &
+                 strdata_inputlist_ptr=surface_strdata_inputlist_ptr,                        &
+                 marbl_varname=marbl_varname, field_units=units,                             &
+                 unit_conv_factor=ndep_shr_stream_scale_factor,                              &
+                 file_varname='NOy_deposition',                                              &
+                 year_first = ndep_shr_stream_year_first,                                    &
+                 year_last = ndep_shr_stream_year_last,                                      &
+                 year_align = ndep_shr_stream_year_align,                                    &
+                 filename = ndep_shr_stream_file,                                            &
+                 rank = 2, id = n)
           else if (trim(ndep_data_type).eq.'monthly-calendar') then
             file_details => nox_flux_monthly_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, rank=2, id=n)
+            call init_monthly_surface_flux_forcing_metadata(file_details)
+            call surface_flux_forcings(n)%add_forcing_field(                    &
+                 field_source='POP monthly calendar',                                 &
+                 marbl_varname=marbl_varname, field_units=units,                      &
+                 forcing_calendar_name=file_details, rank=2, id=n)
           else if (trim(ndep_data_type).eq.'driver') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
-                                 marbl_varname=marbl_varname, field_units=units,         &
-                                 named_field='ATM_NOy', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='named_field', &
+                 marbl_varname=marbl_varname, field_units=units,                              &
+                 named_field='ATM_NOy', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
                  'is not a valid option for ndep_data_type'
@@ -818,27 +820,27 @@ contains
 
         case ('NHy Flux')
           if (trim(ndep_data_type).eq.'shr_stream') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='shr_stream', &
-                                 strdata_inputlist_ptr=surface_strdata_inputlist_ptr,   &
-                                 marbl_varname=marbl_varname, field_units=units,        &
-                                 unit_conv_factor=ndep_shr_stream_scale_factor,         &
-                                 file_varname='NHx_deposition',                         &
-                                 year_first = ndep_shr_stream_year_first,               &
-                                 year_last = ndep_shr_stream_year_last,                 &
-                                 year_align = ndep_shr_stream_year_align,               &
-                                 filename = ndep_shr_stream_file,                       &
-                                 rank = 2, id = n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='shr_stream', &
+                 strdata_inputlist_ptr=surface_strdata_inputlist_ptr,                        &
+                 marbl_varname=marbl_varname, field_units=units,                             &
+                 unit_conv_factor=ndep_shr_stream_scale_factor,                              &
+                 file_varname='NHx_deposition',                                              &
+                 year_first = ndep_shr_stream_year_first,                                    &
+                 year_last = ndep_shr_stream_year_last,                                      &
+                 year_align = ndep_shr_stream_year_align,                                    &
+                 filename = ndep_shr_stream_file,                                            &
+                 rank = 2, id = n)
           else if (trim(ndep_data_type).eq.'monthly-calendar') then
             file_details => nhy_flux_monthly_file_loc
-            call init_monthly_surface_forcing_metadata(file_details)
-            call surface_forcing_fields(n)%add_forcing_field(                    &
-                                 field_source='POP monthly calendar',            &
-                                 marbl_varname=marbl_varname, field_units=units, &
-                                 forcing_calendar_name=file_details, rank=2, id=n)
+            call init_monthly_surface_flux_forcing_metadata(file_details)
+            call surface_flux_forcings(n)%add_forcing_field(                    &
+                 field_source='POP monthly calendar',                                 &
+                 marbl_varname=marbl_varname, field_units=units,                      &
+                 forcing_calendar_name=file_details, rank=2, id=n)
           else if (trim(ndep_data_type).eq.'driver') then
-            call surface_forcing_fields(n)%add_forcing_field(field_source='named_field', &
-                                 marbl_varname=marbl_varname, field_units=units,         &
-                                 named_field='ATM_NHx', rank=2, id=n)
+            call surface_flux_forcings(n)%add_forcing_field(field_source='named_field', &
+                 marbl_varname=marbl_varname, field_units=units,                              &
+                 named_field='ATM_NHx', rank=2, id=n)
           else
             write(err_msg, "(A,1X,A)") trim(ndep_data_type),                  &
                  'is not a valid option for ndep_data_type'
@@ -848,25 +850,25 @@ contains
 
         case ('external C Flux')
           ext_C_flux_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='ext_C_flux', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='ext_C_flux', rank=2, id=n)
 
         case ('external P Flux')
           ext_P_flux_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='ext_P_flux', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='ext_P_flux', rank=2, id=n)
 
         case ('external Si Flux')
           ext_Si_flux_ind = n
-          call surface_forcing_fields(n)%add_forcing_field(field_source='internal', &
-                               marbl_varname=marbl_varname, field_units=units,      &
-                               driver_varname='ext_Si_flux', rank=2, id=n)
+          call surface_flux_forcings(n)%add_forcing_field(field_source='internal', &
+               marbl_varname=marbl_varname, field_units=units,                           &
+               driver_varname='ext_Si_flux', rank=2, id=n)
 
         case DEFAULT
-          write(err_msg, "(A,1X,A)") trim(marbl_req_surface_forcing_fields(n)%metadata%varname), &
-                         'is not a valid surface forcing field name.'
+          write(err_msg, "(A,1X,A)") trim(marbl_req_surface_flux_forcings(n)%metadata%varname), &
+                         'is not a valid surface flux forcing field name.'
           call document(subname, err_msg)
           call exit_POP(sigAbort, 'Stopping in ' // subname)
       end select
@@ -877,17 +879,17 @@ contains
     lbox_atm_co2 = box_atm_co2_ind > 0
 
     !--------------------------------------------------------------------------
-    !  Interior forcing
+    !  Interior tendency forcing
     !--------------------------------------------------------------------------
 
-    allocate(interior_forcing_fields(size(marbl_req_interior_forcing_fields)))
+    allocate(interior_tendency_forcings(size(marbl_req_interior_tendency_forcings)))
 
     ! allocating to zero size eases the implementation of growing the array
     allocate(interior_strdata_inputlist_ptr(0))
 
-    do n=1,size(interior_forcing_fields)
-      marbl_varname = marbl_req_interior_forcing_fields(n)%metadata%varname
-      units = marbl_req_interior_forcing_fields(n)%metadata%field_units
+    do n=1,size(interior_tendency_forcings)
+      marbl_varname = marbl_req_interior_tendency_forcings(n)%metadata%varname
+      units = marbl_req_interior_tendency_forcings(n)%metadata%field_units
 
       var_processed = .false.
       ! Check to see if this forcing field is tracer restoring
@@ -914,7 +916,7 @@ contains
                             " with ", trim(restore_data_file_varnames(m)),    &
                             " from ", trim(restore_data_filenames(m))
             end if
-            call interior_forcing_fields(n)%add_forcing_field(                &
+            call interior_tendency_forcings(n)%add_forcing_field(                &
                        field_source='shr_stream',                             &
                        strdata_inputlist_ptr=interior_strdata_inputlist_ptr,  &
                        marbl_varname=marbl_varname, field_units=units,        &
@@ -935,13 +937,13 @@ contains
       if (index(marbl_varname,'Restoring Inverse Timescale').gt.0) then
         select case (trim(restore_inv_tau_opt))
           case('const')
-            call interior_forcing_fields(n)%add_forcing_field(                &
+            call interior_tendency_forcings(n)%add_forcing_field(                &
                        field_source='const',                                  &
                        marbl_varname=marbl_varname, field_units=units,        &
                        field_constant=restore_inv_tau_const,                  &
                        rank=3, dim3_len=km, id=n)
           case('file_time_invariant')
-            call interior_forcing_fields(n)%add_forcing_field(                &
+            call interior_tendency_forcings(n)%add_forcing_field(                &
                        field_source='file_time_invariant',                    &
                        marbl_varname=marbl_varname, field_units=units,        &
                        filename=restore_inv_tau_input%filename,               &
@@ -958,42 +960,42 @@ contains
       end if
 
       if (.not.var_processed) then
-        select case (trim(marbl_req_interior_forcing_fields(n)%metadata%varname))
+        select case (trim(marbl_req_interior_tendency_forcings(n)%metadata%varname))
           case ('Dust Flux')
             dustflux_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+            call interior_tendency_forcings(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='dust_flux', rank=2, id=n)
           case ('PAR Column Fraction')
             PAR_col_frac_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+            call interior_tendency_forcings(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='PAR_col_frac', rank=3, dim3_len=mcog_nbins,  &
                           ldim3_is_depth=.false., id=n)
           case ('Surface Shortwave')
             surf_shortwave_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='internal',  &
+            call interior_tendency_forcings(n)%add_forcing_field(field_source='internal',  &
                           marbl_varname=marbl_varname, field_units=units,               &
                           driver_varname='surf_shortwave', rank=3, dim3_len=mcog_nbins, &
                           ldim3_is_depth=.false., id=n)
           case ('Potential Temperature')
             potemp_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+            call interior_tendency_forcings(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='temperature', rank=3, dim3_len=km, id=n)
           case ('Salinity')
             salinity_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+            call interior_tendency_forcings(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='salinity', rank=3, dim3_len=km, id=n)
           case ('Pressure')
             pressure_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(field_source='internal', &
+            call interior_tendency_forcings(n)%add_forcing_field(field_source='internal', &
                           marbl_varname=marbl_varname, field_units=units,              &
                           driver_varname='pressure', rank=3, dim3_len=km, id=n)
           case ('Iron Sediment Flux')
             fesedflux_ind = n
-            call interior_forcing_fields(n)%add_forcing_field(                &
+            call interior_tendency_forcings(n)%add_forcing_field(                &
                           field_source='file_time_invariant',                 &
                           marbl_varname=marbl_varname, field_units=units,     &
                           filename=fesedflux_input%filename,                  &
@@ -1003,11 +1005,11 @@ contains
           case ('O2 Consumption Scale Factor')
             select case (trim(o2_consumption_scalef_opt))
             case ('const')
-              call interior_forcing_fields(n)%add_forcing_field(field_source='const', &
+              call interior_tendency_forcings(n)%add_forcing_field(field_source='const', &
                    marbl_varname=marbl_varname, field_units=units, &
                    field_constant=o2_consumption_scalef_const, rank=3, dim3_len=km, id=n)
             case ('file_time_invariant')
-              call interior_forcing_fields(n)%add_forcing_field( &
+              call interior_tendency_forcings(n)%add_forcing_field( &
                    field_source='file_time_invariant', &
                    marbl_varname=marbl_varname, field_units=units, &
                    filename=o2_consumption_scalef_input%filename, &
@@ -1021,11 +1023,11 @@ contains
           case ('Particulate Remin Scale Factor')
             select case (trim(p_remin_scalef_opt))
             case ('const')
-              call interior_forcing_fields(n)%add_forcing_field(field_source='const', &
+              call interior_tendency_forcings(n)%add_forcing_field(field_source='const', &
                    marbl_varname=marbl_varname, field_units=units, &
                    field_constant=p_remin_scalef_const, rank=3, dim3_len=km, id=n)
             case ('file_time_invariant')
-              call interior_forcing_fields(n)%add_forcing_field( &
+              call interior_tendency_forcings(n)%add_forcing_field( &
                    field_source='file_time_invariant', &
                    marbl_varname=marbl_varname, field_units=units, &
                    filename=p_remin_scalef_input%filename, &
@@ -1037,29 +1039,29 @@ contains
               call exit_POP(sigAbort, 'Stopping in ' // subname)
             end select
           case DEFAULT
-            write(err_msg, "(A,1X,A)") trim(marbl_req_interior_forcing_fields(n)%metadata%varname), &
-                           'is not a valid interior forcing field name.'
+            write(err_msg, "(A,1X,A)") trim(marbl_req_interior_tendency_forcings(n)%metadata%varname), &
+                           'is not a valid interior tendency forcing field name.'
             call document(subname, err_msg)
             call exit_POP(sigAbort, 'Stopping in ' // subname)
         end select
       end if
 
-    end do ! do n=1,size(interior_forcing_fields)
+    end do ! do n=1,size(interior_tendency_forcings)
 
     if ((bc_dep_ind.ne.0).and.(dust_dep_ind.eq.0)) then
       call document(subname, "If deriving iron flux, must provide dust flux!")
       call exit_POP(sigAbort, 'Stopping in ' // subname)
     end if
 
-    call set_time_invariant_forcing_data(surface_forcing_fields)
-    call set_time_invariant_forcing_data(interior_forcing_fields)
+    call set_time_invariant_forcing_data(surface_flux_forcings)
+    call set_time_invariant_forcing_data(interior_tendency_forcings)
 
-    call read_monthly_calendar_forcing_data(surface_forcing_fields, land_mask)
+    call read_monthly_calendar_forcing_data(surface_flux_forcings, land_mask)
 
     call forcing_init_post_processing(land_mask)
 
-    call mask_time_invariant_forcing_data(surface_forcing_fields, land_mask)
-    call mask_time_invariant_forcing_data(interior_forcing_fields, land_mask)
+    call mask_time_invariant_forcing_data(surface_flux_forcings, land_mask)
+    call mask_time_invariant_forcing_data(interior_tendency_forcings, land_mask)
 
   end subroutine ecosys_forcing_init
 
@@ -1277,7 +1279,7 @@ contains
     integer :: m, n, iblock
 
     !--------------------------------------------------------------------------
-    !  For POP monthly calendar surface forcing fields, read all
+    !  For POP monthly calendar surface flux forcing fields, read all
     !  12 months of data
     !--------------------------------------------------------------------------
 
@@ -1354,24 +1356,24 @@ contains
       !-----------------------------------------------------------------------
 
       if (fesedflux_ind > 0) then
-        associate (fesedflux => interior_forcing_fields(fesedflux_ind)%field_1d)
+        associate (fesedflux => interior_tendency_forcings(fesedflux_ind)%field_1d)
           call add_subsurf_to_bottom(land_mask(:,:,iblock), fesedflux(:,:,:,iblock), iblock)
         end associate
       endif
 
       !-----------------------------------------------------------------------
-      ! apply unit_conv_factor to all non-time-varying interior and surface forcing fields
+      ! apply unit_conv_factor to all non-time-varying interior and surface flux forcing fields
       !-----------------------------------------------------------------------
 
-      do n=1,size(surface_forcing_fields)
-        if (.not. surface_forcing_fields(n)%metadata%ltime_varying) then
-           call apply_unit_conv_factor(land_mask(:,:,iblock), surface_forcing_fields(n), iblock)
+      do n=1,size(surface_flux_forcings)
+        if (.not. surface_flux_forcings(n)%metadata%ltime_varying) then
+           call apply_unit_conv_factor(land_mask(:,:,iblock), surface_flux_forcings(n), iblock)
         end if
       end do
 
-      do n=1,size(interior_forcing_fields)
-        if (.not. interior_forcing_fields(n)%metadata%ltime_varying) then
-           call apply_unit_conv_factor(land_mask(:,:,iblock), interior_forcing_fields(n), iblock)
+      do n=1,size(interior_tendency_forcings)
+        if (.not. interior_tendency_forcings(n)%metadata%ltime_varying) then
+           call apply_unit_conv_factor(land_mask(:,:,iblock), interior_tendency_forcings(n), iblock)
         end if
       end do
 
@@ -1388,7 +1390,7 @@ contains
         call document(subname, 'feventflux_input%filename', feventflux_input%filename)
         call exit_POP(sigAbort, 'feventflux is specified, but fesedflux is not requested by MARBL')
       else
-        associate (fesedflux => interior_forcing_fields(fesedflux_ind)%field_1d)
+        associate (fesedflux => interior_tendency_forcings(fesedflux_ind)%field_1d)
           allocate(feventflux(nx_block, ny_block, km, nblocks_clinic))
           call read_field(feventflux_input%file_fmt, &
                feventflux_input%filename, &
@@ -1591,56 +1593,56 @@ contains
     !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,stream_index,var_ind,n,j,i)
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
-      do field_index = 1, size(interior_forcing_fields)
+      do field_index = 1, size(interior_tendency_forcings)
 !!!     the following associate construct seems to be incompatible with the OMP directive
-!!!     associate (forcing_field => interior_forcing_fields(field_index), &
-!!!                metadata      => interior_forcing_fields(field_index)%metadata)
-          select case (trim(interior_forcing_fields(field_index)%metadata%field_source))
+!!!     associate (forcing_field => interior_tendency_forcings(field_index), &
+!!!                metadata      => interior_tendency_forcings(field_index)%metadata)
+          select case (trim(interior_tendency_forcings(field_index)%metadata%field_source))
             case('internal')
               if (field_index .eq. dustflux_ind) then
-                interior_forcing_fields(field_index)%field_0d(:,:,iblock) = dust_flux_in(:,:,iblock)
+                interior_tendency_forcings(field_index)%field_0d(:,:,iblock) = dust_flux_in(:,:,iblock)
               else if (field_index .eq. PAR_col_frac_ind) then
-                interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = FRACR_BIN(:,:,:,iblock)
+                interior_tendency_forcings(field_index)%field_1d(:,:,:,iblock) = FRACR_BIN(:,:,:,iblock)
               else if (field_index .eq. surf_shortwave_ind) then
                 if (ecosys_qsw_distrb_const) then
-                  interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_RAW_BIN(:,:,:,iblock)
+                  interior_tendency_forcings(field_index)%field_1d(:,:,:,iblock) = QSW_RAW_BIN(:,:,:,iblock)
                 else
-                  interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
+                  interior_tendency_forcings(field_index)%field_1d(:,:,:,iblock) = QSW_BIN(:,:,:,iblock)
                 end if
               else if (field_index .eq. potemp_ind) then
                 ! --- average 2 time levels into 1 ---
-                interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
+                interior_tendency_forcings(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,1,oldtime,iblock) + TRACER(:,:,:,1,curtime,iblock))
               else if (field_index .eq. salinity_ind) then
                 ! --- average 2 time levels into 1, and convert from msu to psu ---
-                interior_forcing_fields(field_index)%field_1d(:,:,:,iblock) = &
+                interior_tendency_forcings(field_index)%field_1d(:,:,:,iblock) = &
                   p5 * (TRACER(:,:,:,2,oldtime,iblock) + TRACER(:,:,:,2,curtime,iblock)) * salt_to_ppt
               else if (field_index .eq. pressure_ind) then
                 do k = 1, km
-                  interior_forcing_fields(field_index)%field_1d(:,:,k,iblock) = ref_pressure(k)
+                  interior_tendency_forcings(field_index)%field_1d(:,:,k,iblock) = ref_pressure(k)
                 end do
               end if
             case('shr_stream')
-              stream_index = interior_forcing_fields(field_index)%metadata%field_file_info%strdata_inputlist_ind
-              var_ind      = interior_forcing_fields(field_index)%metadata%field_file_info%strdata_var_ind
+              stream_index = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_inputlist_ind
+              var_ind      = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_var_ind
               n = n0(iblock)
               do k=1,km
                 do j = this_block%jb, this_block%je
                   do i = this_block%ib, this_block%ie
                     n = n + 1
                     if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
-                      interior_forcing_fields(field_index)%field_1d(i,j,k,iblock) = &
+                      interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = &
                         interior_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind, n)
                     else
-                      interior_forcing_fields(field_index)%field_1d(i,j,k,iblock) = c0
+                      interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = c0
                     endif
                   enddo
                 enddo
               enddo
           end select
 
-          if (interior_forcing_fields(field_index)%metadata%ltime_varying) then
-            call apply_unit_conv_factor(land_mask(:,:,iblock), interior_forcing_fields(field_index), iblock)
+          if (interior_tendency_forcings(field_index)%metadata%ltime_varying) then
+            call apply_unit_conv_factor(land_mask(:,:,iblock), interior_tendency_forcings(field_index), iblock)
           end if
 !!!     end associate
       end do
@@ -1654,8 +1656,8 @@ contains
   !***********************************************************************
 
   subroutine adjust_interior_time_varying_data()
-    ! This subroutine is empty because there are no interior forcing fields
-    ! that need to be modified before being passed to MARBL
+    ! This subroutine is empty because there are no interior tendency forcing
+    ! fields that need to be modified before being passed to MARBL
   end subroutine adjust_interior_time_varying_data
 
   !*****************************************************************************
@@ -1834,12 +1836,12 @@ contains
     end do  ! index
 
     !-----------------------------------------------------------------------
-    !  loop through surface forcing fields
+    !  loop through surface flux forcing fields
     !-----------------------------------------------------------------------
 
-    do index = 1, size(surface_forcing_fields)
-       associate (forcing_field => surface_forcing_fields(index), &
-                  metadata      => surface_forcing_fields(index)%metadata)
+    do index = 1, size(surface_flux_forcings)
+       associate (forcing_field => surface_flux_forcings(index), &
+                  metadata      => surface_flux_forcings(index)%metadata)
           select case (trim(metadata%field_source))
 
           !------------------------------------
@@ -2198,7 +2200,7 @@ contains
     integer :: index, iblock
 
     !-----------------------------------------------------------------------
-    ! Some surface forcing fields need to be modified before being
+    ! Some surface flux forcing fields need to be modified before being
     ! sent to MARBL
     !-----------------------------------------------------------------------
 
@@ -2207,8 +2209,8 @@ contains
        ! Reduce surface dust flux due to assumed instant surface dissolution
        index = dust_dep_ind
        if (index.gt.0) then
-         surface_forcing_fields(index)%field_0d(:,:,iblock) = &
-              surface_forcing_fields(index)%field_0d(:,:,iblock) * 0.98_r8
+         surface_flux_forcings(index)%field_0d(:,:,iblock) = &
+              surface_flux_forcings(index)%field_0d(:,:,iblock) * 0.98_r8
        end if
 
        ! Add iron patch (if available)
@@ -2216,37 +2218,37 @@ contains
        index = Fe_dep_ind
        if (index.gt.0) then
          if (liron_patch .and. imonth == iron_patch_month) then
-           surface_forcing_fields(index)%field_0d(:,:,iblock) =      &
-                surface_forcing_fields(index)%field_0d(:,:,iblock) + &
+           surface_flux_forcings(index)%field_0d(:,:,iblock) =      &
+                surface_flux_forcings(index)%field_0d(:,:,iblock) + &
                 iron_patch_flux(:,:,iblock)
          endif
-         surface_forcing_fields(index)%field_0d(:,:,iblock) = &
-              surface_forcing_fields(index)%field_0d(:,:,iblock) * parm_Fe_bioavail
+         surface_flux_forcings(index)%field_0d(:,:,iblock) = &
+              surface_flux_forcings(index)%field_0d(:,:,iblock) * parm_Fe_bioavail
        endif
 
        ! Add iron patch (if available)
        index = bc_dep_ind
        if (index.gt.0) then
          if (liron_patch .and. imonth == iron_patch_month) then
-           surface_forcing_fields(index)%field_0d(:,:,iblock) =      &
-                surface_forcing_fields(index)%field_0d(:,:,iblock) + &
+           surface_flux_forcings(index)%field_0d(:,:,iblock) =      &
+                surface_flux_forcings(index)%field_0d(:,:,iblock) + &
                 iron_patch_flux(:,:,iblock) * parm_Fe_bioavail
          endif
        endif
 
        index = ifrac_ind
        if (index.gt.0) then
-         if (surface_forcing_fields(index)%metadata%field_source == 'internal') then
-           where (surface_forcing_fields(index)%field_0d(:,:,iblock) < c0)    &
-                surface_forcing_fields(index)%field_0d(:,:,iblock) = c0
-           where (surface_forcing_fields(index)%field_0d(:,:,iblock) > c1)    &
-                surface_forcing_fields(index)%field_0d(:,:,iblock) = c1
+         if (surface_flux_forcings(index)%metadata%field_source == 'internal') then
+           where (surface_flux_forcings(index)%field_0d(:,:,iblock) < c0)    &
+                surface_flux_forcings(index)%field_0d(:,:,iblock) = c0
+           where (surface_flux_forcings(index)%field_0d(:,:,iblock) > c1)    &
+                surface_flux_forcings(index)%field_0d(:,:,iblock) = c1
          else
            ! Apply OCMIP ice fraction mask when input is from a file.
-           where (surface_forcing_fields(index)%field_0d(:,:,iblock) < 0.2000_r8) &
-                surface_forcing_fields(index)%field_0d(:,:,iblock) = 0.2000_r8
-           where (surface_forcing_fields(index)%field_0d(:,:,iblock) > 0.9999_r8) &
-                surface_forcing_fields(index)%field_0d(:,:,iblock) = 0.9999_r8
+           where (surface_flux_forcings(index)%field_0d(:,:,iblock) < 0.2000_r8) &
+                surface_flux_forcings(index)%field_0d(:,:,iblock) = 0.2000_r8
+           where (surface_flux_forcings(index)%field_0d(:,:,iblock) > 0.9999_r8) &
+                surface_flux_forcings(index)%field_0d(:,:,iblock) = 0.9999_r8
          end if
        end if
 
@@ -2254,7 +2256,7 @@ contains
 
     index = dust_dep_ind
     if (index.gt.0) then
-      dust_flux_in(:,:,1:nblocks_clinic) = surface_forcing_fields(index)%field_0d(:,:,1:nblocks_clinic)
+      dust_flux_in(:,:,1:nblocks_clinic) = surface_flux_forcings(index)%field_0d(:,:,1:nblocks_clinic)
     end if
 
   end subroutine adjust_surface_time_varying_data
@@ -2814,7 +2816,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine init_monthly_surface_forcing_metadata(var)
+  subroutine init_monthly_surface_flux_forcing_metadata(var)
 
     implicit none
 
@@ -2826,7 +2828,7 @@ contains
     var%filename    = 'not-used-for-monthly'
     var%data_label  = 'not-used-for-monthly'
 
-  end subroutine init_monthly_surface_forcing_metadata
+  end subroutine init_monthly_surface_flux_forcing_metadata
 
   !*****************************************************************************
 

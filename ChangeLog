@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    30 August 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180830
+Tag Summary: Merge latest marbl_dev branch tag (n98) onto trunk
+             -- bit-for-bit code-cleanup / refactor in MARBL requires some
+                changes to the pop driver as well
+
+Testing: aux_pop on cheyenne_intel and aux_pop_MARBL on cheyenne_{intel,gnu}
+         as well as hobart_{nag,pgi}. Testing was done on marbl_dev_n98 which
+         is identical to this tag
+
+M       Externals_POP.cfg
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/ecosys_running_mean_saved_state_mod.F90
+M       source/ecosys_tavg.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    29 August 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180829
 Tag Summary: Update manage_externals to manic-v1.1.5
@@ -10,7 +30,6 @@ Tag Summary: Update manage_externals to manic-v1.1.5
 Testing: None (ensured that CVMix and MARBL were checked out properly)
          CVMIX tag: v0.90-beta
          MARBL tag: marbl0.31.0
-
 
 M       externals/manage_externals
 [Lots of files modified in the above directory]

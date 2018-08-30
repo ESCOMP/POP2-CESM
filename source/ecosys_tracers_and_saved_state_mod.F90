@@ -37,8 +37,8 @@ module ecosys_tracers_and_saved_state_mod
      real (r8), allocatable, dimension(:,:,:,:) :: field_3d
   end type ecosys_saved_state_type
 
-  type(ecosys_saved_state_type), allocatable, target, dimension(:), public :: saved_state_surf
-  type(ecosys_saved_state_type), allocatable, target, dimension(:), public :: saved_state_interior
+  type(ecosys_saved_state_type), allocatable, target, dimension(:), public :: surface_flux_saved_state
+  type(ecosys_saved_state_type), allocatable, target, dimension(:), public :: interior_tendency_saved_state
   ! Transpose field_3d into this array before writing restart
   ! (nx_block, ny_block, km, max_blocks_clinic)
   real(r8), allocatable, target, dimension(:,:,:,:), public :: saved_state_field_3d
@@ -307,13 +307,13 @@ Contains
        endif
 
        call read_restart_saved_state(init_file_fmt, ecosys_restart_filename,  &
-            saved_state_surf)
+            surface_flux_saved_state)
        call read_restart_saved_state(init_file_fmt, ecosys_restart_filename,  &
-            saved_state_interior)
+            interior_tendency_saved_state)
 
     case ('file', 'ccsm_startup')
-       call set_saved_state_zero(saved_state_surf)
-       call set_saved_state_zero(saved_state_interior)
+       call set_saved_state_zero(surface_flux_saved_state)
+       call set_saved_state_zero(interior_tendency_saved_state)
 
     case default
        call document(subname, 'unknown init_ecosys_option', init_ecosys_option)
