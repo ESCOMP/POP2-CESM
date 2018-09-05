@@ -6238,7 +6238,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc or ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc
+Default: ndep_ocn_1850_w_nhx_emis_gx3v7_c180803.nc or ndep_ocn_1850_w_nhx_emis_gx1v6_c180803.nc
 </entry>
 
 <entry
@@ -6279,7 +6279,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 input_pathname="abs" >
-Default: ndep_ocn_1850_gx3v7_c100428.nc or ndep_ocn_1850_gx1v6_c100428.nc
+Default: ndep_ocn_1850_w_nhx_emis_gx3v7_c180803.nc or ndep_ocn_1850_w_nhx_emis_gx1v6_c180803.nc
 </entry>
 
 <entry

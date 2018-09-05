@@ -1376,16 +1376,18 @@
 <nhy_flux_monthly_input%file_varname>NHx_deposition</nhy_flux_monthly_input%file_varname>
 <nhy_flux_monthly_input%scale_factor>7.1429e+06</nhy_flux_monthly_input%scale_factor>
 
-<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc</nox_flux_monthly_input%filename>
-<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180803.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180803.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx3v7" ocn_bgc_config="cesm2.0">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx3v7" ocn_bgc_config="cesm2.0">ocn/pop/gx3v7/forcing/ndep_ocn_1850_w_nhx_emis_gx3v7_c180427.nc</nhy_flux_monthly_input%filename>
 
-<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nox_flux_monthly_input%filename>
-<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180803.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180803.nc</nhy_flux_monthly_input%filename>
 <nox_flux_monthly_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
 <nhy_flux_monthly_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
-<nox_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nox_flux_monthly_input%filename>
-<nhy_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180618.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180803.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180803.nc</nhy_flux_monthly_input%filename>
 <nox_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
 <nhy_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
