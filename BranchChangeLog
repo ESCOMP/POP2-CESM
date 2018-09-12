@@ -1,0 +1,36 @@
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    12 Sep 2018
+Tag Name:    pop2/branch_tags/abio_cmip6_historical_tags/abio_cmip6_historical_n01_cesm_pop_2_1_20180830
+Tag Summary: add support for abio_dic_dic14 in CMIP6 historical runs
+
+if OCN_TRANSIENT='1850-2000' then set abio_atm_co2_opt='drv_diag', abio_atm_d14c_opt='file'
+
+add ABIO-DIC modifier to POP2 in compset longnames, enable abio_dic_dic14 if it is present
+
+extend pattern matching to allow POP2 compset modifiers to be in arbitrary order
+  (remove ECO-PHYS-CYCLE modifier, replace usage with %ECO%PHYS-CYCLE)
+
+add abio_dic_dic14_restfile_fallback namelist var
+  if abio_dic_dic14 is reading from a restart file, and module tracers are not present,
+    then read them from the file specified by abio_dic_dic14_restfile_fallback
+
+set abio_dic_dic14_restfile_fallback to most recent results from CMIP6 B1850 control run (for g17 only)
+
+Files Modified:
+A       BranchChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       source/abio_dic_dic14_mod.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    10 Sep 2018
+Tag Name:    pop2/branch_tags/abio_cmip6_historical_tags/abio_cmip6_historical_n00_cesm_pop_2_1_20180830
+Tag Summary: Initial branch tag, identical to cesm_pop_2_1_20180830 trunk tag
+===============================================================================

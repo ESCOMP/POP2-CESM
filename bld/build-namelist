@@ -1450,6 +1450,10 @@ if ($abio_on eq "TRUE") {
       add_default($nl, 'init_abio_dic_dic14_init_file_fmt', 'val'=>'nc');
     }
 
+    add_default($nl, 'abio_dic_dic14_restfile_fallback', 'nofail'=>1);
+    if (not $nl->get_value('abio_dic_dic14_restfile_fallback')) {
+      add_default($nl, 'abio_dic_dic14_restfile_fallback', 'val'=>'unknown', 'noprepend'=>1);
+    }
     add_default($nl, 'abio_tracer_init_ext(1)%mod_varname');
     add_default($nl, 'abio_tracer_init_ext(1)%file_varname');
     add_default($nl, 'abio_tracer_init_ext(1)%scale_factor');
@@ -1463,8 +1467,8 @@ if ($abio_on eq "TRUE") {
     add_default($nl, 'abio_comp_surf_avg_freq');
     add_default($nl, 'abio_atm_d14c_filename');
     add_default($nl, 'abio_atm_co2_filename');
-    add_default($nl, 'abio_atm_co2_opt');
-    add_default($nl, 'abio_atm_d14c_opt');
+    add_default($nl, 'abio_atm_co2_opt', , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'abio_atm_d14c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'abio_atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'abio_atm_d14c_const');
     add_default($nl, 'abio_atm_d14c_lat_band_vals');
@@ -2476,11 +2480,19 @@ sub check_input_files {
           ($pathname eq 'same_as_TS')) {
         $is_a_file = 0;
       }
-       # init_abio_dic_dic14_init_file could be 'same_as_TS'
+
+      # init_abio_dic_dic14_init_file could be 'same_as_TS'
       if (($var eq 'init_abio_dic_dic14_init_file') and
           ($pathname eq 'same_as_TS')) {
         $is_a_file = 0;
       }
+
+      # abio_dic_dic14_restfile_fallback could be 'unknown'
+      if (($var eq 'abio_dic_dic14_restfile_fallback') and
+          ($pathname eq 'unknown')) {
+        $is_a_file = 0;
+      }
+
       # ciso_init_ecosys_init_file could be 'same_as_TS'
       if (($var eq 'ciso_init_ecosys_init_file') and
           ($pathname eq 'same_as_TS')) {
