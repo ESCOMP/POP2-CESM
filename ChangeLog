@@ -1,4 +1,16 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    21 Sep 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180921
+Tag Summary: add coordinates to tavg_TEMP2 (for CMIP6 diags)
+
+Testing: aux_pop on cheyenne/intel
+
+Files Modified:
+M       source/baroclinic.F90
+
+===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    12 Sep 2018

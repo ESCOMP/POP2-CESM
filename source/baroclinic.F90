@@ -434,7 +434,8 @@
 
    call define_tavg_field(tavg_TEMP2,'TEMP2',3,                        &
                           long_name='Temperature**2',                  &
-                          units='degC^2', grid_loc='3111')
+                          units='degC^2', grid_loc='3111',             &
+                          coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_SALT2,'SALT2',3,                        &
                           long_name='Salinity**2 ',                    &
