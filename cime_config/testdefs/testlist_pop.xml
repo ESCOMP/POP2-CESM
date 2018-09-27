@@ -60,6 +60,12 @@
       <machine name="hobart" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
+  <test name="ERS" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_ocn_transient_1850_2000">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
   <test name="ERS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>

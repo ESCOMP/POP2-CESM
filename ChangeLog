@@ -1,4 +1,28 @@
 ===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    26 Sep 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180926
+Tag Summary: update ndep for OCN_TRANSIENT=1850-2000
+
+updated ndep forcing files are from CESM 2.1 BWHIST runs, and span 1849-2015
+
+introduce new test into cheyenne/intel, aux_pop and aux_pop_MARBL:
+ERS.T62_g17.C1850ECO.cheyenne_intel.pop-ecosys_ocn_transient_1850_2000
+
+Testing: aux_pop on cheyenne/intel
+tests pass, including baseline comparison to cesm_pop_2_1_20180921
+  (new test fails NLCOMP and BASELINE)
+
+Files Modified:
+M       ChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000/shell_commands
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    21 Sep 2018
