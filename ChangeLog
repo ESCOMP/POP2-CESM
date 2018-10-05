@@ -1,4 +1,20 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  jedwards
+Tag Date:    04 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181004
+Tag Summary: A fix for cime issue #2822 and run the cime interface scripts through py3 pylint
+             Also, added a multi-instance C1850ECO test in aux_pop
+
+Testing: aux_pop on cheyenne/intel. bfb except the new test.
+
+M       bld/build-namelist
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/testdefs/testlist_pop.xml
+
+===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    26 Sep 2018

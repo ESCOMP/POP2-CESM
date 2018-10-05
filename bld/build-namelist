@@ -1449,7 +1449,6 @@ if ($abio_on eq "TRUE") {
       add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"$POP_PASSIVE_TRACER_RESTART_OVERRIDE", 'noprepend'=>1);
       add_default($nl, 'init_abio_dic_dic14_init_file_fmt', 'val'=>'nc');
     }
-
     add_default($nl, 'abio_dic_dic14_restfile_fallback', 'nofail'=>1);
     if (not $nl->get_value('abio_dic_dic14_restfile_fallback')) {
       add_default($nl, 'abio_dic_dic14_restfile_fallback', 'val'=>'unknown', 'noprepend'=>1);
@@ -2428,7 +2427,7 @@ sub check_input_files {
     my $nl = shift;     # namelist object
     my $inputdata_rootdir = shift;    # if false prints test, else creates inputdata file
     my $outfile = shift;
-    open(OUTFILE, ">$outfile") if defined $inputdata_rootdir;
+    open(OUTFILE, ">>$outfile") if defined $inputdata_rootdir;
 
     # Look through all namelist groups
     my @groups = $nl->get_group_names();
@@ -2492,6 +2491,7 @@ sub check_input_files {
           ($pathname eq 'unknown')) {
         $is_a_file = 0;
       }
+
 
       # ciso_init_ecosys_init_file could be 'same_as_TS'
       if (($var eq 'ciso_init_ecosys_init_file') and

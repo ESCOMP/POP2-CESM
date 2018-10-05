@@ -416,6 +416,11 @@
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
+  <test name="SMS_N2" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+    </machines>
+  </test>
   <test name="SMS" grid="T62_g37" compset="C" testmods="pop/default">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
