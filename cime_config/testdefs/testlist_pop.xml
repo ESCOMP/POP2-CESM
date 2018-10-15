@@ -411,7 +411,7 @@
       <machine name="cheyenne" compiler="intel" category="aux_pop_tripole"/>
     </machines>
   </test>
-  <test name="SMS" grid="T62_g17" compset="C" testmods="pop/cvmix">
+  <test name="SMS" grid="T62_g17" compset="C" testmods="pop/no_cvmix">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
