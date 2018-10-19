@@ -1,5 +1,27 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    19 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181019
+Tag Summary: Enable MOC computation with land-block elimination
+             - ignore missing values during lbe aux grid check
+             - set gather_global_dbl missing value to undefined_nf_r8 instead of undefined_nf
+             - add gx1v7 spacecurve decompositions
+             - add gx1v7 spacecurve test
+
+Testing: aux_pop on cheyenne/intel. bfb except the new test.
+
+Files Modified:
+M       mpi/gather_scatter.F90
+M       source/diags_on_lat_aux_grid.F90
+M       bld/generate_pop_decomp.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve
+A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve/user_nl_pop
+
+===============================================================================
+Tag Creator: altuntas
 Developers:  jedwards
 Tag Date:    04 Oct 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181004
