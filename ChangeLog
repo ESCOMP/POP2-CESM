@@ -1,26 +1,4 @@
 ===============================================================================
-Tag Creator: mlevy
-Developers:  mlevy
-Tag Date:    15 Oct 2018
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181015
-Tag Summary: Update CVMix to latest version (bfb, better performance)
-             Also, change cvmix test (which uses lcvmix = .true.) to
-             no_cvmix test (which uses lcvmix = .false.) -- default value
-             of lcvmix is already true, so we need a test using the old KPP
-             module.
-
-Testing: aux_pop on cheyenne/intel. bfb except the renamed test.
-
-M       Externals_POP.cfg
-M       cime_config/testdefs/testlist_pop.xml
-D       cime_config/testdefs/testmods_dirs/pop/cvmix
-D       cime_config/testdefs/testmods_dirs/pop/cvmix/include_user_mods
-D       cime_config/testdefs/testmods_dirs/pop/cvmix/user_nl_pop
-A       cime_config/testdefs/testmods_dirs/pop/no_cvmix
-A       cime_config/testdefs/testmods_dirs/pop/no_cvmix/include_user_mods
-A       cime_config/testdefs/testmods_dirs/pop/no_cvmix/user_nl_pop
-
-===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    19 Oct 2018
@@ -41,6 +19,28 @@ M       cime_config/testdefs/testlist_pop.xml
 A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve
 A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve/shell_commands
 A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve/user_nl_pop
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    15 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181015
+Tag Summary: Update CVMix to latest version (bfb, better performance)
+             Also, change cvmix test (which uses lcvmix = .true.) to
+             no_cvmix test (which uses lcvmix = .false.) -- default value
+             of lcvmix is already true, so we need a test using the old KPP
+             module.
+
+Testing: aux_pop on cheyenne/intel. bfb except the renamed test.
+
+M       Externals_POP.cfg
+M       cime_config/testdefs/testlist_pop.xml
+D       cime_config/testdefs/testmods_dirs/pop/cvmix
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/no_cvmix
+A       cime_config/testdefs/testmods_dirs/pop/no_cvmix/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/no_cvmix/user_nl_pop
 
 ===============================================================================
 Tag Creator: altuntas
