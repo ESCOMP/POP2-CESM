@@ -401,6 +401,11 @@
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
+  <test name="SMS" grid="T62_g17" compset="C" testmods="pop/default_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+    </machines>
+  </test>
   <test name="SMS" grid="T62_t13" compset="C_HR" testmods="pop/hires_core2_cheyenne">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_tripole"/>

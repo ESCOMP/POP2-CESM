@@ -370,11 +370,11 @@
 
   <decomp nproc="144" res="gx1v[67]" >
     <maxblocks >1</maxblocks>
-    <bsize_x   >35</bsize_x>
-    <bsize_y   >27</bsize_y>
-    <nx_blocks >10</nx_blocks>
-    <ny_blocks >15</ny_blocks>
-    <decomptype>spacecurve</decomptype>
+    <bsize_x   >27</bsize_x>
+    <bsize_y   >32</bsize_y>
+    <nx_blocks >12</nx_blocks>
+    <ny_blocks >12</ny_blocks>
+    <decomptype>cartesian</decomptype>
   </decomp>
 
   <decomp nproc="160" res="gx1v[67]" >
