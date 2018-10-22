@@ -8,7 +8,7 @@
 
 # Disable these because this is our standard setup
 # pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position
-
+# pylint: disable=multiple-imports
 import os, shutil, sys, glob, stat, filecmp, imp
 
 CIMEROOT = os.environ.get("CIMEROOT")
@@ -18,11 +18,9 @@ sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
 from CIME.case import Case
-from CIME.nmlgen import NamelistGenerator
 from CIME.utils import expect
 from CIME.buildnml import create_namelist_infile, parse_input
 from CIME.utils import run_cmd
-from CIME.XML.generic_xml import GenericXML
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +37,7 @@ def buildnml(case, caseroot, compname):
     cimeroot = case.get_value("CIMEROOT")
     srcroot = case.get_value("SRCROOT")
     din_loc_root = case.get_value("DIN_LOC_ROOT")
-    exeroot = case.get_value("EXEROOT")
     continue_run = case.get_value("CONTINUE_RUN")
-    casename = case.get_value("CASE")
     get_refcase = case.get_value("GET_REF_CASE")
     ninst = case.get_value("NINST_OCN")
     ocn_grid = case.get_value("OCN_GRID")
@@ -65,25 +61,25 @@ def buildnml(case, caseroot, compname):
             for filename in filenames:
                 os.remove(filename)
 
-            refdir = os.path.join(din_loc_root,"ccsm4_init",run_refcase,run_refdate)
+            refdir = os.path.join(din_loc_root, "ccsm4_init", run_refcase, run_refdate)
             filenames = glob.glob(refdir + '/rpointer.ocn*')
             for filename in filenames:
                 shutil.copy(filename, rundir)
-                destfile = os.path.join(rundir,filename)
+                destfile = os.path.join(rundir, filename)
                 st = os.stat(destfile)
                 os.chmod(destfile, st.st_mode | stat.S_IWUSR)
 
     # call buildcpp to obtain config_cache.xml file which is needed to set pop namelist
     call_buildcpp = False
-    if not os.path.exists(os.path.join(caseroot,"LockedFiles","env_build.xml")):
+    if not os.path.exists(os.path.join(caseroot, "LockedFiles", "env_build.xml")):
         call_buildcpp = True
     else:
-        file1 = os.path.join(caseroot,"env_build.xml")
-        file2 = os.path.join(caseroot,"LockedFiles","env_build.xml")
+        file1 = os.path.join(caseroot, "env_build.xml")
+        file2 = os.path.join(caseroot, "LockedFiles", "env_build.xml")
         if not filecmp.cmp(file1, file2):
             call_buildcpp = True
     if call_buildcpp:
-        cmd = os.path.join(os.path.join(srcroot,"components","pop","cime_config","buildcpp"))
+        cmd = os.path.join(os.path.join(srcroot, "components", "pop", "cime_config", "buildcpp"))
         logger.info("     ...calling pop buildcpp to set build time options")
         try:
             mod = imp.load_source("buildcpp", cmd)
@@ -92,7 +88,7 @@ def buildnml(case, caseroot, compname):
             raise
 
     # Set pop configuration directory
-    confdir = os.path.join(caseroot,"Buildconf","popconf")
+    confdir = os.path.join(caseroot, "Buildconf", "popconf")
     if not os.path.isdir(confdir):
         os.makedirs(confdir)
 
@@ -100,10 +96,15 @@ def buildnml(case, caseroot, compname):
     if not os.path.exists(rundir):
         os.makedirs(rundir)
 
+    # Clean up old files
+    input_data_list = os.path.join(caseroot, "Buildconf", "pop.input_data_list")
+    if os.path.isfile(input_data_list):
+        os.remove(input_data_list)
+
     # Loop over instances
-    inst_counter = 1;
+    inst_counter = 1
     inst_string = ""
-    while (inst_counter <= ninst):
+    while inst_counter <= ninst:
         # determine instance string
         if ninst > 1:
             inst_string = '_' + '%04d' % inst_counter
@@ -114,18 +115,18 @@ def buildnml(case, caseroot, compname):
             # Note that they are only needed when running with the ecosystem tracer module
             _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config,
                                 srcroot, confdir, inst_string, marbl_nt_build)
-            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config,
-                                          srcroot, confdir, inst_string)
+            _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run,
+                                          ocn_bgc_config, srcroot, confdir, inst_string)
 
         # If multi-instance = case does not have restart file,
         # use single-= case restart for each instance
         suffixes = ["ovf", "restart", "tavg"]
         for suffix in suffixes:
             # See if rpointer.ocn.`suffix` exists and rpointer.ocn`inst_string`.`suffix` does not
-            file1 = os.path.join(rundir,"rpointer.ocn"+"inst_string."+suffix)
-            file2 = os.path.join(rundir,"rpointer.ocn"+suffix)
+            file1 = os.path.join(rundir, "rpointer.ocn" + "inst_string." + suffix)
+            file2 = os.path.join(rundir, "rpointer.ocn" + suffix)
             if not os.path.isfile(file1) and os.path.isfile(file1):
-                shutil.copy(file2,file1)
+                shutil.copy(file2, file1)
 
         # create namelist_infile using user_nl_file as input
         user_nl_file = os.path.join(caseroot, "user_nl_pop" + inst_string)
@@ -139,27 +140,30 @@ def buildnml(case, caseroot, compname):
         # it comes from rpointer.ocn.restart, which is in `rundir` for continued runs,
         # but is in `refdir` for hybrid / branch runs that are not continuations
 
-        pointer_file = os.path.join(rundir,"rpointer.ocn" + inst_string + ".restart")
+        pointer_file = os.path.join(rundir, "rpointer.ocn" + inst_string + ".restart")
         if get_refcase and run_type != 'startup' and not continue_run:
             # During prestage step, rpointer files are copied from refdir
-            refdir = os.path.join(din_loc_root,"ccsm4_init",run_refcase,run_refdate)
-            pointer_file = os.path.join(refdir,"rpointer.ocn" + inst_string + ".restart")
+            for refdir_path in ("cesm2_init", "ccsm4_init"):
+                refdir = os.path.join(din_loc_root, refdir_path, run_refcase, run_refdate)
+                pointer_file = os.path.join(refdir, "rpointer.ocn" + inst_string + ".restart")
+                if os.path.isfile(pointer_file):
+                    break
             if not os.path.isfile(pointer_file):
-                pointer_file = os.path.join(rundir,"rpointer.ocn" + inst_string + "restart")
+                pointer_file = os.path.join(rundir, "rpointer.ocn" + inst_string + "restart")
 
         if run_type == 'startup' and not continue_run:
             check_pointer_file = False
         else:
             check_pointer_file = True
 
-        format = 'bin'
+        _format = 'bin'
         if check_pointer_file:
             expect(os.path.isfile(pointer_file),
                    "Missing required pointer_file %s ---"
-                   "has pop initial data been prestaged to %s?" %(pointer_file,rundir))
+                   "has pop initial data been prestaged to %s?" %(pointer_file, rundir))
             if 'RESTART_FMT=nc' in open(pointer_file).read():
-                format = 'nc'
-        os.environ["RESTART_INPUT_TS_FMT"] = format
+                _format = 'nc'
+        os.environ["RESTART_INPUT_TS_FMT"] = _format
 
         # ------------------------------------------------------------------------------
         # call build-namelist - output will go in caseroot/Buildconf/popconf/pop_in
@@ -173,31 +177,25 @@ def buildnml(case, caseroot, compname):
 
         # determine the directory containing build-namelist script
         # first check to see if build-namelist exists in SourceMods, if it exists use it
-        bldnml_dir = os.path.join(srcroot,"components","pop","bld")
+        bldnml_dir = os.path.join(srcroot, "components", "pop", "bld")
         cfg_flag = ""
-        if os.path.isfile(os.path.join(caseroot,"SourceMods","src.pop","build-namelist")):
-            bldnml_dir = os.path.join(caseroot,"SourceMods","src.pop")
-            cfg_flag = "-cfg_dir " + os.path.join(srcroot,"components","pop","bld")
+        if os.path.isfile(os.path.join(caseroot, "SourceMods", "src.pop", "build-namelist")):
+            bldnml_dir = os.path.join(caseroot, "SourceMods", "src.pop")
+            cfg_flag = "-cfg_dir " + os.path.join(srcroot, "components", "pop", "bld")
 
         # now call build-namelist
         cmd = os.path.join(bldnml_dir, "build-namelist")
-        if inst_string:
-            inst_string_arg = "-inst_string %s " %inst_string
-        else:
-            inst_string_arg = ""
-        if inst_string:
-            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s -inst_string %s " \
-                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks, inst_string)
-        else:
-            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s" \
+        command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s" \
                   % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks)
+        if inst_string:
+            command += " -inst_string %s " % inst_string
 
         rc, out, err = run_cmd(command, from_dir=confdir)
-        expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
-        if out is not None:
-            logger.info("     %s"%out)
-        if err is not None and len(err)>0:
-            logger.info("     %s"%err)
+        expect(rc == 0, "Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd, rc, out, err))
+        if out:
+            logger.info("     %s", out)
+        if err:
+            logger.info("     %s", err)
 
         # Note that pop's build-namelist invokes xmlchange - so must re-read the xml files variables
         # back into case
@@ -224,7 +222,7 @@ def buildnml(case, caseroot, compname):
 def _copy_file(filename, src_dir, dest_dir, inst_string=None):
     """ Copy a given file from confdir ($CASEROOT/Buildconf/popconf/) to rundir ($RUNDIR)
     """
-    file_src  = os.path.join(src_dir, filename)
+    file_src = os.path.join(src_dir, filename)
     file_dest = os.path.join(dest_dir, filename)
     if inst_string:
         file_dest += inst_string
@@ -232,7 +230,8 @@ def _copy_file(filename, src_dir, dest_dir, inst_string=None):
 
 ###############################################################################
 
-def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config, srcroot, confdir, inst_string, marbl_nt_build):
+def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config, srcroot,
+                        confdir, inst_string, marbl_nt_build):
     # import wrappers to some MARBL calls
     sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
     from MARBL_wrappers import MARBL_settings_for_POP
@@ -244,24 +243,25 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_conf
 
     # (i) Generate MARBL_settings_for_POP object
     MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
-    MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
-                                            run_type, continue_run, ocn_bgc_config)
+    MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot,
+                                            ocn_grid, run_type, continue_run, ocn_bgc_config)
 
     # (ii) compare MARBL_NT to value from buildcpp (in config_cache)
     #      Abort if values do not match
     MARBL_NT = MARBL_settings.get_MARBL_NT()
     if MARBL_NT != marbl_nt_build:
-      error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d." % (marbl_nt_build, MARBL_NT)
-      error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
-      logger.error(error_msg)
-      sys.exit(1)
+        error_msg = "POP was built expecting %d MARBL tracers, but current configuration has %d."
+        error_msg = error_msg + "\nRun \"./case.build --clean ocn\" and then rebuild."
+        logger.error(error_msg, marbl_nt_build, MARBL_NT)
+        sys.exit(1)
 
     # (iii) write settings file
     MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
 
 ###############################################################################
 
-def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config, srcroot, confdir, inst_string):
+def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_config,
+                                  srcroot, confdir, inst_string):
     # import wrappers to some MARBL calls
     sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
     from MARBL_wrappers import MARBL_settings_for_POP
@@ -284,8 +284,8 @@ def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, oc
 
     # (i) Generate MARBL_settings_for_POP object
     MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
-    MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot, ocn_grid,
-                                            run_type, continue_run, ocn_bgc_config)
+    MARBL_settings = MARBL_settings_for_POP(MARBL_dir, "user_nl_marbl"+inst_string, caseroot,
+                                            ocn_grid, run_type, continue_run, ocn_bgc_config)
 
     # (ii) Create ecosys_diagnostics with POP-generated diagnostics
     write_ecosys_diagnostics_file(MARBL_settings.get_tracer_names(),
@@ -303,7 +303,7 @@ def _construct_ecosys_diagnostics(caseroot, ocn_grid, run_type, continue_run, oc
     #      diagnostics came from MARBL
     MARBL_diagnostics.write_diagnostics_file(os.path.join(confdir, "ecosys_diagnostics"),
                                              os.path.join(confdir, "marbl_diagnostics_list"),
-                                              append=True)
+                                             append=True)
 
 ###############################################################################
 

@@ -1,6 +1,49 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    22 October 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n100_cesm_pop_2_1_20181019
+Tag Summary: Merge latest pop trunk onto marbl_dev
+             -- add support for abio tracers in CMIP6 historical runs
+             -- add coordinates to tavg_TEMP2
+             -- update NDEP forcing for OCN_TRANSIENT=1850-2000
+             -- update CVMix (bfb, but better performance)
+             -- update MOC computation to support land-block elimination
+
+Testing:     aux_pop_MARBL (cheyenne_intel, cheyenne_gnu, hobart_nag, and
+             hobart_pgi) and aux_pop (cheyenne_intel); all tests pass except:
+             1. New tests introduced
+                ecosys_ocn_transient_1850_2000 only one in aux_pop_MARBL
+             2. abio tests fail NLCOMP due to addition of variable:
+                abio_dic_dic14_restfile_fallback
+                (tests are still bfb)
+
+Files Modified:
+M       ChangeLog
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
+D       cime_config/testdefs/testmods_dirs/pop/cvmix
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default_spacecurve
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000
+A  +    cime_config/testdefs/testmods_dirs/pop/no_cvmix
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       mpi/gather_scatter.F90
+M       source/abio_dic_dic14_mod.F90
+M       source/baroclinic.F90
+M       source/diags_on_lat_aux_grid.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    30 August 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n99_cesm_pop_2_1_20180830
 Tag Summary: Zig-zag merge of pop trunk (starting a "new" branch)

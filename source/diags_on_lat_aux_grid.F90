@@ -158,7 +158,7 @@
       ioroot,              &! Task number of PIO root process
       nml_error,           &! namelist i/o error flag
       grid_error,          &! auxilary grid choice error
-      j, jj, n,            &! loop indices
+      i, j, jj, n,         &! loop indices
       lat_aux_grid,        &! index for the chosen grid type
       i_copy,              &! TLATD_G(i_copy,*) and ULATD_G(i_copy,*) 
                             !  (global arrays) are used to create 
@@ -176,6 +176,9 @@
       lat_aux_grid_sh   = 1,         &
       lat_aux_grid_full = 2,         &
       lat_aux_grid_user = 3
+
+   real (r8), dimension(:), allocatable :: &
+      TLATD_Gcopy         ! used to create the auxiliary grid
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
       WORK
@@ -414,11 +417,30 @@
 
      grid_error = 0
      if ( my_task == ioroot ) then
+       allocate ( TLATD_Gcopy(ny_global) )
+
+       TLATD_Gcopy = undefined_nf_r8
        do j=1,j_dim_sh
-         if(any(abs(TLATD_G(:,j)-TLATD_G(i_copy,j)) > eps_grid))then
-           grid_error = -1000
+       do i=1,nx_global
+         if (TLATD_G(i,j) .ne. undefined_nf_r8) then
+           TLATD_Gcopy(j) = TLATD_G(i,j)
+           exit
          endif
        enddo
+       enddo
+
+       do j=1,j_dim_sh
+         if ( TLATD_Gcopy(j) /= undefined_nf_r8 ) then
+           do i=1,nx_global
+             if ( TLATD_G(i,j) /= undefined_nf_r8 .and. &
+                  abs(TLATD_G(i,j)-TLATD_Gcopy(j)) > eps_grid ) then
+               grid_error = -1000
+             endif
+           enddo
+         endif
+       enddo
+
+       deallocate ( TLATD_Gcopy )
      endif
 
      call broadcast_scalar (grid_error, ioroot)

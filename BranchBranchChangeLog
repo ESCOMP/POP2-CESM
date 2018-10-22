@@ -1,6 +1,41 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    22 October 2018
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n200_marbl_dev_n100_cesm_pop_2_1_20181019
+Tag Summary: Merge latest marbl_dev
+
+Testing:     aux_pop_MARBL on cheyenne_{intel,gnu} and hobart_{nag,pgi}
+             compared to marbl_dev_n100: NLCOMP failures due to renamed
+             vars in marbl_in; all other tests pass (including BASELINE)
+
+Files Modified:
+M       BranchChangeLog
+M       ChangeLog
+M       Externals_POP.cfg
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
+D       cime_config/testdefs/testmods_dirs/pop/cvmix
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default_spacecurve
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000
+A  +    cime_config/testdefs/testmods_dirs/pop/no_cvmix
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       mpi/gather_scatter.F90
+M       source/abio_dic_dic14_mod.F90
+M       source/baroclinic.F90
+M       source/diags_on_lat_aux_grid.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    10 September 2018
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n199_marbl_dev_n99_cesm_pop_2_1_20180830
 Tag Summary: MARBL renamed some settings variables

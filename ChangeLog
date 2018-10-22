@@ -1,4 +1,137 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    19 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181019
+Tag Summary: Enable MOC computation with land-block elimination
+             - ignore missing values during lbe aux grid check
+             - set gather_global_dbl missing value to undefined_nf_r8 instead of undefined_nf
+             - add gx1v7 spacecurve decompositions
+             - add gx1v7 spacecurve test
+
+Testing: aux_pop on cheyenne/intel. bfb except the new test.
+
+Files Modified:
+M       mpi/gather_scatter.F90
+M       source/diags_on_lat_aux_grid.F90
+M       bld/generate_pop_decomp.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve
+A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/default_spacecurve/user_nl_pop
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    15 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181015
+Tag Summary: Update CVMix to latest version (bfb, better performance)
+             Also, change cvmix test (which uses lcvmix = .true.) to
+             no_cvmix test (which uses lcvmix = .false.) -- default value
+             of lcvmix is already true, so we need a test using the old KPP
+             module.
+
+Testing: aux_pop on cheyenne/intel. bfb except the renamed test.
+
+M       Externals_POP.cfg
+M       cime_config/testdefs/testlist_pop.xml
+D       cime_config/testdefs/testmods_dirs/pop/cvmix
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/cvmix/user_nl_pop
+A       cime_config/testdefs/testmods_dirs/pop/no_cvmix
+A       cime_config/testdefs/testmods_dirs/pop/no_cvmix/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/no_cvmix/user_nl_pop
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  jedwards
+Tag Date:    04 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181004
+Tag Summary: A fix for cime issue #2822 and run the cime interface scripts through py3 pylint
+             Also, added a multi-instance C1850ECO test in aux_pop
+
+Testing: aux_pop on cheyenne/intel. bfb except the new test.
+
+M       bld/build-namelist
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/testdefs/testlist_pop.xml
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    26 Sep 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180926
+Tag Summary: update ndep for OCN_TRANSIENT=1850-2000
+
+updated ndep forcing files are from CESM 2.1 BWHIST runs, and span 1849-2015
+
+introduce new test into cheyenne/intel, aux_pop and aux_pop_MARBL:
+ERS.T62_g17.C1850ECO.cheyenne_intel.pop-ecosys_ocn_transient_1850_2000
+
+Testing: aux_pop on cheyenne/intel
+tests pass, including baseline comparison to cesm_pop_2_1_20180921
+  (new test fails NLCOMP and BASELINE)
+
+Files Modified:
+M       ChangeLog
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_ocn_transient_1850_2000/shell_commands
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    21 Sep 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180921
+Tag Summary: add coordinates to tavg_TEMP2 (for CMIP6 diags)
+
+Testing: aux_pop on cheyenne/intel
+
+Files Modified:
+M       source/baroclinic.F90
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    12 Sep 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180912
+Tag Summary: add support for abio_dic_dic14 in CMIP6 historical runs
+
+merged from abio_cmip6_historical_n01_cesm_pop_2_1_20180830
+
+Testing: aux_pop on cheyenne/intel
+   except for tests mentioned below, all tests pass
+      NLCOMP fails for tests with abio_dic_dic14, because of new namelist var
+      some MEMCOMP failures
+
+if OCN_TRANSIENT='1850-2000' then set abio_atm_co2_opt='drv_diag', abio_atm_d14c_opt='file'
+
+add ABIO-DIC modifier to POP2 in compset longnames, enable abio_dic_dic14 if it is present
+
+extend pattern matching to allow POP2 compset modifiers to be in arbitrary order
+  (remove ECO-PHYS-CYCLE modifier, replace usage with %ECO%PHYS-CYCLE)
+
+add abio_dic_dic14_restfile_fallback namelist var
+  if abio_dic_dic14 is reading from a restart file, and module tracers are not present,
+    then read them from the file specified by abio_dic_dic14_restfile_fallback
+
+set abio_dic_dic14_restfile_fallback to most recent results from CMIP6 B1850 control run (for g17 only)
+
+Files Modified:
+ M      .
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       source/abio_dic_dic14_mod.F90
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    30 August 2018

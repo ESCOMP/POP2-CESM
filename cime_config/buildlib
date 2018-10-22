@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-
+"""
+CIME interface to build the pop component library
+"""
+# pylint: disable=unused-wildcard-import, multiple-imports, wildcard-import
+# pylint: disable=wrong-import-position, too-many-locals, too-many-branches
+# pylint: disable=invalid-name, too-many-statements
 import os, shutil, sys, glob, imp
 
 CIMEROOT = os.environ.get("CIMEROOT")
@@ -20,28 +25,26 @@ def _copy_files_to_blddir(case):
 
     srcroot = case.get_value("SRCROOT")
     objroot = case.get_value("OBJROOT")
-    exeroot = case.get_value("EXEROOT")
     caseroot = case.get_value("CASEROOT")
-    build_complete = case.get_value("BUILD_COMPLETE")
 
-    # create bld directories 
-    dirnames = [os.path.join(objroot,"ocn","obj"),
-                os.path.join(objroot,"ocn","source"),
-                os.path.join(objroot,"ocn","input"),
-                os.path.join(objroot,"ocn","cvmix")]
+    # create bld directories
+    dirnames = [os.path.join(objroot, "ocn", "obj"),
+                os.path.join(objroot, "ocn", "source"),
+                os.path.join(objroot, "ocn", "input"),
+                os.path.join(objroot, "ocn", "cvmix")]
     for dirname in dirnames:
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
     # copy source files into obj dir
     srcroot = case.get_value("SRCROOT")
-    glob_dirs = [os.path.join(srcroot,"components","pop","source"),
-                 os.path.join(srcroot,"components","pop","externals","CVMix","src","shared"),
-                 os.path.join(srcroot,"components","pop","externals","MARBL","src"),
-                 os.path.join(srcroot,"components","pop","mpi"),
-                 os.path.join(srcroot,"components","pop","drivers","cpl")]
+    glob_dirs = [os.path.join(srcroot, "components", "pop", "source"),
+                 os.path.join(srcroot, "components", "pop", "externals", "CVMix", "src", "shared"),
+                 os.path.join(srcroot, "components", "pop", "externals", "MARBL", "src"),
+                 os.path.join(srcroot, "components", "pop", "mpi"),
+                 os.path.join(srcroot, "components", "pop", "drivers", "cpl")]
 
-    dest_dir = os.path.join(objroot,"ocn","source")
+    dest_dir = os.path.join(objroot, "ocn", "source")
     for glob_dir in glob_dirs:
         filenames = glob.glob(glob_dir + "/*.F90")
         for filename in filenames:
@@ -58,64 +61,64 @@ def _copy_files_to_blddir(case):
     caseroot = case.get_value("CASEROOT")
     ocn_grid = case.get_value("OCN_GRID")
 
-    srcpath = os.path.join(caseroot,"SourceMods","src.pop")
+    srcpath = os.path.join(caseroot, "SourceMods", "src.pop")
 
     file1 = os.path.join(srcpath, "POP_DomainSizeMod.F90")
     file2 = os.path.join(srcpath, "%s_POP_DomainSizeMod.F90"%ocn_grid)
     if (os.path.isfile(file1) and os.path.isfile(os.path.join(file2))):
-        expect(False, "cannot have both %s and %s in SourceMods/src.pop/" %(file1,file2))
+        expect(False, "cannot have both %s and %s in SourceMods/src.pop/" %(file1, file2))
 
     file1 = os.path.join(srcpath, "domain_size.F90")
     file2 = os.path.join(srcpath, "%s_domain_size.F90"%ocn_grid)
     if (os.path.isfile(file1) and os.path.isfile(file2)):
-        expect(False, "cannot have both %s and %s in SourceMods/src.pop/" %(file1,file2))
+        expect(False, "cannot have both %s and %s in SourceMods/src.pop/" %(file1, file2))
 
     POP_FOUND_d_s = 0
     POP_FOUND_DSM = 0
 
     # 2) Copy (with name-change) from input templates if they exist
 
-    spath = os.path.join(srcroot,"components","pop","input_templates")
-    dpath = os.path.join(objroot,"ocn","source")
+    spath = os.path.join(srcroot, "components", "pop", "input_templates")
+    dpath = os.path.join(objroot, "ocn", "source")
 
-    sfile = os.path.join(spath,"%s_domain_size.F90"%ocn_grid)
-    dfile = os.path.join(dpath,"domain_size.F90")
+    sfile = os.path.join(spath, "%s_domain_size.F90"%ocn_grid)
+    dfile = os.path.join(dpath, "domain_size.F90")
     if os.path.isfile(sfile):
         shutil.copy2(sfile, dfile)
         POP_FOUND_d_s = 1
 
-    sfile = os.path.join(spath,"%s_POP_DomainSizeMod.F90"%ocn_grid)
-    dfile = os.path.join(dpath,"POP_DomainSizeMod.F90")
+    sfile = os.path.join(spath, "%s_POP_DomainSizeMod.F90"%ocn_grid)
+    dfile = os.path.join(dpath, "POP_DomainSizeMod.F90")
     if os.path.isfile(sfile):
         shutil.copy2(sfile, dfile)
         POP_FOUND_DSM = 1
 
     # 3) Copy everything from SourceMods/src.pop over
-    # If domain_size.F90 or POP_DomainSizeMod.F90 exist in SourceMods/src.pop, 
+    # If domain_size.F90 or POP_DomainSizeMod.F90 exist in SourceMods/src.pop,
     # they should overwrite the files copied from from input_templates/
 
-    sdir = os.path.join(caseroot,"SourceMods","src.pop")
-    ddir = os.path.join(objroot,"ocn","source")
+    sdir = os.path.join(caseroot, "SourceMods", "src.pop")
+    ddir = os.path.join(objroot, "ocn", "source")
     for filename in glob.glob(os.path.join(sdir, '*.F90')):
         shutil.copy2(filename, ddir)
-        
-    if os.path.isfile(os.path.join(sdir,"domain_size.F90")):
+
+    if os.path.isfile(os.path.join(sdir, "domain_size.F90")):
         POP_FOUND_d_s = 1
-    if os.path.isfile(os.path.join(sdir,"POP_DomainSizeMod.F90")):
+    if os.path.isfile(os.path.join(sdir, "POP_DomainSizeMod.F90")):
         POP_FOUND_DSM = 1
 
     # 4) If objroot/ocn/source contains $OCN_GRID_domain_size.F90 or
     #  $OCN_GRID_POP_DomainSizeMod.F90, those files need to be renamed
 
-    objpath = os.path.join(objroot,"ocn","source")
-    if os.path.isfile(os.path.join(objpath,"%s_domain_size.F90"%ocn_grid)):
-        shutil.move(os.path.join(objpath,"%s_domain_size.F90"%ocn_grid),
-                    os.path.join(objpath,"domain_size.F90"))
+    objpath = os.path.join(objroot, "ocn", "source")
+    if os.path.isfile(os.path.join(objpath, "%s_domain_size.F90"%ocn_grid)):
+        shutil.move(os.path.join(objpath, "%s_domain_size.F90"%ocn_grid),
+                    os.path.join(objpath, "domain_size.F90"))
         POP_FOUND_d_s = 1
 
-    if os.path.isfile(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid)):
-        shutil.move(os.path.join(objpath,"%s_POP_DomainSizeMod.F90"%ocn_grid),
-                   os.path.join(objpath,"POP_DomainSizeMod.F90"))
+    if os.path.isfile(os.path.join(objpath, "%s_POP_DomainSizeMod.F90"%ocn_grid)):
+        shutil.move(os.path.join(objpath, "%s_POP_DomainSizeMod.F90"%ocn_grid),
+                    os.path.join(objpath, "POP_DomainSizeMod.F90"))
         POP_FOUND_DSM = 1
 
     # 5) Make sure both domain_size.F90 and POP_DomainSizeMod.F90 exist for the specified grid
@@ -130,20 +133,20 @@ def _copy_files_to_blddir(case):
 def _build_pop():
 ###############################################################################
 
-    caseroot, libroot, bldroot = parse_input(sys.argv)
+    caseroot, libroot, _ = parse_input(sys.argv)
 
     with Case(caseroot) as case:
         casetools = case.get_value("CASETOOLS")
-        objroot   = case.get_value("OBJROOT")
-        srcroot   = case.get_value("SRCROOT")
-        gmake_j   = case.get_value("GMAKE_J")
-        gmake     = case.get_value("GMAKE")
+        objroot = case.get_value("OBJROOT")
+        srcroot = case.get_value("SRCROOT")
+        gmake_j = case.get_value("GMAKE_J")
+        gmake = case.get_value("GMAKE")
 
         # copy all F90 files to $OBJROOT/ocn/source
         _copy_files_to_blddir(case)
 
         # call pop's buildcpp to set the cppdefs
-        cmd = os.path.join(os.path.join(srcroot,"components","pop","cime_config","buildcpp"))
+        cmd = os.path.join(os.path.join(srcroot, "components", "pop", "cime_config", "buildcpp"))
         logger.info("     ...calling pop buildcpp to set build time options")
         try:
             mod = imp.load_source("buildcpp", cmd)
@@ -153,30 +156,30 @@ def _build_pop():
 
         # create Filepath file
         objroot = case.get_value("OBJROOT")
-        filepath_file = os.path.join(objroot,"ocn","obj","Filepath")
+        filepath_file = os.path.join(objroot, "ocn", "obj", "Filepath")
         if not os.path.isfile(filepath_file):
-            paths = [ os.path.join(objroot,"ocn","source")]
+            paths = [os.path.join(objroot, "ocn", "source")]
             with open(filepath_file, "w") as filepath:
                 filepath.write("\n".join(paths))
                 filepath.write("\n")
 
         # build the library
         makefile = os.path.join(casetools, "Makefile")
-        complib = os.path.join(libroot,"libocn.a")
+        complib = os.path.join(libroot, "libocn.a")
         cmd = "%s complib -j %d MODEL=pop COMPLIB=%s -f %s USER_CPPDEFS=\"%s\"" \
-            % (gmake, gmake_j, complib, makefile, pop_cppdefs )
+            % (gmake, gmake_j, complib, makefile, pop_cppdefs)
 
-        rc, out, err = run_cmd(cmd, from_dir=os.path.join(objroot,"ocn","obj"))
+        rc, out, err = run_cmd(cmd, from_dir=os.path.join(objroot, "ocn", "obj"))
         expect(rc == 0, "Command %s failed rc=%d\nout=%s\nerr=%s" % (cmd, rc, out, err))
 
         # note that f90 files may not exist on all machines
-        f90_dir = os.path.join(objroot,"ocn","source","f90")
+        f90_dir = os.path.join(objroot, "ocn", "source", "f90")
         if not os.path.exists(f90_dir):
             os.makedirs(f90_dir)
         for filename in glob.glob('*.f90'):
             shutil.move(filename, f90_dir)
 
-        logger.info("Command %s completed with output %s\nerr %s" ,cmd, out, err)
+        logger.info("Command %s completed with output %s\nerr %s", cmd, out, err)
 
 ###############################################################################
 

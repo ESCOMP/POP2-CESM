@@ -1,0 +1,7 @@
+./xmlchange POP_TAVG_R8=TRUE
+./xmlchange POP_AUTO_DECOMP="FALSE"
+./xmlchange POP_DECOMPTYPE="spacecurve"
+./xmlchange POP_MXBLCKS=1
+./xmlchange POP_BLCKX=35
+./xmlchange POP_BLCKY=27
+./xmlchange NTASKS_OCN=144
