@@ -3,8 +3,12 @@
 """
 Set POP cppdefs and config_cache.xml file (the latter is used for namelist generation)
 """
+# pylint: disable=unused-wildcard-import, wildcard-import
+# pylint: disable=wrong-import-position, invalid-name
+# pylint: disable=too-many-locals, too-many-statements, too-many-branches
 
-import os, sys
+import os
+import sys
 
 CIMEROOT = os.environ.get("CIMEROOT")
 if CIMEROOT is None:
@@ -13,12 +17,11 @@ sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
 
 from standard_script_setup import *
 
-from CIME.utils import run_cmd_no_fail, expect
+from CIME.utils import expect
 from CIME.utils import run_cmd
 from CIME.case import Case
 from CIME.buildnml import parse_input
 
-import glob, shutil
 logger = logging.getLogger(__name__)
 
 _config_cache_template = """<?xml version="1.0"?>
@@ -42,10 +45,12 @@ _config_cache_template = """<?xml version="1.0"?>
 ###############################################################################
 def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
 ###############################################################################
-
-    MARBL_NT            = 0
-    IRF_NT              = 0
-    IRF_MODE            = "NK_precond"
+    """
+    Determine the number of tracers
+    """
+    MARBL_NT = 0
+    IRF_NT = 0
+    IRF_MODE = "NK_precond"
 
     #----------------------------------------------------
     # Parse OCN_TRACER_MODULES_OPT
@@ -64,7 +69,8 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 IRF_NT = int(value)
             elif varname == "IRF_MODE":
                 is_valid_value = (value == "offline_transport") or (value == "NK_precond")
-                expect(is_valid_value, "%s is not a valid value for %s in OCN_TRACER_MODULES_OPT" % (value, varname))
+                expect(is_valid_value, "%s is not a valid value for %s in OCN_TRACER_MODULES_OPT"
+                       % (value, varname))
                 IRF_MODE = value
             else:
                 expect(False, "%s is not a valid value in OCN_TRACER_MODULES_OPT" %(varname))
@@ -74,19 +80,19 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
     #     set use_* vars and compute NT
     #----------------------------------------------------
 
-    use_iage   = "FALSE"
-    use_cfc    = "FALSE"
-    use_sf6    = "FALSE"
-    use_abio   = "FALSE"
+    use_iage = "FALSE"
+    use_cfc = "FALSE"
+    use_sf6 = "FALSE"
+    use_abio = "FALSE"
     use_ecosys = "FALSE"
-    use_irf    = "FALSE"
+    use_irf = "FALSE"
 
     NT = 2
 
     # expression on RHS strips leading and trailing whitespace,
     # and replaces multiple whitespace with a single space
     ocn_tracer_modules = " ".join(case.get_value("OCN_TRACER_MODULES").split())
-    ocn_grid=case.get_value("OCN_GRID")
+    ocn_grid = case.get_value("OCN_GRID")
 
     if ocn_tracer_modules:
         for module in ocn_tracer_modules.split(" "):
@@ -98,7 +104,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                 NT = NT + 2
             elif module == "sf6":
                 use_sf6 = "TRUE"
-                NT = NT +  1;
+                NT = NT +  1
             elif module == "abio_dic_dic14":
                 use_abio = "TRUE"
                 NT = NT + 2
@@ -113,12 +119,13 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                     input_file = "user_nl_marbl_0001"
                 else:
                     input_file = "user_nl_marbl"
-                MARBL_dir = os.path.join(srcroot,"components","pop","externals","MARBL")
-                sys.path.append(os.path.join(srcroot,"components","pop","MARBL_scripts"))
+                MARBL_dir = os.path.join(srcroot, "components", "pop", "externals", "MARBL")
+                sys.path.append(os.path.join(srcroot, "components", "pop", "MARBL_scripts"))
                 from MARBL_wrappers import MARBL_settings_for_POP
                 MARBL_settings = MARBL_settings_for_POP(MARBL_dir, input_file, caseroot, ocn_grid,
-                                       case.get_value("RUN_TYPE"), case.get_value("CONTINUE_RUN"),
-                                       case.get_value("OCN_BGC_CONFIG"))
+                                                        case.get_value("RUN_TYPE"),
+                                                        case.get_value("CONTINUE_RUN"),
+                                                        case.get_value("OCN_BGC_CONFIG"))
                 # (ii) get MARBL_NT
                 MARBL_NT = MARBL_settings.get_MARBL_NT()
                 NT = NT + MARBL_NT
@@ -133,7 +140,7 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
                     elif IRF_MODE == "NK_precond":
                         IRF_NT = 36
                     else:
-                        expect (False, "IRF_MODE %s is not a valid choice for IRF_MODE!" %IRF_MODE)
+                        expect(False, "IRF_MODE %s is not a valid choice for IRF_MODE!" %IRF_MODE)
                 NT = NT + IRF_NT
             else:
                 expect(False, "module %s is not a valid value in OCN_TRACER_MODULES!" %module)
@@ -152,7 +159,8 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
     if case.get_value("POP_TAVG_R8"):
         other_cppdefs = other_cppdefs + " -DTAVG_R8 "
 
-    pop_cppdefs = "-DCCSMCOUPLED -DMARBL_TIMING_OPT=CIME" + decomp_cppdefs + other_cppdefs + tracer_cppdefs
+    pop_cppdefs = "-DCCSMCOUPLED -DMARBL_TIMING_OPT=CIME" + decomp_cppdefs + \
+                  other_cppdefs + tracer_cppdefs
 
     #----------------------------------------------------
     # Create config_cache.xml file
@@ -182,7 +190,9 @@ def determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs):
 ###############################################################################
 def buildcpp(case):
 ###############################################################################
-
+    """
+    Determine the CPP flags values needed to build the pop component
+    """
     #----------------------------------------------------
     # create $CASEROOT/Buildconf/popconf if it does not exist
     #----------------------------------------------------
@@ -190,7 +200,7 @@ def buildcpp(case):
     caseroot = case.get_value("CASEROOT")
     srcroot = case.get_value("SRCROOT")
 
-    popconf_dir = os.path.join(caseroot,"Buildconf","popconf")
+    popconf_dir = os.path.join(caseroot, "Buildconf", "popconf")
     if not os.path.exists(popconf_dir):
         os.makedirs(popconf_dir)
 
@@ -203,7 +213,6 @@ def buildcpp(case):
     pop_auto_decomp = case.get_value("POP_AUTO_DECOMP")
     if pop_auto_decomp:
         nthrds_ocn = case.get_value("NTHRDS_OCN")
-        ninst_ocn = case.get_value("NINST_OCN")
         ntasks = case.get_value("NTASKS_PER_INST_OCN")
         ocn_grid = case.get_value("OCN_GRID")
 
@@ -212,17 +221,17 @@ def buildcpp(case):
                   % (cmd, srcroot, ocn_grid, ntasks, nthrds_ocn, "all")
         rc, out, err = run_cmd(command)
 
-        expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
-        if out is not None:
-            logger.debug("     %s"%out)
-        if err is not None and len(err)>0:
-            logger.info("     %s"%err)
+        expect(rc == 0, "Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd, rc, out, err))
+        if out:
+            logger.debug("     %s", out)
+        if err:
+            logger.info("     %s", err)
 
         config = out.split()
         if int(config[0]) > 0:
             case.set_value("POP_BLCKX", config[2])
             case.set_value("POP_BLCKY", config[3])
-            case.set_value("POP_MXBLCKS",config[4])
+            case.set_value("POP_MXBLCKS", config[4])
             case.set_value("POP_DECOMPTYPE", config[5])
             case.set_value("POP_NX_BLOCKS", config[6])
             case.set_value("POP_NY_BLOCKS", config[7])
@@ -231,8 +240,8 @@ def buildcpp(case):
                           " on "+str(ntasks)+" x "+str(nthrds_ocn)+" procs.")
 
     # set decomposition block sizes
-    pop_blckx   = case.get_value("POP_BLCKX")
-    pop_blcky   = case.get_value("POP_BLCKY")
+    pop_blckx = case.get_value("POP_BLCKX")
+    pop_blcky = case.get_value("POP_BLCKY")
     pop_mxblcks = case.get_value("POP_MXBLCKS")
     decomp_cppdefs = " -DBLCKX=%d -DBLCKY=%d -DMXBLCKS=%d" %(pop_blckx, pop_blcky, pop_mxblcks)
 
@@ -244,7 +253,7 @@ def buildcpp(case):
     pop_cppdefs = determine_tracer_count(case, caseroot, srcroot, decomp_cppdefs)
 
     # Verify that config_cache.xml exists
-    if not os.path.isfile(os.path.join(popconf_dir,"config_cache.xml")):
+    if not os.path.isfile(os.path.join(popconf_dir, "config_cache.xml")):
         expect(False, "config_cache.xml is missing after configure call")
 
     pop_cppdefs = case.set_value("POP_CPPDEFS", pop_cppdefs)
@@ -258,7 +267,7 @@ def _main_func():
     caseroot = parse_input(sys.argv)
     with Case(caseroot) as case:
         pop_cppdefs = buildcpp(case)
-    logger.info("POP_CPPDEFS: %s" %pop_cppdefs)
+    logger.info("POP_CPPDEFS: %s", pop_cppdefs)
 
 if __name__ == "__main__":
     _main_func()

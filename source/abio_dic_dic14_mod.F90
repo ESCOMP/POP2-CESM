@@ -261,7 +261,9 @@ contains
    use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, n_topo_smooth, fill_points
    use timers, only: get_timer
+   use passive_tracer_tools, only: field_exists_in_file
    use passive_tracer_tools, only: rest_read_tracer_block, file_read_tracer_block
+   use io_read_fallback_mod, only: io_read_fallback_register_field
 
 
 ! !INPUT PARAMETERS:
@@ -299,6 +301,8 @@ contains
       init_abio_dic_dic14_option,        &  ! option for initialization of abio dic/dic14
       init_abio_dic_dic14_init_file,     &  ! filename for option 'file'
       init_abio_dic_dic14_init_file_fmt, &  ! file format for option 'file'
+      abio_dic_dic14_restfile_fallback,  &  ! restfile to read tracers from, if they are not found in init_file
+      fieldname,                         &  ! restfile field name
       abio_comp_surf_avg_freq_opt,       &  ! choice for freq of comp_surf_avg
       abio_dic_dic14_restart_filename       ! modified file name for restart file
 
@@ -321,12 +325,14 @@ contains
       abio_surf_avg_dic14_const             ! Constant surface DIC14
 
    logical (log_kind) :: &
-      abio_use_nml_surf_vals                ! do namelist surf values override values
+      abio_use_nml_surf_vals,             & ! do namelist surf values override values
                                             ! from restart file?
+      all_fields_exist_in_restfile          ! are all needed fields present in the restart file?
 
    namelist /abio_dic_dic14_nml/ &
       init_abio_dic_dic14_option, init_abio_dic_dic14_init_file, abio_tracer_init_ext, &
-      init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
+      init_abio_dic_dic14_init_file_fmt, abio_dic_dic14_restfile_fallback, &
+      abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
       abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
       abio_atm_co2_opt, abio_atm_co2_const, abio_atm_co2_filename, &
       abio_atm_d14c_opt, abio_atm_d14c_const, abio_atm_d14c_lat_band_vals, &
@@ -353,6 +359,7 @@ contains
    init_abio_dic_dic14_option         = 'unknown'
    init_abio_dic_dic14_init_file      = 'unknown'
    init_abio_dic_dic14_init_file_fmt  = 'bin'
+   abio_dic_dic14_restfile_fallback   = 'unknown'
 
    do n = 1, abio_dic_dic14_tracer_cnt
       abio_tracer_init_ext(n)%mod_varname  = 'unknown'
@@ -426,6 +433,7 @@ contains
    call broadcast_scalar(init_abio_dic_dic14_option, master_task)
    call broadcast_scalar(init_abio_dic_dic14_init_file, master_task)
    call broadcast_scalar(init_abio_dic_dic14_init_file_fmt, master_task)
+   call broadcast_scalar(abio_dic_dic14_restfile_fallback, master_task)
 
    do n = 1, abio_dic_dic14_tracer_cnt
       call broadcast_scalar(abio_tracer_init_ext(n)%mod_varname, master_task)
@@ -523,6 +531,43 @@ contains
 
          abio_dic_dic14_restart_filename = trim(init_abio_dic_dic14_init_file)
 
+      endif
+
+      all_fields_exist_in_restfile = .true.
+      do n = 1, abio_dic_dic14_tracer_cnt
+         fieldname = trim(tracer_d_module(n)%short_name) /&
+              &/ '_CUR'
+         if (.not. field_exists_in_file(init_abio_dic_dic14_init_file_fmt, &
+              abio_dic_dic14_restart_filename, fieldname)) then
+            call document(subname, trim(fieldname) /&
+                 &/ ' not found in ' /&
+                 &/ trim(abio_dic_dic14_restart_filename))
+            all_fields_exist_in_restfile = .false.
+         endif
+
+         fieldname = trim(tracer_d_module(n)%short_name) /&
+              &/ '_OLD'
+         if (.not. field_exists_in_file(init_abio_dic_dic14_init_file_fmt, &
+              abio_dic_dic14_restart_filename, fieldname)) then
+            call document(subname, trim(fieldname) /&
+                 &/ ' not found in ' /&
+                 &/ trim(abio_dic_dic14_restart_filename))
+            all_fields_exist_in_restfile = .false.
+         endif
+      end do
+
+      if (.not. all_fields_exist_in_restfile) then
+         if (trim(abio_dic_dic14_restfile_fallback) == 'unknown') then
+            call document(subname, 'some abio_dic_dic14 fields missing from restfile, ' /&
+                 &/ 'but abio_dic_dic14_restfile_fallback == unknown')
+            call exit_POP(sigAbort, 'stopping in ' /&
+                 &/ subname)
+         endif
+         call document(subname, 'some abio_dic_dic14 fields missing from restfile, ' /&
+              &/ 'using abio_dic_dic14_restfile_fallback')
+         abio_dic_dic14_restart_filename = abio_dic_dic14_restfile_fallback
+         call io_read_fallback_register_field('ABIO_PH_SURF', &
+              fallback_opt='const', const_val=c0)
       endif
 
       call rest_read_tracer_block(abio_dic_dic14_ind_begin,          &

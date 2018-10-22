@@ -365,7 +365,7 @@ subroutine gather_global_dbl(ARRAY_G, ARRAY, dst_task, src_dist)
           do j=this_block%jb,this_block%je
           do i=this_block%ib,this_block%ie
             ARRAY_G(this_block%i_glob(i), &
-                    this_block%j_glob(j)) = undefined_nf
+                    this_block%j_glob(j)) = undefined_nf_r8
           end do
           end do
         endif

@@ -2,11 +2,11 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%PHYS-CYCLE][%ECO-PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
+    <desc ocn="POP2[%1D][%ECO][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
     <desc option="1D" >Single column </desc>
     <desc option="ECO">Ecosystem</desc>
+    <desc option="ABIO-DIC">Abiotic DIC/DIC14</desc>
     <desc option="PHYS-CYCLE">phys cycle option</desc>
-    <desc option="ECO-PHYS-CYCLE">Ecosystem with phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
     <desc option="NDEP">Nitrogen Deposition from Coupler</desc>
   </description>
@@ -36,9 +36,9 @@
     <valid_values>diagnostic,prognostic</valid_values>
     <default_value>diagnostic</default_value>
     <values>
-      <value compset="_POP2%ECO"             >prognostic</value>
-      <value compset="_DATM.*CICE.*_POP2%ECO">diagnostic</value>
-      <value compset="_DATM%CPLHIST.*CICE.*_POP2%ECO">prognostic</value>
+      <value compset="_POP2%[^_]*ECO"             >prognostic</value>
+      <value compset="_DATM.*CICE.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="_DATM%CPLHIST.*CICE.*_POP2%[^_]*ECO">prognostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -72,7 +72,7 @@
     <valid_values>TRUE,FALSE</valid_values>
     <default_value>FALSE</default_value>
     <values>
-      <value compset = "_POP2%1D">TRUE</value>
+      <value compset = "_POP2%[^_]*1D">TRUE</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -98,11 +98,12 @@
     <values modifier='merge'>
       <value compset="^HIST">cfc sf6</value>
       <value compset="^5505">cfc sf6</value>
-      <value compset="_POP2%ECO">ecosys</value>
+      <value compset="_POP2%[^_]*ECO">ecosys</value>
+      <value compset="_POP2%[^_]*ABIO-DIC">abio_dic_dic14</value>
     </values>
     <group>build_component_pop</group>
     <file>env_build.xml</file>
-    <desc>Optional ocean tracers.  Valid values are Any combination of: iage cfc ecosys</desc>
+    <desc>Optional ocean tracers.  Valid values are Any combination of: iage cfc sf6 IRF ecosys abio_dic_dic14</desc>
   </entry>
 
   <entry id="OCN_TRACER_MODULES_OPT">
@@ -177,9 +178,9 @@
     <default_value>constant</default_value>
     <values>
       <value compset="_CAM">diagnostic</value>
-      <value compset="_POP2%ECO.*_BGC%BPRP">prognostic</value>
-      <value compset="_POP2%ECO.*_BGC%BDRD">diagnostic</value>
-      <value compset="_DATM%CPLHIST.*_POP2%ECO">diagnostic</value>
+      <value compset="_POP2%[^_]*ECO.*_BGC%BPRP">prognostic</value>
+      <value compset="_POP2%[^_]*ECO.*_BGC%BDRD">diagnostic</value>
+      <value compset="_DATM%CPLHIST.*_POP2%[^_]*ECO">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
