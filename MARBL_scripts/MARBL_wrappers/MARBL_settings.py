@@ -86,9 +86,9 @@ class MARBL_settings_for_POP(object):
         """
         autotroph_list = []
         for n in range(1, self._MARBL_settings.settings_dict['autotroph_cnt']+1):
-            autotroph_name = self._MARBL_settings.settings_dict['autotrophs(%d)%%sname' % n].strip('"')
-            imp_calcifier = (self._MARBL_settings.settings_dict['autotrophs(%d)%%imp_calcifier' % n].strip('"') == '.true.')
-            exp_calcifier = (self._MARBL_settings.settings_dict['autotrophs(%d)%%exp_calcifier' % n].strip('"') == '.true.')
+            autotroph_name = self._MARBL_settings.settings_dict['autotroph_settings(%d)%%sname' % n].strip('"')
+            imp_calcifier = (self._MARBL_settings.settings_dict['autotroph_settings(%d)%%imp_calcifier' % n].strip('"') == '.true.')
+            exp_calcifier = (self._MARBL_settings.settings_dict['autotroph_settings(%d)%%exp_calcifier' % n].strip('"') == '.true.')
             if imp_calcifier or exp_calcifier or (not calcifier_only):
                 autotroph_list.append(autotroph_name)
         return autotroph_list
@@ -100,7 +100,7 @@ class MARBL_settings_for_POP(object):
         """
         zooplankton_list = []
         for n in range(1, self._MARBL_settings.settings_dict['zooplankton_cnt']+1):
-            zooplankton_name = self._MARBL_settings.settings_dict['zooplankton(%d)%%sname' % n].strip('"')
+            zooplankton_name = self._MARBL_settings.settings_dict['zooplankton_settings(%d)%%sname' % n].strip('"')
             zooplankton_list.append(zooplankton_name)
         return zooplankton_list
 

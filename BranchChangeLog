@@ -2,6 +2,26 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 October 2018
+Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n101_cesm_pop_2_1_20181019
+Tag Summary: Update to latest version of MARBL
+             -- change in marbl settings varnames required a python change in
+                MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+
+Testing:     aux_pop_MARBL (cheyenne_intel, cheyenne_gnu, hobart_nag, and
+             hobart_pgi) were done on marbl_dev_levy -- all NLCOMP tests fail
+             due to new variable names in marbl_in, all other tests pass.
+             [Compared to marbl_dev_n100]
+             aux_pop (cheyenne_intel): NLCOMP failures for all compsets with
+             ecosystem enabled (due to changes in marbl_in). All other tests,
+             including all BASELINE and non-ecosystem NLCOMP, pass.
+
+Files Modified:
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 October 2018
 Tag Name:    pop2/branch_tags/marbl_dev_tags/marbl_dev_n100_cesm_pop_2_1_20181019
 Tag Summary: Merge latest pop trunk onto marbl_dev
              -- add support for abio tracers in CMIP6 historical runs
