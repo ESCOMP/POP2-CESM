@@ -1,4 +1,19 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181022
+Tag Summary: Bring in MARBL code clean-up
+
+Testing: aux_pop on cheyenne/intel, aux_pop_MARBL on cheyenne/{intel,gnu} and
+         hobart/{nag,pgi}. All tests pass except NLCOMP when ecosys tracer
+         module is turned on. (Note: BASELINE tests pass, even with ecosys)
+
+Files Modified:
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    19 Oct 2018
