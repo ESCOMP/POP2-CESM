@@ -1,4 +1,17 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    19 Dec 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181219
+Tag Summary: Add the 48yr/day PE layout decomposition
+
+Testing: aux_pop on cheyenne/intel, b4b
+
+Files Modified:
+
+M       bld/generate_pop_decomp.xml
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 Oct 2018
