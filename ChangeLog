@@ -1,3 +1,12 @@
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    15 Jan 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190115
+Tag Summary: Allow buildcpp to rewrite case env_build.xml
+
+M cime_config/buildlib
+M cime_config/buildnml
+
 ===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
@@ -275,7 +284,7 @@ M       cime_config/buildnml
 M       cime_config/config_component.xml
 M       cime_config/testdefs/testlist_pop.xml
 A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
- 
+
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
@@ -416,8 +425,8 @@ Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    01 May 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180501
-Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false by default. 
-             - print error msg if pop decomp not set for the ocn grid. 
+Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false by default.
+             - print error msg if pop decomp not set for the ocn grid.
              - add tx0.1v3 size to generate_pop_decomp.xml.
              - add/change tx0.1v3 namelist defaults.
              - update default nox_flux_monthly_input and nhy_flux_monthly_input
@@ -425,7 +434,7 @@ Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false 
              - add new compsets for high-res testing: C_HR, C_JRA, C_JRA_HR, GIAF_HR
              - unset verbose ocn.vmix.tavg.csh to prevent build-namelist printing the entire script
 
-Testing:     aux_pop on cheyenne (intel). bit-for-bit except ECO 
+Testing:     aux_pop on cheyenne (intel). bit-for-bit except ECO
              aux_pop_tripole
 
 ===============================================================================
