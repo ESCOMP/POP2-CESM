@@ -1,3 +1,23 @@
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    18 Jan 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190118
+Tag Summary: Set sfwf_weak_restore to 4 years for CORE2 and 1 year for JRA
+             Remove several unnecessary _HIRES ifdefs 
+             (Additional CORE2 and JRA forcing changes in CIME PR #2984)
+
+Testing: aux_pop and aux_pop_tripole on cheyenne/intel, answer changes in 
+         all forced cases (due to changes in sfwf_weak_restore and
+         coldair_outbreak_mod)
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/step_mod.F90
+M       source/tavg.F90
+
+===============================================================================
+
 Tag Creator: jedwards
 Developers:  jedwards
 Tag Date:    15 Jan 2019

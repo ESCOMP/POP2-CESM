@@ -956,7 +956,8 @@
 <sfwf_weak_restore ocn_grid="gx3v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
-<sfwf_weak_restore ocn_grid="gx1v7"  >0.046</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  >0.0115</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  datm_mode="CORE_IAF_JRA">0.046</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
