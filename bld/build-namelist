@@ -1464,9 +1464,9 @@ if ($abio_on eq "TRUE") {
     add_default($nl, 'abio_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
     add_default($nl, 'abio_comp_surf_avg_freq_opt');
     add_default($nl, 'abio_comp_surf_avg_freq');
-    add_default($nl, 'abio_atm_d14c_filename');
+    add_default($nl, 'abio_atm_d14c_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'abio_atm_co2_filename');
-    add_default($nl, 'abio_atm_co2_opt', , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'abio_atm_co2_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'abio_atm_d14c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'abio_atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'abio_atm_d14c_const');
@@ -1641,14 +1641,14 @@ if ($ecosys_on eq "TRUE") {
 
   # Only include carbon isotope variables if ciso_on = .true.
   if ($ecosys_cfg{'ciso_on'} eq '.true.') {
-    add_default($nl, 'ciso_atm_d13c_opt');
+    add_default($nl, 'ciso_atm_d13c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ciso_atm_d13c_const');
-    add_default($nl, 'ciso_atm_d14c_opt');
+    add_default($nl, 'ciso_atm_d14c_opt', 'ocn_transient'=>"$OCN_TRANSIENT");
     add_default($nl, 'ciso_atm_d14c_const');
 
     my $ciso_atm_opt = $nl->get_value('ciso_atm_d13c_opt');
     if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d13c_filename');
+      add_default($nl, 'ciso_atm_d13c_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
     }
 
     my $ciso_atm_opt = $nl->get_value('ciso_atm_d14c_opt');
@@ -1656,7 +1656,7 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'ciso_atm_d14c_lat_band_vals');
     }
     if ($ciso_atm_opt eq '\'file\'') {
-      add_default($nl, 'ciso_atm_d14c_filename');
+      add_default($nl, 'ciso_atm_d14c_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
     }
 
     add_default($nl, 'ciso_atm_model_year');
