@@ -38,10 +38,8 @@
 ! !USES:
 
    use POP_KindsMod
-#ifdef CCSMCOUPLED
    use shr_sys_mod
    use shr_file_mod
-#endif
 
    implicit none
    private
@@ -57,11 +55,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-#ifdef CCSMCOUPLED
    integer (POP_i4),            public :: &
-#else
-   integer (POP_i4), parameter, public :: &
-#endif
       POP_stdin  =  5,  &! reserved unit for standard input
       POP_stdout =  6,  &! reserved unit for standard output
       POP_stderr =  6    ! reserved unit for standard error
@@ -75,12 +69,10 @@
    character (5), parameter, public :: &
       POP_blankFormat = "(' ')" 
 
-#ifdef CCSMCOUPLED
-      ! instance control
-      integer (POP_i4)  , public :: inst_index
-      character(len=16) , public :: inst_name
-      character(len=16) , public :: inst_suffix
-#endif
+   ! instance control
+   integer (POP_i4)  , public :: inst_index
+   character(len=16) , public :: inst_name
+   character(len=16) , public :: inst_suffix
 
 !EOP
 !BOC
@@ -96,9 +88,6 @@
 
    logical (POP_Logical) :: &
       POP_IOUnitsInitialized = .false.
-
-   logical (POP_Logical), dimension(POP_IOUnitsMaxUnits) :: &
-      POP_IOUnitsInUse       ! flag=.true. if unit currently open
 
 !EOC
 !***********************************************************************
@@ -141,48 +130,11 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  check to see if units initialized and initialize if necessary
-!
-!-----------------------------------------------------------------------
-
-   if (.not. POP_IOUnitsInitialized) then
-      POP_IOUnitsInUse = .false.
-      POP_IOUnitsInUse(POP_stdin) = .true.
-      POP_IOUnitsInUse(POP_stdout) = .true.
-      POP_IOUnitsInUse(POP_stderr) = .true.
-
-      POP_IOUnitsInitialized = .true.
-   endif
-
-!-----------------------------------------------------------------------
-!
 !  find next free unit
 !
 !-----------------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
    iunit = shr_file_getUnit()
-#else
-   srch_units: do n=POP_IOUnitsMinUnits, POP_IOUnitsMaxUnits
-      if (.not. POP_IOUnitsInUse(n)) then   ! I found one, I found one
-
-         !*** make sure not in use by library or calling routines
-         INQUIRE (unit=n,OPENED=alreadyInUse)
-
-         if (.not. alreadyInUse) then
-            iunit = n        ! return the free unit number
-            POP_IOUnitsInUse(iunit) = .true.  ! mark iunit as being in use
-            exit srch_units
-         else
-            !*** if inquire shows this unit in use, mark it as
-            !***    in use to prevent further queries
-            POP_IOUnitsInUse(n) = .true.
-         endif
-      endif
-   end do srch_units
-
-   if (iunit > POP_IOUnitsMaxUnits) stop 'POP_IOUnitsGet: No free units'
-#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -228,11 +180,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
    call shr_file_freeUnit(iunit)
-#else
-   POP_IOUnitsInUse(iunit) = .false.  !  that was easy...
-#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -285,16 +233,6 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  check to see if POP already using this unit
-!
-!-----------------------------------------------------------------------
-
-   if (POP_IOUnitsInUse(iunit)) then
-      stop 'POP_IOUnitsReserve: unit already in use by POP'
-   endif
-
-!-----------------------------------------------------------------------
-!
 !  check to see if others already using this unit
 !
 !-----------------------------------------------------------------------
@@ -303,14 +241,6 @@ contains
    if (alreadyInUse) then
       stop 'POP_IOUnitsReserve: unit already in use by others'
    endif
-
-!-----------------------------------------------------------------------
-!
-!  mark the unit as in use
-!
-!-----------------------------------------------------------------------
-
-   POP_IOUnitsInUse(iunit) = .true.  !  that was easy...
 
 !-----------------------------------------------------------------------
 !EOC

@@ -92,7 +92,7 @@ module ocn_comp_mct
 ! !PRIVATE MODULE VARIABLES
 
   logical (log_kind) ::   &
-       ldiag_cpl = .false.
+       ldiag_cpl = .true.
 
   integer (int_kind), private ::   &
       cpl_write_restart,   &! flag id for write restart
