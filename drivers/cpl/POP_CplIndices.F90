@@ -23,6 +23,19 @@ module POP_CplIndices
   integer :: index_o2x_Fioo_q
   integer :: index_o2x_Faoo_fco2_ocn
   integer :: index_o2x_Faoo_fdms_ocn
+  ! CISM coupling:
+  integer :: index_o2x_So_t_10
+  integer :: index_o2x_So_t_19
+  integer :: index_o2x_So_t_26
+  integer :: index_o2x_So_t_30
+  integer :: index_o2x_So_t_33
+  integer :: index_o2x_So_t_35
+  integer :: index_o2x_So_s_10
+  integer :: index_o2x_So_s_19
+  integer :: index_o2x_So_s_26
+  integer :: index_o2x_So_s_30
+  integer :: index_o2x_So_s_33
+  integer :: index_o2x_So_s_35
 
   ! drv -> ocn
 
@@ -106,6 +119,19 @@ contains
     index_o2x_Fioo_q        = mct_avect_indexra(o2x,'Fioo_q')
     index_o2x_Faoo_fco2_ocn = mct_avect_indexra(o2x,'Faoo_fco2_ocn',perrWith='quiet')
     index_o2x_Faoo_fdms_ocn = mct_avect_indexra(o2x,'Faoo_fdms_ocn',perrWith='quiet')
+    ! CISM coupling
+    index_o2x_So_t_10       = mct_avect_indexra(o2x,'So_t_10')
+    index_o2x_So_t_19       = mct_avect_indexra(o2x,'So_t_19')
+    index_o2x_So_t_26       = mct_avect_indexra(o2x,'So_t_26')
+    index_o2x_So_t_30       = mct_avect_indexra(o2x,'So_t_30')
+    index_o2x_So_t_33       = mct_avect_indexra(o2x,'So_t_33')
+    index_o2x_So_t_35       = mct_avect_indexra(o2x,'So_t_35')
+    index_o2x_So_s_10       = mct_avect_indexra(o2x,'So_s_10')
+    index_o2x_So_s_19       = mct_avect_indexra(o2x,'So_s_19')
+    index_o2x_So_s_26       = mct_avect_indexra(o2x,'So_s_26')
+    index_o2x_So_s_30       = mct_avect_indexra(o2x,'So_s_30')
+    index_o2x_So_s_33       = mct_avect_indexra(o2x,'So_s_33')
+    index_o2x_So_s_35       = mct_avect_indexra(o2x,'So_s_35')
     index_x2o_Si_ifrac      = mct_avect_indexra(x2o,'Si_ifrac')
     index_x2o_Sa_pslv       = mct_avect_indexra(x2o,'Sa_pslv')
     index_x2o_So_duu10n     = mct_avect_indexra(x2o,'So_duu10n')

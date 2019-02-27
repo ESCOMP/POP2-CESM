@@ -629,6 +629,30 @@ contains
       enddo
    enddo
 
+   if (index_o2x_So_t_10 > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            o2x(index_o2x_So_t_10,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_t_10)/tlast_coupled + T0_Kelvin
+            o2x(index_o2x_So_t_19,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_t_19)/tlast_coupled + T0_Kelvin
+            o2x(index_o2x_So_t_26,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_t_26)/tlast_coupled + T0_Kelvin
+            o2x(index_o2x_So_t_30,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_t_30)/tlast_coupled + T0_Kelvin
+            o2x(index_o2x_So_t_33,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_t_33)/tlast_coupled + T0_Kelvin
+            o2x(index_o2x_So_t_35,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_t_35)/tlast_coupled + T0_Kelvin
+         enddo
+         enddo
+      enddo
+   endif
+
 !-----------------------------------------------------------------------
 !
 !     convert and pack salinity
@@ -646,6 +670,30 @@ contains
       enddo
       enddo
    enddo
+
+   if (index_o2x_So_s_10 > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            o2x(index_o2x_So_s_10,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_s_10)*salt_to_ppt/tlast_coupled
+            o2x(index_o2x_So_s_19,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_s_19)*salt_to_ppt/tlast_coupled
+            o2x(index_o2x_So_s_26,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_s_26)*salt_to_ppt/tlast_coupled
+            o2x(index_o2x_So_s_30,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_s_30)*salt_to_ppt/tlast_coupled
+            o2x(index_o2x_So_s_33,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_s_33)*salt_to_ppt/tlast_coupled
+            o2x(index_o2x_So_s_35,n) =   &
+                SBUFF_SUM(i,j,iblock,index_o2x_So_s_35)*salt_to_ppt/tlast_coupled
+         enddo
+         enddo
+      enddo
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -920,6 +968,45 @@ contains
       call named_field_get(sflux_co2_nf_ind, iblock, WORK(:,:,iblock))
       SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2_ocn) = &
          SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2_ocn) + delt_last*WORK(:,:,iblock)
+   endif
+
+   if (index_o2x_So_t_10 > 0) then
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_10 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_10 ) + delt*  &
+                                   TRACER(:,:,10,1,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_19 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_19 ) + delt*  &
+                                   TRACER(:,:,19,1,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_26 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_26 ) + delt*  &
+                                   TRACER(:,:,26,1,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_30 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_30 ) + delt*  &
+                                   TRACER(:,:,30,1,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_33 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_33 ) + delt*  &
+                                   TRACER(:,:,33,1,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_35 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_t_35 ) + delt*  &
+                                   TRACER(:,:,35,1,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_10 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_10 ) + delt*  &
+                                   TRACER(:,:,10,2,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_19 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_19 ) + delt*  &
+                                   TRACER(:,:,19,2,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_26 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_26 ) + delt*  &
+                                   TRACER(:,:,26,2,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_30 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_30 ) + delt*  &
+                                   TRACER(:,:,30,2,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_33 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_33 ) + delt*  &
+                                   TRACER(:,:,33,2,curtime,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_35 ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_s_35 ) + delt*  &
+                                   TRACER(:,:,35,2,curtime,iblock)
    endif
 
    enddo
