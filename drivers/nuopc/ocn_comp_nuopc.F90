@@ -37,7 +37,7 @@ module ocn_comp_nuopc
   use forcing_sfwf          , only : lsend_precip_fact, precip_fact
   use forcing_coupled       , only : ncouple_per_day, pop_set_coupled_forcing
   use forcing_coupled       , only : orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp
-  use grid                  , only : TLAT, TLON, KMT
+  use grid                  , only : TLAT, TLON, TAREA, KMT
   use io_tools              , only : document
   use io_types              , only : stdout
   use named_field_mod       , only : named_field_register, named_field_get_index, named_field_set, named_field_get
@@ -89,7 +89,7 @@ module ocn_comp_nuopc
   integer (int_kind)  :: timer_total ! timer for entire run phase
 
   integer, parameter  :: dbug = 1
-  logical (log_kind)  :: ldiag_cpl = .true.
+  logical (log_kind)  :: ldiag_cpl = .false.
   integer (int_kind)  :: cpl_write_restart   ! flag id for write restart
   integer (int_kind)  :: cpl_write_history   ! flag id for write history
   integer (int_kind)  :: cpl_write_tavg      ! flag id for write tavg
@@ -210,7 +210,8 @@ contains
 
     use shr_nuopc_utils_mod, only: shr_nuopc_set_component_logging
     use shr_nuopc_utils_mod, only: shr_nuopc_get_component_instance
-    use POP_ConstantsMod   , only: POP_radianToDegree
+    use shr_const_mod      , only: shr_const_pi  
+    use constants          , only: radius
 
     ! Initialize POP
 
@@ -227,11 +228,14 @@ contains
     type(ESMF_VM)           :: vm
     type(ESMF_DistGrid)     :: distGrid
     type(ESMF_Mesh)         :: Emesh, EmeshTemp
+    type(ESMF_Array)        :: EArray
     integer                 :: spatialDim
     integer                 :: numOwnedElements
     real(R8), pointer       :: ownedElemCoords(:)
-    real(r8), pointer       :: lat(:), latMesh(:)
-    real(r8), pointer       :: lon(:), lonMesh(:)
+    real(R8)                :: lon, lat, area
+    real(R8)                :: diff_lon, diff_lat, diff_area
+    real(R8), pointer       :: areaMesh(:)  
+    real(R8), allocatable   :: lonMesh(:), latMesh(:)
     integer , allocatable   :: gindex_ocn(:)
     integer , allocatable   :: gindex_elim(:)
     integer , allocatable   :: gindex(:)
@@ -258,13 +262,15 @@ contains
     integer                 :: ocnid
     integer                 :: dbrc
     integer(POP_i4)         :: errorCode       ! error code
-    real(R8)                :: diff_lon
     integer                 :: lmpicom
     integer(POP_i4) , pointer    :: blockLocation(:)
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(InitializeRealize)"
 #ifdef _OPENMP
     integer, external :: omp_get_max_threads  ! max threads that can execute concurrently in a single parallel region
 #endif
+    type(ESMF_Field)  :: areaField
+    type(ESMF_Array)  :: areaArray
+    real(R8), pointer :: areaptr(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -478,7 +484,7 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='mesh_ocn', value=cvalue, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    EMeshTemp = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, rc=rc)
+    EMeshTemp = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, addUserArea=.true., rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
     if (my_task == master_task) then
        write(stdout,*)'mesh file for pop domain is ',trim(cvalue)
@@ -499,46 +505,48 @@ contains
     allocate(lonMesh(numOwnedElements), latMesh(numOwnedElements))
     call ESMF_MeshGet(Emesh, ownedElemCoords=ownedElemCoords)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-
     do n = 1,numOwnedElements
        lonMesh(n) = ownedElemCoords(2*n-1)
        latMesh(n) = ownedElemCoords(2*n)
     end do
 
-    ! obtain internally generated lats and lons for error checks
-    allocate(lon(lsize))
-    allocate(lat(lsize))
+    ! obtain mesh area
+     ! areaField = ESMF_FieldCreate(Emesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+     ! if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+     ! call ESMF_FieldGet(areaField, array=areaArray, rc=rc)
+     ! if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+     ! call ESMF_MeshGet(Emesh, elemAreaArray=areaArray, rc=rc)  !<== crashes if this is added
+     ! if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+     ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
+     ! if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! error check differences between internally generated lons and those read in
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j=this_block%jb,this_block%je
           do i=this_block%ib,this_block%ie
-             n=n+1
-             lon(n) = tlon(i,j,iblock)*POP_radianToDegree
-             lat(n) = tlat(i,j,iblock)*POP_radianToDegree
-          enddo
-       enddo
-    enddo
-
-    ! error check differences between internally generated lons and those read in
-    do n = 1,lsize
-       diff_lon = abs(lonMesh(n) - lon(n))
-       if ( (diff_lon > 1.e2  .and. abs(diff_lon - 360_r8) > 1.e-1) .or.&
-            (diff_lon > 1.e-3 .and. diff_lon < 1._r8) ) then
-          !write(6,100)n,lonMesh(n),lon(n), diff_lon
-100       format('WARNING: POP  n, lonmesh(n), lon(n), diff_lon = ',i6,2(f21.13,3x),d21.5)
-       end if
-       if (abs(latMesh(n) - lat(n)) > 1.e-1) then
-          !write(6,101)n,latMesh(n),lat(n), abs(latMesh(n)-lat(n))
-101       format('WARNING: POP n, latmesh(n), lat(n), diff_lat = ',i6,2(f21.13,3x),d21.5)
-       end if
+             n = n+1
+             lon  = TLON(i,j,iblock) * 180._R8/shr_const_pi
+             lat  = TLAT(i,j,iblock) * 180._R8/shr_const_pi
+             area = TAREA(i,j,iblock) / (radius*radius) 
+             diff_lon  = abs(lonMesh(n) - lon)
+             diff_lat  = abs(latMesh(n) - lat)
+             !diff_area = abs(areaMesh(n) - area)
+             if (diff_lon  > 1.e-10 ) write(6,100) n,lonMesh(n),lon,diff_lon
+             if (diff_lat  > 1.e-10 ) write(6,101) n,latMesh(n),lat,diff_lat
+             !if (diff_area > 1.e-12) write(6,102) n,areaMesh(n),area,diff_area
+          end do
+       end do
     end do
+100 format('WARNING: POP n, lonmesh(n) , lon , diff_lon  = ',i6,2(f21.13,3x),d21.5)
+101 format('WARNING: POP n, latmesh(n) , lat , diff_lat  = ',i6,2(f21.13,3x),d21.5)
+102 format('WARNING: POP n, areamesh(n), area, diff_area = ',i6,2(f21.13,3x),d21.5)
 
     ! deallocate memory
-    deallocate(ownedElemCoords)
-    deallocate(lon, lonMesh)
-    deallocate(lat, latMesh)
+    deallocate(ownedElemCoords, lonMesh, latMesh)
+
+    !call ESMF_FieldDestroy(areaField)
 
     !-----------------------------------------------------------------
     ! Realize the actively coupled fields
@@ -921,17 +929,21 @@ contains
     errorCode = POP_Success
 
     !-----------------------------------------------------------------------
-    ! skip first coupling interval
+    ! skip first coupling interval for an initial run
     !-----------------------------------------------------------------------
 
     ! NOTE: pop starts one coupling interval ahead of the rest of the system
     ! so to have it be in sync with the rest of the system, simply skip the first
-    ! coupling interval
+    ! coupling interval for a initial run only
 
     if (first_time) then
-       write(stdout,*)'Returning at first coupling interval'
        first_time = .false.
-       RETURN
+       if (runtype == 'initial') then
+          if (my_task == master_task) then
+             write(stdout,*)'Returning at first coupling interval'
+          end if
+          RETURN
+       end if
     end if
 
 #if (defined _MEMTRACE)
@@ -1032,8 +1044,6 @@ contains
     ! Note that all ocean time flags are evaluated each timestep in time_manager
     ! tlast_coupled is set to zero at the end of ocn_export
 
-    write(6,*)'DEBUG: cpl_ts= ',cpl_ts
-
     advance: do
 
        ! -----
@@ -1104,7 +1114,6 @@ contains
           endif
 
           if ( lsend_precip_fact ) then
-             write(6,*)'DEBUG: precip_fact= ',precip_fact
              call shr_nuopc_methods_State_SetScalar(precip_fact, flds_scalar_index_precip_fact, &
                   exportState, flds_scalar_name, flds_scalar_num, rc)
              if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return

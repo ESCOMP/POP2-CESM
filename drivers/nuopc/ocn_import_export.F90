@@ -160,7 +160,6 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_co2prog')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_co2diag')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_lwdn')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_prec')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_snow')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_rain')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcphidry')
@@ -638,7 +637,6 @@ contains
     !-----------------------------------------------------------------------
 
     if (ldiag_cpl) then
-
        write(message,'(6a,1x,5a)')  &
             ' Global averages of fluxes received from cpl at ',  &
             cyear,'/',cmonth ,'/',cday,  chour,':',cminute,':',csecond
