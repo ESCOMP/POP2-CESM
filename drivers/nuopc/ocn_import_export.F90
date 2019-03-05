@@ -1025,9 +1025,6 @@ contains
     use ESMF , only : ESMF_MAXSTR, ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
     use ESMF , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
     use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGERR_PASSTHRU
-    use ESMF , only : ESMF_VM
-
-    use shr_nuopc_methods_mod, only : shr_nuopc_methods_State_SetScalar
 
     ! input/output variables
     type(ESMF_State)    , intent(inout) :: state
@@ -1044,7 +1041,7 @@ contains
     integer                :: n
     type(ESMF_Field)       :: field
     character(len=80)      :: stdname
-    character(len=*),parameter  :: subname='(dshr_nuopc_mod:fld_list_realize)'
+    character(len=*),parameter  :: subname='(ocn_import_export:fldlist_realize)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS

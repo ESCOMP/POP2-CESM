@@ -183,6 +183,8 @@ contains
 
   subroutine InitializeAdvertise(gcomp, importState, exportState, clock, rc)
 
+    use NUOPC, only : NUOPC_isConnected
+
     ! input/output variables
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
