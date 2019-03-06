@@ -1,5 +1,16 @@
 ===============================================================================
 Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    06 Mar 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190306
+Tag Summary: correct ssp compset longname string matching
+
+Testing: none
+
+M       cime_config/config_component.xml
+
+===============================================================================
+Tag Creator: klindsay
 Developers:  klindsay, altuntas
 Tag Date:    22 Feb 2019
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190222

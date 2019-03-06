@@ -144,8 +144,8 @@
       <value compset="^HIST_CAM">1850-2000</value>
       <value compset="^RCP4_CAM">rcp4.5</value>
       <value compset="^RCP8_CAM">rcp8.5</value>
-      <value compset="^SSP1-2.6_CAM">ssp585</value>
-      <value compset="^SSP5-8.5_CAM">ssp585</value>
+      <value compset="^SSP126_CAM">ssp126</value>
+      <value compset="^SSP585_CAM">ssp585</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
