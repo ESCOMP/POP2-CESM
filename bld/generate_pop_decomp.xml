@@ -530,6 +530,15 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
+  <decomp nproc="1440" res="gx1v7" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >9</bsize_x>
+    <bsize_y   >8</bsize_y>
+    <nx_blocks >36</nx_blocks>
+    <ny_blocks >48</ny_blocks>
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
 <!-- ====================================================================== -->
 
   <!-- tx1v1 resolution -->

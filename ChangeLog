@@ -1,4 +1,86 @@
 ===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    06 Mar 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190306
+Tag Summary: correct ssp compset longname string matching
+
+Testing: none
+
+M       cime_config/config_component.xml
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay, altuntas
+Tag Date:    22 Feb 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190222
+Tag Summary: Add support for OCN_TRANSIENT=ssp126,ssp585
+
+Testing: aux_pop on cheyenne/intel (with ssp585 changes)
+         all tests pass, all tests passed b4b
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/config_component.xml
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    18 Jan 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190118
+Tag Summary: Set sfwf_weak_restore to 4 years for CORE2 and 1 year for JRA
+             Remove several unnecessary _HIRES ifdefs 
+             (Additional CORE2 and JRA forcing changes in CIME PR #2984)
+
+Testing: aux_pop and aux_pop_tripole on cheyenne/intel, answer changes in 
+         all forced cases (due to changes in sfwf_weak_restore and
+         coldair_outbreak_mod)
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/step_mod.F90
+M       source/tavg.F90
+
+===============================================================================
+
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    15 Jan 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190115
+Tag Summary: Allow buildcpp to rewrite case env_build.xml
+
+M cime_config/buildlib
+M cime_config/buildnml
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas
+Tag Date:    19 Dec 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181219
+Tag Summary: Add the 48yr/day PE layout decomposition
+
+Testing: aux_pop on cheyenne/intel, b4b
+
+Files Modified:
+
+M       bld/generate_pop_decomp.xml
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 Oct 2018
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20181022
+Tag Summary: Bring in MARBL code clean-up
+
+Testing: aux_pop on cheyenne/intel, aux_pop_MARBL on cheyenne/{intel,gnu} and
+         hobart/{nag,pgi}. All tests pass except NLCOMP when ecosys tracer
+         module is turned on. (Note: BASELINE tests pass, even with ecosys)
+
+Files Modified:
+M       Externals_POP.cfg
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    19 Oct 2018
@@ -247,7 +329,7 @@ M       cime_config/buildnml
 M       cime_config/config_component.xml
 M       cime_config/testdefs/testlist_pop.xml
 A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
- 
+
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
@@ -388,8 +470,8 @@ Tag Creator: altuntas
 Developers:  altuntas
 Tag Date:    01 May 2018
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20180501
-Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false by default. 
-             - print error msg if pop decomp not set for the ocn grid. 
+Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false by default.
+             - print error msg if pop decomp not set for the ocn grid.
              - add tx0.1v3 size to generate_pop_decomp.xml.
              - add/change tx0.1v3 namelist defaults.
              - update default nox_flux_monthly_input and nhy_flux_monthly_input
@@ -397,7 +479,7 @@ Tag Summary: - debug tidal_mixing module for cases where ltidal_mixing is false 
              - add new compsets for high-res testing: C_HR, C_JRA, C_JRA_HR, GIAF_HR
              - unset verbose ocn.vmix.tavg.csh to prevent build-namelist printing the entire script
 
-Testing:     aux_pop on cheyenne (intel). bit-for-bit except ECO 
+Testing:     aux_pop on cheyenne (intel). bit-for-bit except ECO
              aux_pop_tripole
 
 ===============================================================================

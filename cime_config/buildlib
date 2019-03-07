@@ -135,6 +135,17 @@ def _build_pop():
 
     caseroot, libroot, _ = parse_input(sys.argv)
 
+    with Case(caseroot, read_only=False) as case:
+        srcroot = case.get_value("SRCROOT")
+        # call pop's buildcpp to set the cppdefs
+        cmd = os.path.join(os.path.join(srcroot, "components", "pop", "cime_config", "buildcpp"))
+        logger.info("     ...calling pop buildcpp to set build time options")
+        try:
+            mod = imp.load_source("buildcpp", cmd)
+            pop_cppdefs = mod.buildcpp(case)
+        except:
+            raise
+
     with Case(caseroot) as case:
         casetools = case.get_value("CASETOOLS")
         objroot = case.get_value("OBJROOT")
@@ -144,15 +155,6 @@ def _build_pop():
 
         # copy all F90 files to $OBJROOT/ocn/source
         _copy_files_to_blddir(case)
-
-        # call pop's buildcpp to set the cppdefs
-        cmd = os.path.join(os.path.join(srcroot, "components", "pop", "cime_config", "buildcpp"))
-        logger.info("     ...calling pop buildcpp to set build time options")
-        try:
-            mod = imp.load_source("buildcpp", cmd)
-            pop_cppdefs = mod.buildcpp(case)
-        except:
-            raise
 
         # create Filepath file
         objroot = case.get_value("OBJROOT")

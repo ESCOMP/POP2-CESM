@@ -2,6 +2,26 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    7 March 2019
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n202_marbl_dev_n103_cesm_pop_2_1_20190306
+Tag Summary: merge latest marbl-dev (identical to latest trunk)
+
+Testing:     none (lots of testing on trunk)
+
+Files Modified:
+M       BranchChangeLog
+M       ChangeLog
+M       bld/build-namelist
+M       bld/generate_pop_decomp.xml
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildlib
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       source/step_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    7 March 2019
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n201_marbl_dev_n101_cesm_pop_2_1_20181019
 Tag Summary: Zig-zag merge of marbl_dev (starting a "new" branch)
 
