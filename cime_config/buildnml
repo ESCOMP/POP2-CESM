@@ -80,7 +80,7 @@ def buildnml(case, caseroot, compname):
             call_buildcpp = True
     if call_buildcpp:
         cmd = os.path.join(os.path.join(srcroot, "components", "pop", "cime_config", "buildcpp"))
-        logger.info("     ...calling pop buildcpp to set build time options")
+        logger.info("     ... buildnml: calling pop buildcpp to set build time options")
         try:
             mod = imp.load_source("buildcpp", cmd)
             mod.buildcpp(case)
