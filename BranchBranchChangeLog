@@ -1,5 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, jluo
+Tag Date:    18 March 2019
+Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n203_marbl_dev_n103_cesm_pop_2_1_20190306
+Tag Summary: Update MARBL to include Jessica's SPECTRA model (and add an
+             aux_pop_MARBL test for it). Requires a temporary additional valid
+             value for OCN_BGC_CONFIG in order to get the default initial conditions
+             right, and also increases max tavg variable count
+
+Testing:     aux_pop_MARBL on cheyenne and hobart. Bit-for-bit, but NLCOMP
+             will fail due to additions to marbl_in.
+
+Files Modified:
+M       MARBL_scripts/MARBL_wrappers/MARBL_settings.py
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts/user_nl_marbl
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    7 March 2019
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n202_marbl_dev_n103_cesm_pop_2_1_20190306

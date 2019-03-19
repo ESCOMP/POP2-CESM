@@ -441,6 +441,11 @@
       <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
     </machines>
   </test>
+  <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_spectra_pfts">
+    <machines>
+      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
   <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_cesm2_0_settings">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
@@ -548,6 +553,11 @@
   <test name="SMS_Ld2_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso">
     <machines>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld2_D" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_spectra_pfts">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_N2_Ld3" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
