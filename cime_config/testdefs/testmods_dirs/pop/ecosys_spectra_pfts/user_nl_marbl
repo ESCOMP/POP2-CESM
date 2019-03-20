@@ -1,6 +1,5 @@
 lvariable_PtoC = .false.
 temp_func_form_opt = 'arrhenius'
-auto_mort2_exp = 2.0
 QCaCO3_max = 0.75
 
 PFT_defaults = 'user-specified'
