@@ -1,5 +1,7 @@
 lvariable_PtoC = .false.
 temp_func_form_opt = 'arrhenius'
+auto_mort2_exp = 2.0
+zoo_mort2_exp = 2.0
 QCaCO3_max = 0.75
 
 PFT_defaults = 'user-specified'
@@ -251,7 +253,6 @@ autotroph_settings(9)%agg_rate_min = 0.0166116316400784
 autotroph_settings(9)%loss_poc = 0.110775272024465
 autotroph_settings(9)%Ea = 0.31664
 
-
 zooplankton_settings(1)%sname = 'zoo1'
 zooplankton_settings(1)%lname = 'Microzooplankton 1'
 zooplankton_settings(1)%z_mort_0_per_day = 0.158489319246111
@@ -288,7 +289,6 @@ zooplankton_settings(6)%z_mort_0_per_day = 0.0741134448366995
 zooplankton_settings(6)%loss_thres = 0.075
 zooplankton_settings(6)%z_mort2_0_per_day = 0.0701840111196469
 zooplankton_settings(6)%Ea = 0.65
-
 
 grazing_relationship_settings(1,1)%sname = 'grz_diaz_zoo1'
 grazing_relationship_settings(1,1)%lname = 'Grazing of diaz by zoo1'
