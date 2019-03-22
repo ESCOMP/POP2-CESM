@@ -1,7 +1,7 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    22 March 2019
+Tag Date:    21 March 2019
 Tag Name:    pop2/branch_tags/marbl_dev_levy_tags/marbl_dev_levy_n205_marbl_dev_n103_cesm_pop_2_1_20190306
 Tag Summary: Decided to keep the non-b4b changes in MARBL, so zoo_mort2_exp and
              auto_mort2_exp are valid user_nl_marbl fields again. Also updated
@@ -9,9 +9,10 @@ Tag Summary: Decided to keep the non-b4b changes in MARBL, so zoo_mort2_exp and
              coefficient to 50) and then increasing the constant from 500 to 1000 to
              allow SPECTRA to run.
 
-Testing:     aux_pop_MARBL on cheyenne and hobart. cheyenne_intel change answers
-             relative to March 6th POP trunk (due to compiler optimization of
-             x**1.5 in MARBL) but rest of test suite is bit-for-bit.
+Testing:     aux_pop_MARBL on cheyenne and hobart. cheyenne_intel and
+             hobart_nag both  change answers relative to March 6th POP trunk
+             (due to compiler optimization of x**1.5 in MARBL) but rest of
+             test suite is bit-for-bit.
 
 Files Modified:
 M       cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts/user_nl_marbl
