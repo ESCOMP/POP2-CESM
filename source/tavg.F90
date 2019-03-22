@@ -123,9 +123,9 @@
 !BOC
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 500+34*nt   ! limit on available fields - can
-                                          !   be pushed as high as necessary practical
-                                          !   (total of all fields in all streams)
+      max_avail_tavg_fields = 1000+34*nt   ! limit on available fields - can
+                                           !   be pushed as high as necessary practical
+                                           !   (total of all fields in all streams)
 
    !*** ccsm
    type (tavg_field_desc_ccsm), dimension(max_avail_tavg_fields) :: &

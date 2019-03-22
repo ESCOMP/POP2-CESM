@@ -193,7 +193,7 @@
 
   <entry id="OCN_BGC_CONFIG">
     <type>char</type>
-    <valid_values>latest,cesm2.0</valid_values>
+    <valid_values>latest,cesm2.0,SPECTRA1.0</valid_values>
     <default_value>latest</default_value>
     <group>run_component_pop</group>
     <file>env_run.xml</file>

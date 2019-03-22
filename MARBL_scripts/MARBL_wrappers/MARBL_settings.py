@@ -16,6 +16,14 @@ class MARBL_settings_for_POP(object):
         MARBL_args = dict()
 
         settings_file = "settings_"+ocn_bgc_config+".json"
+        # Kludgy, but SPECTRA1.0 should use settings_latest.json
+        # * Need OCN_BGC_CONFIG = "SPECTRA1.0" to get proper initial conditions,
+        #   but there is no settings_spectra.json
+        # TODO: set up PFT_defaults = "SPECTRA1.0" in MARBL settings file and then
+        #       base init_ecosys_init_file on PFT_defaults, not OCN_BGC_CONFIG
+        if ocn_bgc_config == "SPECTRA1.0":
+            settings_file = "settings_latest.json"
+
         # User can put settings_file in SourceMods, otherwise use file provided by MARBL
         MARBL_args["default_settings_file"] = os.path.join(caseroot,"SourceMods","src.pop", settings_file)
         if not os.path.isfile(MARBL_args["default_settings_file"]):
