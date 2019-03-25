@@ -1,6 +1,19 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  jedwards
+Tag Date:    25 Mar 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190325
+Tag Summary: Make buildlib compatible with cime5.8
+
+Testing: aux_pop on cheyenne (no baselines to compare against since change
+         in cime is not backwards compatible); all C compsets built and ran
+         but G compsets did not (cice is not yet cime5.8 compatible).
+
+M       cime_config/buildlib
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  jedwards
 Tag Date:    23 Mar 2019
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190323
 Tag Summary: Remove duplicate code in io_pio.F90
