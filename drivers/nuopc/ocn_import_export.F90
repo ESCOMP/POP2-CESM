@@ -162,20 +162,10 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_lwdn')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_snow')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_rain')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcphidry')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcphodry')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcphiwet')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ocphidry')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ocphodry')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ocphiwet')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry1')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry2')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry3')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry4')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet1')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet2')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet3')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet4')
+    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
+    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
+    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
+    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_nhx')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_noy')
 
@@ -392,23 +382,23 @@ contains
     call state_getimport(importState, 'Faxa_lwdn', LWDN_F, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'Faxa_dstwet1', output=work1, rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=1, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry1', output=work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=1, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_FINE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
-    call state_getimport(importState, 'Faxa_dstwet2', output=work1, rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=2, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry2', output=work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=2, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstwet3', output=work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry3', output=work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstwet4', output=work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry4', output=work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry4', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
     if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_COARSE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
@@ -942,7 +932,7 @@ contains
 
 !==============================================================================
 
-  subroutine state_getimport(state, fldname, output, do_sum, rc)
+  subroutine state_getimport(state, fldname, output, ungridded_index, do_sum, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
@@ -952,6 +942,7 @@ contains
     type(ESMF_State)  , intent(in)    :: state
     character(len=*)  , intent(in)    :: fldname
     real (r8)         , intent(inout) :: output(:,:,:)
+    integer, optional , intent(in)    :: ungridded_index   
     logical, optional , intent(in)    :: do_sum
     integer           , intent(out)   :: rc
 
@@ -959,14 +950,21 @@ contains
     type(block)       :: this_block         ! block information for current block
     integer           :: i, j, iblock, n   ! incides
     real(r8), pointer :: dataPtr1d(:)
+    real(r8), pointer :: dataPtr2d(:,:)
     character(len=*), parameter :: subname='(ice_import_export:state_getimport)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
 
     ! get field pointer
-    call state_getfldptr(state, trim(fldname), dataptr1d, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (present(ungridded_index)) then
+       call state_getfldptr(state, trim(fldname), dataptr2d, rc)
+       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call state_getfldptr(state, trim(fldname), dataptr1d, rc)
+       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! determine output array
     n = 0
@@ -976,9 +974,17 @@ contains
           do i = this_block%ib,this_block%ie
              n = n + 1
              if (present(do_sum)) then
-                output(i,j,iblock)  = output(i,j,iblock) + dataPtr1d(n)
+                if (present(ungridded_index)) then 
+                   output(i,j,iblock)  = output(i,j,iblock) + dataPtr2d(n,ungridded_index)
+                else
+                   output(i,j,iblock)  = output(i,j,iblock) + dataPtr1d(n)
+                end if
              else
-                output(i,j,iblock)  = dataPtr1d(n)
+                if (present(ungridded_index)) then 
+                   output(i,j,iblock)  = dataPtr2d(n,ungridded_index)
+                else
+                   output(i,j,iblock)  = dataPtr1d(n)
+                end if
              end if
           end do
        end do
