@@ -1,0 +1,40 @@
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    2 Apr 2019
+Tag Name:    pop2/branch_tags/nblocks_clean_up_tags/nblocks_clean_up_n01_cesm_pop_2_1_20190306
+Tag Summary: Created a new test in the testmod directory to run with 80 blocks
+             and a spacecurve decomposition. For a gx1v7 grid, this
+             decomposition results in 79 active blocks, so it's good for
+             testing two scenarios: (1) when nblocks_clinic is not the same
+             across MPI tasks, and (2) the subset of the above when
+             nblocks_clinic = 0 on some tasks. Case (2) seems to cause
+             problems across multiple compilers, while NAG seems to be the
+             only compiler that complains when nblocks_clinic <
+             max_nblocks_clinic.
+
+Testing:     Ran four tests that all failed
+
+               SMS_D_P48x1.T62_g17.C.hobart_nag.pop-80blocks
+               * overflows.F90, line 5708: Invalid reference to procedure
+                 OVERFLOWS:OVF_HU - Dummy array HUM (number 2) has 9360 elements
+                 but actual argument only has 1872 elements
+               SMS_D_P80x1.T62_g17.C.hobart_nag.pop-80blocks
+               * domain.F90, line 469: Undefined pointer BLOCKS_CLINIC used as
+                 argument to intrinsic function ASSOCIATED
+               SMS_D_P48x1.T62_g17.C1850ECO.hobart_nag.pop-ecosys_80blocks
+               * overflows.F90, line 5708: Invalid reference to procedure
+                 OVERFLOWS:OVF_HU - Dummy array HUM (number 2) has 9360 elements
+                 but actual argument only has 1872 elements
+               SMS_D_P80x1.T62_g17.C1850ECO.hobart_nag.pop-ecosys_80blocks
+               * domain.F90, line 469: Undefined pointer BLOCKS_CLINIC used as
+                 argument to intrinsic function ASSOCIATED
+
+Files Modified:
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    2 Apr 2019
+Tag Name:    pop2/branch_tags/nblocks_clean_up_tags/nblocks_clean_up_n00_cesm_pop_2_1_20190306
+Tag Summary: Initial branch tag, identical to cesm_pop_2_1_20190306 trunk tag
+===============================================================================
