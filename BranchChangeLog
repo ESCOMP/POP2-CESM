@@ -1,4 +1,45 @@
 ===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    4 Apr 2019
+Tag Name:    pop2/branch_tags/nblocks_clean_up_tags/nblocks_clean_up_n02_cesm_pop_2_1_20190306
+Tag Summary: C compset fixes for nblocks_clinic==0 and nblocks_clinic<max_nblocks_clinic
+
+Testing: following tests now pass
+SMS_D_P80x1.T62_g17.C.hobart_nag.pop-80blocks_320x384_spacecurve
+SMS_D_P48x1.T62_g17.C.hobart_nag.pop-80blocks_320x384_spacecurve
+SMS_D_P81x1.T62_g37.C.hobart_nag.pop-81blocks_100x116_spacecurve
+SMS_D_P48x1.T62_g37.C.hobart_nag.pop-81blocks_100x116_spacecurve
+
+Files Modified:
+M       BranchChangeLog
+D       cime_config/testdefs/testmods_dirs/pop/80blocks
+        > moved to cime_config/testdefs/testmods_dirs/pop/80blocks_320x384_spacecurve
+D       cime_config/testdefs/testmods_dirs/pop/80blocks/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/80blocks/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/80blocks_320x384_spacecurve
+        > moved from cime_config/testdefs/testmods_dirs/pop/80blocks
+A       cime_config/testdefs/testmods_dirs/pop/81blocks_100x116_spacecurve
+A       cime_config/testdefs/testmods_dirs/pop/81blocks_100x116_spacecurve/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/81blocks_100x116_spacecurve/shell_commands
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_80blocks
+        > moved to cime_config/testdefs/testmods_dirs/pop/ecosys_80blocks_320x384_spacecurve
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_80blocks/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_80blocks_320x384_spacecurve
+        > moved from cime_config/testdefs/testmods_dirs/pop/ecosys_80blocks
+M  +    cime_config/testdefs/testmods_dirs/pop/ecosys_80blocks_320x384_spacecurve/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_81blocks_100x116_spacecurve
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_81blocks_100x116_spacecurve/include_user_mods
+M       drivers/cpl/ocn_comp_mct.F90
+M       source/POP_SpaceCurveMod.F90
+M       source/distribution.F90
+M       source/geoheatflux.F90
+M       source/overflows.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    2 Apr 2019

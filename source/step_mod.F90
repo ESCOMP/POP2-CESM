@@ -83,7 +83,6 @@
 !----------------------------------------------------------------------
 
    real (POP_r8), allocatable, dimension(:,:,:,:,:), private :: STORE_RF
-   real (POP_r8), allocatable, dimension(:,:,:,:),   private :: VOLSUM_RF
    real (POP_r8), allocatable, dimension(:,:,:),     private :: WORKB
    real (POP_r8), allocatable, dimension(:,:),       private :: WORK1
    real (POP_r8), allocatable, dimension(:,:),       private :: WORK2
@@ -1115,7 +1114,7 @@
 
      !*** compute RF conservation adjustment term for PSURF
      k=1
-     rf_sump = global_sum(WORKB(:,:,:)*TAREA(:,:,:),  &
+     rf_sump = global_sum(WORKB(:,:,:)*TAREA(:,:,1:nblocks_clinic),  &
                           distrb_clinic,field_loc_center, MASK_TRBUDGET(:,:,k,:))
      rf_sump = rf_sump/bgtarea_t_k(k)
 
@@ -1159,7 +1158,7 @@
          ! ====================================
 
    !*** add time-dependent surface volume to time-invariant volume
-   WORKB(:,:,:) = TAREA(:,:,:)*(dz(1) + PSURF(:,:,curtime,:)/grav)
+   WORKB(:,:,:) = TAREA(:,:,1:nblocks_clinic)*(dz(1) + PSURF(:,:,curtime,1:nblocks_clinic)/grav)
 
    rf_volume_total_cur = rf_volume_2_km + global_sum(WORKB,  &
                          distrb_clinic,field_loc_center,MASK_TRBUDGET(:,:,1,:))
@@ -1169,7 +1168,7 @@
    else
      !*** in fully coupled model, normalize by open-ocean volume (no marginal seas)
      rf_ocean_norm = open_ocean_volume_2_km + global_sum(WORKB,  &
-                      distrb_clinic,field_loc_center,RCALCT_OPEN_OCEAN) !surface
+                      distrb_clinic,field_loc_center,RCALCT_OPEN_OCEAN(:,:,1:nblocks_clinic)) !surface
    endif
 
    do n=1,nt
@@ -1550,7 +1549,6 @@
 !-----------------------------------------------------------------------
 
    allocate (STORE_RF(nx_block,ny_block,km,nt,nblocks_clinic)) ; STORE_RF = c0
-   allocate (VOLSUM_RF(nx_block,ny_block,nt,nblocks_clinic))   ; VOLSUM_RF = c0
    allocate (WORKB(nx_block,ny_block,nblocks_clinic))          ; WORKB = c0
    allocate (WORK1(nx_block,ny_block))                         ; WORK1 = c0
    allocate (WORK2(nx_block,ny_block))                         ; WORK2 = c0
@@ -1605,7 +1603,7 @@
    write(stdout,*) 'k, area_t_k(k), bgtarea_t_k(k) open_ocean_area_t_k(k)'
 
    do k=1,km
-     bgtarea_t_k(k) = global_sum(TAREA,distrb_clinic,field_loc_center,MASK_TRBUDGET(:,:,k,:))
+     bgtarea_t_k(k) = global_sum(TAREA(:,:,1:nblocks_clinic),distrb_clinic,field_loc_center,MASK_TRBUDGET(:,:,k,:))
      rfthick = bgtarea_t_k(k)*dz(k)
      if (k .ge. 2) rf_volume_2_km = rf_volume_2_km + rfthick
 
