@@ -8,14 +8,17 @@ Tag Summary: C1850ECO compset fixes for nblocks_clinic==0 and nblocks_clinic<max
              memory footprint in ecosystem tests.
 
 Testing: following tests now pass
+
 SMS_D_P72x1.T62_g37.C1850ECO.hobart_nag.pop-ecosys_81blocks_100x116_spacecurve
 SMS_D_P80x1.T62_g37.C1850ECO.hobart_nag.pop-ecosys_81blocks_100x116_spacecurve
+SMS_D_P144x1.T62_g17.C1850ECO.hobart_nag.pop-ecosys_144blocks_320x384_spacecurve
 SMS_D_P72x1.T62_g37.C1850ECO.cheyenne_intel.pop-ecosys_81blocks_100x116_spacecurve
 SMS_D_P80x1.T62_g37.C1850ECO.cheyenne_intel.pop-ecosys_81blocks_100x116_spacecurve
 SMS_D_P136x1.T62_g17.C1850ECO.cheyenne_intel.pop-ecosys_144blocks_320x384_spacecurve
 SMS_D_P144x1.T62_g17.C1850ECO.cheyenne_intel.pop-ecosys_144blocks_320x384_spacecurve
-(Note that gx1v7 with ecosystem is extremely slow running on 72 or 80 tasks on
-hobart so I didn't even try.)
+
+All C-compset tests pass as well (as they did following n02 on this branch)
+The 136x1 test on hobart appears to blow memory.
 
 Files Modified:
 M       source/ecosys_driver.F90
