@@ -1,6 +1,27 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    9 Apr 2019
+Tag Name:    pop2/branch_tags/nblocks_clean_up_tags/nblocks_clean_up_n04_cesm_pop_2_1_20190306
+Tag Summary: Added the following new tests to prealpha (hobart_nag and
+             cheyenne_intel), aux_pop_MARBL (hobart_nag and cheyenne_intel), and
+             aux_pop (cheyenne_intel only):
+             * SMS_Ld2_P72_D.T62_g37.C1850ECO.{mach_compiler}.pop-ecosys_81blocks_100x116_spacecurve
+             * SMS_Ld2_P80_D.T62_g37.C1850ECO.{mach_compiler}.pop-ecosys_81blocks_100x116_spacecurve
+             Also added the following to prealpha (hobart_nag and cheyenne_intel)
+             and aux_pop (cheyenne_intel only):
+             * SMS_Ld1_P136_D.T62_g17.C.{mach_compiler}.pop-144blocks_320x384_spacecurve
+             * SMS_Ld1_P144_D.T62_g17.C.{mach_compiler}.pop-144blocks_320x384_spacecurve
+
+Testing: aux_pop_MARBL (hobart and cheyenne) and aux_pop (cheyenne only) tests
+         all pass (comparing to latest CESM 2.1 release branch) except the new
+         tests trigger expected NLCOMP and BASELINE failures
+
+Files Modified:
+M       cime_config/testdefs/testlist_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    8 Apr 2019
 Tag Name:    pop2/branch_tags/nblocks_clean_up_tags/nblocks_clean_up_n03_cesm_pop_2_1_20190306
 Tag Summary: C1850ECO compset fixes for nblocks_clinic==0 and nblocks_clinic<max_nblocks_clinic.
