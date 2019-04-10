@@ -1582,7 +1582,7 @@ contains
     call POP_strdata_advance(interior_strdata_inputlist_ptr(:))
     call timer_stop(ecosys_interior_strdata_advance_timer)
 
-    if (size(interior_strdata_inputlist_ptr) > 0) then
+    if ((nblocks_clinic > 0) .and. (size(interior_strdata_inputlist_ptr) > 0)) then
       n0(1) = 0
       do iblock = 1, nblocks_clinic-1
         this_block = get_block(blocks_clinic(iblock), iblock)
