@@ -689,7 +689,7 @@
      !*** compute total geo volume
      geo_volume = c0
      do k=1,km
-       geo_volume = geo_volume + global_sum(MASK_TRBUDGET_GEO(:,:,k,:)*TAREA(:,:,:)*dz(k), &
+       geo_volume = geo_volume + global_sum(MASK_TRBUDGET_GEO(:,:,k,:)*TAREA(:,:,1:nblocks_clinic)*dz(k), &
                                  distrb_clinic, field_loc_center)
      enddo
 
@@ -703,7 +703,7 @@
        enddo ! k
      enddo ! iblock
 
-     WORK = WORK*TAREA
+     WORK = WORK*TAREA(:,:,1:nblocks_clinic)
 
      !*** divide by total geo volume and convert to MKS
      geo_mean = global_sum(WORK,distrb_clinic,field_loc_center)
@@ -715,7 +715,7 @@
      !*** compute total geo volume
      geo_volume = c0
      do k=1,km
-       geo_volume = geo_volume + global_sum(MASK_TRBUDGET_GEO(:,:,k,:)*TAREA(:,:,:)*dz(k), &
+       geo_volume = geo_volume + global_sum(MASK_TRBUDGET_GEO(:,:,k,:)*TAREA(:,:,1:nblocks_clinic)*dz(k), &
                                  distrb_clinic, field_loc_center)
      enddo
      call document('geoheatflux_accumulate_tavg_once', ' geo_volume', geo_volume)

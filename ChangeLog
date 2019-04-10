@@ -1,5 +1,41 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    10 Apr 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190410
+Tag Summary: Allow pop to run with nblocks_clinic = 0 on a task
+             Also improves support of general case where
+             nblocks_clinic < max_blocks_clinic
+
+Testing: aux_pop on cheyenne - C tests were bit-for-bit with
+         20190325, G compsets didn't have a baseline to compare
+         against (previous testing didn't use CICE tag compatible
+         with CIME 5.8). Also, the following four new tests ran
+         successfully but failed BASELINE and NLCOMP due to being
+         new tests:
+             SMS_Ld2_P72_D.T62_g37.C1850ECO.cheyenne_intel.pop-ecosys_81blocks_100x116_spacecurve
+             SMS_Ld2_P80_D.T62_g37.C1850ECO.cheyenne_intel.pop-ecosys_81blocks_100x116_spacecurve
+             SMS_Ld1_P136_D.T62_g17.C.cheyenne_intel.pop-144blocks_320x384_spacecurve
+             SMS_Ld1_P144_D.T62_g17.C.cheyenne_intel.pop-144blocks_320x384_spacecurve
+
+M       cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/testdefs/testmods_dirs/pop/144blocks_320x384_spacecurve
+A  +    cime_config/testdefs/testmods_dirs/pop/81blocks_100x116_spacecurve
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_144blocks_320x384_spacecurve
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_81blocks_100x116_spacecurve
+M       drivers/cpl/ocn_comp_mct.F90
+M       source/POP_SpaceCurveMod.F90
+M       source/distribution.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_forcing_mod.F90
+M       source/geoheatflux.F90
+M       source/overflows.F90
+M       source/step_mod.F90
+M       source/tavg.F90
+M       source/tidal_mixing.F90
+
+===============================================================================
+Tag Creator: mlevy
 Developers:  jedwards
 Tag Date:    23 Mar 2019
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190323

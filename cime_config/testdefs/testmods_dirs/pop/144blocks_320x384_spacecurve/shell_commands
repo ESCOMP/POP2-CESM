@@ -1,0 +1,5 @@
+# Set number of blocks to 80, use space curve
+./xmlchange --force POP_AUTO_DECOMP=FALSE
+./xmlchange --force POP_DECOMPTYPE=spacecurve
+./xmlchange --force POP_BLCKX=27,POP_BLCKY=32,POP_NX_BLOCKS=12,POP_NY_BLOCKS=12
+./xmlchange --force POP_MXBLCKS=5
