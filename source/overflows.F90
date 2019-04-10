@@ -2869,7 +2869,7 @@ call release_unit(mu)
 
    integer (int_kind), intent(in)                            :: &
       k                     ! vertical index
-   real (r8), dimension(nx_block,ny_block,nblocks_clinic), intent(in) :: &
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
       WTKB                  ! WTKB = W at bottom of t-grid box
    type (block), intent(in)                                  :: &
       this_block            ! block information for this block
@@ -2922,7 +2922,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,10) n,nsteps_total,ovf(ovf_id)%loc_src(m)%i, &
-  ovf(ovf_id)%loc_src(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_src(m)%j,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   10 format(' ovf_wtkb_ch n=',i3, &
   ' src t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -2945,7 +2945,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,20) n,nsteps_total,ovf(ovf_id)%loc_ent(m)%i, &
-  ovf(ovf_id)%loc_ent(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_ent(m)%j,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   20 format(' ovf_wtkb_ch n=',i3, &
   ' ent t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -2969,7 +2969,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,30) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i, & 
-  ovf(ovf_id)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_prd(m,mp)%j,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   30 format(' ovf_wtkb_ch n=',i3, & 
   ' prd t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -2993,7 +2993,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,31) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i, & 
-  ovf(ovf_id)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_prd(m,mp)%j,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   31 format(' ovf_wtkb_ch n=',i3, & 
   ' all prd t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3018,7 +3018,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,40) n,nsteps_total,ovf(ovf_id)%loc_src(m)%i_adv, &
-  ovf(ovf_id)%loc_src(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_src(m)%j_adv,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   40 format(' ovf_wtkb_ch n=',i3, &
   ' src t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3041,7 +3041,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,50) n,nsteps_total,ovf(ovf_id)%loc_ent(m)%i_adv, &
-  ovf(ovf_id)%loc_ent(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_ent(m)%j_adv,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   50 format(' ovf_wtkb_ch n=',i3, &
   ' ent t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3065,7 +3065,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,60) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i_adv, & 
-  ovf(ovf_id)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_prd(m,mp)%j_adv,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   60 format(' ovf_wtkb_ch n=',i3, & 
   ' prd t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3089,7 +3089,7 @@ call release_unit(mu)
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
                            write(stdout,61) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i_adv, & 
-  ovf(ovf_id)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  ovf(ovf_id)%loc_prd(m,mp)%j_adv,k,WTKB(i,j),TAREA(i,j,iblock)*WTKB(i,j)
   61 format(' ovf_wtkb_ch n=',i3, & 
   ' all prd t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -5722,7 +5722,7 @@ subroutine ovf_reg_avgs(time_level)
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       intent(in)        :: HU  ! HU 
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+   real (r8), dimension(:,:,:), &
       intent(inout)     :: HUM ! HUM (modified HU)
 
 !-----------------------------------------------------------------------

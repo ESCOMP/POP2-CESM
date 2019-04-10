@@ -1338,7 +1338,7 @@ write(stdout,*) ' after REGION_BOX3D print test'
          
         !*** (gamma/rho)*q*E(x,y)
 
-        TIDAL_COEF_2D = tidal_gamma_rhor*RCALCT*TIDAL_QE_2D
+        TIDAL_COEF_2D = tidal_gamma_rhor*RCALCT(:,:,1:nblocks_clinic)*TIDAL_QE_2D
 
         if (any(TIDAL_COEF_2D < c0)) call shr_sys_abort ('Polzin/Melet method: negative TIDAL_COEF_2D terms')
 
@@ -2482,10 +2482,10 @@ write(stdout,*) ' after REGION_BOX3D print test'
    call document (trim(subname), 'max U_P (m/s)', maxval(U_P))
 
    !***  convert from m/s to cm/s 
-   U_P = 100.0_r8*U_P*RCALCT
+   U_P = 100.0_r8*U_P*RCALCT(:,:,1:nblocks_clinic)
 
    !***  convert from m to cm
-   H2_P = 100.0_r8*RCALCT*H2_P
+   H2_P = 100.0_r8*RCALCT(:,:,1:nblocks_clinic)*H2_P
 
    !***  create h**2  (roughness = h)
    H2_P = H2_P**2
@@ -2520,7 +2520,7 @@ write(stdout,*) ' after REGION_BOX3D print test'
    integer (int_kind) ::  iblock  ! block index
    integer (int_kind) ::  k       ! vertical loop index
 
-   TIDAL_COEF_2D = tidal_gamma_rhor*RCALCT*TIDAL_QE_2D
+   TIDAL_COEF_2D = tidal_gamma_rhor*RCALCT(:,:,1:nblocks_clinic)*TIDAL_QE_2D
    TIDAL_COEF_3D = c0
 
    do iblock = 1,nblocks_clinic
@@ -4271,9 +4271,9 @@ write(stdout,*) ' after REGION_BOX3D print test'
       !*** TIDAL_COEF_3D = (gamma/rho)*q*E*F(z1,z2)
       !*** TIDAL_QE_nD = q*E 2D or 3D
       if (trim(method) == 'jayne') then
-        WORK(:,:,:) = factor*TIDAL_COEF_3D(:,:,k,:)*RCALCT(:,:,:)*TAREA(:,:,:)
+        WORK(:,:,:) = factor*TIDAL_COEF_3D(:,:,k,:)*RCALCT(:,:,1:nblocks_clinic)*TAREA(:,:,1:nblocks_clinic)
       else if (trim(method) == 'schmittner') then
-         WORK(:,:,:) = factor*TIDAL_QE_3D(:,:,k,:)*RCALCT(:,:,:)*TAREA(:,:,:)
+         WORK(:,:,:) = factor*TIDAL_QE_3D(:,:,k,:)*RCALCT(:,:,1:nblocks_clinic)*TAREA(:,:,1:nblocks_clinic)
       endif
 
       horiz_TIDAL_QE_3D(k) = global_sum(WORK,distrb_clinic,field_loc_center)*1.0e-19

@@ -7790,7 +7790,7 @@
 
    !*** compute areas for each region to be used later for normalization
    do n_reg=1,n_reg_0D
-     SAVG_0D_AREA(n_reg) = global_sum(TAREA(:,:,:),distrb_clinic,  &
+     SAVG_0D_AREA(n_reg) = global_sum(TAREA(:,:,1:nblocks_clinic),distrb_clinic,  &
                               field_loc_center,SAVG_0D_MASK(:,:,:,n_reg) )
      if ( SAVG_0D_AREA(n_reg) == c0 ) then
        exit_string = 'FATAL ERROR: SAVG_0D_AREA is zero.'

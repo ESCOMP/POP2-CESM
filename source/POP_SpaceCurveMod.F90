@@ -1078,7 +1078,7 @@ contains
 ! !IROUTINE: GenCurve
 ! !INTERFACE:
 
-   function GenCurve(l,type,ma,md,ja,jd) result(ierr)
+   recursive function GenCurve(l,type,ma,md,ja,jd) result(ierr)
 
 ! !DESCRIPTION:
 !  This subroutine generates the next level down

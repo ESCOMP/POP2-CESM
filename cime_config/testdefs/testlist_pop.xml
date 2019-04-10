@@ -550,6 +550,38 @@
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
+  <test name="SMS_Ld1_P136_D" grid="T62_g17" compset="C" testmods="pop/144blocks_320x384_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld1_P144_D" grid="T62_g17" compset="C" testmods="pop/144blocks_320x384_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld2_P72_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_81blocks_100x116_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+  </test>
+  <test name="SMS_Ld2_P80_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_81blocks_100x116_spacecurve">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="hobart" compiler="nag" category="prealpha"/>
+    </machines>
+  </test>
   <test name="SMS_N2_Ld3" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
     <machines>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
