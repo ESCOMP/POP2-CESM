@@ -1,4 +1,17 @@
 ===============================================================================
+Tag Creator:  klindsay
+Developers:   klindsay
+Tag Date:     12 Apr 2019
+Tag Name:     pop2/branch_tags/cesm2_1_x_rel_tags/cesm2_1_x_rel_n03_cesm_pop_2_1_20190306
+Release Name: pop2/release_tags/pop2_cesm2_1_rel_n04
+Tag Summary:  Add support for OCN_TRANSIENT=ssp245,ssp370
+
+Testing: none
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/config_component.xml
+
+===============================================================================
 Tag Creator:  mlevy
 Developers:   mlevy, klindsay
 Tag Date:     10 Apr 2019
