@@ -8,8 +8,8 @@ module ocn_import_export
   use POP_FieldMod,          only: POP_fieldKindScalar
   use POP_GridHorzMod,       only: POP_gridHorzLocCenter
   use POP_HaloMod,           only: POP_HaloUpdate
-  use med_constants_mod,     only: CS,CL
   use kinds_mod,             only: int_kind, r8
+  use shr_kind_mod,          only: r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_cal_mod,           only: shr_cal_date2ymd
   use shr_sys_mod,           only: shr_sys_flush, shr_sys_abort
   use communicate,           only: my_task, master_task
@@ -32,9 +32,7 @@ module ocn_import_export
   use io_tools,              only: document
   use named_field_mod,       only: named_field_register, named_field_get_index, named_field_set, named_field_get
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
-  use shr_nuopc_scalars_mod, only: flds_scalar_name
-  use shr_nuopc_scalars_mod, only: flds_scalar_num
-  use shr_nuopc_methods_mod, only: shr_nuopc_methods_chkerr
+  use ocn_shr_methods,       only: chkerr   
   use constants
   use blocks
   use exit_mod
@@ -98,28 +96,28 @@ contains
   subroutine ocn_advertise_fields(gcomp, importState, exportState, rc)
 
     ! input/output variables
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState
-    type(ESMF_State)     :: exportState
-    integer, intent(out) :: rc
+    type(ESMF_GridComp)            :: gcomp
+    type(ESMF_State)               :: importState
+    type(ESMF_State)               :: exportState
+    character(len=*) , intent(in)  :: flds_scalar_name
+    integer          , intent(out) :: rc
 
     ! local variables
     integer       :: n
     character(CS) :: stdname
     character(CS) :: cvalue
     logical       :: flds_i2o_per_cat  ! .true. => select per ocn thickness category
-    integer       :: dbrc
     character(len=*), parameter :: subname='(ocn_import_export:ocn_advertise_fields)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flds_i2o_per_cat
-    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO, rc=dbrc)
+    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
 
     !-----------------
     ! advertise import fields
@@ -186,7 +184,7 @@ contains
     do n = 1,fldsToOcn_num
        call NUOPC_Advertise(importState, standardName=fldsToOcn(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end do
 
     !-----------------
@@ -209,21 +207,23 @@ contains
     do n = 1,fldsFrOcn_num
        call NUOPC_Advertise(exportState, standardName=fldsFrOcn(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     enddo
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ocn_advertise_fields
 
 !==============================================================================
 
-  subroutine ocn_realize_fields(gcomp, mesh, rc)
+  subroutine ocn realize_fields(gcomp, mesh, flds_scalar_name, flds_scalar_num, rc)
 
     ! input/output variables
-    type(ESMF_GridComp)           :: gcomp
-    type(ESMF_Mesh) , intent(in)  :: mesh
-    integer         , intent(out) :: rc
+    type(ESMF_GridComp)            :: gcomp
+    type(ESMF_Mesh)  , intent(in)  :: mesh
+    character(len=*) , intent(in)  :: flds_scalar_name
+    integer          , intent(in)  :: flds_scalar_num 
+    integer          , intent(out) :: rc
 
     ! local variables
     type(ESMF_State) :: importState
@@ -234,7 +234,7 @@ contains
     rc = ESMF_SUCCESS
 
     call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Only mesh is supported for now
 
@@ -246,7 +246,7 @@ contains
          flds_scalar_num=flds_scalar_num, &
          tag=subname//':POP_Export',&
          mesh=mesh, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call fldlist_realize( &
          state=importState, &
@@ -256,7 +256,7 @@ contains
          flds_scalar_num=flds_scalar_num, &
          tag=subname//':POP_Import',&
          mesh=mesh, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine ocn_realize_fields
 
@@ -292,7 +292,6 @@ contains
     real (r8), pointer   :: Si_ifrac_n(:,:)
     real (r8), pointer   :: Fioi_swpen_ifrac(:,:)
     integer (int_kind)   :: fieldCount
-    integer              :: dbrc
     character (char_len), allocatable :: fieldNameList(:)
     type(ESMF_StateItem_Flag) :: itemflag
     character(len=*), parameter :: subname='(ocn_import_export:ocn_import)'
@@ -300,7 +299,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     !-----------------------------------------------------------------------
     !  zero out padded cells
@@ -325,11 +324,11 @@ contains
 
     ! zonal wind stress  (W/m2)
     call state_getimport(importState, 'Foxx_taux', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! meridonal wind stress (W/m2)
     call state_getimport(importState, 'Foxx_tauy', work2, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! rotate true zonal/meridional wind stress into local coordinates,
     ! convert to dyne/cm**2, and shift SMFT to U grid
@@ -340,23 +339,23 @@ contains
 
     ! evaporation flux (kg/m2/s)
     call state_getimport(importState, 'Foxx_evap', EVAP_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! sensible heat flux (W/m2)
     call state_getimport(importState, 'Foxx_sen', SENH_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call state_getimport(importState, 'Foxx_lwup', LWUP_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call state_getimport(importState, 'Foxx_swnet', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     SHF_QSW(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)*hflux_factor  !  convert from W/m**2
 
     ! 10m wind speed squared (m^2/s^2)
     call state_getimport(importState, 'So_duu10n', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     U10_SQR(:,:,:)  = cmperm * cmperm * work1(:,:,:) * RCALCT(:,:,:) ! convert from m**2/s**2 to cm**2/s**2
 
     !-----------------------------------------------------------------------
@@ -365,41 +364,41 @@ contains
 
     ! sea-level pressure (Pa)
     call state_getimport(importState, 'Sa_pslv', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_PRESS(:,:,:) = c10 * work1(:,:,:) * RCALCT(:,:,:) ! convert from Pa to dynes/cm**2
 
     ! water flux due to snow (kg/m2/s)
     call state_getimport(importState, 'Faxa_snow', SNOW_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! water flux due to rain (kg/m2/s)
     call state_getimport(importState, 'Faxa_rain', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     PREC_F(:,:,:) = work1(:,:,:) + SNOW_F(:,:,:) ! rain + snow
 
     ! longwave radiation (down)   (W/m2)
     call state_getimport(importState, 'Faxa_lwdn', LWDN_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_FINE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=2, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=2, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstdry4', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_COARSE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     !-----------------------------------------------------------------------
@@ -408,36 +407,36 @@ contains
 
     ! ice fraction
     call state_getimport(importState, 'Si_ifrac', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     IFRAC(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)
 
     ! snow melt flux (kg/m2/s)
     call state_getimport(importState, 'Fioi_meltw', MELT_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! heat flux from snow & ice melt (W/m2)
     call state_getimport(importState, 'Fioi_melth', MELTH_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! salt from ice (kg(salt)/m2/s)
     call state_getimport(importState, 'Fioi_salt', SALT_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call state_getimport(importState, 'Fioi_flxdst', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     SEAICE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     call state_getimport(importState, 'Fioi_bcpho', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Fioi_bcphi', work1, do_sum=.true., rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     SEAICE_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     !  optional fields per mcog column
 
     call state_getfldptr(importState, 'Foxx_swnet', Foxx_swnet, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (lmcog) then
 
@@ -448,19 +447,19 @@ contains
             State_FldChk(importState, 'Sf_afracr')) then
 
           call state_getfldptr(importState, 'Si_ifrac_n', Si_ifrac_n, rc)
-          if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call state_getfldptr(importState, 'Fioi_swpen_ifrac', Fioi_swpen_ifrac, rc)
-          if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call state_getfldptr(importState, 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc)
-          if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call state_getfldptr(importState, 'Sf_afrac', Sf_afrac, rc)
-          if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call state_getfldptr(importState, 'Sf_afracr', Sf_afracr, rc)
-          if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           n = 0
           do iblock = 1, nblocks_clinic
@@ -512,7 +511,7 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getimport(importState, 'Sw_lamult', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     where (IFRAC <= 0.05_r8)
        LAMULT(:,:,:) = work1 * RCALCT(:,:,:) ! import enhancement factor (unitless)
     elsewhere
@@ -520,11 +519,11 @@ contains
     end where
 
     call state_getimport(importState, 'Sw_ustokes', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     USTOKES(:,:,:) = work1(:,:,:) * RCALCT(:,:,:) ! Stokes drift (m/s)
 
     call state_getimport(importState, 'Sw_vstokes', work1, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     VSTOKES(:,:,:) = work1(:,:,:) * RCALCT(:,:,:) ! Stokes drift (m/s)
 
     !-----------------------------------------------------------------------
@@ -533,11 +532,11 @@ contains
 
     ! liquid runoff flux (kg/m2/s)
     call state_getimport(importState, 'Foxx_rofl', ROFF_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ice runoff flux (kg/m2/s)
     call state_getimport(importState, 'Foxx_rofi', IOFF_F, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !-----------------------------------------------------------------------
     ! update ghost cells for fluxes received from the mediator
@@ -559,7 +558,7 @@ contains
     call ESMF_StateGet(importState, 'Sa_co2prog', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
        call state_getimport(importState, 'Sa_co2prog', work1, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
@@ -574,7 +573,7 @@ contains
     call ESMF_StateGet(importState, 'Sa_co2diag', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
        call state_getimport(importState, 'Sa_co2diag', work1, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
@@ -588,7 +587,7 @@ contains
     call ESMF_StateGet(importState, 'Faxa_nhx', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
        call state_getimport(importState, 'Faxa_nhx', work1, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Note - the input units are kgN/m2/s to nmolN/cm2/s
        ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
@@ -607,7 +606,7 @@ contains
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
 
        call state_getimport(importState, 'Faxa_noy', work1, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Note - the input units are kgN/m2/s to nmolN/cm2/s
        ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
@@ -634,17 +633,17 @@ contains
 
        ! Determine all field names in import state
        call ESMF_StateGet(importState, itemCount=fieldCount, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        allocate(fieldNameList(fieldCount))
        call ESMF_StateGet(importState, itemNameList=fieldNameList, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! loop over all fields in import state
        m2percm2  = mpercm*mpercm
        do nfld = 1, fieldCount
           if (trim(fieldNameList(nfld)) /= flds_scalar_name) then
              call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
-             if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
              
@@ -658,7 +657,7 @@ contains
     end if
 1100 format ('comm_diag ', a3, 1x, a4, 1x, a15, 1x, es26.19:, 1x, a6)
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ocn_import
 
@@ -690,21 +689,20 @@ contains
     real (r8), pointer   :: dataptr1(:)
     real (r8), pointer   :: dataptr2(:)
     integer (int_kind)   :: fieldCount
-    integer              :: dbrc
     character (char_len), allocatable :: fieldNameList(:)
     character(len=*), parameter :: subname='(ocn_import_export:ocn_export)'
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     !-----------------------------------------------------------------------
     ! ocean mask
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'So_omask', dataPtr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n=0
     do iblock = 1, nblocks_clinic
@@ -723,9 +721,9 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'So_u', dataPtr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getfldptr(exportState, 'So_v', dataPtr2, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -751,7 +749,7 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'So_t', dataptr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -769,7 +767,7 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'So_s', dataptr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -787,7 +785,7 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'So_bldepth', dataptr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -805,9 +803,9 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'So_dhdx', dataPtr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getfldptr(exportState, 'So_dhdy', dataPtr2, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -834,7 +832,7 @@ contains
     !-----------------------------------------------------------------------
 
     call state_getfldptr(exportState, 'Fioo_q', dataPtr1, rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -858,7 +856,7 @@ contains
 
     if ( State_FldChk(exportState, 'Faoo_fco2_ocn')) then
        call state_getfldptr(exportState, 'Faoo_fco2_ocn', dataPtr1, rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        n = 0
        do iblock = 1, nblocks_clinic
@@ -882,17 +880,17 @@ contains
 
        ! Determine all field names in export state
        call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        allocate(fieldNameList(fieldCount))
        call ESMF_StateGet(exportState, itemNameList=fieldNameList, rc=rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! loop over all fields in export state
        m2percm2  = mpercm*mpercm
        do nfld = 1, fieldCount
           if (trim(fieldNameList(nfld)) /= flds_scalar_name) then
              call state_getfldptr(exportState, trim(fieldNameList(nfld)), dataptr1, rc)
-             if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              n = 0
              do iblock = 1, nblocks_clinic
@@ -926,7 +924,7 @@ contains
 
     tlast_coupled = c0
 
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO, rc=dbrc)
+    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ocn_export
 
@@ -955,8 +953,6 @@ contains
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
-
-    ! get field pointer
 
     if (present(ungridded_index)) then
        call state_getfldptr(state, trim(fldname), dataptr2d, rc)
@@ -1043,7 +1039,6 @@ contains
     integer             , intent(inout) :: rc
 
     ! local variables
-    integer                :: dbrc
     integer                :: n
     type(ESMF_Field)       :: field
     character(len=80)      :: stdname
@@ -1057,37 +1052,37 @@ contains
        if (NUOPC_IsConnected(state, fieldName=stdname)) then
           if (stdname == trim(flds_scalar_name)) then
              call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected on root pe", &
-                  ESMF_LOGMSG_INFO, rc=dbrc)
+                  ESMF_LOGMSG_INFO)
 
              ! Create the scalar field
              call SetScalarField(field, flds_scalar_name, flds_scalar_num, rc=rc)
-             if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           else
              call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected using mesh", &
-                  ESMF_LOGMSG_INFO, rc=dbrc)
+                  ESMF_LOGMSG_INFO)
              ! Create the field
              if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
                                          ungriddedLbound=(/fldlist(n)%ungridded_lbound/), &
                                          ungriddedUbound=(/fldlist(n)%ungridded_ubound/), rc=rc)
-                if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
              else
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-                if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
              end if
           end if ! if not scalar field
 
           ! NOW call NUOPC_Realize
           call NUOPC_Realize(state, field=field, rc=rc)
-          if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        else
           if (stdname /= trim(flds_scalar_name)) then
              call ESMF_LogWrite(subname // trim(tag) // " Field = "// trim(stdname) // " is not connected.", &
-                  ESMF_LOGMSG_INFO, rc=dbrc)
+                  ESMF_LOGMSG_INFO)
              call ESMF_StateRemove(state, (/stdname/), rc=rc)
-             if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
        end if
     end do
@@ -1117,14 +1112,14 @@ contains
 
       ! create a DistGrid with a single index space element, which gets mapped onto DE 0.
       distgrid = ESMF_DistGridCreate(minIndex=(/1/), maxIndex=(/1/), rc=rc)
-      if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
       grid = ESMF_GridCreate(distgrid, rc=rc)
-      if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
       field = ESMF_FieldCreate(name=trim(flds_scalar_name), grid=grid, typekind=ESMF_TYPEKIND_R8, &
            ungriddedLBound=(/1/), ungriddedUBound=(/flds_scalar_num/), gridToFieldMap=(/2/), rc=rc) ! num of scalar values
-      if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     end subroutine SetScalarField
 
@@ -1151,10 +1146,10 @@ contains
     rc = ESMF_SUCCESS
 
     call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine State_GetFldPtr_1d
 
@@ -1179,10 +1174,10 @@ contains
     rc = ESMF_SUCCESS
 
     call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
-    if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine State_GetFldPtr_2d
 
