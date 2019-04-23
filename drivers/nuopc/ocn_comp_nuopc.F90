@@ -7,21 +7,23 @@ module ocn_comp_nuopc
   use ESMF
   use NUOPC                 , only : NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize
   use NUOPC                 , only : NUOPC_CompFilterPhaseMap, NUOPC_IsUpdated, NUOPC_IsAtTime
-  use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_Advertise
+  use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_Advertise, NUOPC_CompSetClock
   use NUOPC                 , only : NUOPC_SetAttribute, NUOPC_CompAttributeGet, NUOPC_CompAttributeSet
   use NUOPC_Model           , only : model_routine_SS           => SetServices
   use NUOPC_Model           , only : model_label_Advance        => label_Advance
   use NUOPC_Model           , only : model_label_DataInitialize => label_DataInitialize
   use NUOPC_Model           , only : model_label_SetRunClock    => label_SetRunClock
+  use NUOPC_Model           , only : model_label_CheckImport    => label_CheckImport
+  use NUOPC_Model           , only : model_label_SetClock       => label_SetClock
   use NUOPC_Model           , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model           , only : NUOPC_ModelGet, SetVM
   use constants             , only : c0, blank_fmt, ndelim_fmt
   use POP_IOUnitsMod        , only : POP_IOUnitsFlush, POP_stdout, inst_suffix, inst_index, inst_name
   use POP_ErrorMod          , only : POP_ErrorSet, POP_Success, POP_ErrorPrint
-  use shr_kind_mod          , only: r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_file_mod          , only : shr_file_getLogUnit, shr_file_setLogUnit
   use shr_cal_mod           , only : shr_cal_date2ymd, shr_cal_ymd2date
   use shr_sys_mod           , only : shr_sys_abort
+  use shr_kind_mod          , only : cl=>shr_kind_cl, cs=>shr_kind_cs
   use POP_KindsMod          , only : POP_i4
   use kinds_mod             , only : int_kind, log_kind, char_len, r8
   use ocn_communicator      , only : mpi_communicator_ocn
@@ -131,18 +133,24 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! attach specializing method(s)
-    call NUOPC_CompSpecialize(gcomp, specLabel=model_label_Advance, &
-         specRoutine=ModelAdvance, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_DataInitialize, &
          specRoutine=DataInitialize, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompSpecialize(gcomp, specLabel=model_label_Advance, &
+         specRoutine=ModelAdvance, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_MethodRemove(gcomp, label=model_label_SetRunClock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_SetRunClock, &
          specRoutine=ModelSetRunClock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_MethodRemove(gcomp, label=model_label_CheckImport, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call NUOPC_CompSpecialize(gcomp, specLabel=model_label_CheckImport, &
+         specRoutine=ModelCheckImport, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_Finalize, &
@@ -309,7 +317,6 @@ contains
     character(len=32)       :: starttype
     integer                 :: n,i,j,iblk,jblk,ig,jg
     integer                 :: lbnum
-    integer                 :: ocnid
     integer(POP_i4)         :: errorCode       ! error code
     integer                 :: lmpicom
     integer(POP_i4) , pointer    :: blockLocation(:)
@@ -563,15 +570,15 @@ contains
     end do
 
     ! obtain mesh area
-     ! areaField = ESMF_FieldCreate(Emesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-     ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-     ! call ESMF_FieldGet(areaField, array=areaArray, rc=rc)
-     ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-     ! call ESMF_MeshGet(Emesh, elemAreaArray=areaArray, rc=rc)  !<== crashes if this is added
-     ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-     ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
-     ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    ! areaField = ESMF_FieldCreate(Emesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_FieldGet(areaField, array=areaArray, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_MeshGet(Emesh, elemAreaArray=areaArray, rc=rc)  !<== crashes if this is added
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    
     ! error check differences between internally generated lons and those read in
     n = 0
     do iblock = 1, nblocks_clinic
@@ -604,20 +611,20 @@ contains
     ! Realize the actively coupled fields
     !-----------------------------------------------------------------
 
-    call ocn_realize_fields(gcomp, mesh=Emesh, flds_scalar_name, flds_scalar_num, rc)
+    call ocn_realize_fields(gcomp, mesh=Emesh, flds_scalar_name=flds_scalar_name, &
+         flds_scalar_num=flds_scalar_num, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !-----------------------------------------------------------------
     ! Initialize MCT gsmaps and domains
     !-----------------------------------------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ocnid  ! convert from string to integer
+    ! call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
+    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! read(cvalue,*) ocnid  ! convert from string to integer
 
-    call pop_mct_init(ocnid, mpi_communicator_ocn)
-
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+    ! call pop_mct_init(ocnid, mpi_communicator_ocn)
+    ! if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine InitializeRealize
 
@@ -667,6 +674,7 @@ contains
     integer(int_kind)         :: start_hour
     integer(POP_i4)           :: errorCode       ! error code
     integer(int_kind)         :: shrlogunit      ! old values
+    integer                   :: ocnid
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(DataInitialize)"
     !-----------------------------------------------------------------------
 
@@ -799,6 +807,17 @@ contains
        end if
     end if
 
+    !-----------------------------------------------------------------
+    ! Initialize MCT gsmaps and domains
+    !-----------------------------------------------------------------
+
+    call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ocnid  ! convert from string to integer
+
+    call pop_mct_init(ocnid, mpi_communicator_ocn)
+    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+
     !-----------------------------------------------------------------------
     ! Initialize flags and shortwave absorption profile
     ! Note that these cpl_write_xxx flags have no freqency options
@@ -839,7 +858,7 @@ contains
     call pop_sum_buffer(exportState, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ocn_export(exportState, ldiag_cpl, errorCode, rc)
+    call ocn_export(exportState, flds_scalar_name, ldiag_cpl, errorCode, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (errorCode /= POP_Success) then
@@ -856,13 +875,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( lsend_precip_fact ) then
-       call State_SetScalar(precip_fact, flds_scalar_index_precip_fact, exportState, &
-            flds_scalar_name, flds_scalar_num, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call State_SetScalar(1.0_r8, flds_scalar_index_precip_fact, exportState, &
-            flds_scalar_name, flds_scalar_num, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if ( flds_scalar_index_precip_factor > 0 ) then
+          call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+               flds_scalar_name, flds_scalar_num, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       else
+          call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
+       end if
     end if
 
 #if (defined _MEMTRACE)
@@ -998,6 +1017,7 @@ contains
        end if
     end if
 
+
 #if (defined _MEMTRACE)
     if(my_task == 0 ) then
        lbnum=1
@@ -1031,11 +1051,8 @@ contains
        write(stdout,*)' pop2 ymd=',ymd     ,'  pop2 tod= ',tod
        write(stdout,*)' sync ymd=',ymd_sync,'  sync tod= ',tod_sync
        write(stdout,*)' Internal pop2 clock not in sync with Sync Clock'
-       call shr_sys_abort(subName// ":: Internal POP clock not in sync with ESMF model Clock")
-       call ESMF_LogWrite(subname//" Internal POP clock not in sync with ESMF model clock", &
-            ESMF_LOGMSG_ERROR)
-       rc = ESMF_FAILURE
-       return
+       call ESMF_LogWrite(subname//" Internal POP clock not in sync with ESMF model clock", ESMF_LOGMSG_INFO)
+       !call shr_sys_abort(subName// ":: Internal POP clock not in sync with ESMF model Clock")
     end if
 
     !-----------------------------------------------------------------------
@@ -1103,7 +1120,7 @@ contains
        ! -----
        if (check_time_flag(cpl_ts) .or. nsteps_run == 0) then
 
-          call ocn_import(importState, ldiag_cpl, errorCode, rc)
+          call ocn_import(importState, flds_scalar_name, ldiag_cpl, errorCode, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (errorCode /= POP_Success) then
@@ -1157,7 +1174,7 @@ contains
 
        if (check_time_flag(cpl_ts)) then
 
-          call ocn_export(exportState, ldiag_cpl, errorCode, rc)
+          call ocn_export(exportState, flds_scalar_name, ldiag_cpl, errorCode, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           if (errorCode /= POP_Success) then
@@ -1166,13 +1183,13 @@ contains
           endif
 
           if ( lsend_precip_fact ) then
-             call State_SetScalar(precip_fact, flds_scalar_index_precip_fact, &
-                  exportState, flds_scalar_name, flds_scalar_num, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          else
-             call State_SetScalar(1.0_r8, flds_scalar_index_precip_fact, exportState, &
-                  flds_scalar_name, flds_scalar_num, rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if ( flds_scalar_index_precip_factor > 0 ) then
+                call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+                     flds_scalar_name, flds_scalar_num, rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             else
+                call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
+             end if
           end if
 
           exit advance
@@ -1322,6 +1339,44 @@ contains
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ModelSetRunClock
+
+  !===============================================================================
+
+  subroutine ModelCheckImport(model, rc)
+
+    ! input/output variables
+    type(ESMF_GridComp)  :: model
+    integer, intent(out) :: rc
+    
+    ! local variables
+    type(ESMF_Clock)  :: clock
+    type(ESMF_Time)   :: currTime
+    integer(int_kind) :: yy  ! current date (YYYYMMDD)
+    integer(int_kind) :: mon ! current month 
+    integer(int_kind) :: day ! current day
+    integer(int_kind) :: tod ! current time of day (sec)
+    !-----------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+    
+    ! query the Component for its clock, importState and exportState
+    call NUOPC_ModelGet(model, modelClock=clock, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      
+    call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    
+    call ESMF_TimeGet(currTime, yy=yy, mm=mon, dd=day, s=tod, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    if (my_task == master_task) then
+       write(stdout,*)' CheckImport pop2 year = ',yy
+       write(stdout,*)' CheckImport pop2 mon  = ',mon
+       write(stdout,*)' CheckImport pop2 day  = ',day
+       write(stdout,*)' CheckImport pop2 tod  = ',tod
+    end if
+
+  end subroutine ModelCheckImport
 
   !===============================================================================
 

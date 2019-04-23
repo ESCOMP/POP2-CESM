@@ -9,7 +9,7 @@ module ocn_import_export
   use POP_GridHorzMod,       only: POP_gridHorzLocCenter
   use POP_HaloMod,           only: POP_HaloUpdate
   use kinds_mod,             only: int_kind, r8
-  use shr_kind_mod,          only: r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
+  use shr_kind_mod,          only: cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_cal_mod,           only: shr_cal_date2ymd
   use shr_sys_mod,           only: shr_sys_flush, shr_sys_abort
   use communicate,           only: my_task, master_task
@@ -32,6 +32,7 @@ module ocn_import_export
   use io_tools,              only: document
   use named_field_mod,       only: named_field_register, named_field_get_index, named_field_set, named_field_get
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
+  use grid,                  only: KMT
   use ocn_shr_methods,       only: chkerr   
   use constants
   use blocks
@@ -93,7 +94,7 @@ module ocn_import_export
 contains
 !==============================================================================
 
-  subroutine ocn_advertise_fields(gcomp, importState, exportState, rc)
+  subroutine ocn_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -216,7 +217,7 @@ contains
 
 !==============================================================================
 
-  subroutine ocn realize_fields(gcomp, mesh, flds_scalar_name, flds_scalar_num, rc)
+  subroutine ocn_realize_fields(gcomp, mesh, flds_scalar_name, flds_scalar_num, rc)
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -262,7 +263,7 @@ contains
 
   !==============================================================================
 
-  subroutine ocn_import( importState, ldiag_cpl, errorCode, rc )
+  subroutine ocn_import( importState, flds_scalar_name, ldiag_cpl, errorCode, rc )
 
     !-----------------------------------------------------------------------
     ! swnet  -- net short-wave heat flux                 (W/m2   )
@@ -271,6 +272,7 @@ contains
 
     ! input/output variables
     type(ESMF_State)   , intent(in)  :: importState
+    character(len=*)   , intent(in)  :: flds_scalar_name
     logical (log_kind) , intent(in)  :: ldiag_cpl
     integer            , intent(out) :: errorCode
     integer            , intent(out) :: rc
@@ -304,7 +306,6 @@ contains
     !-----------------------------------------------------------------------
     !  zero out padded cells
     !-----------------------------------------------------------------------
-
 
     work1 = c0
     work2 = c0
@@ -377,16 +378,18 @@ contains
 
     PREC_F(:,:,:) = work1(:,:,:) + SNOW_F(:,:,:) ! rain + snow
 
-    ! longwave radiation (down)   (W/m2)
+    ! longwave radiation (down) (W/m2)
     call state_getimport(importState, 'Faxa_lwdn', LWDN_F, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! fine dust flux from atm
     call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_FINE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
+    ! coarse dust flux from atm
     call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=2, rc=rc)
@@ -397,9 +400,18 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry4', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_COARSE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+
+    ! black carbon flux from atm
+    call state_getimport(importState, 'Faxa_bcph', output=work1, do_sum=.true., ungridded_index=1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState, 'Faxa_bcph', output=work1, do_sum=.true., ungridded_index=2, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState, 'Faxa_bcph', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ATM_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     !-----------------------------------------------------------------------
     ! from sea-ice
@@ -411,30 +423,31 @@ contains
 
     IFRAC(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)
 
-    ! snow melt flux (kg/m2/s)
+    ! snow melt flux from sea ice (kg/m2/s)
     call state_getimport(importState, 'Fioi_meltw', MELT_F, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! heat flux from snow & ice melt (W/m2)
+    ! heat flux from sea ice snow & ice melt (W/m2)
     call state_getimport(importState, 'Fioi_melth', MELTH_F, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! salt from ice (kg(salt)/m2/s)
+    ! salt from sea ice (kg(salt)/m2/s)
     call state_getimport(importState, 'Fioi_salt', SALT_F, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! dust flux from sea ice
     call state_getimport(importState, 'Fioi_flxdst', work1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     SEAICE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
+    ! black carbon flux from sea ice
     call state_getimport(importState, 'Fioi_bcpho', work1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_getimport(importState, 'Fioi_bcphi', work1, do_sum=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     SEAICE_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
-    !  optional fields per mcog column
-
+    !  optional fields from sea ice per mcog column
     call state_getfldptr(importState, 'Foxx_swnet', Foxx_swnet, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -663,7 +676,7 @@ contains
 
 !==============================================================================
 
-  subroutine ocn_export(exportState, ldiag_cpl, errorCode, rc)
+  subroutine ocn_export(exportState, flds_scalar_name, ldiag_cpl, errorCode, rc)
 
     !-----------------------------------------------------------------------
     ! Create export state
@@ -671,6 +684,7 @@ contains
 
     ! input/output variables
     type(ESMF_State)                 :: exportState
+    character(len=*)   , intent(in)  :: flds_scalar_name
     logical (log_kind) , intent(in)  :: ldiag_cpl
     integer (POP_i4)   , intent(out) :: errorCode  ! pop error code
     integer            , intent(out) :: rc         ! returned error code
@@ -956,10 +970,10 @@ contains
 
     if (present(ungridded_index)) then
        call state_getfldptr(state, trim(fldname), dataptr2d, rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call state_getfldptr(state, trim(fldname), dataptr1d, rc)
-       if (shr_nuopc_methods_ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
     ! determine output array
@@ -971,13 +985,13 @@ contains
              n = n + 1
              if (present(do_sum)) then
                 if (present(ungridded_index)) then 
-                   output(i,j,iblock)  = output(i,j,iblock) + dataPtr2d(n,ungridded_index)
+                   output(i,j,iblock)  = output(i,j,iblock) + dataPtr2d(ungridded_index,n)
                 else
                    output(i,j,iblock)  = output(i,j,iblock) + dataPtr1d(n)
                 end if
              else
                 if (present(ungridded_index)) then 
-                   output(i,j,iblock)  = dataPtr2d(n,ungridded_index)
+                   output(i,j,iblock)  = dataPtr2d(ungridded_index,n)
                 else
                    output(i,j,iblock)  = dataPtr1d(n)
                 end if
@@ -1065,7 +1079,8 @@ contains
              if (fldlist(n)%ungridded_lbound > 0 .and. fldlist(n)%ungridded_ubound > 0) then
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, &
                                          ungriddedLbound=(/fldlist(n)%ungridded_lbound/), &
-                                         ungriddedUbound=(/fldlist(n)%ungridded_ubound/), rc=rc)
+                                         ungriddedUbound=(/fldlist(n)%ungridded_ubound/), &
+                                         gridToFieldMap=(/2/), rc=rc)
                 if (ChkErr(rc,__LINE__,u_FILE_u)) return
              else
                 field = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8, name=stdname, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
@@ -1105,7 +1120,7 @@ contains
       ! local variables
       type(ESMF_Distgrid) :: distgrid
       type(ESMF_Grid)     :: grid
-      character(len=*), parameter :: subname='(dshr_nuopc_mod:SetScalarField)'
+      character(len=*), parameter :: subname='(fldlist_realize:SetScalarField)'
       ! ----------------------------------------------
 
       rc = ESMF_SUCCESS
