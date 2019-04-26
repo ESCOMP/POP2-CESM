@@ -25,7 +25,7 @@ module ocn_import_export
   use forcing_fields,        only: LAMULT, USTOKES, VSTOKES
   use forcing_fields,        only: ATM_FINE_DUST_FLUX, ATM_COARSE_DUST_FLUX, SEAICE_DUST_FLUX
   use forcing_fields,        only: ATM_BLACK_CARBON_FLUX, SEAICE_BLACK_CARBON_FLUX
-  use mcog,                  only: lmcog, mcog_ncols, import_mcog
+  use mcog,                  only: lmcog, mcog_ncols, lmcog_flds_sent, import_mcog
   use forcing_coupled,       only: update_ghost_cells_coupler_fluxes, rotate_wind_stress
   use ice,                   only: QFLUX, QICE, AQICE, tlast_ice
   use global_reductions,     only: global_sum_prod
@@ -33,7 +33,7 @@ module ocn_import_export
   use named_field_mod,       only: named_field_register, named_field_get_index, named_field_set, named_field_get
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
   use grid,                  only: KMT
-  use ocn_shr_methods,       only: chkerr   
+  use ocn_shr_methods,       only: chkerr
   use constants
   use blocks
   use exit_mod
@@ -107,6 +107,7 @@ contains
     integer       :: n
     character(CS) :: stdname
     character(CS) :: cvalue
+    integer       :: ice_ncat
     logical       :: flds_i2o_per_cat  ! .true. => select per ocn thickness category
     character(len=*), parameter :: subname='(ocn_import_export:ocn_advertise_fields)'
     !-------------------------------------------------------------------------------
@@ -115,10 +116,29 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
+    !-----------------
+    ! optional input from cice columns due to ice thickness categories
+    !-----------------
+
+    ! Note that flds_i2o_per_cat is set by the env_run.xml variable CPL_I2O_PER_CAT
+    ! This xml variable is set by the POP build-namelist
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) flds_i2o_per_cat
-    call ESMF_LogWrite('flds_i2o_per_cat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    read(cvalue,*) lmcog_flds_sent
+    call ESMF_LogWrite('lmcog = '// trim(cvalue), ESMF_LOGMSG_INFO)
+
+    ! Note that ice_ncat is set by the env_run.xml variable ICE_NCAT which is set
+    ! by the ice component (default is 1)
+    call NUOPC_CompAttributeGet(gcomp, name='ice_ncat', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ice_ncat
+    call ESMF_LogWrite('ice_ncat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+
+    if (lmcog_flds_sent) then
+       mcog_ncols = ice_ncat+1
+    else
+       mcog_ncols = 1
+    end if
 
     !-----------------
     ! advertise import fields
@@ -134,6 +154,14 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Fioi_bcpho')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Fioi_bcphi')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Fioi_flxdst')
+    if (lmcog_flds_sent) then
+       ! this implementation only handles columns due to ice thickness categories
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sf_afrac')
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sf_afracr')
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Foxx_swnet_afracr')
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Fioi_swpen_ifrac_n', ungridded_lbound=1, ungridded_ubound=ice_ncat)
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Si_ifrac_n'        , ungridded_lbound=1, ungridded_ubound=ice_ncat)
+    endif
 
     ! from river
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Foxx_rofl')
@@ -169,19 +197,6 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_noy')
 
     ! optional per thickness category fields
-    ! this implementation only handles columns due to ice thickness categories
-
-    if (flds_i2o_per_cat) then
-       mcog_ncols = 6 ! TODO: hard-wire ice_ncat to 5 for now
-       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sf_afrac')
-       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sf_afracr')
-       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Foxx_swnet_afracr')
-       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Fioi_swpen_ifrac_n', ungridded_lbound=1, ungridded_ubound=mcog_ncols-1)
-       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Si_ifrac_n'        , ungridded_lbound=1, ungridded_ubound=mcog_ncols-1)
-    else
-       mcog_ncols = 1
-    endif
-
     do n = 1,fldsToOcn_num
        call NUOPC_Advertise(importState, standardName=fldsToOcn(n)%stdname, &
             TransferOfferGeomObject='will provide', rc=rc)
@@ -223,7 +238,7 @@ contains
     type(ESMF_GridComp)            :: gcomp
     type(ESMF_Mesh)  , intent(in)  :: mesh
     character(len=*) , intent(in)  :: flds_scalar_name
-    integer          , intent(in)  :: flds_scalar_num 
+    integer          , intent(in)  :: flds_scalar_num
     integer          , intent(out) :: rc
 
     ! local variables
@@ -259,6 +274,19 @@ contains
          mesh=mesh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! error checks
+
+    if ( lmcog                                           .and. &
+         State_FldChk(importState, 'Si_ifrac_n')         .and. &
+         State_FldChk(importState, 'Fioi_swpen_ifrac_n') .and. &
+         State_FldChk(importState, 'Foxx_swnet_afracr')  .and. &
+         State_FldChk(importState, 'Sf_afrac')           .and. &
+         State_FldChk(importState, 'Sf_afracr')) then
+       ! do nothing
+    else
+       call shr_sys_abort(trim(subname)//": all import fields not set if lmcog is .true.")
+    end if
+
   end subroutine ocn_realize_fields
 
   !==============================================================================
@@ -292,7 +320,7 @@ contains
     real (r8), pointer   :: Sf_afrac(:)
     real (r8), pointer   :: Sf_afracr(:)
     real (r8), pointer   :: Si_ifrac_n(:,:)
-    real (r8), pointer   :: Fioi_swpen_ifrac(:,:)
+    real (r8), pointer   :: Fioi_swpen_ifrac_n(:,:)
     integer (int_kind)   :: fieldCount
     character (char_len), allocatable :: fieldNameList(:)
     type(ESMF_StateItem_Flag) :: itemflag
@@ -452,70 +480,54 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (lmcog) then
+       ! extract fields for each column and pass to import_mcog
 
-       if ( State_FldChk(importState, 'Si_ifrac_n')        .and. &
-            State_FldChk(importState, 'Fioi_swpen_ifrac')  .and. &
-            State_FldChk(importState, 'Foxx_swnet_afracr') .and. &
-            State_FldChk(importState, 'Sf_afrac')          .and. &
-            State_FldChk(importState, 'Sf_afracr')) then
-
-          call state_getfldptr(importState, 'Si_ifrac_n', Si_ifrac_n, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          call state_getfldptr(importState, 'Fioi_swpen_ifrac', Fioi_swpen_ifrac, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          call state_getfldptr(importState, 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          call state_getfldptr(importState, 'Sf_afrac', Sf_afrac, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          call state_getfldptr(importState, 'Sf_afracr', Sf_afracr, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-          n = 0
-          do iblock = 1, nblocks_clinic
-             this_block = get_block(blocks_clinic(iblock),iblock)
-             do j=this_block%jb,this_block%je
-                do i=this_block%ib,this_block%ie
-                   n = n + 1
-                   ! extract fields for each column and pass to import_mcog
-                   do ncol = 1, mcog_ncols
-                      if (ncol == 1) then
-                         frac_col_1pt(ncol)  = max(c0, min(c1, Sf_afrac(n)))
-                         fracr_col_1pt(ncol) = max(c0, min(c1, Sf_afracr(n)))
-                         qsw_fracr_col_1pt(ncol) = Foxx_swnet_afracr(n)
-                      else
-                         frac_col_1pt(ncol)  = max(c0, min(c1, Si_ifrac_n(n,ncol)))
-                         fracr_col_1pt(ncol) = max(c0, min(c1, Si_ifrac_n(n,ncol)))
-                         qsw_fracr_col_1pt(ncol) = Fioi_swpen_ifrac(n,ncol)
-                      end if
-                   end do
-                   call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, Foxx_swnet(n), iblock, i, j)
+       call state_getfldptr(importState, 'Sf_afrac', Sf_afrac, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(importState, 'Sf_afracr', Sf_afracr, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(importState, 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(importState, 'Si_ifrac_n', Si_ifrac_n, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call state_getfldptr(importState, 'Fioi_swpen_ifrac_n', Fioi_swpen_ifrac_n, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j=this_block%jb,this_block%je
+             do i=this_block%ib,this_block%ie
+                n = n + 1
+                frac_col_1pt(1)  = max(c0, min(c1, Sf_afrac(n)))
+                fracr_col_1pt(1) = max(c0, min(c1, Sf_afracr(n)))
+                qsw_fracr_col_1pt(1) = Foxx_swnet_afracr(n)
+                do ncol = 2,mcog_ncols ! same as ice_ncat
+                   frac_col_1pt(ncol)  = max(c0, min(c1, Si_ifrac_n(ncol-1,n)))
+                   fracr_col_1pt(ncol) = max(c0, min(c1, Si_ifrac_n(ncol-1,n)))
+                   qsw_fracr_col_1pt(ncol) = Fioi_swpen_ifrac_n(ncol-1,n)
                 end do
+                call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, Foxx_swnet(n), iblock, i, j)
              end do
           end do
+       end do
 
-       else
+    else
 
-          ! if mcog is off, fill its arrays with cpl aggregated full cell means
-          n = 0
-          do iblock = 1, nblocks_clinic
-             this_block = get_block(blocks_clinic(iblock),iblock)
-             do j=this_block%jb,this_block%je
-                do i=this_block%ib,this_block%ie
-                   n = n + 1
-                   ncol = 1
-                   frac_col_1pt(ncol)  = c1
-                   fracr_col_1pt(ncol) = c1
-                   qsw_fracr_col_1pt(ncol) = Foxx_swnet(n)
-                   call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, Foxx_swnet(n), iblock, i, j)
-                enddo ! do i
-             enddo ! do j
-          enddo ! do iblock = 1, nblocks_clinic
-
-       end if
+       ! if mcog is off, fill its arrays with cpl aggregated full cell means
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j=this_block%jb,this_block%je
+             do i=this_block%ib,this_block%ie
+                n = n + 1
+                ncol = 1
+                frac_col_1pt(ncol)  = c1
+                fracr_col_1pt(ncol) = c1
+                qsw_fracr_col_1pt(ncol) = Foxx_swnet(n)
+                call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, Foxx_swnet(n), iblock, i, j)
+             enddo ! do i
+          enddo ! do j
+       enddo ! do iblock = 1, nblocks_clinic
 
     endif ! if (lmcog) then
 
@@ -659,7 +671,7 @@ contains
              if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
              gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
-             
+
              if (my_task == master_task) then
                 write(stdout,1100)'ocn','recv', trim(fieldNameList(nfld)), gsum
                 call shr_sys_flush(stdout)
@@ -916,7 +928,7 @@ contains
                    enddo
                 enddo
              enddo
-             
+
              call POP_HaloUpdate(worka, POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
                   errorCode, fillValue = 0.0_POP_r8)
              if (errorCode /= POP_Success) then
@@ -924,9 +936,9 @@ contains
                 rc = ESMF_FAILURE
                 return
              endif
-             
+
              gsum = global_sum_prod(worka, TAREA, distrb_clinic, field_loc_center, RCALCT) * m2percm2
-             
+
              if (my_task == master_task) then
                 write(stdout,1100)'ocn','send', trim(fieldNameList(nfld)), gsum
                 call shr_sys_flush(stdout)
@@ -954,7 +966,7 @@ contains
     type(ESMF_State)  , intent(in)    :: state
     character(len=*)  , intent(in)    :: fldname
     real (r8)         , intent(inout) :: output(:,:,:)
-    integer, optional , intent(in)    :: ungridded_index   
+    integer, optional , intent(in)    :: ungridded_index
     logical, optional , intent(in)    :: do_sum
     integer           , intent(out)   :: rc
 
@@ -984,13 +996,13 @@ contains
           do i = this_block%ib,this_block%ie
              n = n + 1
              if (present(do_sum)) then
-                if (present(ungridded_index)) then 
+                if (present(ungridded_index)) then
                    output(i,j,iblock)  = output(i,j,iblock) + dataPtr2d(ungridded_index,n)
                 else
                    output(i,j,iblock)  = output(i,j,iblock) + dataPtr1d(n)
                 end if
              else
-                if (present(ungridded_index)) then 
+                if (present(ungridded_index)) then
                    output(i,j,iblock)  = dataPtr2d(ungridded_index,n)
                 else
                    output(i,j,iblock)  = dataPtr1d(n)
