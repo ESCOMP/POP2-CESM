@@ -125,7 +125,8 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) lmcog_flds_sent
-    call ESMF_LogWrite('lmcog = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    call ESMF_LogWrite('lmcog_flds_sent = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    write(stdout,*) 'lmcog_flds_sent = ',lmcog_flds_sent 
 
     ! Note that ice_ncat is set by the env_run.xml variable ICE_NCAT which is set
     ! by the ice component (default is 1)
@@ -133,6 +134,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) ice_ncat
     call ESMF_LogWrite('ice_ncat = '// trim(cvalue), ESMF_LOGMSG_INFO)
+    write(stdout,*) 'ice_ncat = ',ice_ncat
 
     if (lmcog_flds_sent) then
        mcog_ncols = ice_ncat+1
@@ -276,15 +278,26 @@ contains
 
     ! error checks
 
-    if ( lmcog                                           .and. &
-         State_FldChk(importState, 'Si_ifrac_n')         .and. &
-         State_FldChk(importState, 'Fioi_swpen_ifrac_n') .and. &
-         State_FldChk(importState, 'Foxx_swnet_afracr')  .and. &
-         State_FldChk(importState, 'Sf_afrac')           .and. &
-         State_FldChk(importState, 'Sf_afracr')) then
-       ! do nothing
-    else
-       call shr_sys_abort(trim(subname)//": all import fields not set if lmcog is .true.")
+    if (lmcog) then
+       if ( (.not. State_FldChk(importState, 'Si_ifrac_n'         )) .and. &
+            (.not. State_FldChk(importState, 'Fioi_swpen_ifrac_n' )) .and. &
+            (.not. State_FldChk(importState, 'Foxx_swnet_afracr'  )) .and. &
+            (.not. State_FldChk(importState, 'Sf_afrac'           )) .and. &
+            (.not. State_FldChk(importState, 'Sf_afracr'          ))) then
+
+          write(stdout,*) ' Query for Si_ifrac_n         in import state is ',&
+               State_FldChk(importState, 'Si_ifrac_n')
+          write(stdout,*) ' Query for Fioi_swpen_ifrac_n in import state is ',&
+               State_FldChk(importState, 'Foxx_swnet_afracr')
+          write(stdout,*) ' Query for Foxx_swnet_afracr  in import state is ',&
+               State_FldChk(importState, 'Foxx_swnet_afracr')
+          write(stdout,*) ' Query for Sf_afrac           in import state is ',&
+               State_FldChk(importState, 'Sf_afrac')
+          write(stdout,*) ' Query for Sf_afracr          in import state is ',&
+               State_FldChk(importState, 'Sf_afracr')
+          write(stdout,*) ' Aborting: all above import fields must be in import state if lmcog is true'
+          call shr_sys_abort(trim(subname)//": all import fields not set if lmcog is .true.")
+       end if
     end if
 
   end subroutine ocn_realize_fields
