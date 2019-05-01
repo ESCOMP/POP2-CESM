@@ -138,9 +138,6 @@ module io_pio
                if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
                   nmode = ior(nmode,pio_netcdf_format)
                endif
-               if(pio_iotype == PIO_IOTYPE_NETCDF .or. pio_iotype == PIO_IOTYPE_PNETCDF) then
-                  nmode = ior(nmode,pio_netcdf_format)
-               endif
                status = pio_createfile(io_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                if (my_task == master_task) then
                   write(stdout,*) subname,' create file ',trim(filename)

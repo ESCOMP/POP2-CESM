@@ -202,7 +202,11 @@
       if (distribution%proc(n) == my_task+1) bcount = bcount + 1
    end do
 
-   if (bcount > 0) allocate(block_ids(bcount))
+   if (bcount > 0) then
+      allocate(block_ids(bcount))
+   else
+      nullify(block_ids)
+   endif
 
 !-----------------------------------------------------------------------
 !

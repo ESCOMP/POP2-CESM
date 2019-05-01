@@ -367,7 +367,7 @@ contains
       call broadcast_scalar(marbl_nl_line, master_task)
 
       ! iii. Call put_setting from each block
-      do iblock=1, nblocks_clinic
+      do iblock=1, max(1,nblocks_clinic)
          ! call marbl_instance%put line by line
          call marbl_instances(iblock)%put_setting(marbl_nl_line)
       end do
@@ -388,7 +388,7 @@ contains
     call gen_marbl_to_pop_index_mapping()
 
     ! (3) call marbl%init()
-    do iblock=1, nblocks_clinic
+    do iblock=1, max(1,nblocks_clinic)
 
        call marbl_instances(iblock)%init(                                     &
             gcm_num_levels = km,                                              &
@@ -570,7 +570,7 @@ contains
 
     ! Register flux_co2 with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
-    do iblock=1, nblocks_clinic
+    do iblock=1, max(1,nblocks_clinic)
        call marbl_instances(iblock)%surface_flux_output%add_sfo(              &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "flux_co2",                                      &
@@ -587,7 +587,7 @@ contains
 
     ! Register totalChl with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
-    do iblock=1, nblocks_clinic
+    do iblock=1, max(1,nblocks_clinic)
        call marbl_instances(iblock)%surface_flux_output%add_sfo(              &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "totalChl",                                      &
@@ -1362,7 +1362,7 @@ contains
       stats_local = .false.
     end if
 
-    do iblock=1, nblocks_clinic
+    do iblock=1, max(1, nblocks_clinic)
       call marbl_instances(iblock)%extract_timing()
     end do
 
@@ -1371,18 +1371,20 @@ contains
     allocate(block_min(num_timers))
     allocate(block_max(num_timers))
     allocate(block_tot(num_timers))
-    run_time(:,:) = c0
-    block_min(:) = c0
-    block_max(:) = c0
-    block_tot(:) = c0
     do iblock=1,nblocks_clinic
       associate(timers => marbl_instances(iblock)%timer_summary)
         run_time(:,iblock) =timers%cumulative_runtimes(:)
       end associate
     end do
-    block_min = minval(run_time, dim=2)
-    block_max = maxval(run_time, dim=2)
-    block_tot = sum(run_time, dim=2)
+    if (nblocks_clinic > 0) then
+      block_min(:) = minval(run_time, dim=2)
+      block_max(:) = maxval(run_time, dim=2)
+      block_tot(:) = sum(run_time, dim=2)
+    else
+      block_min(:) = c0
+      block_max(:) = c0
+      block_tot(:) = c0
+    end if
 
     nblocks   = global_sum(nblocks_clinic, distrb_clinic)
 
@@ -1450,7 +1452,8 @@ contains
     type(block) :: this_block
     integer     :: index_marbl, i, j, iblock
 
-    allocate(marbl_col_cnt(nblocks_clinic))
+    allocate(marbl_col_cnt(max(1,nblocks_clinic)))
+    if (nblocks_clinic .eq. 0) marbl_col_cnt(1) = 0
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
       ! marbl_col_cnt is the number of ocean grid cells in the phys grid
@@ -1517,6 +1520,7 @@ contains
     type(block) :: this_block
 
     ! Set up block id
+    if (nblocks_clinic .eq. 0) return
     this_block = get_block(blocks_clinic(iblock), iblock)
     elem_old = -1
     write(message_prefix, "(A,I0,A,I0,A)") '(Task ', my_task, ', block ', iblock, ')'
