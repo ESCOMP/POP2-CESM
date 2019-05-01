@@ -17,7 +17,6 @@ module POP_MCT_vars_mod
   private :: set_gsmap
   private :: set_domain
 
-
   integer(int_kind) , public :: POP_MCT_OCNID
   type(mct_gsMap)   , public :: POP_MCT_gsMap_o     ! 2d, points to cdata
   type(mct_gGrid)   , public :: POP_MCT_dom_o       ! 2d, points to cdata
@@ -192,13 +191,16 @@ contains
        enddo
     enddo
 
-    ! check that the 2d size is an exact multiple of lsize
-
-    if (mod(lsize,n) /= 0) then
-       write(stdout,*) trim(subname),' ERROR: 2d/3d size ',lsize,n
-       call shr_sys_abort( SubName//":: 2d/3d size mismatch")
-    else 
-       klev = lsize/n
+    ! check that the lsize is an exact multiple of 2d size
+    if (n > 0) then
+       if (mod(lsize,n) /= 0) then
+          write(stdout,*) trim(subname),' ERROR: 2d/3d size ',lsize,n
+          call shr_sys_abort( SubName//":: 2d/3d size mismatch")
+       else 
+          klev = lsize/n
+       endif
+    else
+       klev = 0
     endif
 
     n=0

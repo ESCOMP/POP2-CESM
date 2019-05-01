@@ -16,7 +16,7 @@ module ocn_comp_nuopc
   use NUOPC_Model           , only : model_label_CheckImport    => label_CheckImport
   use NUOPC_Model           , only : model_label_SetClock       => label_SetClock
   use NUOPC_Model           , only : model_label_Finalize       => label_Finalize
-  use NUOPC_Model           , only : NUOPC_ModelGet, SetVM
+  use NUOPC_Model           , only : NUOPC_ModelGet
   use constants             , only : c0, blank_fmt, ndelim_fmt
   use POP_IOUnitsMod        , only : POP_IOUnitsFlush, POP_stdout, inst_suffix, inst_index, inst_name
   use POP_ErrorMod          , only : POP_ErrorSet, POP_Success, POP_ErrorPrint
@@ -66,7 +66,6 @@ module ocn_comp_nuopc
   private                              ! By default make data private
 
   public  :: SetServices
-  public  :: SetVM
 
   private :: InitializeP0
   private :: InitializeAdvertise
@@ -390,6 +389,7 @@ contains
     call get_component_instance(gcomp, inst_suffix, inst_index, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     inst_name = "OCN"//trim(inst_suffix)
+    write(6,*)'DEBUG: inst_index,inst_suffix,inst_name = ',inst_index,trim(inst_suffix),trim(inst_name)
 
     !-----------------------------------------------------------------------
     !  first initializaiton phase of pop2

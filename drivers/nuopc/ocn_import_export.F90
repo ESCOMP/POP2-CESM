@@ -12,6 +12,7 @@ module ocn_import_export
   use shr_kind_mod,          only: cl=>shr_kind_cl, cs=>shr_kind_cs
   use shr_cal_mod,           only: shr_cal_date2ymd
   use shr_sys_mod,           only: shr_sys_flush, shr_sys_abort
+  use shr_const_mod,         only: shr_const_spval
   use communicate,           only: my_task, master_task
   use domain,                only: distrb_clinic, POP_haloClinic
   use forcing_shf,           only: SHF_QSW
@@ -126,7 +127,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) lmcog_flds_sent
     call ESMF_LogWrite('lmcog_flds_sent = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    write(stdout,*) 'lmcog_flds_sent = ',lmcog_flds_sent 
+    write(stdout,*) 'lmcog_flds_sent = ',lmcog_flds_sent
 
     ! Note that ice_ncat is set by the env_run.xml variable ICE_NCAT which is set
     ! by the ice component (default is 1)
@@ -337,6 +338,11 @@ contains
     integer (int_kind)   :: fieldCount
     character (char_len), allocatable :: fieldNameList(:)
     type(ESMF_StateItem_Flag) :: itemflag
+#ifdef _HIRES
+    real (r8)            :: qsw_eps = -1.e-3_r8
+#else
+    real (r8)            :: qsw_eps = 0._r8
+#endif
     character(len=*), parameter :: subname='(ocn_import_export:ocn_import)'
     !-----------------------------------------------------------------------
 
@@ -394,6 +400,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     SHF_QSW(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)*hflux_factor  !  convert from W/m**2
+    if (ANY(SHF_QSW < qsw_eps)) then
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                write(6,*)'ERROR: j,i,shf_qsw = ',this_block%j_glob(j),this_block%i_glob(i),SHF_QSW(i,j,iblock)
+             enddo
+          enddo
+       enddo
+       call shr_sys_abort('(set_surface_forcing) ERROR: SHF_QSW < qsw_eps in set_surface_forcing')
+    endif
 
     ! 10m wind speed squared (m^2/s^2)
     call state_getimport(importState, 'So_duu10n', work1, rc=rc)
@@ -743,6 +760,7 @@ contains
     call state_getfldptr(exportState, 'So_omask', dataPtr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
     n=0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -764,6 +782,8 @@ contains
     call state_getfldptr(exportState, 'So_v', dataPtr2, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
+    dataptr2(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -790,6 +810,7 @@ contains
     call state_getfldptr(exportState, 'So_t', dataptr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -808,6 +829,7 @@ contains
     call state_getfldptr(exportState, 'So_s', dataptr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -826,6 +848,7 @@ contains
     call state_getfldptr(exportState, 'So_bldepth', dataptr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -846,6 +869,7 @@ contains
     call state_getfldptr(exportState, 'So_dhdy', dataPtr2, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -873,6 +897,7 @@ contains
     call state_getfldptr(exportState, 'Fioo_q', dataPtr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    dataptr1(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -897,6 +922,7 @@ contains
        call state_getfldptr(exportState, 'Faoo_fco2_ocn', dataPtr1, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       dataptr1(:) = shr_const_spval
        n = 0
        do iblock = 1, nblocks_clinic
           this_block = get_block(blocks_clinic(iblock),iblock)

@@ -48,7 +48,7 @@ def _copy_files_to_blddir(case):
     if driver == 'nuopc':
         glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","nuopc"))
     if driver == 'mct':
-        glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","cpl"))
+        glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","mct"))
 
     dest_dir = os.path.join(objroot, "ocn", "source")
     for glob_dir in glob_dirs:
