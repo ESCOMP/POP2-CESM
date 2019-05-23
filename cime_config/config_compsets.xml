@@ -80,6 +80,11 @@
   </compset>
 
   <compset>
+    <alias>GOMIPIAF</alias>
+    <lname>OMIP_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
     <alias>GIAF_HR</alias>
     <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_SWAV</lname>
   </compset>
@@ -87,6 +92,11 @@
   <compset>
     <alias>GIAF_JRA</alias>
     <lname>2000_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GOMIPIAF_JRA</alias>
+    <lname>OMIP_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_WW3</lname>
   </compset>
 
   <compset>
@@ -105,8 +115,18 @@
   </compset>
 
   <compset>
+    <alias>GOMIPECOIAF</alias>
+    <lname>OMIP_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
     <alias>G1850ECOIAF_JRA</alias>
     <lname>1850_DATM%JRA_SLND_CICE_POP2%ECO_DROF%JRA_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GOMIPECOIAF_JRA</alias>
+    <lname>OMIP_DATM%JRA_SLND_CICE_POP2%ECO_DROF%JRA_SGLC_WW3</lname>
   </compset>
 
   <compset>
