@@ -1216,10 +1216,10 @@
 <model_year&cfc_nml                          >   1</model_year&cfc_nml>
 
 <data_year&cfc_nml  ocn_transient="CORE2"    >2009</data_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="CORE2"    > 310</model_year&cfc_nml> <!-- ncycles*nyrs = 5*(2009-1948+1) -->
+<model_year&cfc_nml ocn_transient="CORE2"    > 372</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
 <data_year&cfc_nml  ocn_transient="CORE2_OMIP">2009</data_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="CORE2_OMIP"> 310</model_year&cfc_nml> <!-- ncycles*nyrs = 5*(2009-1948+1) -->
+<model_year&cfc_nml ocn_transient="CORE2_OMIP"> 372</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
 <data_year&cfc_nml  ocn_transient="JRA"      >2016</data_year&cfc_nml>
 <model_year&cfc_nml ocn_transient="JRA"      > 354</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
@@ -1245,10 +1245,10 @@
 <model_year&sf6_nml                          >   1</model_year&sf6_nml>
 
 <data_year&sf6_nml  ocn_transient="CORE2"    >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="CORE2"    > 310</model_year&sf6_nml> <!-- ncycles*nyrs = 5*(2009-1948+1) -->
+<model_year&sf6_nml ocn_transient="CORE2"    > 372</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
 <data_year&sf6_nml  ocn_transient="CORE2_OMIP">2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="CORE2_OMIP"> 310</model_year&sf6_nml> <!-- ncycles*nyrs = 5*(2009-1948+1) -->
+<model_year&sf6_nml ocn_transient="CORE2_OMIP"> 372</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
 <data_year&sf6_nml  ocn_transient="JRA"      >2009</data_year&sf6_nml>
 <model_year&sf6_nml ocn_transient="JRA"      > 542</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
@@ -1431,7 +1431,7 @@
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
 <ndep_data_type ocn_transient="CORE2_OMIP">shr_stream</ndep_data_type>
-<ndep_shr_stream_year_first ocn_transient="CORE2_OMIP">1699</ndep_shr_stream_year_first> <!-- 1948-(5-1)*(2009-1948+1)-1 -->
+<ndep_shr_stream_year_first ocn_transient="CORE2_OMIP">1637</ndep_shr_stream_year_first> <!-- 1948-(6-1)*(2009-1948+1)-1 -->
 <ndep_shr_stream_year_last  ocn_transient="CORE2_OMIP">2010</ndep_shr_stream_year_last>
 <ndep_shr_stream_year_align ocn_transient="CORE2_OMIP">0</ndep_shr_stream_year_align>
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="CORE2_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c190522.nc</ndep_shr_stream_file>
