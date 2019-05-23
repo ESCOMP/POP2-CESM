@@ -123,9 +123,9 @@ def buildnml(case, caseroot, compname):
         suffixes = ["ovf", "restart", "tavg"]
         for suffix in suffixes:
             # See if rpointer.ocn.`suffix` exists and rpointer.ocn`inst_string`.`suffix` does not
-            file1 = os.path.join(rundir, "rpointer.ocn" + "inst_string." + suffix)
-            file2 = os.path.join(rundir, "rpointer.ocn" + suffix)
-            if not os.path.isfile(file1) and os.path.isfile(file1):
+            file1 = os.path.join(rundir, "rpointer.ocn" + inst_string + "." + suffix)
+            file2 = os.path.join(rundir, "rpointer.ocn." + suffix)
+            if not os.path.isfile(file1) and os.path.isfile(file2):
                 shutil.copy(file2, file1)
 
         # create namelist_infile using user_nl_file as input
