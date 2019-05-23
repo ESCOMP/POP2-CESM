@@ -185,6 +185,8 @@
       <value compset="_POP2%[^_]*ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%[^_]*ECO.*_BGC%BDRD">diagnostic</value>
       <value compset="_DATM%CPLHIST.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="_DATM%IAF.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="_DATM%JRA.*_POP2%[^_]*ECO">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>

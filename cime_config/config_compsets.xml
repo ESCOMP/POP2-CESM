@@ -105,6 +105,11 @@
   </compset>
 
   <compset>
+    <alias>G1850ECOIAF_JRA</alias>
+    <lname>1850_DATM%JRA_SLND_CICE_POP2%ECO_DROF%JRA_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
     <alias>G1850ECO_CPLHIST</alias>
     <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO_DROF%CPLHIST_SGLC_WW3</lname>
   </compset>
