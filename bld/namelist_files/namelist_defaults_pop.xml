@@ -1216,7 +1216,10 @@
 <model_year&cfc_nml                          >   1</model_year&cfc_nml>
 
 <data_year&cfc_nml  ocn_transient="CORE2"    >2009</data_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="CORE2"    > 310</model_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="CORE2"    > 310</model_year&cfc_nml> <!-- ncycles*nyrs = 5*(2009-1948+1) -->
+
+<data_year&cfc_nml  ocn_transient="JRA"      >2016</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="JRA"      > 354</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
 
 <data_year&cfc_nml  ocn_transient="1850-2000">1850</data_year&cfc_nml>
 <model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
@@ -1236,7 +1239,10 @@
 <model_year&sf6_nml                          >   1</model_year&sf6_nml>
 
 <data_year&sf6_nml  ocn_transient="CORE2"    >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="CORE2"    > 310</model_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="CORE2"    > 310</model_year&sf6_nml> <!-- ncycles*nyrs = 5*(2009-1948+1) -->
+
+<data_year&sf6_nml  ocn_transient="JRA"      >2009</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="JRA"      > 542</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
 
 <data_year&sf6_nml  ocn_transient="1850-2000">1850</data_year&sf6_nml>
 <model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
@@ -1386,6 +1392,7 @@
 
 <ndep_data_type ocn_transient="unset">monthly-calendar</ndep_data_type>
 <ndep_data_type ocn_transient="CORE2">monthly-calendar</ndep_data_type>
+<ndep_data_type ocn_transient="JRA">monthly-calendar</ndep_data_type>
 
 <nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
 <nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
