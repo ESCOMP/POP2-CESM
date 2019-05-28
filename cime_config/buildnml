@@ -208,7 +208,7 @@ def buildnml(case, caseroot, compname):
 
             # marbl_in and marbl_diagnostics_operators
             if marbl_nt_build > 0:
-                _copy_file('marbl_in', confdir, rundir, inst_string)
+                _copy_file('marbl_in'+inst_string, confdir, rundir)
                 _copy_file('marbl_diagnostics_operators', confdir, rundir)
 
             # tavg_contents file
@@ -256,7 +256,7 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_conf
         sys.exit(1)
 
     # (iii) write settings file
-    MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
+    MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"+inst_string))
 
 ###############################################################################
 
