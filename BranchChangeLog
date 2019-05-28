@@ -1,4 +1,15 @@
 ===============================================================================
+Tag Creator:  altuntas
+Developers:   altuntas
+Tag Date:     28 May 2019
+Tag Name:     pop2_cesm2_1_rel_n05
+Tag Summary:  Fix rpointer logic and marb_in gen for multi-instance runs
+
+Testing: aux_pop and aux_pop_MARBL (b4b)
+
+M       cime_config/buildnml
+
+===============================================================================
 Tag Creator:  klindsay
 Developers:   klindsay
 Tag Date:     12 Apr 2019
