@@ -1282,7 +1282,7 @@
 
 <abio_comp_surf_avg_freq>1</abio_comp_surf_avg_freq>
 
-<abio_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c171012.nc</abio_atm_d14c_filename>
+<abio_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c190528.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP126_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP245_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP3B_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
@@ -1522,13 +1522,13 @@
 
 <ciso_atm_d14c_lat_band_vals>-2.3, -4.0, -5.8</ciso_atm_d14c_lat_band_vals>
 
-<ciso_atm_d13c_filename>lnd/clm2/isotopes/atm_delta_C13_CMIP6_1850-2015_yearly_v2.0_c171012.nc</ciso_atm_d13c_filename>
+<ciso_atm_d13c_filename>lnd/clm2/isotopes/atm_delta_C13_CMIP6_1850-2015_yearly_v2.0_c190528.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP126_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP245_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP3B_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP5B_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 
-<ciso_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c171012.nc</ciso_atm_d14c_filename>
+<ciso_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c190528.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP126_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP245_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP3B_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
