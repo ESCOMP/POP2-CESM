@@ -1,5 +1,17 @@
 ===============================================================================
 Tag Creator:  altuntas
+Developers:   klindsay
+Tag Date:     30 May 2019
+Tag Name:     pop2_cesm2_1_rel_n06
+Tag Summary:  Point to Historical Carbon isotope files that are in NetCDF-3 
+              format rather than NetCDF-4 format. 
+
+Testing: ERS_Ld30.T62_g37.C1850ECO.cheyenne_intel.pop-ciso_transient_abio_dic_dic14_transient (b4b)
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+
+===============================================================================
+Tag Creator:  altuntas
 Developers:   altuntas
 Tag Date:     28 May 2019
 Tag Name:     pop2_cesm2_1_rel_n05
