@@ -1251,10 +1251,10 @@
 <model_year&sf6_nml ocn_transient="CORE2_OMIP"> 372</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
 <data_year&sf6_nml  ocn_transient="JRA"      >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="JRA"      > 542</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
+<model_year&sf6_nml ocn_transient="JRA"      > 354</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
 
 <data_year&sf6_nml  ocn_transient="JRA_OMIP" >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="JRA_OMIP" > 542</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
+<model_year&sf6_nml ocn_transient="JRA_OMIP" > 354</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
 
 <data_year&sf6_nml  ocn_transient="1850-2000">1850</data_year&sf6_nml>
 <model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>

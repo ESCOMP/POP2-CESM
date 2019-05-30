@@ -5268,7 +5268,8 @@ category="Passive Tracers (CFCs)"
 group="derived" >
 Arbitrary model year.
 
-Default: 1850 for OCN_TRANSIENT=1850-2000, 310 for OCN_TRANSIENT=CORE2, 1 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 372 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+354 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5278,7 +5279,8 @@ category="Passive Tracers (CFCs)"
 group="derived" >
 Year in data that corresponds to model_year.
 
-Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2, 1 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+2016for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5534,7 +5536,8 @@ category="Passive Tracers (SF6)"
 group="derived" >
 Arbitrary model year.
 
-Default: 1850 for 1850-2000 transient run, 1 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 372 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+354 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5544,7 +5547,8 @@ category="Passive Tracers (SF6)"
 group="derived" >
 Year in data that corresponds to model_year.
 
-Default: 1850 for 1850-2000 transient run, 1981 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+2016for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
