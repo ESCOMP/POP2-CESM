@@ -5269,7 +5269,7 @@ group="derived" >
 Arbitrary model year.
 
 Default: 1850 for OCN_TRANSIENT=1850-2000, 372 for OCN_TRANSIENT=CORE2,CORE2OMIP,
-354 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
+366 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5280,7 +5280,7 @@ group="derived" >
 Year in data that corresponds to model_year.
 
 Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2,CORE2OMIP,
-2016for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
+2018 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5537,7 +5537,7 @@ group="derived" >
 Arbitrary model year.
 
 Default: 1850 for OCN_TRANSIENT=1850-2000, 372 for OCN_TRANSIENT=CORE2,CORE2OMIP,
-354 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
+366 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5548,7 +5548,7 @@ group="derived" >
 Year in data that corresponds to model_year.
 
 Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2,CORE2OMIP,
-2016for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
+2018 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -6352,7 +6352,8 @@ id="ndep_shr_stream_year_first"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1849 (2004 for rcp runs)
+Default: 1849 for OCN_TRANSIENT=1850-2000, 2004 for rcp runs, 2014 for ssp runs,
+1637 for OCN_TRANSIENT=CORE2OMIP, 1652 for OCN_TRANSIENT=JRA_OMIP
 </entry>
 
 <entry
@@ -6360,7 +6361,8 @@ id="ndep_shr_stream_year_last"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 2006 (2101 for rcp runs)
+Default: 2006 for OCN_TRANSIENT=1850-2000, 2101 for rcp and ssp runs,
+2010 for OCN_TRANSIENT=CORE2OMIP, 2019 for OCN_TRANSIENT=JRA_OMIP
 </entry>
 
 <entry
@@ -6368,7 +6370,8 @@ id="ndep_shr_stream_year_align"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1849 (2101 for rcp runs)
+Default: 1849 for OCN_TRANSIENT=1850-2000, 2004 for rcp runs, 2014 for ssp runs,
+0 for OCN_TRANSIENT=CORE2OMIP,JRA_OMIP
 </entry>
 
 <entry

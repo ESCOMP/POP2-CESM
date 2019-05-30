@@ -1221,11 +1221,11 @@
 <data_year&cfc_nml  ocn_transient="CORE2_OMIP">2009</data_year&cfc_nml>
 <model_year&cfc_nml ocn_transient="CORE2_OMIP"> 372</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
-<data_year&cfc_nml  ocn_transient="JRA"      >2016</data_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="JRA"      > 354</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
+<data_year&cfc_nml  ocn_transient="JRA"      >2018</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="JRA"      > 366</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
 
-<data_year&cfc_nml  ocn_transient="JRA_OMIP" >2016</data_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="JRA_OMIP" > 354</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
+<data_year&cfc_nml  ocn_transient="JRA_OMIP" >2018</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="JRA_OMIP" > 366</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
 
 <data_year&cfc_nml  ocn_transient="1850-2000">1850</data_year&cfc_nml>
 <model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
@@ -1250,11 +1250,11 @@
 <data_year&sf6_nml  ocn_transient="CORE2_OMIP">2009</data_year&sf6_nml>
 <model_year&sf6_nml ocn_transient="CORE2_OMIP"> 372</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
 
-<data_year&sf6_nml  ocn_transient="JRA"      >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="JRA"      > 354</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
+<data_year&sf6_nml  ocn_transient="JRA"      >2018</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="JRA"      > 366</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
 
-<data_year&sf6_nml  ocn_transient="JRA_OMIP" >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="JRA_OMIP" > 354</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2016-1958+1) -->
+<data_year&sf6_nml  ocn_transient="JRA_OMIP" >2018</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="JRA_OMIP" > 366</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
 
 <data_year&sf6_nml  ocn_transient="1850-2000">1850</data_year&sf6_nml>
 <model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
@@ -1444,8 +1444,8 @@
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c190522.nc</ndep_shr_stream_file>
 
 <ndep_data_type ocn_transient="JRA_OMIP">shr_stream</ndep_data_type>
-<ndep_shr_stream_year_first ocn_transient="JRA_OMIP">1662</ndep_shr_stream_year_first> <!-- 1958-(6-1)*(2016-1958+1)-1 -->
-<ndep_shr_stream_year_last  ocn_transient="JRA_OMIP">2017</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_first ocn_transient="JRA_OMIP">1652</ndep_shr_stream_year_first> <!-- 1958-(6-1)*(2018-1958+1)-1 -->
+<ndep_shr_stream_year_last  ocn_transient="JRA_OMIP">2019</ndep_shr_stream_year_last>
 <ndep_shr_stream_year_align ocn_transient="JRA_OMIP">0</ndep_shr_stream_year_align>
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="JRA_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c190522.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c190522.nc</ndep_shr_stream_file>
