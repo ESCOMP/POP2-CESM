@@ -6130,7 +6130,7 @@ option for specification of o2_consumption_scalef
 
 Valid Values: 'const', 'file_time_invariant'
 Default: 'const'
-'file_time_invariant' (gx1v6,gx1v7)
+'file_time_invariant' (gx1v6,gx1v7) for OCN_COUPLING='full'
 </entry>
 
 <entry
