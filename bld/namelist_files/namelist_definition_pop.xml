@@ -6416,7 +6416,7 @@ id="riv_flux_shr_stream_year_last"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1900 (OCN_TRANSIENT=unset), 2000
+Default: 1900 for OCN_TRANSIENT=unset,CORE2,JRA, 2000 otherwise
 </entry>
 
 <entry
@@ -6424,7 +6424,7 @@ id="riv_flux_shr_stream_year_align"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1900
+Default: 263 for OCN_TRANSIENT=CORE2_OMIP, 248 for OCN_TRANSIENT=JRA_OMIP, 1900 otherwise
 </entry>
 
 <entry

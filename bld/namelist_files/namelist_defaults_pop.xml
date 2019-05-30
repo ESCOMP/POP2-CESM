@@ -1516,9 +1516,14 @@
 <riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
 
 <riv_flux_shr_stream_year_first>1900</riv_flux_shr_stream_year_first>
-<riv_flux_shr_stream_year_align>1900</riv_flux_shr_stream_year_align>
+
+<riv_flux_shr_stream_year_align                           >1900</riv_flux_shr_stream_year_align>
+<riv_flux_shr_stream_year_align ocn_transient="CORE2_OMIP"> 263</riv_flux_shr_stream_year_align> <!-- 6*(2009-1948+1)-(2009-1900) -->
+<riv_flux_shr_stream_year_align ocn_transient="JRA_OMIP"  > 248</riv_flux_shr_stream_year_align> <!-- 6*(2018-1958+1)-(2018-1900) -->
 
 <riv_flux_shr_stream_year_last ocn_transient="unset">1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="CORE2">1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="JRA"  >1900</riv_flux_shr_stream_year_last>
 <riv_flux_shr_stream_year_last                      >2000</riv_flux_shr_stream_year_last>
 
 <riv_flux_din_file_varname>din_riv_flux</riv_flux_din_file_varname>
