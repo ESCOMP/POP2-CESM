@@ -5974,6 +5974,26 @@ Default: 55.0
 </entry>
 
 <entry
+id="fe_bioavail_frac_offset"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+used in iron_flux_source=='driver-derived' computation
+
+Default: 0.01
+</entry>
+
+<entry
+id="dust_ratio_to_fe_bioavail_frac_r"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+used in iron_flux_source=='driver-derived' computation
+
+Default: 170.0
+</entry>
+
+<entry
 id="iron_flux_input%filename"
 type="char*256"
 category="Forcing (Ecosystem)"
