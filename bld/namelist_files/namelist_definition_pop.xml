@@ -5910,7 +5910,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="monthly-calendar,driver" >
-Default: 'monthly-calendar'
+Default: 'driver'
 </entry>
 
 <entry
@@ -5960,7 +5960,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="monthly-calendar,driver-derived" >
-Default: 'monthly-calendar'
+Default: 'driver-derived'
 </entry>
 
 <entry

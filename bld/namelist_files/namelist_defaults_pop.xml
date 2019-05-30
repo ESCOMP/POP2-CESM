@@ -1339,8 +1339,7 @@
 <!-- ecosys_forcing_data_nml - -->
 <!-------------------------- - -->
 
-<dust_flux_source ocn_coupling="partial">monthly-calendar</dust_flux_source>
-<dust_flux_source                       >driver          </dust_flux_source>
+<dust_flux_source>driver</dust_flux_source>
 
 <dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename>
 <dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename>
@@ -1349,8 +1348,7 @@
 <dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>
 <dust_flux_input%scale_factor>1.0e-1</dust_flux_input%scale_factor>
 
-<iron_flux_source ocn_coupling="partial">monthly-calendar</iron_flux_source>
-<iron_flux_source                       >driver-derived  </iron_flux_source>
+<iron_flux_source>driver-derived</iron_flux_source>
 
 <dust_ratio_thres>55.0</dust_ratio_thres>
 <dust_ratio_thres ocn_bgc_config="cesm2.0">60.0</dust_ratio_thres>

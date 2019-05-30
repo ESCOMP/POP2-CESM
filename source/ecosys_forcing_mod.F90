@@ -427,9 +427,9 @@ contains
     call set_defaults_tracer_read(gas_flux_fice, file_varname='FICE')
     call set_defaults_tracer_read(gas_flux_ws, file_varname='XKW')
     call set_defaults_tracer_read(gas_flux_ap, file_varname='P')
-    dust_flux_source             = 'monthly-calendar'
+    dust_flux_source             = 'driver'
     call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
-    iron_flux_source             = 'monthly-calendar'
+    iron_flux_source             = 'driver-derived'
     dust_ratio_thres             = 55.0_r8
     fe_bioavail_frac_offset      = 0.01_r8
     dust_ratio_to_fe_bioavail_frac_r = 170.0_r8
