@@ -1132,7 +1132,7 @@ add_default($nl,'sfwf_interp_freq');
 add_default($nl,'sfwf_interp_type');
 add_default($nl,'sfwf_interp_inc');
 add_default($nl,'sfwf_restore_tau');
-add_default($nl,'sfwf_filename');
+add_default($nl,'sfwf_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
 add_default($nl,'sfwf_file_fmt');
 add_default($nl,'sfwf_data_renorm');
 add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");

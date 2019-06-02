@@ -947,6 +947,9 @@
 
 <sfwf_filename ocn_grid="gx3v7"  >ocn/pop/gx3v7/forcing/sfwf_mm_PHC2_salx_flxio_20090831.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="gx1v6"  >ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  ocn_transient="CORE2_NYF">ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  ocn_transient="CORE2">ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="gx1v7"  >ocn/pop/gx1v7/forcing/sfwf_mm_WOA13v2_salx_flxio_gx1v7_20170706.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx1v1"  >ocn/pop/tx1v1/forcing/sfwf_mm_PHC2_salx_flxio_20080502.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
@@ -1407,9 +1410,7 @@
 <p_remin_scalef_input%file_fmt>nc</p_remin_scalef_input%file_fmt>
 <p_remin_scalef_input%scale_factor>1.0</p_remin_scalef_input%scale_factor>
 
-<ndep_data_type ocn_transient="unset">monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="CORE2">monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="JRA">monthly-calendar</ndep_data_type>
+<ndep_data_type>monthly-calendar</ndep_data_type>
 
 <nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
 <nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
@@ -1521,10 +1522,11 @@
 <riv_flux_shr_stream_year_align ocn_transient="CORE2_OMIP"> 263</riv_flux_shr_stream_year_align> <!-- 6*(2009-1948+1)-(2009-1900) -->
 <riv_flux_shr_stream_year_align ocn_transient="JRA_OMIP"  > 248</riv_flux_shr_stream_year_align> <!-- 6*(2018-1958+1)-(2018-1900) -->
 
-<riv_flux_shr_stream_year_last ocn_transient="unset">1900</riv_flux_shr_stream_year_last>
-<riv_flux_shr_stream_year_last ocn_transient="CORE2">1900</riv_flux_shr_stream_year_last>
-<riv_flux_shr_stream_year_last ocn_transient="JRA"  >1900</riv_flux_shr_stream_year_last>
-<riv_flux_shr_stream_year_last                      >2000</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="unset"    >1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="CORE2_NYF">1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="CORE2"    >1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="JRA"      >1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last                          >2000</riv_flux_shr_stream_year_last>
 
 <riv_flux_din_file_varname>din_riv_flux</riv_flux_din_file_varname>
 <riv_flux_din_scale_factor>         1.0</riv_flux_din_scale_factor>

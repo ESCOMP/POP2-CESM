@@ -134,9 +134,10 @@
 
   <entry id="OCN_TRANSIENT">
     <type>char</type>
-    <valid_values>unset,CORE2,CORE2_OMIP,JRA,JRA_OMIP,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp585</valid_values>
+    <valid_values>unset,CORE2_NYF,CORE2,CORE2_OMIP,JRA,JRA_OMIP,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp585</valid_values>
     <default_value>unset</default_value>
     <values>
+      <value compset="DATM%NYF">CORE2_NYF</value>
       <value compset="DATM%IAF">CORE2</value>
       <value compset="^OMIP_DATM%IAF">CORE2_OMIP</value>
       <value compset="DATM%JRA">JRA</value>
