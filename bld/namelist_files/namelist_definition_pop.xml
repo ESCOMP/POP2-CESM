@@ -6401,6 +6401,8 @@ Default: riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc (gx3v7),
 riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc (gx1v6,gx1v7)
 riv_nut.gnews_gnm.gx3v7_nn_open_ocean_nnsm_e1000r500_marginal_sea.20170425.nc (gx3v7,estuary_type='vsf_ebm'),
 riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc (gx1v6,gx1v7,estuary_type='vsf_ebm')
+riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc (gx1v6,gx1v7,estuary_type='vsf_ebm',ocn_transient='CORE2_NYF','CORE2','CORE2_OMIP')
+riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc (gx1v6,gx1v7,estuary_type='vsf_ebm',ocn_transient='JRA','JRA_OMIP')
 </entry>
 
 <entry
