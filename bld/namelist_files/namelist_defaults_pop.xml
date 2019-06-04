@@ -1516,12 +1516,9 @@
 <riv_flux_shr_stream_file ocn_grid="gx1v6" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
 
-<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" ocn_transient="CORE2_NYF">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc</riv_flux_shr_stream_file>
-<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" ocn_transient="CORE2">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc</riv_flux_shr_stream_file>
-<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" ocn_transient="CORE2_OMIP">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="rx1">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc</riv_flux_shr_stream_file>
 
-<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" ocn_transient="JRA">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc</riv_flux_shr_stream_file>
-<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" ocn_transient="JRA_OMIP">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="JRA025">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc</riv_flux_shr_stream_file>
 
 <riv_flux_shr_stream_year_first>1900</riv_flux_shr_stream_year_first>
 

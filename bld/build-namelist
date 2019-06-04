@@ -354,6 +354,7 @@ my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
 my $DATM_MODE              = "$xmlvars{'DATM_MODE'}";
+my $ROF_GRID               = "$xmlvars{'ROF_GRID'}";
 my $OCN_NDEP_DRIVER    = "$xmlvars{'OCN_NDEP_DRIVER'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
@@ -1596,7 +1597,7 @@ if ($ecosys_on eq "TRUE") {
   }
 
   my $estuary_type = $nl->get_value('estuary_type');
-  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type, 'ocn_transient'=>"$OCN_TRANSIENT");
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type, 'rof_grid'=>"$ROF_GRID");
   add_default($nl, 'riv_flux_shr_stream_year_first');
   add_default($nl, 'riv_flux_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
