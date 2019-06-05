@@ -1729,7 +1729,7 @@
 <estuary_type ocn_grid="gx1v7">vsf_ebm</estuary_type>
 <ebm_param_option ocn_grid="gx1v7">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
-<ebm_param_filename ocn_grid="gx1v7" datm_mode="CORE_IAF_JRA">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
+<ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
 
 <estuary_option ocn_grid="tx0.1v3">on</estuary_option>
 
