@@ -292,6 +292,11 @@
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
+  <test name="ERS_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_add_cocco">
+    <machines>
+      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
   <test name="ERS_Ld5_D" grid="T62_g37" compset="G1850ECO" testmods="pop/ciso_abio_dic_dic14">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
