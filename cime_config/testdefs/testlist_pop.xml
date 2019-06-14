@@ -295,6 +295,7 @@
   <test name="ERS_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_add_cocco">
     <machines>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Ld5_D" grid="T62_g37" compset="G1850ECO" testmods="pop/ciso_abio_dic_dic14">
@@ -444,6 +445,11 @@
   <test name="SMS" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
+    </machines>
+  </test>
+  <test name="SMS" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_add_cocco">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_spectra_pfts">
