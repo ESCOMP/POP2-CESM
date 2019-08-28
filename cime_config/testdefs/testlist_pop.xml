@@ -134,6 +134,7 @@
   <test name="ERS" grid="T62_g17" compset="G1850ECOIAF" testmods="pop/cice_ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_D" grid="f19_g16_rx1" compset="G1850ECO" testmods="pop/cice_ecosys">
@@ -507,6 +508,24 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
       <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
+    </machines>
+  </test>
+  <test name="SMS_D_Ld2" grid="T62_g17" compset="G1850ECOIAF_JRA" testmods="pop/cice_ecosys">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+    </machines>
+  </test>
+  <test name="SMS_D_Ld2" grid="T62_g17" compset="GOMIPECOIAF" testmods="pop/omip">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+    </machines>
+  </test>
+  <test name="SMS_D_Ld2" grid="T62_g17" compset="GOMIPECOIAF_JRA" testmods="pop/omip">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="SMS_DE" grid="T62_g16" compset="CIAF" testmods="pop/default">
