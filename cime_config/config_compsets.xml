@@ -69,7 +69,7 @@
 
   <compset>
     <alias>C1850ECO_ECOCESM20</alias>
-    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO%ECOCESM20_DROF%NYF_SGLC_WW3</lname>
+    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECOCESM20_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <!-- G compsets -->
@@ -203,12 +203,6 @@
     <entry id="RESUBMIT_SETS_CONTINUE_RUN">
       <values>
 	<value compset="POP2%[^_]*PHYS-CYCLE">FALSE</value>
-      </values>
-    </entry>
-
-    <entry id="CCSM_CO2_PPMV">
-      <values>
-	<value compset="POP2%[^_]*ECOCESM20">284.7</value>
       </values>
     </entry>
 

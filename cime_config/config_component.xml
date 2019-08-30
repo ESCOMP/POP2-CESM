@@ -2,14 +2,14 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP][%ECOCESM20]">POP2 </desc>
+    <desc ocn="POP2[%1D][%ECO][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
     <desc option="1D" >Single column </desc>
     <desc option="ECO">Ecosystem</desc>
+    <desc option="ECOCESM20">Ecosystem, using CESM 2.0 settings</desc>
     <desc option="ABIO-DIC">Abiotic DIC/DIC14</desc>
     <desc option="PHYS-CYCLE">phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
     <desc option="NDEP">Nitrogen Deposition from Coupler</desc>
-    <desc option="ECOCESM20">use CESM 2.0 values for ecosystem</desc>
   </description>
 
   <entry id="COMP_OCN">
