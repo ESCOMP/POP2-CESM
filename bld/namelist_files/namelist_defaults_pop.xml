@@ -1360,9 +1360,11 @@
 <dust_ratio_thres ocn_coupling="partial">66.2818</dust_ratio_thres>
 
 <fe_bioavail_frac_offset>0.01</fe_bioavail_frac_offset>
+<fe_bioavail_frac_offset ocn_bgc_config="cesm2.0">0.01</fe_bioavail_frac_offset>
 <fe_bioavail_frac_offset ocn_coupling="partial">0.0131875</fe_bioavail_frac_offset>
 
 <dust_ratio_to_fe_bioavail_frac_r>170.0</dust_ratio_to_fe_bioavail_frac_r>
+<dust_ratio_to_fe_bioavail_frac_r ocn_bgc_config="cesm2.0">170.0</dust_ratio_to_fe_bioavail_frac_r>
 <dust_ratio_to_fe_bioavail_frac_r ocn_coupling="partial">400.064</dust_ratio_to_fe_bioavail_frac_r>
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
