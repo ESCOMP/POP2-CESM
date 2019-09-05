@@ -1415,7 +1415,6 @@
 <p_remin_scalef_input%scale_factor>1.0</p_remin_scalef_input%scale_factor>
 
 <ndep_data_type>monthly-calendar</ndep_data_type>
-
 <nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
 <nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
 <nox_flux_monthly_input%scale_factor>7.1429e+06</nox_flux_monthly_input%scale_factor>
