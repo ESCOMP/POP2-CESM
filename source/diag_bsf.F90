@@ -885,6 +885,10 @@
 
    call gather_global (WORK1, KMT, master_task,distrb_clinic)
 
+   ! Set WORK1 (i.e., KMT) to zero where negative. (Eliminated land blocks get filled
+   ! with undefined_nf_int, but the below code block assumes KMT >= 0.)
+   where (WORK1<0) WORK1 = 0
+
    error_code = 0
 
    if ( my_task == master_task ) then
