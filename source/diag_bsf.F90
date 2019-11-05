@@ -885,6 +885,10 @@
 
    call gather_global (WORK1, KMT, master_task,distrb_clinic)
 
+   ! Set WORK1 (i.e., KMT) to zero in eliminated land blocks, since
+   ! below code block expects land cells to be KMT=0.
+   where (WORK1.eq.undefined_nf_int) WORK1 = 0
+
    error_code = 0
 
    if ( my_task == master_task ) then
