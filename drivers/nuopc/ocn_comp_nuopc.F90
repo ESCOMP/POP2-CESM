@@ -285,7 +285,7 @@ contains
     integer                 :: iblock
     type(ESMF_VM)           :: vm
     type(ESMF_DistGrid)     :: distGrid
-    type(ESMF_Mesh)         :: Emesh, EmeshTemp
+    type(ESMF_Mesh)         :: Emesh
     type(ESMF_Array)        :: EArray
     integer                 :: spatialDim
     integer                 :: numOwnedElements
@@ -543,15 +543,12 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='mesh_ocn', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    EMeshTemp = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, addUserArea=.true., rc=rc)
+    EMesh = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
+         elementDistgrid=Distgrid, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (my_task == master_task) then
        write(stdout,*)'mesh file for pop domain is ',trim(cvalue)
     end if
-
-    ! recreate the mesh using the above distGrid
-    EMesh = ESMF_MeshCreate(EMeshTemp, elementDistgrid=Distgrid, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !---------------------------------------------------------------------------
     ! Error checking
