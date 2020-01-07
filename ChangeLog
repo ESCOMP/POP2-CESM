@@ -1,4 +1,20 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas, mlevy
+Tag Date:    07 January 2020
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20200107
+Tag Summary: Fix BSF diagnostics for large NTHRDS and NTASKS (PR #18)
+             Fix tx0.1v3_transport_contents (PR #19)
+             Rebase cesm2_1_x_rel changes onto master (PR #7)
+
+Testing: aux_pop on cheyenne, bfb
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       input_templates/tx0.1v3_transport_contents
+M       source/diag_bsf.F90
+===============================================================================
 Tag Creator: mlevy
 Developers:  altuntas, mlevy
 Tag Date:    30 July 2019
