@@ -1,5 +1,18 @@
 ===============================================================================
 Tag Creator:  altuntas
+Developers:   bryan
+Tag Date:     14 Jan 2020
+Tag Name:     pop2_cesm2_1_rel_n07
+Tag Summary:  Added a patch for closing the momentum budget: The full (implicit+explicit)
+              vertical stress (at cell bottoms) in (VUF,VVF) is now may be saved by the user.
+
+Testing: aux_pop, cheyenne/intel. (b4b)
+
+M       source/baroclinic.F90
+M       source/vertical_mix.F90
+
+===============================================================================
+Tag Creator:  altuntas
 Developers:   klindsay
 Tag Date:     30 May 2019
 Tag Name:     pop2_cesm2_1_rel_n06
