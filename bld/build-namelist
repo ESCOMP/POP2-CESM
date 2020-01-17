@@ -353,7 +353,6 @@ my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
-my $DATM_MODE              = "$xmlvars{'DATM_MODE'}";
 my $ROF_GRID               = "$xmlvars{'ROF_GRID'}";
 my $OCN_NDEP_DRIVER    = "$xmlvars{'OCN_NDEP_DRIVER'}";
 
@@ -1138,7 +1137,7 @@ add_default($nl,'sfwf_file_fmt');
 add_default($nl,'sfwf_data_renorm');
 add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM", 'datm_mode'=>"$DATM_MODE");
+add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM", 'ocn_transient'=>"$OCN_TRANSIENT");
 add_default($nl,'lfw_as_salt_flx');
 add_default($nl,'precip_fact_const');
 

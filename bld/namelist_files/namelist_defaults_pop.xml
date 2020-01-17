@@ -960,7 +960,8 @@
 <sfwf_weak_restore ocn_grid="gx1v6"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v7"  >0.0115</sfwf_weak_restore>
-<sfwf_weak_restore ocn_grid="gx1v7"  datm_mode="CORE_IAF_JRA">0.046</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  ocn_transient="JRA">0.046</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  ocn_transient="JRA_OMIP">0.046</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
@@ -1521,7 +1522,7 @@
 
 <riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="rx1">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc</riv_flux_shr_stream_file>
 
-<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="JRA025">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="JRA025v2">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc</riv_flux_shr_stream_file>
 
 <riv_flux_shr_stream_year_first>1900</riv_flux_shr_stream_year_first>
 
@@ -1734,6 +1735,7 @@
 <ebm_param_option ocn_grid="gx1v7">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
 <ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
+<ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025v2">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
 
 <estuary_option ocn_grid="tx0.1v3">on</estuary_option>
 
