@@ -146,6 +146,8 @@ module ecosys_forcing_mod
   type(tracer_read)   :: dust_flux_input              ! namelist input for dust_flux
   character(char_len) :: iron_flux_source             ! option for atmospheric iron deposition
   real(r8)            :: dust_ratio_thres             ! coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
+  real(r8)            :: fe_bioavail_frac_offset
+  real(r8)            :: dust_ratio_to_fe_bioavail_frac_r
   type(tracer_read)   :: iron_flux_input              ! namelist input for iron_flux
   type(tracer_read)   :: fesedflux_input              ! namelist input for fesedflux
   type(tracer_read)   :: feventflux_input             ! namelist input for feventflux
@@ -377,7 +379,8 @@ contains
 
     namelist /ecosys_forcing_data_nml/                                        &
          dust_flux_source, dust_flux_input, iron_flux_source,                 &
-         dust_ratio_thres, iron_flux_input, fesedflux_input, feventflux_input,&
+         dust_ratio_thres, fe_bioavail_frac_offset, dust_ratio_to_fe_bioavail_frac_r, &
+         iron_flux_input, fesedflux_input, feventflux_input,                  &
          o2_consumption_scalef_opt, o2_consumption_scalef_const,              &
          o2_consumption_scalef_input,                                         &
          p_remin_scalef_opt, p_remin_scalef_const, p_remin_scalef_input,      &
@@ -424,10 +427,12 @@ contains
     call set_defaults_tracer_read(gas_flux_fice, file_varname='FICE')
     call set_defaults_tracer_read(gas_flux_ws, file_varname='XKW')
     call set_defaults_tracer_read(gas_flux_ap, file_varname='P')
-    dust_flux_source             = 'monthly-calendar'
+    dust_flux_source             = 'driver'
     call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
-    iron_flux_source             = 'monthly-calendar'
+    iron_flux_source             = 'driver-derived'
     dust_ratio_thres             = 55.0_r8
+    fe_bioavail_frac_offset      = 0.01_r8
+    dust_ratio_to_fe_bioavail_frac_r = 170.0_r8
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
     call set_defaults_tracer_read(feventflux_input, file_varname='FESEDFLUXIN')
@@ -1738,8 +1743,7 @@ contains
 
     real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
-    real      (r8), parameter      :: dust_ratio_to_fe_bioavail_frac = 1.0_r8 / 170.0_r8
-    real      (r8), parameter      :: fe_bioavail_frac_offset = 0.01_r8
+    real      (r8)                 :: dust_ratio_to_fe_bioavail_frac
 
     !-----------------------------------------------------------------------
 
@@ -1965,6 +1969,8 @@ contains
                    ! compute iron_flux in g/cm^2/s
 
                    ! compute component from atm
+
+                   dust_ratio_to_fe_bioavail_frac = c1 / dust_ratio_to_fe_bioavail_frac_r
 
                    where (atm_coarse_dust_flux(:,:,iblock) < dust_ratio_thres * atm_fine_dust_flux(:,:,iblock))
                      atm_fe_bioavail_frac(:,:) = fe_bioavail_frac_offset + dust_ratio_to_fe_bioavail_frac * &
