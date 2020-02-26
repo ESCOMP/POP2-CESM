@@ -527,7 +527,7 @@
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
-  <test name="SMS_D_Ld2" grid="TL319_g17" compset="GOMIPECOIAF_JRA" testmods="pop/omip">
+  <test name="SMS_D_Ld2" grid="TL319_g17" compset="GOMIPECOIAF_JRA-1p4-2018" testmods="pop/omip">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
