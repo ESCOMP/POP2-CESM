@@ -517,7 +517,7 @@ contains
    endif
 
 
-1100  format ('comm_diag ', a3, 1x, a4, 1x, a15, 1x, es26.19:, 1x, a6)
+1100  format ('comm_diag ', a3, 1x, a4, 1x, a8, 1x, es26.19:, 1x, a6)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -782,7 +782,7 @@ contains
       if (my_task == master_task) call shr_sys_flush(stdout)
    endif
 
-1100 format ('comm_diag ', a3, 1x, a4, 1x, a15, 1x, es26.19:, 1x, a6)
+1100 format ('comm_diag ', a3, 1x, a4, 1x, a8, 1x, es26.19:, 1x, a6)
     
     tlast_coupled = c0
 
