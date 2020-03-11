@@ -123,9 +123,9 @@ def buildnml(case, caseroot, compname):
         suffixes = ["ovf", "restart", "tavg"]
         for suffix in suffixes:
             # See if rpointer.ocn.`suffix` exists and rpointer.ocn`inst_string`.`suffix` does not
-            file1 = os.path.join(rundir, "rpointer.ocn" + "inst_string." + suffix)
-            file2 = os.path.join(rundir, "rpointer.ocn" + suffix)
-            if not os.path.isfile(file1) and os.path.isfile(file1):
+            file1 = os.path.join(rundir, "rpointer.ocn" + inst_string + "." + suffix)
+            file2 = os.path.join(rundir, "rpointer.ocn." + suffix)
+            if not os.path.isfile(file1) and os.path.isfile(file2):
                 shutil.copy(file2, file1)
 
         # create namelist_infile using user_nl_file as input
@@ -208,7 +208,7 @@ def buildnml(case, caseroot, compname):
 
             # marbl_in and marbl_diagnostics_operators
             if marbl_nt_build > 0:
-                _copy_file('marbl_in', confdir, rundir, inst_string)
+                _copy_file('marbl_in'+inst_string, confdir, rundir)
                 _copy_file('marbl_diagnostics_operators', confdir, rundir)
 
             # tavg_contents file
@@ -256,7 +256,7 @@ def _construct_marbl_in(caseroot, ocn_grid, run_type, continue_run, ocn_bgc_conf
         sys.exit(1)
 
     # (iii) write settings file
-    MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"))
+    MARBL_settings.write_settings_file(os.path.join(confdir, "marbl_in"+inst_string))
 
 ###############################################################################
 

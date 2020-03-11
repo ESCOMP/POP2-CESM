@@ -3,6 +3,8 @@
 # directories checked out by manage_externals, and other files created
 # by manage_externals
 manage_externals.log
+externals/MARBL
+externals/CVMix
 
 # binary files
 *.nc
@@ -16,6 +18,7 @@ manage_externals.log
 
 # cime_config
 buildnmlc
+buildcppc
 
 # misc
 *.pyc

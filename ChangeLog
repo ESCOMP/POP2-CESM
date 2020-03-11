@@ -1,4 +1,48 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  altuntas, mlevy
+Tag Date:    07 January 2020
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20200107
+Tag Summary: Fix BSF diagnostics for large NTHRDS and NTASKS (PR #18)
+             Fix tx0.1v3_transport_contents (PR #19)
+             Rebase cesm2_1_x_rel changes onto master (PR #7)
+
+Testing: aux_pop on cheyenne, bfb
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/buildnml
+M       cime_config/config_component.xml
+M       input_templates/tx0.1v3_transport_contents
+M       source/diag_bsf.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  altuntas, mlevy
+Tag Date:    30 July 2019
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20190730
+Tag Summary: Update to newer version of MARBL, which requires some support
+             to run with coccolithophores. Also, Alper added some
+             github-specific files that have not yet been tagged
+
+Testing: aux_pop on cheyenne, aux_pop_MARBL on cheyenne and hobart
+         All existing BASELINE tests pass (are bit-for-bit), but NLCOMP
+         fails for all compsets with ecosystem turned out (expected - we
+         reorganized marbl_in). Also added new ecosys_add_cocco test to
+         aux_pop_MARBL on both machines, that test runs successfully but
+         both BASELINE and NLCOMP fail since there isn't a baseline from
+         previous tag.
+
+A     .github/ISSUE_TEMPLATE.md
+A     .github/PULL_REQUEST_TEMPLATE.md
+A     .gitignore
+M     Externals_POP.cfg
+A     MARBL_scripts/add_cocco_to_init.py
+A     README.md
+M     bld/namelist_files/namelist_defaults_pop.xml
+M     cime_config/config_component.xml
+M     cime_config/testdefs/testlist_pop.xml
+A     cime_config/testdefs/testmods_dirs/pop/ecosys_add_cocco/include_user_mods
+M     cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts/user_nl_marbl
+===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay, mlevy
 Tag Date:    10 Apr 2019

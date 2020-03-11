@@ -1282,8 +1282,10 @@
 
 <abio_comp_surf_avg_freq>1</abio_comp_surf_avg_freq>
 
-<abio_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c171012.nc</abio_atm_d14c_filename>
+<abio_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c190528.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP126_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
+<abio_atm_d14c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP245_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
+<abio_atm_d14c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP3B_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 <abio_atm_d14c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP5B_3x1_global_1850-2100_yearly_c181209.nc</abio_atm_d14c_filename>
 
 <abio_atm_co2_filename>ocn/pop/res_indpt/forcing/splco2_20140912.dat</abio_atm_co2_filename>
@@ -1291,11 +1293,15 @@
 <abio_atm_co2_opt>'const'</abio_atm_co2_opt>
 <abio_atm_co2_opt ocn_transient="1850-2000">'drv_diag'</abio_atm_co2_opt>
 <abio_atm_co2_opt ocn_transient="ssp126">'drv_diag'</abio_atm_co2_opt>
+<abio_atm_co2_opt ocn_transient="ssp245">'drv_diag'</abio_atm_co2_opt>
+<abio_atm_co2_opt ocn_transient="ssp370">'drv_diag'</abio_atm_co2_opt>
 <abio_atm_co2_opt ocn_transient="ssp585">'drv_diag'</abio_atm_co2_opt>
 
 <abio_atm_d14c_opt>'lat_bands'</abio_atm_d14c_opt>
 <abio_atm_d14c_opt ocn_transient="1850-2000">'file'</abio_atm_d14c_opt>
 <abio_atm_d14c_opt ocn_transient="ssp126">'file'</abio_atm_d14c_opt>
+<abio_atm_d14c_opt ocn_transient="ssp245">'file'</abio_atm_d14c_opt>
+<abio_atm_d14c_opt ocn_transient="ssp370">'file'</abio_atm_d14c_opt>
 <abio_atm_d14c_opt ocn_transient="ssp585">'file'</abio_atm_d14c_opt>
 
 <abio_atm_d14c_const>0.0</abio_atm_d14c_const>
@@ -1437,6 +1443,22 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp126">ocn/pop/gx1v6/forcing/ndep_ocn_ssp126_w_nhx_emis_gx1v6_c190222.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp126">ocn/pop/gx1v6/forcing/ndep_ocn_ssp126_w_nhx_emis_gx1v6_c190222.nc</ndep_shr_stream_file>
 
+<ndep_data_type ocn_transient="ssp245">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="ssp245">2014</ndep_shr_stream_year_first>
+<ndep_shr_stream_year_last  ocn_transient="ssp245">2101</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="ssp245">2014</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="ssp245">ocn/pop/gx3v7/forcing/ndep_ocn_ssp245_w_nhx_emis_gx3v7_c190412.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp245">ocn/pop/gx1v6/forcing/ndep_ocn_ssp245_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp245">ocn/pop/gx1v6/forcing/ndep_ocn_ssp245_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
+
+<ndep_data_type ocn_transient="ssp370">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="ssp370">2014</ndep_shr_stream_year_first>
+<ndep_shr_stream_year_last  ocn_transient="ssp370">2101</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="ssp370">2014</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="ssp370">ocn/pop/gx3v7/forcing/ndep_ocn_ssp370_w_nhx_emis_gx3v7_c190412.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp370">ocn/pop/gx1v6/forcing/ndep_ocn_ssp370_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp370">ocn/pop/gx1v6/forcing/ndep_ocn_ssp370_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
+
 <ndep_data_type ocn_transient="ssp585">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="ssp585">2014</ndep_shr_stream_year_first>
 <ndep_shr_stream_year_last  ocn_transient="ssp585">2101</ndep_shr_stream_year_last>
@@ -1483,6 +1505,8 @@
 <ciso_atm_d13c_opt>const</ciso_atm_d13c_opt>
 <ciso_atm_d13c_opt ocn_transient="1850-2000">'file'</ciso_atm_d13c_opt>
 <ciso_atm_d13c_opt ocn_transient="ssp126">'file'</ciso_atm_d13c_opt>
+<ciso_atm_d13c_opt ocn_transient="ssp245">'file'</ciso_atm_d13c_opt>
+<ciso_atm_d13c_opt ocn_transient="ssp370">'file'</ciso_atm_d13c_opt>
 <ciso_atm_d13c_opt ocn_transient="ssp585">'file'</ciso_atm_d13c_opt>
 
 <ciso_atm_d13c_const>-6.610</ciso_atm_d13c_const>
@@ -1490,18 +1514,24 @@
 <ciso_atm_d14c_opt>lat_bands</ciso_atm_d14c_opt>
 <ciso_atm_d14c_opt ocn_transient="1850-2000">'file'</ciso_atm_d14c_opt>
 <ciso_atm_d14c_opt ocn_transient="ssp126">'file'</ciso_atm_d14c_opt>
+<ciso_atm_d14c_opt ocn_transient="ssp245">'file'</ciso_atm_d14c_opt>
+<ciso_atm_d14c_opt ocn_transient="ssp370">'file'</ciso_atm_d14c_opt>
 <ciso_atm_d14c_opt ocn_transient="ssp585">'file'</ciso_atm_d14c_opt>
 
 <ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
 
 <ciso_atm_d14c_lat_band_vals>-2.3, -4.0, -5.8</ciso_atm_d14c_lat_band_vals>
 
-<ciso_atm_d13c_filename>lnd/clm2/isotopes/atm_delta_C13_CMIP6_1850-2015_yearly_v2.0_c171012.nc</ciso_atm_d13c_filename>
+<ciso_atm_d13c_filename>lnd/clm2/isotopes/atm_delta_C13_CMIP6_1850-2015_yearly_v2.0_c190528.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP126_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
+<ciso_atm_d13c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP245_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
+<ciso_atm_d13c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP3B_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 <ciso_atm_d13c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C13_CMIP6_SSP5B_1850-2100_yearly_c181209.nc</ciso_atm_d13c_filename>
 
-<ciso_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c171012.nc</ciso_atm_d14c_filename>
+<ciso_atm_d14c_filename>lnd/clm2/isotopes/atm_delta_C14_CMIP6_3x1_global_1850-2015_yearly_v2.0_c190528.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp126">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP126_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
+<ciso_atm_d14c_filename ocn_transient="ssp245">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP245_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
+<ciso_atm_d14c_filename ocn_transient="ssp370">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP3B_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 <ciso_atm_d14c_filename ocn_transient="ssp585">lnd/clm2/isotopes/atm_delta_C14_CMIP6_SSP5B_3x1_global_1850-2100_yearly_c181209.nc</ciso_atm_d14c_filename>
 
 <ciso_atm_model_year>1</ciso_atm_model_year>
@@ -1546,10 +1576,15 @@
 <!----------------------------->
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20190712.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_9p6z_20180124_3impCalc.nc</init_ecosys_init_file>
+
 <init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20190712.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20180124_3impCalc.nc</init_ecosys_init_file>
+
 <init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20190712.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20180124_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>

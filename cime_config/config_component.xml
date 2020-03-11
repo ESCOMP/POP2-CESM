@@ -136,7 +136,7 @@
 
   <entry id="OCN_TRANSIENT">
     <type>char</type>
-    <valid_values>unset,CORE2,1850-2000,rcp4.5,rcp8.5,ssp126,ssp585</valid_values>
+    <valid_values>unset,CORE2,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp585</valid_values>
     <default_value>unset</default_value>
     <values>
       <value compset="DATM%IAF">CORE2</value>
@@ -145,6 +145,8 @@
       <value compset="^RCP4_CAM">rcp4.5</value>
       <value compset="^RCP8_CAM">rcp8.5</value>
       <value compset="^SSP126_CAM">ssp126</value>
+      <value compset="^SSP245_CAM">ssp245</value>
+      <value compset="^SSP370_CAM">ssp370</value>
       <value compset="^SSP585_CAM">ssp585</value>
     </values>
     <group>run_component_pop</group>
@@ -193,7 +195,7 @@
 
   <entry id="OCN_BGC_CONFIG">
     <type>char</type>
-    <valid_values>latest,cesm2.0,SPECTRA1.0</valid_values>
+    <valid_values>latest,cesm2.0,SPECTRA1.0,cesm2.1+cocco</valid_values>
     <default_value>latest</default_value>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
