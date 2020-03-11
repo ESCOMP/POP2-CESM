@@ -25,10 +25,8 @@
    use communicate
    use broadcast
    use exit_mod
-#ifdef CCSMCOUPLED
    use shr_file_mod
    use pio
-#endif
 
    implicit none
    private
@@ -144,20 +142,12 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-#ifndef CCSMCOUPLED
-   integer (i4), parameter, public :: &
-      nml_in    = 10,         &! reserved unit for namelist input
-      stdin     =  5,         &! reserved unit for standard input
-      stdout    =  6,         &! reserved unit for standard output
-      stderr    =  6           ! reserved unit for standard error
-#else
    integer (i4), public :: &
       nml_in                   ! reserved unit for namelist input
    integer (i4), public :: &
       stdout    =  6,         &! reserved unit for standard output
       stdin     =  5,         &! reserved unit for standard input
       stderr    =  6           ! reserved unit for standard error
-#endif
 
    integer (i4), parameter, public :: &
       rec_type_int  = -1,     &! ids to use for inquiring the
@@ -179,17 +169,6 @@
 
 !EOP
 !BOC
-!-----------------------------------------------------------------------
-!
-!  io unit manager variables
-!
-!-----------------------------------------------------------------------
-
-   integer (i4), parameter, private :: &
-      max_units = 99           ! maximum number of open units
-
-   logical (log_kind), dimension(max_units), private :: &
-      in_use                ! flag=.true. if unit currently open
 
 !-----------------------------------------------------------------------
 !
@@ -3401,7 +3380,7 @@ contains
 ! !IROUTINE: init_io
 ! !INTERFACE:
 
- subroutine init_io
+ subroutine init_io(nuopc_cap)
 
 ! !DESCRIPTION:
 !  This routine initializes some i/o arrays and checks the validity
@@ -3409,6 +3388,9 @@ contains
 !
 ! !REVISION HISTORY:
 !  same as module
+
+! !INPUT PARAMETERS:
+   logical, optional, intent(in) :: nuopc_cap
 
 !EOP
 !BOC
@@ -3437,21 +3419,6 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  initialize io unit manager
-!
-!-----------------------------------------------------------------------
-
-   in_use = .false.                  ! no unit in use
-
-   in_use(stdin) = .true.           ! reserved units
-   in_use(stdout) = .true.
-   in_use(stderr) = .true.
-#ifndef CCSMCOUPLED
-   in_use(nml_in) = .true.
-#endif
-
-!-----------------------------------------------------------------------
-!
 !  read and define namelist inputs
 !
 !-----------------------------------------------------------------------
@@ -3459,32 +3426,23 @@ contains
    lredirect_stdout = .false.
    log_filename = 'pop.out'
    luse_pointer_files = .false.
-#ifdef CCSMCOUPLED
    pointer_filename = 'rpointer.ocn' // trim(inst_suffix)
-#else
-   pointer_filename = 'pop2_pointer'
-#endif
    num_iotasks = 1         ! set default num io tasks
 
    if (my_task == master_task) then
-#ifdef CCSMCOUPLED
       nml_filename = 'pop_in' // trim(inst_suffix)
       call get_unit(nml_in)
-#endif
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
       if (nml_error /= 0) then
          nml_error = -1
       else
          nml_error =  1
       endif
-
-
       do while (nml_error > 0)
          read(nml_in, nml=io_nml,iostat=nml_error)
       end do
       if (nml_error == 0) close(nml_in)
    endif
-
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
@@ -3504,18 +3462,14 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifndef CCSMCOUPLED
-   if (lredirect_stdout .and. my_task == master_task) then
-       open (stdout,file=trim(log_filename),form='formatted',position='append')
+   if (.not. present(nuopc_cap)) then
+      if (my_task == master_task) then
+         stdout = shr_file_getUnit()
+         char_tmp = 'ocn_modelio.nml' // trim(inst_suffix)
+         call shr_file_setIO(char_tmp,stdout)
+         call shr_file_setLogUnit (stdout)
+      end if
    end if
-#else
-   if (my_task == master_task) then
-      stdout = shr_file_getUnit()
-      char_tmp = 'ocn_modelio.nml' // trim(inst_suffix)
-      call shr_file_setIO(char_tmp,stdout)
-      call shr_file_setLogUnit (stdout)
-   end if
-#endif
 
 !-----------------------------------------------------------------------
 !
@@ -3577,18 +3531,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
    iunit = shr_file_getUnit()
-#else
-   srch_units: do n=1,max_units
-      if (.not. in_use(n)) then   ! I found one, I found one
-         iunit = n
-         exit srch_units
-      endif
-   end do srch_units
-
-   in_use(iunit) = .true.    ! mark iunit as being in use
-#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3621,11 +3564,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
    call shr_file_freeUnit(iunit)
-#else
-   in_use(iunit) = .false.  !  that was easy...
-#endif
 
 !-----------------------------------------------------------------------
 !EOC

@@ -27,6 +27,7 @@ def _copy_files_to_blddir(case):
     srcroot = case.get_value("SRCROOT")
     objroot = case.get_value("OBJROOT")
     caseroot = case.get_value("CASEROOT")
+    driver = case.get_value("COMP_INTERFACE")
 
     # create bld directories
     dirnames = [os.path.join(objroot, "ocn", "obj"),
@@ -42,8 +43,12 @@ def _copy_files_to_blddir(case):
     glob_dirs = [os.path.join(srcroot, "components", "pop", "source"),
                  os.path.join(srcroot, "components", "pop", "externals", "CVMix", "src", "shared"),
                  os.path.join(srcroot, "components", "pop", "externals", "MARBL", "src"),
-                 os.path.join(srcroot, "components", "pop", "mpi"),
-                 os.path.join(srcroot, "components", "pop", "drivers", "cpl")]
+                 os.path.join(srcroot, "components", "pop", "mpi")]
+
+    if driver == 'nuopc':
+        glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","nuopc"))
+    if driver == 'mct':
+        glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","mct"))
 
     dest_dir = os.path.join(objroot, "ocn", "source")
     for glob_dir in glob_dirs:

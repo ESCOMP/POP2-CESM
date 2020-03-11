@@ -14,7 +14,7 @@
 ! !REFDOC:
 !
 ! !REVISION HISTORY:
-!  SVN:$Id: POP_FinalMod.F90 8528 2008-01-15 01:49:19Z dennis $
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -22,9 +22,9 @@
    use POP_ErrorMod
    use POP_IOUnitsMod, only: POP_stdout
    use communicate
+   use output, only: final_output
+   use io_types
    use timers, only: timer_print_all
-   !use POP_CommMod
-   !use esmf_mod
 
    implicit none
    private
@@ -64,6 +64,8 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use passive_tracers, only : passive_tracers_timer_print_all
+
 ! !INPUT/OUTPUT PARAMETERS:
 
    integer (POP_i4), intent(inout) :: &
@@ -84,7 +86,15 @@
 !
 !-----------------------------------------------------------------------
 
-   call POP_ErrorPrint(ErrorCode)
+   call POP_ErrorPrint(errorCode, printTask=master_task)
+
+!-----------------------------------------------------------------------
+!
+!  close any open files
+!
+!-----------------------------------------------------------------------
+
+   call final_output
 
 !-----------------------------------------------------------------------
 !
@@ -93,6 +103,7 @@
 !-----------------------------------------------------------------------
 
    call timer_print_all(stats=.true.)
+   call passive_tracers_timer_print_all(stats=.true.)
 
 !-----------------------------------------------------------------------
 !
@@ -100,9 +111,9 @@
 !
 !-----------------------------------------------------------------------
     if (my_task == master_task) then
-      write(POP_stdout,*) '==================='
-      write(POP_stdout,*) 'completed POP_Final'
-      write(POP_stdout,*) '==================='
+      write(stdout,*) '==================='
+      write(stdout,*) 'completed POP_Final'
+      write(stdout,*) '==================='
     endif
 
 !-----------------------------------------------------------------------
