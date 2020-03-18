@@ -1,5 +1,37 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  mvertens, mlevy, altuntas
+Tag Date:    18 March 2020
+Tag Name:    cesm_pop_2_1_20200318
+Tag Summary: Bring in NUOPC cap, fix cesm2_1_testlist, fix input_data_list
+             PRs #21, #20, #24, resspectively.
+
+Testing: aux_pop on cheyenne, bfb
+
+M       bld/build-namelist
+M       cime_config/buildlib
+A       cime_config/testdefs/testlist_pop_nuopc.xml
+D       drivers/cpl_none/POP.F90
+D       drivers/cpl_none/POP_CouplingMod.F90
+D       drivers/cpl_none/POP_InitMod.F90
+R100    drivers/cpl/POP_CplIndices.F90  drivers/mct/POP_CplIndices.F90
+R100    drivers/cpl/POP_FinalMod.F90    drivers/mct/POP_FinalMod.F90
+R100    drivers/cpl/POP_InitMod.F90     drivers/mct/POP_InitMod.F90
+R100    drivers/cpl/POP_MCT_vars_mod.F90        drivers/mct/POP_MCT_vars_mod.F90
+R100    drivers/cpl/ocn_communicator.F90        drivers/mct/ocn_communicator.F90
+R100    drivers/cpl/ocn_comp_mct.F90    drivers/mct/ocn_comp_mct.F90
+R100    drivers/cpl/ocn_import_export.F90       drivers/mct/ocn_import_export.F90
+R083    drivers/cpl_none/POP_FinalMod.F90       drivers/nuopc/POP_FinalMod.F90
+A       drivers/nuopc/POP_MCT_vars_mod.F90
+A       drivers/nuopc/ocn_communicator.F90
+A       drivers/nuopc/ocn_comp_nuopc.F90
+A       drivers/nuopc/ocn_import_export.F90
+A       drivers/nuopc/ocn_shr_methods.F90
+M       source/POP_IOUnitsMod.F90
+M       source/initial.F90
+M       source/io_types.F90
+===============================================================================
+Tag Creator: altuntas
 Developers:  altuntas, mlevy
 Tag Date:    07 January 2020
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20200107
