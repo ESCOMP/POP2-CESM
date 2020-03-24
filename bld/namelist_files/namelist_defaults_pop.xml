@@ -56,6 +56,8 @@
 <dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">46</dt_count>
 <dt_count ocn_grid="gx1v7"  > 24</dt_count>
 <dt_count ocn_grid="gx1v7"  ocn_onedim="TRUE">46</dt_count>
+<dt_count ocn_grid="gx1v7"  ocn_transient="ssp534ext">48</dt_count>
+<dt_count ocn_grid="gx1v7"  ocn_transient="ssp585ext">48</dt_count>
 <dt_count ocn_grid="tx1v1"  > 24</dt_count>
 <dt_count ocn_grid="tx0.1v2">300</dt_count>
 <dt_count ocn_grid="tx0.1v2" ocn_coupling="partial">500</dt_count>
@@ -1504,6 +1506,8 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp370">ocn/pop/gx1v6/forcing/ndep_ocn_ssp370_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp370">ocn/pop/gx1v6/forcing/ndep_ocn_ssp370_w_nhx_emis_gx1v6_c190412.nc</ndep_shr_stream_file>
 
+<ndep_data_type ocn_transient="ssp534ext">driver</ndep_data_type>
+
 <ndep_data_type ocn_transient="ssp585">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="ssp585">2014</ndep_shr_stream_year_first>
 <ndep_shr_stream_year_last  ocn_transient="ssp585">2101</ndep_shr_stream_year_last>
@@ -1511,6 +1515,8 @@
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="ssp585">ocn/pop/gx3v7/forcing/ndep_ocn_ssp585_w_nhx_emis_gx3v7_c190212.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp585">ocn/pop/gx1v6/forcing/ndep_ocn_ssp585_w_nhx_emis_gx1v6_c190212.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp585">ocn/pop/gx1v6/forcing/ndep_ocn_ssp585_w_nhx_emis_gx1v6_c190212.nc</ndep_shr_stream_file>
+
+<ndep_data_type ocn_transient="ssp585ext">driver</ndep_data_type>
 
 <riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20180511.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
