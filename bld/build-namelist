@@ -353,7 +353,7 @@ my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $DEBUG                  = "$xmlvars{'DEBUG'}";
 my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 my $POP_PASSIVE_TRACER_RESTART_OVERRIDE = "$xmlvars{'POP_PASSIVE_TRACER_RESTART_OVERRIDE'}";
-my $DATM_MODE              = "$xmlvars{'DATM_MODE'}";
+my $ROF_GRID               = "$xmlvars{'ROF_GRID'}";
 my $OCN_NDEP_DRIVER    = "$xmlvars{'OCN_NDEP_DRIVER'}";
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
@@ -1132,12 +1132,12 @@ add_default($nl,'sfwf_interp_freq');
 add_default($nl,'sfwf_interp_type');
 add_default($nl,'sfwf_interp_inc');
 add_default($nl,'sfwf_restore_tau');
-add_default($nl,'sfwf_filename');
+add_default($nl,'sfwf_filename', 'ocn_transient'=>"$OCN_TRANSIENT");
 add_default($nl,'sfwf_file_fmt');
 add_default($nl,'sfwf_data_renorm');
 add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM", 'datm_mode'=>"$DATM_MODE");
+add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM", 'ocn_transient'=>"$OCN_TRANSIENT");
 add_default($nl,'lfw_as_salt_flx');
 add_default($nl,'precip_fact_const');
 
@@ -1311,7 +1311,7 @@ add_default($nl, "irf_on");
 add_default($nl, 'estuary_option');
 add_default($nl, 'estuary_type');
 add_default($nl, 'ebm_param_option');
-add_default($nl, 'ebm_param_filename', 'datm_mode'=>"$DATM_MODE", 'nofail'=>1);
+add_default($nl, 'ebm_param_filename', 'rof_grid'=>"$ROF_GRID", 'nofail'=>1);
 if (not $nl->get_value('ebm_param_filename')) {
 	add_default($nl, 'ebm_param_filename', 'val'=>'unknown_ebm_param_filename','noprepend'=>1);
 }
@@ -1522,14 +1522,16 @@ if ($ecosys_on eq "TRUE") {
 ############################################
 
 if ($ecosys_on eq "TRUE") {
-  add_default($nl, 'dust_flux_source','ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'dust_flux_source');
   add_default($nl, 'dust_flux_input%filename');
   add_default($nl, 'dust_flux_input%file_fmt');
   add_default($nl, 'dust_flux_input%file_varname');
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
-  add_default($nl, 'iron_flux_source','ocn_coupling'=>"$OCN_COUPLING");
-  add_default($nl, 'dust_ratio_thres');
+  add_default($nl, 'iron_flux_source');
+  add_default($nl, 'dust_ratio_thres', 'ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'fe_bioavail_frac_offset', 'ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'dust_ratio_to_fe_bioavail_frac_r', 'ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'iron_flux_input%filename');
   add_default($nl, 'iron_flux_input%file_fmt');
   add_default($nl, 'iron_flux_input%file_varname');
@@ -1545,7 +1547,7 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  add_default($nl, 'o2_consumption_scalef_opt');
+  add_default($nl, 'o2_consumption_scalef_opt', 'ocn_coupling'=>"$OCN_COUPLING");
   if ($nl->get_value('o2_consumption_scalef_opt') eq '\'file_time_invariant\'') {
     add_default($nl, 'o2_consumption_scalef_input%filename');
     add_default($nl, 'o2_consumption_scalef_input%file_varname');
@@ -1594,9 +1596,9 @@ if ($ecosys_on eq "TRUE") {
   }
 
   my $estuary_type = $nl->get_value('estuary_type');
-  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type);
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type, 'rof_grid'=>"$ROF_GRID");
   add_default($nl, 'riv_flux_shr_stream_year_first');
-  add_default($nl, 'riv_flux_shr_stream_year_align');
+  add_default($nl, 'riv_flux_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_din_file_varname');
   add_default($nl, 'riv_flux_din_scale_factor');

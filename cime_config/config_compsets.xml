@@ -48,13 +48,27 @@
   </compset>
 
   <compset>
-    <alias>C_JRA</alias>
+    <!-- GIAF_JRA from CESM 2.1.1 -->
+    <alias>C_JRA-1p3-2016</alias>
     <lname>2000_DATM%JRA_SLND_DICE%SSMI_POP2_DROF%JRA_SGLC_WW3</lname>
   </compset>
 
   <compset>
-    <alias>C_JRA_HR</alias>
+    <!-- latest JRA forcing -->
+    <alias>C_JRA</alias>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_DICE%SSMI_POP2_DROF%JRA-1p4-2018_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <!-- GIAF_JRA from CESM 2.1.1 -->
+    <alias>C_JRA-1p3-2016_HR</alias>
     <lname>2000_DATM%JRA_SLND_DICE%SSMI_POP2_DROF%JRA_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <!-- latest JRA forcing -->
+    <alias>C_JRA_HR</alias>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_DICE%SSMI_POP2_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
   </compset>
 
   <compset>
@@ -65,6 +79,11 @@
   <compset>
     <alias>C1850ECO</alias>
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>C1850ECO_ECOCESM20</alias>
+    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECOCESM20_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
   <!-- G compsets -->
@@ -85,13 +104,27 @@
   </compset>
 
   <compset>
-    <alias>GIAF_JRA</alias>
+    <!-- GIAF_JRA from CESM 2.1.1 -->
+    <alias>GIAF_JRA-1p3-2016</alias>
     <lname>2000_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_WW3</lname>
   </compset>
 
   <compset>
-    <alias>GIAF_JRA_HR</alias>
+    <!-- latest JRA forcing -->
+    <alias>GIAF_JRA</alias>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE_POP2_DROF%JRA-1p4-2018_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <!-- GIAF_JRA_HR from CESM 2.1.1 -->
+    <alias>GIAF_JRA-1p3-2016_HR</alias>
     <lname>2000_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <!-- latest JRA forcing -->
+    <alias>GIAF_JRA_HR</alias>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE_POP2_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
   </compset>
 
   <compset>
@@ -102,6 +135,23 @@
   <compset>
     <alias>G1850ECOIAF</alias>
     <lname>1850_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <alias>GOMIPECOIAF</alias>
+    <lname>OMIP_DATM%IAF_SLND_CICE_POP2%ECO_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <!-- latest JRA forcing -->
+    <alias>G1850ECOIAF_JRA</alias>
+    <lname>1850_DATM%JRA-1p4-2018_SLND_CICE_POP2%ECO_DROF%JRA-1p4-2018_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <!-- JRA forcing aligned with OMIP 1850-2018 calendar -->
+    <alias>GOMIPECOIAF_JRA-1p4-2018</alias>
+    <lname>OMIP_DATM%JRA-1p4-2018_SLND_CICE_POP2%ECO_DROF%JRA-1p4-2018_SGLC_WW3</lname>
   </compset>
 
   <compset>
