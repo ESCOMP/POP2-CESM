@@ -2450,55 +2450,19 @@ sub check_input_files {
       # Need to strip the quotes
       $pathname =~ s/['"]//g;
 
-      # bottom_cell_file could be 'unknown_bottom_cell'
-      if (($var eq 'bottom_cell_file') and
-          ($pathname eq 'unknown_bottom_cell')) {
-        $is_a_file = 0;
+      my $pathname_len = length $pathname;
+      if ($pathname_len >= 7){
+        my $pathname_prefix = substr $pathname, 0, 7;
+
+        # discard all paths beginning with "unknown"
+        if ($pathname_prefix eq "unknown"){
+          $is_a_file = 0;
+        }
+        # discard all paths beginning with "same_as"
+        if ($pathname_prefix eq "same_as"){
+          $is_a_file = 0;
+        }
       }
-
-      # tidal_energy_file could be 'unknown_tidal_mixing'
-      if (($var eq 'tidal_energy_file') and
-          ($pathname eq 'unknown_tidal_mixing')) {
-        $is_a_file = 0;
-      }
-
-      # niw_energy_file could be 'unknown_niw_energy'
-      if (($var eq 'niw_energy_file') and
-          ($pathname eq 'unknown_niw_energy')) {
-        $is_a_file = 0;
-      }
-
-      # init_iage_file could be 'same_as_TS'
-      if (($var eq 'init_iage_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
-      # init_ecosys_init_file could be 'same_as_TS'
-      if (($var eq 'init_ecosys_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
-      # init_abio_dic_dic14_init_file could be 'same_as_TS'
-      if (($var eq 'init_abio_dic_dic14_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
-      # abio_dic_dic14_restfile_fallback could be 'unknown'
-      if (($var eq 'abio_dic_dic14_restfile_fallback') and
-          ($pathname eq 'unknown')) {
-        $is_a_file = 0;
-      }
-
-
-      # ciso_init_ecosys_init_file could be 'same_as_TS'
-      if (($var eq 'ciso_init_ecosys_init_file') and
-          ($pathname eq 'same_as_TS')) {
-        $is_a_file = 0;
-      }
-
     }
 
     # If it is, check whether it exists locally and print status
