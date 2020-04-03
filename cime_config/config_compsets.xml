@@ -48,7 +48,7 @@
   </compset>
 
   <compset>
-    <!-- GIAF_JRA from CESM 2.1.1 -->
+    <!-- C_JRA from CESM 2.1.1 -->
     <alias>C_JRA-1p3-2016</alias>
     <lname>2000_DATM%JRA_SLND_DICE%SSMI_POP2_DROF%JRA_SGLC_WW3</lname>
   </compset>
@@ -60,7 +60,7 @@
   </compset>
 
   <compset>
-    <!-- GIAF_JRA from CESM 2.1.1 -->
+    <!-- C_JRA_HR from CESM 2.1.1 -->
     <alias>C_JRA-1p3-2016_HR</alias>
     <lname>2000_DATM%JRA_SLND_DICE%SSMI_POP2_DROF%JRA_SGLC_SWAV</lname>
   </compset>
