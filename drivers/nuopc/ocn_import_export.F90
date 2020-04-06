@@ -193,7 +193,6 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_snow')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_rain')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_nhx')
@@ -697,8 +696,23 @@ contains
        m2percm2  = mpercm*mpercm
        do nfld = 1, fieldCount
           if (trim(fieldNameList(nfld)) /= flds_scalar_name) then
-             call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (fieldNameList(nfld) == 'Faxa_bcph') then
+                work1 = ATM_BLACK_CARBON_FLUX
+             else if (fieldNameList(nfld) == 'Faxa_dstwet') then
+                work1 = ATM_FINE_DUST_FLUX
+             else if (fieldNameList(nfld) == 'Faxa_dstdry') then
+                work1 = ATM_COARSE_DUST_FLUX
+             else if (fieldNameList(nfld) == 'Fioi_flxdst') then
+                work1 = SEAICE_DUST_FLUX
+             else if (fieldNameList(nfld) == 'Fioi_bcph') then
+                work1 = SEAICE_BLACK_CARBON_FLUX
+             else if (fieldNameList(nfld) == 'Fioi_swpen_ifrac_n' .or. fieldNameList(nfld) == 'Si_ifrac_n') then
+                ! do nothing for now
+             else
+                call ESMF_LogWrite(subname//' fieldname is '//trim(fieldNameList(nfld)), ESMF_LOGMSG_INFO)
+                call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
 
              gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
 
