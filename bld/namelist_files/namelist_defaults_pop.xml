@@ -56,7 +56,6 @@
 <dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">46</dt_count>
 <dt_count ocn_grid="gx1v7"  > 24</dt_count>
 <dt_count ocn_grid="gx1v7"  ocn_onedim="TRUE">46</dt_count>
-<dt_count ocn_grid="gx1v7"  ocn_transient="ssp534ext">48</dt_count>
 <dt_count ocn_grid="gx1v7"  ocn_transient="ssp585ext">48</dt_count>
 <dt_count ocn_grid="tx1v1"  > 24</dt_count>
 <dt_count ocn_grid="tx0.1v2">300</dt_count>
