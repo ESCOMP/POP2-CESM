@@ -10,6 +10,7 @@ module ocn_comp_nuopc
   use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_Advertise, NUOPC_CompSetClock
   use NUOPC                 , only : NUOPC_SetAttribute, NUOPC_CompAttributeGet, NUOPC_CompAttributeSet
   use NUOPC_Model           , only : model_routine_SS           => SetServices
+  use NUOPC_Model           , only : SetVM
   use NUOPC_Model           , only : model_label_Advance        => label_Advance
   use NUOPC_Model           , only : model_label_DataInitialize => label_DataInitialize
   use NUOPC_Model           , only : model_label_SetRunClock    => label_SetRunClock
@@ -67,7 +68,7 @@ module ocn_comp_nuopc
   private                              ! By default make data private
 
   public  :: SetServices
-
+  public  :: SetVM
   private :: InitializeP0
   private :: InitializeAdvertise
   private :: InitializeRealize
@@ -280,7 +281,7 @@ contains
     !  domain decomposition, grid, and overflows
     !-----------------------------------------------------------------------
 
-    use shr_const_mod      , only: shr_const_pi  
+    use shr_const_mod      , only: shr_const_pi
     use constants          , only: radius
 
     ! Initialize POP
@@ -304,7 +305,7 @@ contains
     real(R8), pointer       :: ownedElemCoords(:)
     real(R8)                :: lon, lat, area
     real(R8)                :: diff_lon, diff_lat, diff_area
-    real(R8), pointer       :: areaMesh(:)  
+    real(R8), pointer       :: areaMesh(:)
     real(R8), allocatable   :: lonMesh(:), latMesh(:)
     integer , allocatable   :: gindex_ocn(:)
     integer , allocatable   :: gindex_elim(:)
@@ -587,7 +588,7 @@ contains
     ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
     ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    
+
     ! error check differences between internally generated lons and those read in
     n = 0
     do iblock = 1, nblocks_clinic
@@ -597,7 +598,7 @@ contains
              n = n+1
              lon  = TLON(i,j,iblock) * 180._R8/shr_const_pi
              lat  = TLAT(i,j,iblock) * 180._R8/shr_const_pi
-             area = TAREA(i,j,iblock) / (radius*radius) 
+             area = TAREA(i,j,iblock) / (radius*radius)
              diff_lon  = abs(lonMesh(n) - lon)
              diff_lat  = abs(latMesh(n) - lat)
              !diff_area = abs(areaMesh(n) - area)
@@ -1335,25 +1336,25 @@ contains
     ! input/output variables
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
-    
+
     ! local variables
     type(ESMF_Clock)  :: clock
     type(ESMF_Time)   :: currTime
     integer(int_kind) :: yy  ! current date (YYYYMMDD)
-    integer(int_kind) :: mon ! current month 
+    integer(int_kind) :: mon ! current month
     integer(int_kind) :: day ! current day
     integer(int_kind) :: tod ! current time of day (sec)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    
+
     ! query the Component for its clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      
+
     call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    
+
     call ESMF_TimeGet(currTime, yy=yy, mm=mon, dd=day, s=tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1425,7 +1426,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp)                 :: gcomp
     integer             , intent(in)    :: logunit
-    logical             , intent(in)    :: mastertask 
+    logical             , intent(in)    :: mastertask
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
@@ -1519,12 +1520,12 @@ contains
   subroutine pop_orbital_update(clock, logunit,  mastertask, eccen, obliqr, lambm0, mvelpp, rc)
 
     !----------------------------------------------------------
-    ! Update orbital settings 
+    ! Update orbital settings
     !----------------------------------------------------------
 
     ! input/output variables
     type(ESMF_Clock) , intent(in)    :: clock
-    integer          , intent(in)    :: logunit 
+    integer          , intent(in)    :: logunit
     logical          , intent(in)    :: mastertask
     real(R8)         , intent(inout) :: eccen  ! orbital eccentricity
     real(R8)         , intent(inout) :: obliqr ! Earths obliquity in rad
@@ -1534,7 +1535,7 @@ contains
 
     ! local variables
     type(ESMF_Time)   :: CurrTime ! current time
-    integer           :: year     ! model year at current time 
+    integer           :: year     ! model year at current time
     integer           :: orb_year ! orbital year for current orbital computation
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
@@ -1550,7 +1551,7 @@ contains
        orb_year = attribute_orb_iyear + (year - attribute_orb_iyear_align)
        lprint = mastertask
     else
-       orb_year = attribute_orb_iyear 
+       orb_year = attribute_orb_iyear
        if (first_time) then
           lprint = mastertask
           first_time = .false.
