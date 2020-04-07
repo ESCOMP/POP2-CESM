@@ -441,13 +441,13 @@
       <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
     </machines>
   </test>
-  <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_cesm2_0_settings">
+  <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO_ECOCESM20" testmods="pop/ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
-  <test name="SMS_Vnuopc" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_cesm2_0_settings">
+  <test name="SMS_Vnuopc" grid="T62_g17" compset="C1850ECO_ECOCESM20" testmods="pop/ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
