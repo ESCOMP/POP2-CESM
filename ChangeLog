@@ -1,4 +1,35 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay (conflict resolution by mlevy)
+Tag Date:    7 April 2020
+Tag Name:    cesm_pop_2_1_20200407
+Tag Summary: Merge cesm2_1_x_rel branch into master
+             -- Brings in Keith's OMIP and JRA compset updates
+             -- Also updates ebm default parameters and adds impvmixu_tavg() function
+
+Testing: aux_pop on cheyenne (intel compiler)
+         aux_pop_MARBL on cheyenne (gnu / intel compilers) and hobart (nag, pgi)
+         * climate-changing for gx1v7
+         * climate-changing when ecosys_on = .true.
+         * bit-for-bit for gx3v7 if ecosys_on = .false.
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testlist_pop_nuopc.xml
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
+A       cime_config/testdefs/testmods_dirs/pop/omip/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/omip/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/omip/user_nl_pop
+M       source/baroclinic.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_timeseries_mod.F90
+M       source/vertical_mix.F90
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  mvertens, mlevy, altuntas
 Tag Date:    18 March 2020
