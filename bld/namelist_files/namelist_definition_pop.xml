@@ -5268,7 +5268,8 @@ category="Passive Tracers (CFCs)"
 group="derived" >
 Arbitrary model year.
 
-Default: 1850 for OCN_TRANSIENT=1850-2000, 310 for OCN_TRANSIENT=CORE2, 1 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 372 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+366 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5278,7 +5279,8 @@ category="Passive Tracers (CFCs)"
 group="derived" >
 Year in data that corresponds to model_year.
 
-Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2, 1 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+2018 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5534,7 +5536,8 @@ category="Passive Tracers (SF6)"
 group="derived" >
 Arbitrary model year.
 
-Default: 1850 for 1850-2000 transient run, 1 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 372 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+366 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5544,7 +5547,8 @@ category="Passive Tracers (SF6)"
 group="derived" >
 Year in data that corresponds to model_year.
 
-Default: 1850 for 1850-2000 transient run, 1981 otherwise.
+Default: 1850 for OCN_TRANSIENT=1850-2000, 2009 for OCN_TRANSIENT=CORE2,CORE2OMIP,
+2018 for OCN_TRANSIENT=JRA,JRA_OMIP, 1 otherwise.
 </entry>
 
 <entry
@@ -5910,7 +5914,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="monthly-calendar,driver" >
-Default: 'monthly-calendar'
+Default: 'driver'
 </entry>
 
 <entry
@@ -5960,7 +5964,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml"
 valid_values="monthly-calendar,driver-derived" >
-Default: 'monthly-calendar'
+Default: 'driver-derived'
 </entry>
 
 <entry
@@ -5971,6 +5975,26 @@ group="ecosys_forcing_data_nml" >
 coarse/fine dust ratio threshold, used in iron_flux_source=='driver-derived' computation
 
 Default: 55.0
+</entry>
+
+<entry
+id="fe_bioavail_frac_offset"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+used in iron_flux_source=='driver-derived' computation
+
+Default: 0.01
+</entry>
+
+<entry
+id="dust_ratio_to_fe_bioavail_frac_r"
+type="real"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml" >
+used in iron_flux_source=='driver-derived' computation
+
+Default: 170.0
 </entry>
 
 <entry
@@ -6106,7 +6130,7 @@ option for specification of o2_consumption_scalef
 
 Valid Values: 'const', 'file_time_invariant'
 Default: 'const'
-'file_time_invariant' (gx1v6,gx1v7)
+'file_time_invariant' (gx1v6,gx1v7) for OCN_COUPLING='full'
 </entry>
 
 <entry
@@ -6328,7 +6352,8 @@ id="ndep_shr_stream_year_first"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1849 (2004 for rcp runs)
+Default: 1849 for OCN_TRANSIENT=1850-2000, 2004 for rcp runs, 2014 for ssp runs,
+1637 for OCN_TRANSIENT=CORE2OMIP, 1652 for OCN_TRANSIENT=JRA_OMIP
 </entry>
 
 <entry
@@ -6336,7 +6361,8 @@ id="ndep_shr_stream_year_last"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 2006 (2101 for rcp runs)
+Default: 2006 for OCN_TRANSIENT=1850-2000, 2101 for rcp and ssp runs,
+2010 for OCN_TRANSIENT=CORE2OMIP, 2019 for OCN_TRANSIENT=JRA_OMIP
 </entry>
 
 <entry
@@ -6344,7 +6370,8 @@ id="ndep_shr_stream_year_align"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1849 (2101 for rcp runs)
+Default: 1849 for OCN_TRANSIENT=1850-2000, 2004 for rcp runs, 2014 for ssp runs,
+0 for OCN_TRANSIENT=CORE2OMIP,JRA_OMIP
 </entry>
 
 <entry
@@ -6374,6 +6401,8 @@ Default: riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20170425.nc (gx3v7),
 riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc (gx1v6,gx1v7)
 riv_nut.gnews_gnm.gx3v7_nn_open_ocean_nnsm_e1000r500_marginal_sea.20170425.nc (gx3v7,estuary_type='vsf_ebm'),
 riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc (gx1v6,gx1v7,estuary_type='vsf_ebm')
+riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc (gx1v6,gx1v7,estuary_type='vsf_ebm',rof_grid='rx1')
+riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc (gx1v6,gx1v7,estuary_type='vsf_ebm',rof_grid='JRA025')
 </entry>
 
 <entry
@@ -6389,7 +6418,7 @@ id="riv_flux_shr_stream_year_last"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1900 (OCN_TRANSIENT=unset), 2000
+Default: 1900 for OCN_TRANSIENT=unset,CORE2,JRA, 2000 otherwise
 </entry>
 
 <entry
@@ -6397,7 +6426,7 @@ id="riv_flux_shr_stream_year_align"
 type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
-Default: 1900
+Default: 263 for OCN_TRANSIENT=CORE2_OMIP, 248 for OCN_TRANSIENT=JRA_OMIP, 1900 otherwise
 </entry>
 
 <entry
