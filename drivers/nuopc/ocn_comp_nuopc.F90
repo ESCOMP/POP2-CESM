@@ -60,8 +60,8 @@ module ocn_comp_nuopc
   use perf_mod              , only : t_startf, t_stopf
   use ocn_import_export     , only : ocn_advertise_fields, ocn_realize_fields
   use ocn_import_export     , only : ocn_import, ocn_export, pop_sum_buffer, tlast_coupled
-  use ocn_shr_methods       , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
-  use ocn_shr_methods       , only : set_component_logging, get_component_instance, log_clock_advance
+  use nuopc_shr_methods       , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
+  use nuopc_shr_methods       , only : set_component_logging, get_component_instance, log_clock_advance
 
   ! !PUBLIC MEMBER FUNCTIONS:
   implicit none

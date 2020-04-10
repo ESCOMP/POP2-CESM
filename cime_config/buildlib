@@ -27,6 +27,7 @@ def _copy_files_to_blddir(case):
     srcroot = case.get_value("SRCROOT")
     objroot = case.get_value("OBJROOT")
     caseroot = case.get_value("CASEROOT")
+    cimeroot = case.get_value("CIMEROOT")
     driver = case.get_value("COMP_INTERFACE")
 
     # create bld directories
@@ -47,6 +48,7 @@ def _copy_files_to_blddir(case):
 
     if driver == 'nuopc':
         glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","nuopc"))
+        glob_dirs.append(os.path.join(cimeroot,"src","drivers","nuopc","nuopc_cap_share"))
     if driver == 'mct':
         glob_dirs.append(os.path.join(srcroot,"components","pop","drivers","mct"))
 

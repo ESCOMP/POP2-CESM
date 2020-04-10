@@ -34,7 +34,7 @@ module ocn_import_export
   use named_field_mod,       only: named_field_register, named_field_get_index, named_field_set, named_field_get
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
   use grid,                  only: KMT
-  use ocn_shr_methods,       only: chkerr
+  use nuopc_shr_methods,     only: chkerr
   use constants
   use blocks
   use exit_mod
