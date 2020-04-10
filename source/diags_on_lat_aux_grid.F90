@@ -1,6 +1,6 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
- module diags_on_lat_aux_grid 
+ module diags_on_lat_aux_grid
 
 !BOP
 ! !MODULE: diags_on_lat_aux_grid
@@ -48,13 +48,13 @@
 ! !PUBLIC DATA MEMBERS:
 
    real (r8), dimension(:),public,allocatable ::  &
-      lat_aux_center,     &! cell center latitude values (degrees north) 
+      lat_aux_center,     &! cell center latitude values (degrees north)
       lat_aux_edge         ! cell edge   latitude values (degrees north)
 
    integer (int_kind),public ::  &
-      n_lat_aux_grid,     &! auxilary grid dimension  
+      n_lat_aux_grid,     &! auxilary grid dimension
       n_transport_reg,    &! number of regions for all transport diagnostics
-      n_moc_comp,         &! number of MOC components 
+      n_moc_comp,         &! number of MOC components
       n_transport_comp,   &! number of T & S transport components
                            !  (see init_moc_ts_transport_arrays for region
                            !   and component details/definitions)
@@ -64,7 +64,7 @@
       timer_moc, timer_tracer_transports
 
    integer (int_kind), dimension(:), allocatable ::  &
-      lat_aux_region_start ! starting latitude indices for 
+      lat_aux_region_start ! starting latitude indices for
                            !  regions (not used for "global" region)
 
    real (r8), dimension(:,:), allocatable ::  &
@@ -79,31 +79,31 @@
       TAVG_N_SALT_TRANS_G     ! northward salt transport (ioroot only)
 
    real (r8),dimension(:,:), allocatable ::  &
-      trans_s               ! southern boundary transports 
+      trans_s               ! southern boundary transports
 
    integer (int_kind), dimension(:,:,:), allocatable ::  &
-      REGION_MASK_LAT_AUX   ! latitude-longitude region mask 
+      REGION_MASK_LAT_AUX   ! latitude-longitude region mask
                             !  for these diagnostics (ioroot only)
 
    logical (log_kind), dimension(:,:,:), allocatable ::  &
-      MASK_LAT_DEPTH        ! latitude-depth mask for these diagnostics 
+      MASK_LAT_DEPTH        ! latitude-depth mask for these diagnostics
                             !  (ioroot only)
 
    type (regions), dimension(max_regions),public ::  &
       transport_region_info
- 
- 
+
+
    logical (log_kind), public ::  &
-      moc_requested,              &! true if meridional overturning circulation 
+      moc_requested,              &! true if meridional overturning circulation
                                    !  output is requested
       n_heat_trans_requested,     &! true if northward heat transport output is
                                    !  requested
       n_salt_trans_requested       ! true if northward salt transport output is
                                    !  requested
- 
+
    character (char_len),dimension(max_regions),public ::  &
       transport_reg2_names
-    
+
 !EOP
 !BOC
 
@@ -119,7 +119,7 @@
 ! !INTERFACE:
 
    subroutine init_lat_aux_grid
- 
+
 
 !
 ! !DESCRIPTION:
@@ -129,11 +129,11 @@
 !   'southern' assumes that the model grid is regular lat-lon in the
 !              Southern Hemisphere only and uses it identically in
 !              the Southern Hemisphere. it is flipped across the
-!              Equator and padded at northern high latitudes if 
+!              Equator and padded at northern high latitudes if
 !              necessary.
 !   'full'     assumes that the entire model grid is regular
 !              lat-lon. simply copies this grid into the axilary
-!              grid arrays. 
+!              grid arrays.
 !   'user'     allows the user to specify an equally-spaced grid,
 !              starting at lat_aux_begin and ending at lat_aux_end.
 !              the grid dimension/resolution is specified with
@@ -147,10 +147,10 @@
 
 !EOP
 !BOC
- 
+
 !-----------------------------------------------------------------------
 !
-! local variables 
+! local variables
 !
 !-----------------------------------------------------------------------
 
@@ -160,16 +160,16 @@
       grid_error,          &! auxilary grid choice error
       i, j, jj, n,         &! loop indices
       lat_aux_grid,        &! index for the chosen grid type
-      i_copy,              &! TLATD_G(i_copy,*) and ULATD_G(i_copy,*) 
-                            !  (global arrays) are used to create 
+      i_copy,              &! TLATD_G(i_copy,*) and ULATD_G(i_copy,*)
+                            !  (global arrays) are used to create
                             !  the auxilary grid
       j_dim_sh              ! number of southern hemisphere TLATD_G(i_copy,*)
                             !  grid points
 
    real (r8) ::               &
       dlat,                   &! work variable for auxilary grid spacing (degrees)
-      southern_edge,          &! latitude of the southern-most edge point 
-      np_minus_northern_edge, &! latitudinal range for padding 
+      southern_edge,          &! latitude of the southern-most edge point
+      np_minus_northern_edge, &! latitudinal range for padding
       eps_grid = 1.0e-7        ! epsilon difference allowed in regular grid
 
    integer (int_kind), parameter ::  &
@@ -184,42 +184,42 @@
       WORK
 
    real (r8), dimension(:,:), allocatable ::  &
-      ULATD_G             ! latitude of U points in degrees (global array) 
+      ULATD_G             ! latitude of U points in degrees (global array)
 
    character (char_len) :: string
 !-----------------------------------------------------------------------
 !
-!  input namelist 
+!  input namelist
 !
 !  input values for lat_aux_begin, lat_aux_end, and n_lat_aux_grid
-!  are used only when a user defined auxilary grid is requested. 
+!  are used only when a user defined auxilary grid is requested.
 !
 !-----------------------------------------------------------------------
 
    character (char_len) ::  &
       lat_aux_grid_type      ! type of the auxilary latitudinal grid,
-                             ! i.e. how it is generated 
- 
+                             ! i.e. how it is generated
+
    real (r8) ::             &
-      lat_aux_begin,        &! beginning latitude for the auxilary 
+      lat_aux_begin,        &! beginning latitude for the auxilary
                              !    grid (degrees north)
       lat_aux_end            ! ending latitude for the auxilary
                              !    grid (degrees north)
- 
-   namelist /transports_nml/ lat_aux_grid_type, lat_aux_begin,  & 
+
+   namelist /transports_nml/ lat_aux_grid_type, lat_aux_begin,  &
                              lat_aux_end, n_lat_aux_grid,       &
                              moc_requested, n_heat_trans_requested, n_salt_trans_requested,   &
                              transport_reg2_names,              &
                              n_transport_reg
 
- 
+
 !-----------------------------------------------------------------------
 !
-!  set defaults and then read the namelist 
+!  set defaults and then read the namelist
 !
 !-----------------------------------------------------------------------
 
-   lat_aux_grid_type      =  'southern'   
+   lat_aux_grid_type      =  'southern'
    lat_aux_begin          = -90.0_r8
    lat_aux_end            =  90.0_r8
    n_lat_aux_grid         =  180
@@ -227,7 +227,7 @@
    n_heat_trans_requested = .false.
    n_salt_trans_requested = .false.
    transport_reg2_names   =  char_blank
-   n_transport_reg        = 2 
+   n_transport_reg        = 2
 
 !-----------------------------------------------------------------------
 !
@@ -287,22 +287,22 @@
       write(stdout,blank_fmt)
    endif
 
- 
+
 !-----------------------------------------------------------------------
 !
 !  determine if transport diagnostics need to be computed
 !
 !-----------------------------------------------------------------------
- 
+
    if (.not. (moc_requested .or. n_heat_trans_requested .or. n_salt_trans_requested) ) return
- 
- 
+
+
 !-----------------------------------------------------------------------
 !
 !  document transport diagnostics selections
 !
 !-----------------------------------------------------------------------
- 
+
    if ( my_task == master_task ) then
      write (stdout,*)
      write (stdout,'(a)  ') 'Transport Diagnostics Information'
@@ -325,15 +325,15 @@
        lat_aux_grid = -1000
      end select
    endif
- 
+
 !-----------------------------------------------------------------------
 !
 !  test -- is lat_aux_grid defined properly?
 !
 !-----------------------------------------------------------------------
- 
+
    call broadcast_scalar (lat_aux_grid, master_task)
- 
+
    if ( lat_aux_grid == -1000 ) then
      call exit_POP (SigAbort, &
        '(init_lat_aux_grid) unknown auxilary latitudinal grid choice')
@@ -345,7 +345,7 @@
 !  continue documenting transport diagnostics
 !
 !-----------------------------------------------------------------------
- 
+
    if ( my_task == master_task ) then
      write (stdout,*)
      write (stdout,'(a)  ') 'Transport diagnostics include:'
@@ -355,9 +355,9 @@
      write (stdout,*)
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
    endif
- 
 
- 
+
+
 !-----------------------------------------------------------------------
 !
 !  more error checking
@@ -369,18 +369,18 @@
                  &/' subroutines compute_moc and compute_tracer_transports'
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
    endif
- 
-   ioroot = shr_pio_getioroot(inst_name)
- 
+
+   ioroot = shr_pio_getioroot('OCN')
+
 !-----------------------------------------------------------------------
 !
 !  allocate arrays
 !
 !-----------------------------------------------------------------------
- 
+
    allocate ( TLATD_G(nx_global,ny_global) )
 
-   
+
    call gather_global (TLATD_G, TLATD, ioroot,distrb_clinic)
 
    if ( lat_aux_grid == lat_aux_grid_sh  .or.  &
@@ -394,7 +394,7 @@
      i_copy = 1
 
      if ( my_task == ioroot ) then
-       dlat          = c2 * (ULATD_G(i_copy,1)-TLATD_G(i_copy,1)) 
+       dlat          = c2 * (ULATD_G(i_copy,1)-TLATD_G(i_copy,1))
        southern_edge = ULATD_G(i_copy,1) - dlat
      endif
 
@@ -408,7 +408,7 @@
      if ( my_task == ioroot )  &
        j_dim_sh = count( TLATD_G(i_copy,:) < c0 )
 
-     call broadcast_scalar (j_dim_sh, ioroot) 
+     call broadcast_scalar (j_dim_sh, ioroot)
 
      if ( j_dim_sh == 0 ) then
        call exit_POP (SigAbort,  &
@@ -444,14 +444,14 @@
      endif
 
      call broadcast_scalar (grid_error, ioroot)
-           
-     if ( grid_error /= 0 ) then 
+
+     if ( grid_error /= 0 ) then
        string = 'SH is not a regular at-lon grid. '  /&
                 &/'Use a different choice for lat_aux_grid_type.'
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
      endif
 
-     np_minus_northern_edge = 90.0_r8 + southern_edge        
+     np_minus_northern_edge = 90.0_r8 + southern_edge
 
      if ( np_minus_northern_edge >= p5*dlat ) then
 
@@ -460,10 +460,10 @@
        if ( n_lat_aux_grid == 0 ) &
          call exit_POP (SigAbort,  &
             '(init_lat_aux_grid) n_lat_aux_grid is zero')
-   
+
        dlat = np_minus_northern_edge / dble(n_lat_aux_grid)
 
-       n_lat_aux_grid = 2 * j_dim_sh + n_lat_aux_grid 
+       n_lat_aux_grid = 2 * j_dim_sh + n_lat_aux_grid
 
      else
 
@@ -486,7 +486,7 @@
 
      call broadcast_scalar (grid_error, ioroot)
 
-     if ( grid_error /= 0 ) then 
+     if ( grid_error /= 0 ) then
        string = 'The model grid is not a regular lat-lon grid. ' /&
                 &/'Use a different choice for lat_aux_grid_type.'
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
@@ -503,20 +503,20 @@
 
    endif
 
- 
+
 !-----------------------------------------------------------------------
 !
 !  allocate arrays
 !
 !-----------------------------------------------------------------------
- 
+
    allocate ( lat_aux_edge  (n_lat_aux_grid+1),  &
               lat_aux_center(n_lat_aux_grid  ) )
 
    if ( my_task == ioroot ) then
 
      select case (lat_aux_grid)
- 
+
      case (lat_aux_grid_sh)
 
        lat_aux_edge(1)            = southern_edge
@@ -525,8 +525,8 @@
        jj = j_dim_sh
        do j=j_dim_sh+2,2*j_dim_sh+1
          lat_aux_edge(j) = - lat_aux_edge(jj)
-         jj = jj - 1 
-       enddo 
+         jj = jj - 1
+       enddo
 
        lat_aux_center(1:j_dim_sh) = TLATD_G(i_copy,1:j_dim_sh)
 
@@ -548,11 +548,11 @@
            lat_aux_center(j) = lat_aux_edge(2*j_dim_sh+1)+(j-2*j_dim_sh-p5)*dlat
          enddo
 
-       endif 
+       endif
 
      case (lat_aux_grid_full)
 
-       lat_aux_edge(1)               = southern_edge  
+       lat_aux_edge(1)               = southern_edge
        lat_aux_edge(2:n_lat_aux_grid+1) = ULATD_G(i_copy,:)
 
        lat_aux_center = TLATD_G(i_copy,:)
@@ -560,29 +560,29 @@
      case (lat_aux_grid_user)
 
        dlat = (lat_aux_end - lat_aux_begin) / dble(n_lat_aux_grid)
-    
-       do j=1,n_lat_aux_grid+1 
+
+       do j=1,n_lat_aux_grid+1
          lat_aux_edge(j) = lat_aux_begin + dble(j-1)*dlat
        enddo
 
        do j=1,n_lat_aux_grid
          lat_aux_center(j) = lat_aux_begin + p5*dlat + dble(j-1)*dlat
        enddo
-   
+
      end select
 
    endif
 
    call broadcast_array (lat_aux_edge,   ioroot)
    call broadcast_array (lat_aux_center, ioroot)
-          
+
    if ( lat_aux_grid == lat_aux_grid_sh  .or.   &
         lat_aux_grid == lat_aux_grid_full ) deallocate ( ULATD_G )
 
 !-----------------------------------------------------------------------
 !  initialize timers
 !-----------------------------------------------------------------------
- 
+
    if (moc_requested)  &
    call get_timer(timer_moc,'MOC',  &
                   nblocks_clinic, distrb_clinic%nprocs)
@@ -600,13 +600,13 @@
 !BOP
 ! !IROUTINE: init_moc_ts_transport_arrays
 ! !INTERFACE:
- subroutine init_moc_ts_transport_arrays 
+ subroutine init_moc_ts_transport_arrays
 
 ! !DESCRIPTION:
 !  This routine allocates necessary arrays for the meridional overturning
 !  circulation and northward T & S transports, define the
 !  associated region masks, and find the "Atlantic" region
-!  starting latitude.  
+!  starting latitude.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -621,7 +621,7 @@
 
    real (r8)    ::  &
      eps_grid = 1.0e-7   ! epsilon difference allowed in regular grid
- 
+
    integer (int_kind) ::   &
       ioroot,            &! Task number of PIO root process
       nml_error,         &! namelist i/o error flag
@@ -634,7 +634,7 @@
       WORK_G              ! global work array
 
    if (.not. (moc_requested .or. n_heat_trans_requested .or. n_salt_trans_requested) ) return
- 
+
 
 !-----------------------------------------------------------------------
 !
@@ -643,11 +643,11 @@
 !    n_transport_reg = 1 ----> global minus marginal seas
 !    n_transport_reg = 2 ----> REGION_MASK = Atlantic + Mediterranean
 !    (optional)               (if not a marginal sea) + Labrador +
-!                            + GIN + Arctic + Hudson 
+!                            + GIN + Arctic + Hudson
 !                             (if not a marginal sea)
 !
 !-----------------------------------------------------------------------
- 
+
    if (n_transport_reg < 1 ) then
       call exit_POP (SigAbort,'(init_moc_ts_transport_arrays) ' /&
                  &/ ' n_transport_reg must be > 0  -- '         /&
@@ -658,8 +658,8 @@
                  &/ ' check namelist transports_nml')
    endif
 
- 
-      
+
+
 !-----------------------------------------------------------------------
 !
 !  determine the region numbers associated with the selected input
@@ -667,22 +667,22 @@
 !   n_transport_reg = 2
 !
 !-----------------------------------------------------------------------
- 
-   ioroot = shr_pio_getioroot(inst_name)
+
+   ioroot = shr_pio_getioroot('OCN')
    nreg2_transport = 0
    transport_region_info(:)%name   = char_blank
    transport_region_info(:)%number = 9999
 
    if (n_transport_reg > 1) then
- 
+
    do n=1,max_regions
-     do nrtr = 1, max_regions         
+     do nrtr = 1, max_regions
       if (len_trim(transport_reg2_names(nrtr)) > 0 ) then
        if ( trim(transport_reg2_names(nrtr)) == &
             trim(region_info(n)%name)  .and.    &
             .not.region_info(n)%marginal_sea) then
          nreg2_transport = nreg2_transport + 1
-         transport_region_info(nreg2_transport)%name    = region_info(n)%name   
+         transport_region_info(nreg2_transport)%name    = region_info(n)%name
          transport_region_info(nreg2_transport)%number  = region_info(n)%number
          transport_region_info(nreg2_transport)%marginal_sea = region_info(n)%  &
                                                      marginal_sea
@@ -690,7 +690,7 @@
       endif
      enddo
    enddo
- 
+
    if (nreg2_transport <= 0) then
       call exit_POP (SigAbort,'(init_moc_ts_transport_arrays) '    /&
                  &/ ' no transport regions have been detected -- ' /&
@@ -702,25 +702,25 @@
           ' regions will be included in the n_transport_reg = 2 transports:'
      do nrtr = 1, nreg2_transport
        write(stdout,1000) transport_region_info(nrtr)%name,  &
-                          transport_region_info(nrtr)%number 
+                          transport_region_info(nrtr)%number
      enddo
 1000    format (2x, a35, '(',i2,')')
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
    endif
 
    endif  ! n_transport_reg > 1
- 
+
 !-----------------------------------------------------------------------
 !
 !  allocate lat_aux_region_start, REGION_MASK_LAT_AUX
 !
 !-----------------------------------------------------------------------
- 
+
    allocate (lat_aux_region_start(n_transport_reg) )
 
    allocate (REGION_MASK_LAT_AUX(nx_global,ny_global,n_transport_reg) )
 
- 
+
    lat_aux_region_start = 0
    call gather_global (REGION_MASK_LAT_AUX(:,:,1),REGION_MASK,  &
                        ioroot,distrb_clinic)
@@ -740,7 +740,7 @@
      end where
 
     if (n_transport_reg > 1) then
- 
+
      do j=1,ny_global
        do i=1,nx_global
         if (any(abs(REGION_MASK_LAT_AUX(i,j,2)) ==   &
@@ -751,7 +751,7 @@
          endif
        enddo
      enddo
- 
+
      j_southern = ny_global
      do j=1,ny_global
        do i=1,nx_global
@@ -762,7 +762,7 @@
        enddo
      enddo
 100  continue
- 
+
      grid_error = 0
      do i=1,nx_global
        if ( any(abs(TLATD_G(:,j_southern)-TLATD_G(i,j_southern)) > eps_grid))then
@@ -770,8 +770,8 @@
        endif
      enddo
 
-     lat_aux_region_start(2) = j_southern - 1 
-            
+     lat_aux_region_start(2) = j_southern - 1
+
    endif  ! n_transport_reg
    endif  ! ioroot
 
@@ -786,14 +786,14 @@
                    &/ ' ("Atlantic") cannot be specified.')
      endif
    endif  ! n_transport_reg
- 
+
 !-----------------------------------------------------------------------
 !
 !  determine the latitude-depth mask
 !
 !-----------------------------------------------------------------------
 
-   allocate ( WORK_G(nx_global,ny_global) ) 
+   allocate ( WORK_G(nx_global,ny_global) )
 
    call gather_global (WORK_G, KMT, ioroot,distrb_clinic)
 
@@ -802,7 +802,7 @@
      allocate ( MASK_LAT_DEPTH(n_lat_aux_grid,km,n_transport_reg) )
 
      MASK_LAT_DEPTH = .true.
- 
+
      do k=1,km
        do n=2,n_lat_aux_grid+1
          do j=1,ny_global
@@ -810,7 +810,7 @@
 
              if ( TLATD_G(i,j) >= lat_aux_edge(n-1) .and.  &
                   TLATD_G(i,j) <  lat_aux_edge(n  ) .and.  &
-                  k <= WORK_G(i,j)                  ) then 
+                  k <= WORK_G(i,j)                  ) then
                do m=1,n_transport_reg
                  if ( REGION_MASK_LAT_AUX(i,j,m) == 1 )  &
                    MASK_LAT_DEPTH(n-1,k,m) = .false.
@@ -832,7 +832,7 @@
 !  MOC may have 3 components:
 !
 !    n_moc_comp = 1 ----> Eulerian-mean
-!    n_moc_comp = 2 ----> Eddy-induced (bolus) if diag_gm_bolus is true 
+!    n_moc_comp = 2 ----> Eddy-induced (bolus) if diag_gm_bolus is true
 !                          and GM is on
 !    n_moc_comp = 3 ----> Submesoscale contribution if GM is on and
 !                          submesoscale_mixing is true
@@ -848,7 +848,7 @@
 !  allocate TAVG_MOC_G on ioroot only
 !
 !-----------------------------------------------------------------------
- 
+
      if ( my_task == ioroot ) then
        allocate (TAVG_MOC_G(n_lat_aux_grid+1,km+1,n_moc_comp,n_transport_reg))
      else
@@ -857,9 +857,9 @@
 
    endif
 
-!-----------------------------------------------------------------------  
+!-----------------------------------------------------------------------
 !
-!  T and S transports may have 5 components: 
+!  T and S transports may have 5 components:
 !
 !(1) n_transport_comp = 1 ----> total [i.e. (2) + (3)]
 !
@@ -869,7 +869,7 @@
 !                               if GM is on
 !                                              OR
 !                               Eddy-induced advection plus submesoscale advection
-!                               plus diffusion if GM is on and 
+!                               plus diffusion if GM is on and
 !                               submesoscale_mixing is true
 !                                              OR
 !                               diffusion if hmix_tracer_choice is not GM
@@ -895,7 +895,7 @@
 !  ioroot only
 !
 !-----------------------------------------------------------------------
- 
+
    if ( n_heat_trans_requested .and. my_task == ioroot ) then
     allocate (  &
      TAVG_N_HEAT_TRANS_G(n_lat_aux_grid+1, n_transport_comp,n_transport_reg))
@@ -929,11 +929,11 @@
      write(stdout,blank_fmt)
      call POP_IOUnitsFlush(POP_stdout);  call POP_IOUnitsFlush(stdout)
    endif
- 
+
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine init_moc_ts_transport_arrays 
+ end subroutine init_moc_ts_transport_arrays
 
 !***********************************************************************
 !BOP
@@ -948,11 +948,11 @@
 !  same as module
 
 ! !INPUT PARAMETERS:
-!  input variables. the present design assumes that these are 
+!  input variables. the present design assumes that these are
 !  time-averaged inputs from tavg.F.
 !
    real (rtavg), dimension(:,:,:,:), intent(in) ::  &
-      W_E,    &! Eulerian-mean vertical velocity component 
+      W_E,    &! Eulerian-mean vertical velocity component
       V_E      ! Eulerian-mean velocity component in the grid-y direction
 
    real (rtavg), dimension(:,:,:,:), optional, intent(in) ::  &
@@ -975,7 +975,7 @@
       i, j, k, m, n, iblock     ! loop indices
 
    real (r8), dimension(km,n_moc_comp,n_transport_reg) ::  &
-      moc_s                     ! southern boundary values of moc 
+      moc_s                     ! southern boundary values of moc
 
    real (r8), dimension(:,:,:), allocatable ::  &
       WORK1, WORK2              ! work arrays
@@ -1003,14 +1003,14 @@
                 // ' transport computations, but one is missing.')
    endif
 
-   ioroot = shr_pio_getioroot(inst_name)
+   ioroot = shr_pio_getioroot('OCN')
 
    ldiag_gm_bolus = .false.
    if ( present(W_I) )  ldiag_gm_bolus = .true.
- 
+
    lsubmeso = .false.
    if ( present(W_SM) )  lsubmeso = .true.
- 
+
    call timer_start (timer_moc)
 
    allocate ( WORK1(nx_block,ny_block,nblocks_clinic), &
@@ -1059,9 +1059,9 @@
        do j=1,ny_global
         do i=1,nx_global
           if ( TLATD_G(i,j) >= lat_aux_edge(n-1) .and.  &
-               TLATD_G(i,j) <  lat_aux_edge(n  ) ) then 
+               TLATD_G(i,j) <  lat_aux_edge(n  ) ) then
            do m=1,n_transport_reg
-             if ( REGION_MASK_LAT_AUX(i,j,m) == 1 ) then 
+             if ( REGION_MASK_LAT_AUX(i,j,m) == 1 ) then
                 do k=1,km
                   TAVG_MOC_G(n,k,1,m)=TAVG_MOC_G(n,k,1,m)+WORK1_G(i,j,k)
                 enddo
@@ -1069,7 +1069,7 @@
                  do k=1,km
                   TAVG_MOC_G(n,k,2,m)=TAVG_MOC_G(n,k,2,m)+WORK2_G(i,j,k)
                  enddo
-                endif 
+                endif
                 if ( lsubmeso ) then
                  do k=1,km
                   TAVG_MOC_G(n,k,3,m)=TAVG_MOC_G(n,k,3,m)+WORK3_G(i,j,k)
@@ -1085,7 +1085,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  determine the southern boundary transports for all regional mocs 
+!  determine the southern boundary transports for all regional mocs
 !
 !-----------------------------------------------------------------------
 
@@ -1098,10 +1098,10 @@
        do j=1,ny_block
        do i=2,nx_block
          WORK2(i,j,iblock)=WORK1(i-1,j,iblock)
-       enddo  
+       enddo
        enddo
        WORK2(1,:,iblock)=c0
-       WORK1(:,:,iblock) = WORK1(:,:,iblock) + WORK2(:,:,iblock) 
+       WORK1(:,:,iblock) = WORK1(:,:,iblock) + WORK2(:,:,iblock)
      enddo ! iblock
     !$OMP END PARALLEL DO
      call gather_global (WORK1_G(:,:,k), WORK1, ioroot,distrb_clinic)
@@ -1111,7 +1111,7 @@
      do k=1,km
        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock = 1,nblocks_clinic
-          WORK1(:,:,iblock) = V_I(:,:,k,iblock) * HTN(:,:,iblock) 
+          WORK1(:,:,iblock) = V_I(:,:,k,iblock) * HTN(:,:,iblock)
         enddo ! iblock
        !$OMP END PARALLEL DO
        call gather_global (WORK2_G(:,:,k), WORK1, ioroot,distrb_clinic)
@@ -1128,7 +1128,7 @@
        call gather_global (WORK3_G(:,:,k), WORK1, ioroot,distrb_clinic)
      enddo
    endif
-       
+
    if ( my_task == ioroot ) then
      do m=2,n_transport_reg
        j = lat_aux_region_start(m)
@@ -1141,7 +1141,7 @@
              do k=1,km
                moc_s(k,2,m) = moc_s(k,2,m) + WORK2_G(i,j,k)
              enddo ! k
-           endif 
+           endif
            if ( lsubmeso ) then
              do k=1,km
                moc_s(k,3,m) = moc_s(k,3,m) + WORK3_G(i,j,k)
@@ -1151,15 +1151,15 @@
        enddo ! i
      enddo ! m
 
-  
-     moc_s(km,:,:) = - dz(km) * moc_s(km,:,:) 
+
+     moc_s(km,:,:) = - dz(km) * moc_s(km,:,:)
      do k=km-1,1,-1
        moc_s(k,:,:) = moc_s(k+1,:,:) - dz(k) * moc_s(k,:,:)
      enddo
 
 !-----------------------------------------------------------------------
 !
-!  add the southern boundary transports for all regional mocs 
+!  add the southern boundary transports for all regional mocs
 !
 !-----------------------------------------------------------------------
 
@@ -1170,7 +1170,7 @@
          enddo
          if ( ldiag_gm_bolus ) then
            do n=1,n_lat_aux_grid+1
-             TAVG_MOC_G(n,k,2,m) = TAVG_MOC_G(n,k,2,m) + moc_s(k,2,m) 
+             TAVG_MOC_G(n,k,2,m) = TAVG_MOC_G(n,k,2,m) + moc_s(k,2,m)
            enddo
          endif
          if ( lsubmeso ) then
@@ -1187,10 +1187,10 @@
 !
 !-----------------------------------------------------------------------
      TAVG_MOC_G = TAVG_MOC_G*1.0e-12_r8
- 
+
 !-----------------------------------------------------------------------
 !
-! use masks to determine 0 and missing transport values 
+! use masks to determine 0 and missing transport values
 ! not used in pop version; not translated to pop2
 !
 !-----------------------------------------------------------------------
@@ -1199,17 +1199,17 @@
 !
 !      do m=1,n_transport_reg
 !        do k=1,km-1
-!          do n=1,n_lat_aux_grid-1 
+!          do n=1,n_lat_aux_grid-1
 !            if ( MASK_LAT_DEPTH(n  ,k  ,m) .or.
 !     &           MASK_LAT_DEPTH(n+1,k  ,m) .or.
 !     &           MASK_LAT_DEPTH(n  ,k+1,m) .or.
-!     &           MASK_LAT_DEPTH(n+1,k+1,m) ) 
-!     &        TAVG_MOC_G(n+1,k+1,:,m) = c0 
+!     &           MASK_LAT_DEPTH(n+1,k+1,m) )
+!     &        TAVG_MOC_G(n+1,k+1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n  ,k  ,m) .and.
 !     &           MASK_LAT_DEPTH(n+1,k  ,m) .and.
 !     &           MASK_LAT_DEPTH(n  ,k+1,m) .and.
-!     &           MASK_LAT_DEPTH(n+1,k+1,m) ) 
-!     &          TAVG_MOC_G(n+1,k+1,:,m) = undefined_nf 
+!     &           MASK_LAT_DEPTH(n+1,k+1,m) )
+!     &          TAVG_MOC_G(n+1,k+1,:,m) = undefined_nf
 !            enddo
 !          enddo
 !        enddo
@@ -1223,13 +1223,13 @@
 !     &        TAVG_MOC_G(n+1,1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n  ,1,m) .and.
 !     &           MASK_LAT_DEPTH(n+1,1,m) )
-!     &        TAVG_MOC_G(n+1,1,:,m) = undefined_nf 
+!     &        TAVG_MOC_G(n+1,1,:,m) = undefined_nf
 !            if ( MASK_LAT_DEPTH(n  ,km,m) .or.
 !     &           MASK_LAT_DEPTH(n+1,km,m) )
 !     &        TAVG_MOC_G(n+1,km+1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n  ,km,m) .and.
 !     &           MASK_LAT_DEPTH(n+1,km,m) )
-!     &        TAVG_MOC_G(n+1,km+1,:,m) = undefined_nf 
+!     &        TAVG_MOC_G(n+1,km+1,:,m) = undefined_nf
 !          enddo
 !        enddo
 !
@@ -1262,20 +1262,20 @@
 !     &        TAVG_MOC_G(n_lat_aux_grid+1,k+1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n_lat_aux_grid,k  ,m) .and.
 !     &           MASK_LAT_DEPTH(n_lat_aux_grid,k+1,m) )
-!     &        TAVG_MOC_G(n_lat_aux_grid+1,k+1,:,m) = undefined_nf 
+!     &        TAVG_MOC_G(n_lat_aux_grid+1,k+1,:,m) = undefined_nf
 !          enddo
 !        enddo
 !
 !        do m=1,n_transport_reg
 !          if ( MASK_LAT_DEPTH(n_lat_aux_grid,1 ,m) )
-!     &      TAVG_MOC_G(n_lat_aux_grid+1,1   ,:,m) = undefined_nf 
+!     &      TAVG_MOC_G(n_lat_aux_grid+1,1   ,:,m) = undefined_nf
 !          if ( MASK_LAT_DEPTH(n_lat_aux_grid,km,m) )
-!     &      TAVG_MOC_G(n_lat_aux_grid+1,km+1,:,m) = undefined_nf 
+!     &      TAVG_MOC_G(n_lat_aux_grid+1,km+1,:,m) = undefined_nf
 !        enddo
 !
    endif ! ioroot
 
- 
+
    deallocate ( WORK1, WORK2, WORK1_G )
 
    if ( ldiag_gm_bolus )  deallocate ( WORK2_G )
@@ -1292,15 +1292,15 @@
 ! !IROUTINE: compute_tracer_transports
 ! !INTERFACE:
  subroutine compute_tracer_transports (tracer_index, ADV, HDIF, FN, &
-                                       ADV_I, FN_I, ADV_SM, FN_SM ) 
+                                       ADV_I, FN_I, ADV_SM, FN_SM )
 ! !DESCRIPTION
-!  This subroutine computes northward tracer (T and S) transports 
+!  This subroutine computes northward tracer (T and S) transports
 !
 ! !REVISION HISTORY:
 !  same as module
 
 ! !INPUT PARAMETERS:
-!  input variables. the present design assumes that these are 
+!  input variables. the present design assumes that these are
 !  time-averaged inputs from tavg.F.
 
    real (rtavg), dimension(:,:,:), intent(in) ::  &
@@ -1310,12 +1310,12 @@
                !  submeso velocity contributions, respectively)
 
    real (rtavg), dimension(:,:,:,:), intent(in) ::  &
-      FN       ! flux of tracer in grid-y direction due to the Eulerian-mean 
+      FN       ! flux of tracer in grid-y direction due to the Eulerian-mean
                !  transport velocity
 
    integer (int_kind), optional, intent(in) ::  &
-      tracer_index    
- 
+      tracer_index
+
    real (rtavg), dimension(:,:,:), optional, intent(in) :: &
       ADV_I,  &! vertically-integrated tracer eddy-induced advection
                !  tendency (diagnostic)
@@ -1325,7 +1325,7 @@
    real (rtavg), dimension(:,:,:,:), optional, intent(in) ::  &
       FN_I,   &! flux of tracer in grid-y direction due to the
                !  eddy-induced velocity (diagnostic)
-      FN_SM    ! flux of tracer in grid-y direction due to the 
+      FN_SM    ! flux of tracer in grid-y direction due to the
                !  submeso velocity (diagnostic)
 
 !EOP
@@ -1341,10 +1341,10 @@
       i, j, k, m, n, iblock    ! loop indices
 
    real (r8) :: conversion
- 
+
    real (r8), dimension(:,:,:), allocatable ::  &
       WORK1                    ! work arrays
-   real (r8), dimension(:,:), allocatable ::  & 
+   real (r8), dimension(:,:), allocatable ::  &
       WORK1_G, WORK2_G,       &! global work arrays
       WORK3_G, WORK4_G
 
@@ -1358,27 +1358,27 @@
 !
 !-----------------------------------------------------------------------
    if (.not. (n_heat_trans_requested .or. n_salt_trans_requested) ) return
- 
+
 !-----------------------------------------------------------------------
 !
 !  error checking
 !
 !-----------------------------------------------------------------------
-   if      (tracer_index == 1  .and. n_heat_trans_requested ) then    
+   if      (tracer_index == 1  .and. n_heat_trans_requested ) then
 !           ok, continue
-   else if (tracer_index == 2  .and. n_salt_trans_requested ) then    
+   else if (tracer_index == 2  .and. n_salt_trans_requested ) then
 !           ok, continue
    else
      call document('compute_tracer_transports','return upon entry ')
      return
    endif
- 
+
    if ( (     present(ADV_I) .and. .not.present(FN_I))  .or.  &
         (.not.present(ADV_I) .and.      present(FN_I)) ) then
         call exit_POP (SigAbort,'(compute_tracer_transports)'   &
          // ' both ADV_I and FN_I are necessary fields for'     &
          // ' the related transport computations, but one is missing.')
-   endif  
+   endif
 
    if ( (     present(ADV_SM) .and. .not.present(FN_SM))  .or.  &
         (.not.present(ADV_SM) .and.      present(FN_SM)) ) then
@@ -1387,23 +1387,23 @@
          // ' the related transport computations, but one is missing.')
    endif
 
-   ioroot = shr_pio_getioroot(inst_name)
+   ioroot = shr_pio_getioroot('OCN')
 
    ldiag_gm_bolus = .false.
    if ( present(ADV_I) )  ldiag_gm_bolus = .true.
- 
+
    lsubmeso = .false.
    if ( present(ADV_SM) ) lsubmeso = .true.
- 
+
    call timer_start (timer_tracer_transports)
 
- 
+
 !-----------------------------------------------------------------------
 !
 !  allocate WORK arrays
 !
 !-----------------------------------------------------------------------
- 
+
    allocate ( WORK1(nx_block,ny_block,nblocks_clinic) )
 
    allocate ( WORK1_G(nx_global,ny_global), WORK2_G(nx_global,ny_global) )
@@ -1435,7 +1435,7 @@
      enddo
      call gather_global (WORK4_G, WORK1, ioroot,distrb_clinic)
    endif
-     
+
    if ( my_task == ioroot ) then
 
      TR_TRANS_G = c0
@@ -1448,7 +1448,7 @@
          do j=1,ny_global
            do i=1,nx_global
              if ( TLATD_G(i,j) >= lat_aux_edge(n-1) .and.  &
-                  TLATD_G(i,j) <  lat_aux_edge(n  ) ) then 
+                  TLATD_G(i,j) <  lat_aux_edge(n  ) ) then
                if ( REGION_MASK_LAT_AUX(i,j,m) == 1 ) then
                  TR_TRANS_G(n,1,m) = TR_TRANS_G(n,1,m) + WORK1_G(i,j) + WORK2_G(i,j)
                  TR_TRANS_G(n,2,m) = TR_TRANS_G(n,2,m) + WORK1_G(i,j)
@@ -1471,7 +1471,7 @@
 !-----------------------------------------------------------------------
 !
 !  determine the southern boundary transports for all regional
-!  transports 
+!  transports
 !
 !-----------------------------------------------------------------------
 
@@ -1481,7 +1481,7 @@
 
     !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
-        WORK1(:,:,iblock) = FN(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k) 
+        WORK1(:,:,iblock) = FN(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
      enddo
     !$OMP END PARALLEL DO
      call gather_global (WORK1_G, WORK1, ioroot,distrb_clinic)
@@ -1524,7 +1524,7 @@
    enddo
 
    if ( my_task == ioroot ) then
- 
+
 !-----------------------------------------------------------------------
 !
 !  add the southern boundary transports for all regional transports
@@ -1533,7 +1533,7 @@
 
      do m=2,n_transport_reg
        do n=1,n_lat_aux_grid+1
-         TR_TRANS_G(n,2,m) = TR_TRANS_G(n,2,m) + trans_s(2,m) 
+         TR_TRANS_G(n,2,m) = TR_TRANS_G(n,2,m) + trans_s(2,m)
          if ( ldiag_gm_bolus )   TR_TRANS_G(n,4,m) = TR_TRANS_G(n,4,m) &
                                                     + trans_s(4,m)
          if ( lsubmeso )         TR_TRANS_G(n,5,m) = TR_TRANS_G(n,5,m) &
@@ -1548,15 +1548,15 @@
 !-----------------------------------------------------------------------
      conversion = 1.0e-19_r8/hflux_factor
      if (tracer_index == 1) TR_TRANS_G = TR_TRANS_G*conversion
- 
+
 !-----------------------------------------------------------------------
 !
 !  mask the transports
 !
-!  - any missing component is filled with undefined_nf.  
+!  - any missing component is filled with undefined_nf.
 !  - because southern boundary diffusive transports are not available,
 !    the total and diffusive transport components are not computed
-!    for regions.  
+!    for regions.
 !
 !-----------------------------------------------------------------------
 
@@ -1576,16 +1576,16 @@
        TR_TRANS_G(:,1,m) = undefined_nf
        TR_TRANS_G(:,3,m) = undefined_nf
      enddo
- 
+
      if (tracer_index == 1) TAVG_N_HEAT_TRANS_G = TR_TRANS_G
      if (tracer_index == 2) TAVG_N_SALT_TRANS_G = TR_TRANS_G
 
    endif
- 
+
    deallocate ( WORK1, WORK1_G, WORK2_G)
    if ( ldiag_gm_bolus )  deallocate ( WORK3_G )
    if ( lsubmeso )        deallocate ( WORK4_G )
- 
+
    call timer_stop (timer_tracer_transports)
 
 !-----------------------------------------------------------------------
@@ -1596,5 +1596,5 @@
 !***********************************************************************
 
  end module diags_on_lat_aux_grid
-      
+
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

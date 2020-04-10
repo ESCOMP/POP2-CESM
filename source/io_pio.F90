@@ -117,9 +117,9 @@ module io_pio
 !
 !-----------------------------------------------------------------------
 
-   io_pio_subsystem => shr_pio_getiosys(inst_name)
-   pio_iotype =  shr_pio_getiotype(inst_name)
-   pio_netcdf_format = shr_pio_getioformat(inst_name)
+   io_pio_subsystem => shr_pio_getiosys('OCN')
+   pio_iotype =  shr_pio_getiotype('OCN')
+   pio_netcdf_format = shr_pio_getioformat('OCN')
 
    if (trim(mode) == 'write') then
       lclobber = .false.
@@ -333,7 +333,7 @@ module io_pio
             end do
          end if
 
-         io_pio_subsystem => shr_pio_getiosys(inst_name)
+         io_pio_subsystem => shr_pio_getiosys('OCN')
 
          if (basetype == PIO_INT) then
             if (ndim3 == 0) then

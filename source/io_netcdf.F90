@@ -2122,7 +2122,7 @@
 
    supported = .true.
 
-   ioroot = shr_pio_getioroot(inst_name)
+   ioroot = shr_pio_getioroot('OCN')
 
 !-----------------------------------------------------------------------
 !
