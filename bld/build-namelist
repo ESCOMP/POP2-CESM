@@ -1523,18 +1523,22 @@ if ($ecosys_on eq "TRUE") {
 
 if ($ecosys_on eq "TRUE") {
   add_default($nl, 'dust_flux_source', 'ocn_coupling'=>"$OCN_COUPLING");
-  add_default($nl, 'dust_flux_input%filename');
-  add_default($nl, 'dust_flux_input%file_fmt');
-  add_default($nl, 'dust_flux_input%file_varname');
+  if ($nl->get_value('dust_flux_source') ne '\'driver\'') {
+    add_default($nl, 'dust_flux_input%filename');
+    add_default($nl, 'dust_flux_input%file_fmt');
+    add_default($nl, 'dust_flux_input%file_varname');
+  }
   add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
 
   add_default($nl, 'iron_flux_source', 'ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'dust_ratio_thres', 'ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'fe_bioavail_frac_offset', 'ocn_coupling'=>"$OCN_COUPLING");
   add_default($nl, 'dust_ratio_to_fe_bioavail_frac_r', 'ocn_coupling'=>"$OCN_COUPLING");
-  add_default($nl, 'iron_flux_input%filename');
-  add_default($nl, 'iron_flux_input%file_fmt');
-  add_default($nl, 'iron_flux_input%file_varname');
+  if ($nl->get_value('iron_flux_source') ne '\'driver-derived\'') {
+    add_default($nl, 'iron_flux_input%filename');
+    add_default($nl, 'iron_flux_input%file_fmt');
+    add_default($nl, 'iron_flux_input%file_varname');
+  }
   add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
 
   add_default($nl, 'fesedflux_input%filename');
@@ -1596,7 +1600,10 @@ if ($ecosys_on eq "TRUE") {
   }
 
   my $estuary_type = $nl->get_value('estuary_type');
-  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type, 'rof_grid'=>"$ROF_GRID");
+  add_default($nl, 'riv_flux_shr_stream_file', 'estuary_type'=>$estuary_type, 'rof_grid'=>"$ROF_GRID", 'nofail'=>1);
+  if (not $nl->get_value('riv_flux_shr_stream_file')) {
+	  add_default($nl, 'riv_flux_shr_stream_file', 'val'=>'unknown','noprepend'=>1);
+  }
   add_default($nl, 'riv_flux_shr_stream_year_first');
   add_default($nl, 'riv_flux_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
   add_default($nl, 'riv_flux_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
@@ -1671,18 +1678,28 @@ if ($ecosys_on eq "TRUE") {
   # restorable_tracer_names
   my @tracer_names = split(/,/,$nl->get_value('restorable_tracer_names'));
   my $tracer_cnt =$#tracer_names+1;
-  add_default($nl, 'restore_data_filenames_derived');
-  my $restore_data_file= "$tracer_cnt*" . $nl->get_value('restore_data_filenames_derived');
-  add_default($nl, 'restore_data_filenames', 'val'=>"$restore_data_file", 'quote'=>'FALSE');
-  add_default($nl, 'restore_data_file_varnames');
+  my $first_tracer = @tracer_names[0];
+  $first_tracer =~ s/[\'\"]//g; # strip quotes
+  if (length $first_tracer != 0) {
+    add_default($nl, 'restore_data_filenames_derived');
+    my $restore_data_file= "$tracer_cnt*" . $nl->get_value('restore_data_filenames_derived');
+    add_default($nl, 'restore_data_filenames', 'val'=>"$restore_data_file", 'quote'=>'FALSE');
+    add_default($nl, 'restore_data_file_varnames');
 
-  add_default($nl, 'restore_inv_tau_opt');
-  add_default($nl, 'restore_inv_tau_const');
+    add_default($nl, 'restore_inv_tau_opt');
+    my $restore_inv_tau_opt = $nl->get_value('restore_inv_tau_opt');
+    $restore_inv_tau_opt =~ s/[\'\"]//g; # strip quotes
+    if ($restore_inv_tau_opt eq "const") {
+      add_default($nl, 'restore_inv_tau_const');
+    }
 
-  add_default($nl, 'restore_inv_tau_input%filename');
-  add_default($nl, 'restore_inv_tau_input%file_varname');
-  add_default($nl, 'restore_inv_tau_input%file_fmt');
-  add_default($nl, 'restore_inv_tau_input%scale_factor');
+    if ($restore_inv_tau_opt eq "file_time_invariant") {
+      add_default($nl, 'restore_inv_tau_input%filename');
+      add_default($nl, 'restore_inv_tau_input%file_varname');
+      add_default($nl, 'restore_inv_tau_input%file_fmt');
+      add_default($nl, 'restore_inv_tau_input%scale_factor');
+    }
+  }
 
   add_default($nl, 'surf_avg_dic_const');
   add_default($nl, 'surf_avg_alk_const');

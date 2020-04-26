@@ -128,6 +128,12 @@
   </compset>
 
   <compset>
+    <!-- latest JRA forcing, ecosys, high-res -->
+    <alias>GIAFECO_JRA_HR</alias>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE_POP2%ECO_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
     <alias>G1850ECO</alias>
     <lname>1850_DATM%NYF_SLND_CICE_POP2%ECO_DROF%NYF_SGLC_WW3</lname>
   </compset>
