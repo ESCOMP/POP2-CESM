@@ -1,0 +1,12 @@
+# check to see if cfc or sf6 is present before appending them
+# check for an exact module name match, to avoid false matches
+array_of_cice_opts=(`./xmlquery CICE_CONFIG_OPTS --value`)
+found=0
+for mod in ${array_of_cice_opts[@]}; do
+  if [[ $mod == "-trage" ]] ; then
+    found=1
+  fi
+done
+if [[ $found == 0 ]]; then
+    ./xmlchange -a CICE_CONFIG_OPTS="-trage 0"
+fi
