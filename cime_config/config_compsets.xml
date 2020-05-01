@@ -124,13 +124,13 @@
   <compset>
     <!-- latest JRA forcing -->
     <alias>GIAF_JRA_HR</alias>
-    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE_POP2_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE%CICE4_POP2_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
   </compset>
 
   <compset>
     <!-- latest JRA forcing, ecosys, high-res -->
     <alias>GIAFECO_JRA_HR</alias>
-    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE_POP2%ECO_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE%CICE4_POP2%ECO_DROF%JRA-1p4-2018_SGLC_SWAV</lname>
   </compset>
 
   <compset>
