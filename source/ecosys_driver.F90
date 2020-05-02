@@ -710,7 +710,7 @@ contains
 
              marbl_instances(bid)%domain%kmt = KMT(i, c, bid)
              if (partial_bottom_cells) then
-                marbl_instances(bid)%domain%delta_z(:) = DZT(i, c, :, bid)
+                marbl_instances(bid)%domain%delta_z(1:km) = DZT(i, c, 1:km, bid)
              end if
 
              ! --- set forcing fields ---
@@ -790,6 +790,9 @@ contains
                          end if
                       end associate
                    end do
+                   if (partial_bottom_cells) then
+                      write(stdout, *) 'delta_z = ', marbl_instances(bid)%domain%delta_z(k)
+                   end if
                    call exit_POP(sigAbort, 'Stopping in ' // subname)
                 end if
              end do
