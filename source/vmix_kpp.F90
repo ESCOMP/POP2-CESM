@@ -45,7 +45,7 @@
    use cvmix_kpp
    use cvmix_math
    use shr_sys_mod
-   use forcing_fields, only: LAMULT
+   use forcing_fields, only: LAMULT, LASL
 
    implicit none
    private
@@ -2512,7 +2512,10 @@
                           delta_buoy_cntr = (/DBSFC(i,j,kl)/)*1e-2_r8,        &
                           delta_Vsqr_cntr = (/VSHEAR(i,j)/)*1e-4_r8,          &
                           N_iface = (/B_FRQNCY(i,j), B_FRQNCY(i,j)/),         &
-                          EFactor = LAMULT(i,j,bid))
+                          EFactor = LAMULT(i,j,bid),                          &
+                          LaSL = LASL(i,j,bid),                               &
+                          bfsfc = BFSFC(i,j)*1e-4_r8,                         &
+                          ustar = USTAR(i,j)*1e-2_r8)
             else
 
 !-----------------------------------------------------------------------
