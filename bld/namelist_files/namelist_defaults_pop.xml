@@ -1625,7 +1625,8 @@
 
 <atm_bc_fe_bioavail_frac>0.06</atm_bc_fe_bioavail_frac>
 <atm_fe_to_bc_ratio>1.0</atm_fe_to_bc_ratio>
-<iron_frac_in_seaice_bc>0.06</iron_frac_in_seaice_bc>
+<seaice_bc_fe_bioavail_frac>0.06</seaice_bc_fe_bioavail_frac>
+<seaice_fe_to_bc_ratio>1.0</seaice_fe_to_bc_ratio>
 
 <!----------------------------->
 <!-- ecosys_tracer_init_nml  -->

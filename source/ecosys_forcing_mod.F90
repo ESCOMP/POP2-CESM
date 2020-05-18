@@ -301,7 +301,8 @@ module ecosys_forcing_mod
   real(r8) :: iron_frac_in_seaice_dust
   real(r8) :: atm_bc_fe_bioavail_frac
   real(r8) :: atm_fe_to_bc_ratio
-  real(r8) :: iron_frac_in_seaice_bc
+  real(r8) :: seaice_bc_fe_bioavail_frac
+  real(r8) :: seaice_fe_to_bc_ratio
 
   real(r8) :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
 
@@ -418,7 +419,7 @@ contains
          surf_avg_di13c_const, surf_avg_di14c_const,                          &
          iron_frac_in_atm_fine_dust, iron_frac_in_atm_coarse_dust,            &
          iron_frac_in_seaice_dust, atm_bc_fe_bioavail_frac, atm_fe_to_bc_ratio, &
-         iron_frac_in_seaice_bc
+         seaice_bc_fe_bioavail_frac, seaice_fe_to_bc_ratio
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -516,7 +517,8 @@ contains
     iron_frac_in_seaice_dust     = 0.035_r8
     atm_bc_fe_bioavail_frac      = 0.06_r8
     atm_fe_to_bc_ratio           = 1.0_r8
-    iron_frac_in_seaice_bc       = 0.06_r8
+    seaice_bc_fe_bioavail_frac   = 0.06_r8
+    seaice_fe_to_bc_ratio        = 1.0_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
@@ -1992,8 +1994,8 @@ contains
                    seaice_fe_bioavail_frac(:,:) = atm_fe_bioavail_frac(:,:)
 
                    forcing_field%field_0d(:,:,iblock) = forcing_field%field_0d(:,:,iblock) + seaice_fe_bioavail_frac(:,:) * &
-                        (iron_frac_in_seaice_dust * seaice_dust_flux(:,:,iblock) + &
-                         iron_frac_in_seaice_bc * seaice_black_carbon_flux(:,:,iblock))
+                        (iron_frac_in_seaice_dust * seaice_dust_flux(:,:,iblock)) + &
+                        seaice_bc_fe_bioavail_frac * seaice_fe_to_bc_ratio * seaice_black_carbon_flux(:,:,iblock)
 
                    ! convert to nmol/cm^2/s
                    forcing_field%field_0d(:,:,iblock) = (1.0e9_r8 / molw_Fe) * forcing_field%field_0d(:,:,iblock)
