@@ -7014,14 +7014,25 @@ Default: 0.035
 </entry>
 
 <entry
-id="iron_frac_in_atm_bc"
+id="atm_bc_fe_bioavail_frac"
 type="real"
 category="ecosys"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
-fraction, by weight, of iron in black carbon from atm
+fraction, by weight, of soluble iron in black carbon from atm
 
 Default: 0.06
+</entry>
+
+<entry
+id="atm_fe_to_bc_ratio"
+type="real"
+category="ecosys"
+category="Forcing (Ecosystem)"
+group="ecosys_forcing_data_nml">
+ratio of iron mass to black carbon mass emitted from combustion
+
+Default: 1.0
 </entry>
 
 <entry

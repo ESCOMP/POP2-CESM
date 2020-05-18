@@ -1623,7 +1623,8 @@
 <iron_frac_in_atm_coarse_dust>0.035</iron_frac_in_atm_coarse_dust>
 <iron_frac_in_seaice_dust>0.035</iron_frac_in_seaice_dust>
 
-<iron_frac_in_atm_bc>0.06</iron_frac_in_atm_bc>
+<atm_bc_fe_bioavail_frac>0.06</atm_bc_fe_bioavail_frac>
+<atm_fe_to_bc_ratio>1.0</atm_fe_to_bc_ratio>
 <iron_frac_in_seaice_bc>0.06</iron_frac_in_seaice_bc>
 
 <!----------------------------->

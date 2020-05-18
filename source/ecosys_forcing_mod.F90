@@ -299,7 +299,8 @@ module ecosys_forcing_mod
   real(r8) :: iron_frac_in_atm_fine_dust
   real(r8) :: iron_frac_in_atm_coarse_dust
   real(r8) :: iron_frac_in_seaice_dust
-  real(r8) :: iron_frac_in_atm_bc
+  real(r8) :: atm_bc_fe_bioavail_frac
+  real(r8) :: atm_fe_to_bc_ratio
   real(r8) :: iron_frac_in_seaice_bc
 
   real(r8) :: d14c_glo_avg       ! global average D14C over the ocean, computed from current D14C field
@@ -416,7 +417,8 @@ contains
          surf_avg_alk_const, surf_avg_dic_const,                              &
          surf_avg_di13c_const, surf_avg_di14c_const,                          &
          iron_frac_in_atm_fine_dust, iron_frac_in_atm_coarse_dust,            &
-         iron_frac_in_seaice_dust, iron_frac_in_atm_bc, iron_frac_in_seaice_bc
+         iron_frac_in_seaice_dust, atm_bc_fe_bioavail_frac, atm_fe_to_bc_ratio, &
+         iron_frac_in_seaice_bc
 
     !-----------------------------------------------------------------------
     !  &ecosys_forcing_data_nml
@@ -427,12 +429,7 @@ contains
     call set_defaults_tracer_read(gas_flux_fice, file_varname='FICE')
     call set_defaults_tracer_read(gas_flux_ws, file_varname='XKW')
     call set_defaults_tracer_read(gas_flux_ap, file_varname='P')
-    dust_flux_source             = 'driver'
     call set_defaults_tracer_read(dust_flux_input, file_varname='dust_flux')
-    iron_flux_source             = 'driver-derived'
-    dust_ratio_thres             = 55.0_r8
-    fe_bioavail_frac_offset      = 0.01_r8
-    dust_ratio_to_fe_bioavail_frac_r = 170.0_r8
     call set_defaults_tracer_read(iron_flux_input, file_varname='iron_flux')
     call set_defaults_tracer_read(fesedflux_input, file_varname='FESEDFLUXIN')
     call set_defaults_tracer_read(feventflux_input, file_varname='FESEDFLUXIN')
@@ -509,10 +506,16 @@ contains
     surf_avg_di13c_const     = 1944.0_r8
     surf_avg_di14c_const     = 1944.0_r8
 
+    dust_flux_source             = 'driver'
+    iron_flux_source             = 'driver-derived'
+    dust_ratio_thres             = 55.0_r8
+    fe_bioavail_frac_offset      = 0.01_r8
+    dust_ratio_to_fe_bioavail_frac_r = 170.0_r8
     iron_frac_in_atm_fine_dust   = 0.035_r8
     iron_frac_in_atm_coarse_dust = 0.035_r8
     iron_frac_in_seaice_dust     = 0.035_r8
-    iron_frac_in_atm_bc          = 0.06_r8
+    atm_bc_fe_bioavail_frac      = 0.06_r8
+    atm_fe_to_bc_ratio           = 1.0_r8
     iron_frac_in_seaice_bc       = 0.06_r8
 
     read(forcing_nml, nml=ecosys_forcing_data_nml, iostat=nml_error, iomsg=ioerror_msg)
@@ -1981,8 +1984,8 @@ contains
 
                    forcing_field%field_0d(:,:,iblock) = atm_fe_bioavail_frac(:,:) * &
                         (iron_frac_in_atm_fine_dust * atm_fine_dust_flux(:,:,iblock) + &
-                         iron_frac_in_atm_coarse_dust * atm_coarse_dust_flux(:,:,iblock) + &
-                         iron_frac_in_atm_bc * atm_black_carbon_flux(:,:,iblock))
+                         iron_frac_in_atm_coarse_dust * atm_coarse_dust_flux(:,:,iblock)) + &
+                        atm_bc_fe_bioavail_frac  * atm_fe_to_bc_ratio * atm_black_carbon_flux(:,:,iblock)
 
                    ! add component from seaice
 
