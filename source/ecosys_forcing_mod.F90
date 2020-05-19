@@ -509,7 +509,7 @@ contains
 
     dust_flux_source             = 'driver'
     iron_flux_source             = 'driver-derived'
-    dust_ratio_thres             = 55.0_r8
+    dust_ratio_thres             = 60.0_r8
     fe_bioavail_frac_offset      = 0.01_r8
     dust_ratio_to_fe_bioavail_frac_r = 170.0_r8
     iron_frac_in_atm_fine_dust   = 0.035_r8

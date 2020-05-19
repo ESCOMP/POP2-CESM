@@ -1356,11 +1356,13 @@
 <iron_flux_source>driver-derived</iron_flux_source>
 <iron_flux_source ocn_coupling="partial" ocn_bgc_config="cesm2.0">monthly-calendar</iron_flux_source>
 
-<dust_ratio_thres>55.0</dust_ratio_thres>
+<dust_ratio_thres>60.0</dust_ratio_thres>
+<dust_ratio_thres ocn_bgc_config="cesm2.1">55.0</dust_ratio_thres>
 <dust_ratio_thres ocn_bgc_config="cesm2.0">60.0</dust_ratio_thres>
 <dust_ratio_thres ocn_coupling="partial">66.2818</dust_ratio_thres>
 
 <fe_bioavail_frac_offset>0.01</fe_bioavail_frac_offset>
+<fe_bioavail_frac_offset ocn_bgc_config="cesm2.1">0.01</fe_bioavail_frac_offset>
 <fe_bioavail_frac_offset ocn_bgc_config="cesm2.0">0.01</fe_bioavail_frac_offset>
 <fe_bioavail_frac_offset ocn_coupling="partial">0.0131875</fe_bioavail_frac_offset>
 
