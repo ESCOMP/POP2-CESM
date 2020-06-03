@@ -1692,8 +1692,10 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'iron_frac_in_atm_fine_dust');
   add_default($nl, 'iron_frac_in_atm_coarse_dust');
   add_default($nl, 'iron_frac_in_seaice_dust');
-  add_default($nl, 'iron_frac_in_atm_bc');
-  add_default($nl, 'iron_frac_in_seaice_bc');
+  add_default($nl, 'atm_bc_fe_bioavail_frac');
+  add_default($nl, 'atm_fe_to_bc_ratio');
+  add_default($nl, 'seaice_bc_fe_bioavail_frac');
+  add_default($nl, 'seaice_fe_to_bc_ratio');
 }
 
 ##########################################
