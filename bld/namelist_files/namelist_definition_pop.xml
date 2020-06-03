@@ -7019,7 +7019,7 @@ type="real"
 category="ecosys"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
-fraction, by weight, of soluble iron in black carbon from atm
+fraction, by weight, of soluble fe in fe associated with black carbon from atm
 
 Default: 0.06
 </entry>
@@ -7040,7 +7040,7 @@ id="seaice_bc_fe_bioavail_frac"
 type="real"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml">
-fraction, by weight, of soluble iron in black carbon from seaice
+fraction, by weight, of soluble fe in fe associated with black carbon from seaice
 
 Default: 0.06
 </entry>

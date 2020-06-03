@@ -1357,25 +1357,13 @@
 <iron_flux_source ocn_coupling="partial" ocn_bgc_config="cesm2.0">monthly-calendar</iron_flux_source>
 
 <dust_ratio_thres>60.0</dust_ratio_thres>
-<dust_ratio_thres ocn_bgc_config="cesm2.1">55.0</dust_ratio_thres>
-<dust_ratio_thres ocn_bgc_config="cesm2.0">60.0</dust_ratio_thres>
 <dust_ratio_thres ocn_coupling="partial">69.00594</dust_ratio_thres>
-<dust_ratio_thres ocn_bgc_config="cesm2.1" ocn_coupling="partial">66.2818</dust_ratio_thres>
-<dust_ratio_thres ocn_bgc_config="cesm2.0" ocn_coupling="partial">60</dust_ratio_thres>
 
 <fe_bioavail_frac_offset>0.01</fe_bioavail_frac_offset>
-<fe_bioavail_frac_offset ocn_bgc_config="cesm2.1">0.01</fe_bioavail_frac_offset>
-<fe_bioavail_frac_offset ocn_bgc_config="cesm2.0">0.01</fe_bioavail_frac_offset>
 <fe_bioavail_frac_offset ocn_coupling="partial">0.0146756</fe_bioavail_frac_offset>
-<fe_bioavail_frac_offset ocn_bgc_config="cesm2.1" ocn_coupling="partial">0.0131875</fe_bioavail_frac_offset>
-<fe_bioavail_frac_offset ocn_bgc_config="cesm2.0" ocn_coupling="partial">0.01</fe_bioavail_frac_offset>
 
 <dust_ratio_to_fe_bioavail_frac_r>170.0</dust_ratio_to_fe_bioavail_frac_r>
-<dust_ratio_to_fe_bioavail_frac_r ocn_bgc_config="cesm2.1">170.0</dust_ratio_to_fe_bioavail_frac_r>
-<dust_ratio_to_fe_bioavail_frac_r ocn_bgc_config="cesm2.0">170.0</dust_ratio_to_fe_bioavail_frac_r>
 <dust_ratio_to_fe_bioavail_frac_r ocn_coupling="partial">366.314</dust_ratio_to_fe_bioavail_frac_r>
-<dust_ratio_to_fe_bioavail_frac_r ocn_bgc_config="cesm2.1" ocn_coupling="partial">400.064</dust_ratio_to_fe_bioavail_frac_r>
-<dust_ratio_to_fe_bioavail_frac_r ocn_bgc_config="cesm2.0" ocn_coupling="partial">170.0</dust_ratio_to_fe_bioavail_frac_r>
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
