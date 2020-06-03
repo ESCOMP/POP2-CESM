@@ -10,3 +10,5 @@ done
 if [[ $found == 0 ]]; then
     ./xmlchange -a CICE_CONFIG_OPTS="-trage 0"
 fi
+
+./xmlchange OCN_BGC_CONFIG=cesm2.1+cocco
