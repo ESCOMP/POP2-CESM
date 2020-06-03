@@ -1599,12 +1599,11 @@
 <ciso_atm_data_year>1</ciso_atm_data_year>
 
 <restorable_tracer_names>'PO4','NO3','SiO3','O2','ALK','ALK_ALT_CO2'</restorable_tracer_names>
-<restorable_tracer_names ocn_grid="tx0.1v3">''</restorable_tracer_names>
 
 <restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_POP_gx3v7_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
-<restore_data_filenames_derived ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/need_file.nc</restore_data_filenames_derived>
+<restore_data_filenames_derived ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_jan_IC_omip_POP_tx0.1v3_c200602.nc</restore_data_filenames_derived>
 
 <restore_data_file_varnames>'PO4','NO3','SiO3','O2','ALK','ALK'</restore_data_file_varnames>
 
@@ -1612,13 +1611,14 @@
 <restore_inv_tau_opt ocn_grid="gx3v7">file_time_invariant</restore_inv_tau_opt>
 <restore_inv_tau_opt ocn_grid="gx1v6">file_time_invariant</restore_inv_tau_opt>
 <restore_inv_tau_opt ocn_grid="gx1v7">file_time_invariant</restore_inv_tau_opt>
+<restore_inv_tau_opt ocn_grid="tx0.1v3">file_time_invariant</restore_inv_tau_opt>
 
 <restore_inv_tau_const>0.0</restore_inv_tau_const>
 
 <restore_inv_tau_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_inv_tau_POP_gx3v7_20170125.nc</restore_inv_tau_input%filename>
 <restore_inv_tau_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_inv_tau_POP_gx1v6_20170125.nc</restore_inv_tau_input%filename>
 <restore_inv_tau_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_inv_tau_POP_gx1v6_20170125.nc</restore_inv_tau_input%filename>
-<restore_inv_tau_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/need_file.nc</restore_inv_tau_input%filename>
+<restore_inv_tau_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_restore_inv_tau_POP_tx0.1v3_20200603.nc</restore_inv_tau_input%filename>
 <restore_inv_tau_input%file_varname>RESTORE_INV_TAU_MARGINAL_SEA_ONLY</restore_inv_tau_input%file_varname>
 <restore_inv_tau_input%file_fmt>nc</restore_inv_tau_input%file_fmt>
 <restore_inv_tau_input%scale_factor>1.0</restore_inv_tau_input%scale_factor>
