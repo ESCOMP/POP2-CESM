@@ -788,4 +788,11 @@
     <decomptype>spacecurve</decomptype>
   </decomp>
 
+  <decomp nproc="20184" res="tx0.1v3" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >18</bsize_x>
+    <bsize_y   >16</bsize_y>
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
 </configInfo>
