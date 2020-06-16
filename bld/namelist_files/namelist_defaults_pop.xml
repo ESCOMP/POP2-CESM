@@ -1603,7 +1603,7 @@
 <restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_POP_gx3v7_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
-<restore_data_filenames_derived ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_jan_IC_omip_POP_tx0.1v3_c200602.nc</restore_data_filenames_derived>
+<restore_data_filenames_derived ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_restore_POP_tx0.1v3_20200604.nc</restore_data_filenames_derived>
 
 <restore_data_file_varnames>'PO4','NO3','SiO3','O2','ALK','ALK'</restore_data_file_varnames>
 
