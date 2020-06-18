@@ -1378,7 +1378,11 @@
 
 <fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_cesm1_97_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
-<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedflux_total_reduce_oxic_POP_gx1v7.c200618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 
@@ -1638,8 +1642,10 @@
 <init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="with_cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200617.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
