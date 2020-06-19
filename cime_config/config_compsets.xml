@@ -82,6 +82,11 @@
   </compset>
 
   <compset>
+    <alias>C1850ECO_ECOCESM21</alias>
+    <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECOCESM21_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
     <alias>C1850ECO_ECOCESM20</alias>
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECOCESM20_DROF%NYF_SGLC_WW3</lname>
   </compset>
