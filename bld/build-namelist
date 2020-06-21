@@ -2751,6 +2751,9 @@ sub module_tavg_script_args() {
   my $nl         = shift;
   my $module     = shift;
   my $cfg        = shift;
+  if ($module eq "abio_dic_dic14") {
+    return ($nl->get_value('abio_dic_dic14_ltavg_NK'));
+  }
   if ($module eq "ecosys") {
     return ($nl->get_value('lecosys_tavg_all'),
             $nl->get_value('lecosys_tavg_alt_co2'));

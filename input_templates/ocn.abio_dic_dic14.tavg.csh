@@ -15,6 +15,8 @@ endif
 
 @ s1 = 1   # use base-model stream 1
 
+set abio_dic_dic14_ltavg_NK = $2
+
 cat >! $CASEROOT/Buildconf/popconf/abio_dic_dic14_tavg_contents << EOF
 $s1  ABIO_DIC
 $s1  ABIO_DIC14
@@ -37,6 +39,14 @@ $s1  STF_ABIO_DIC
 $s1  STF_ABIO_DIC14
 $s1  Jint_ABIO_DIC14
 EOF
+
+if ($abio_dic_dic14_ltavg_NK == ".true.") then
+cat >> $CASEROOT/Buildconf/popconf/abio_dic_dic14_tavg_contents << EOF
+$s1  d_SF_ABIO_DIC_d_ABIO_DIC
+$s1  d_SF_ABIO_DIC14_d_ABIO_DIC
+$s1  d_SF_ABIO_DIC14_d_ABIO_DIC14
+EOF
+endif
 
 if ($OCN_TAVG_TRACER_BUDGET == TRUE) then
 cat >> $CASEROOT/Buildconf/popconf/abio_dic_dic14_tavg_contents << EOF

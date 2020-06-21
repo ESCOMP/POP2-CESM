@@ -1333,6 +1333,12 @@
 <abio_atm_model_year>1</abio_atm_model_year>
 <abio_atm_data_year>1</abio_atm_data_year>
 
+<!--------------------------------->
+<!-- abio_dic_dic14 derived vars -->
+<!--------------------------------->
+
+<abio_dic_dic14_ltavg_NK>.false.</abio_dic_dic14_ltavg_NK>
+
 <!---------------------------->
 <!-- ecosys derived vars    -->
 <!---------------------------->
