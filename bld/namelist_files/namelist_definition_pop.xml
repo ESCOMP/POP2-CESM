@@ -5883,6 +5883,20 @@ Year in data that corresponds to abio_atm_model_year.
 Default: 1
 </entry>
 
+<!-- - - - - - - - - - - - - - - - - - - - -->
+<!-- Group: abio_dic_dic14 derived vars  - -->
+<!-- - - - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="abio_dic_dic14_ltavg_NK"
+type="logical"
+category="Passive Tracers (Abiotic DIC & DIC14)"
+group="derived" >
+add Newton-Krylov spinup related tavg variables
+Default:
+.false.
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys derived vars      - -->
