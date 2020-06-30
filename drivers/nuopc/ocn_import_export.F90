@@ -587,7 +587,7 @@ contains
     where (IFRAC <= 0.05_r8)
        LASL(:,:,:) = work1 * RCALCT(:,:,:) ! surface layer Lanmguir number (unitless)
     elsewhere
-       LASL(:,:,:) = c10000 ! a big number
+       LASL(:,:,:) = bignum
     end where
 
     !-----------------------------------------------------------------------
