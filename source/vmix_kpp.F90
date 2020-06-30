@@ -399,7 +399,7 @@
 
       select case (langmuir_opt)
       case ('null')
-         write(stdout,'(a38)') '   no Lanmguir mixing parameterization'
+         write(stdout,'(a38)') '   no Lanmguir turbulence parameterization'
          langmuir_mixing_opt      = 'NONE'
          langmuir_entrainment_opt = 'NONE'
       case ('vr12-ma')
@@ -411,8 +411,8 @@
          langmuir_mixing_opt      = 'LWF16'
          langmuir_entrainment_opt = 'LF17'
       case default
-         langmuir_mixing_opt      = 'NONE'
-         langmuir_entrainment_opt = 'NONE'
+         call exit_POP(sigAbort, &
+             'ERROR: Unknown option for Langmuir turbulence parameterization')
       end select
 
    endif
