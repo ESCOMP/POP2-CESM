@@ -1513,6 +1513,22 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp585">ocn/pop/gx1v6/forcing/ndep_ocn_ssp585_w_nhx_emis_gx1v6_c190212.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp585">ocn/pop/gx1v6/forcing/ndep_ocn_ssp585_w_nhx_emis_gx1v6_c190212.nc</ndep_shr_stream_file>
 
+<ndep_data_type ocn_transient="ssp534ext">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="ssp534ext">2100</ndep_shr_stream_year_first>
+<ndep_shr_stream_year_last  ocn_transient="ssp534ext">2300</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="ssp534ext">2100</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="ssp534ext">ocn/pop/gx3v7/forcing/ndep_ocn_ssp534osext_w_nhx_emis_gx3v7_c200629.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp534ext">ocn/pop/gx1v6/forcing/ndep_ocn_ssp534osext_w_nhx_emis_gx1v6_c200629.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp534ext">ocn/pop/gx1v6/forcing/ndep_ocn_ssp534osext_w_nhx_emis_gx1v6_c200629.nc</ndep_shr_stream_file>
+
+<ndep_data_type ocn_transient="ssp585ext">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="ssp585ext">2100</ndep_shr_stream_year_first>
+<ndep_shr_stream_year_last  ocn_transient="ssp585ext">2300</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="ssp585ext">2100</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="ssp585ext">ocn/pop/gx3v7/forcing/ndep_ocn_ssp585ext_w_nhx_emis_gx3v7_c200629.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="ssp585ext">ocn/pop/gx1v6/forcing/ndep_ocn_ssp585ext_w_nhx_emis_gx1v6_c200629.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="ssp585ext">ocn/pop/gx1v6/forcing/ndep_ocn_ssp585ext_w_nhx_emis_gx1v6_c200629.nc</ndep_shr_stream_file>
+
 <riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20180511.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v7">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
