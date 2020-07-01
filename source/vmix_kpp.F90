@@ -45,7 +45,7 @@
    use cvmix_kpp
    use cvmix_math
    use shr_sys_mod
-   use forcing_fields, only: LAMULT, LASL, IFRAC
+   use forcing_fields, only: LAMULT, LASL
 
    implicit none
    private
@@ -411,8 +411,8 @@
          langmuir_mixing_opt      = 'LWF16'
          langmuir_entrainment_opt = 'LF17'
       case default
-         call exit_POP(sigAbort, &
-             'ERROR: Unknown option for Langmuir turbulence parameterization')
+         write(string, "(3A)") "Error: '", trim(langmuir_opt), "' is not a valid option for Langmuir turbulence parameterization"
+         call exit_POP(sigAbort, string)
       end select
 
    endif
@@ -2506,9 +2506,9 @@
           do i = 1,nx_block
             ic = (j-1)*nx_block + i
             if (kl.le.CVmix_vars(ic)%nlev) then
-              if (IFRAC(i,j,bid) <= 0.05_r8 .and. LASL(i,j,bid) > c0) then
-                ! only use Langmuir enhanced entrainment in ice-free regions
-                ! where ice fraction is less than 5% and LaSL has a valid value
+              if (LASL(i,j,bid) > c0) then
+                ! only use Langmuir enhanced entrainment where LaSL has
+                ! a valid (positive) value.
                 RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(     &
                             zt_cntr = (/zgrid(kl)/)*1e-2_r8,                  &
                             ws_cntr = (/WS(i,j)/)*1e-2_r8,                    &
@@ -2523,7 +2523,6 @@
                 ! otherwise use the original formula of the unresolved shear
                 ! by setting bfsfc to zero, as the new formula is only used
                 ! when bfsfc < 0
-                ! EFactor is already set to 1 where IFRAC <= 0.05
                 RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(     &
                             zt_cntr = (/zgrid(kl)/)*1e-2_r8,                  &
                             ws_cntr = (/WS(i,j)/)*1e-2_r8,                    &

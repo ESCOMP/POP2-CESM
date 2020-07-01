@@ -258,7 +258,7 @@ contains
             WORKB(i,j       ) = x2o(index_x2o_Sw_hstokes,n)
             LASL(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
          else
-            LASL(i,j,iblock) = bignum
+            LASL(i,j,iblock) = -c1
          endif
 
          ! convert dust flux from MKS (kg/m^2/s) to CGS (g/cm^2/s)
