@@ -2506,9 +2506,9 @@
           do i = 1,nx_block
             ic = (j-1)*nx_block + i
             if (kl.le.CVmix_vars(ic)%nlev) then
-              if (IFRAC(i,j,bid) <= 0.05_r8) then
+              if (IFRAC(i,j,bid) <= 0.05_r8 .and. LASL(i,j,bid) > c0) then
                 ! only use Langmuir enhanced entrainment in ice-free regions
-                ! where ice fraction is less than 5%
+                ! where ice fraction is less than 5% and LaSL has a valid value
                 RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(     &
                             zt_cntr = (/zgrid(kl)/)*1e-2_r8,                  &
                             ws_cntr = (/WS(i,j)/)*1e-2_r8,                    &
