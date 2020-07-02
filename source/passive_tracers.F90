@@ -126,6 +126,7 @@
 
    integer (int_kind), dimension (3:nt) ::  &
       tavg_var,                 & ! tracer
+      tavg_var_2,               & ! tracer
       tavg_var_z_t_150m,        & ! tracer (top 150 m)
       tavg_var_sqr,             & ! tracer square
       tavg_var_surf,            & ! tracer surface value
@@ -535,6 +536,14 @@
          coordinates = 'TLONG TLAT z_t_150m time'
       end if
       call define_tavg_field(tavg_var(n),                           &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates=coordinates)
+
+      sname = trim(tracer_d(n)%short_name) /&
+                                            &/ '_2'
+      call define_tavg_field(tavg_var_2(n),                         &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
                              scale_factor=tracer_d(n)%scale_factor, &
@@ -1327,6 +1336,7 @@
    if (mix_pass /= 1) then
       do n = 3, nt
          call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
+         call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var_2(n),bid,k)
          call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var_z_t_150m(n),bid,k)
 
          if (accumulate_tavg_now(tavg_var_sqr(n))) then
