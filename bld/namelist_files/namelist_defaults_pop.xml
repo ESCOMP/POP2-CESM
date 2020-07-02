@@ -1172,6 +1172,12 @@
 
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
+<!------------------------------->
+<!-- Group: tavg derived vars  -->
+<!------------------------------->
+
+<tavg_contents_override_file>none</tavg_contents_override_file>
+
 <!---------------------------->
 <!-- Group: mcog_nml        -->
 <!---------------------------->
