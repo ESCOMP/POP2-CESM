@@ -23,7 +23,7 @@ module ocn_import_export
   use forcing_fields,        only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
   use forcing_fields,        only: ATM_NHx_nf_ind, ATM_NOy_nf_ind
   use forcing_fields,        only: IFRAC, U10_SQR, ATM_PRESS
-  use forcing_fields,        only: LAMULT, USTOKES, VSTOKES
+  use forcing_fields,        only: LAMULT, USTOKES, VSTOKES, LASL
   use forcing_fields,        only: ATM_FINE_DUST_FLUX, ATM_COARSE_DUST_FLUX, SEAICE_DUST_FLUX
   use forcing_fields,        only: ATM_BLACK_CARBON_FLUX, SEAICE_BLACK_CARBON_FLUX
   use mcog,                  only: lmcog, mcog_ncols, lmcog_flds_sent, import_mcog
@@ -184,6 +184,7 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sw_lamult')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sw_ustokes')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sw_vstokes')
+    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sw_hstokes')
 
     ! from atmosphere
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_pslv')
@@ -580,6 +581,14 @@ contains
     call state_getimport(importState, 'Sw_vstokes', work1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     VSTOKES(:,:,:) = work1(:,:,:) * RCALCT(:,:,:) ! Stokes drift (m/s)
+
+    call state_getimport(importState, 'Sw_hstokes', work1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    where (IFRAC <= 0.05_r8)
+       LASL(:,:,:) = work1 * RCALCT(:,:,:) ! surface layer Lanmguir number (unitless)
+    elsewhere
+       LASL(:,:,:) = -c1
+    end where
 
     !-----------------------------------------------------------------------
     ! from river
