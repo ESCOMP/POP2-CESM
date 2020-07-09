@@ -344,6 +344,7 @@ my $OCN_TRACER_MODULES_OPT = "$xmlvars{'OCN_TRACER_MODULES_OPT'}";
 my $OCN_TAVG_TRACER_BUDGET = "$xmlvars{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$xmlvars{'OCN_TAVG_HIFREQ'}";
 my $OCN_ONEDIM             = "$xmlvars{'OCN_ONEDIM'}";
+my $OCN_PHYS_DEV           = "$xmlvars{'OCN_PHYS_DEV'}";
 my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
 my $INFO_DBUG              = "$xmlvars{'INFO_DBUG'}";
 my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
@@ -920,7 +921,7 @@ add_default($nl, 'ah&hmix_del4t_nml');
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
-add_default($nl, 'kappa_isop_deep');
+add_default($nl, 'kappa_isop_deep','ocn_phys_dev'=>"$OCN_PHYS_DEV");
 add_default($nl, 'kappa_thic_deep');
 
 # All namelist values are stored in exactly the format
