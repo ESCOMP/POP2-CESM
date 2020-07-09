@@ -2,9 +2,11 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
+    <desc ocn="POP2[%1D][%PHYS-DEV][%ECO][%ECOCESM21][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
     <desc option="1D" >Single column </desc>
+    <desc option="PHYS-DEV">Use development namelist defaults</desc>
     <desc option="ECO">Ecosystem</desc>
+    <desc option="ECOCESM21">Ecosystem, using CESM 2.1 settings</desc>
     <desc option="ECOCESM20">Ecosystem, using CESM 2.0 settings</desc>
     <desc option="ABIO-DIC">Abiotic DIC/DIC14</desc>
     <desc option="PHYS-CYCLE">phys cycle option</desc>
@@ -79,6 +81,19 @@
     <group>run_component_pop</group>
     <file>env_run.xml</file>
     <desc>TRUE turns off all horizontal motion in POP (single column)</desc>
+  </entry>
+
+  <entry id="OCN_PHYS_DEV">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <values>
+      <value compset = "_POP2%[^_]*PHYS-DEV">TRUE</value>
+    </values>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>TRUE uses development parameter settings that haven't necessarily
+          been scientifically vetted for all compsets in the POP namelist</desc>
   </entry>
 
   <entry id="OCN_NDEP_DRIVER">
@@ -203,9 +218,10 @@
 
   <entry id="OCN_BGC_CONFIG">
     <type>char</type>
-    <valid_values>latest,cesm2.0,SPECTRA1.0,cesm2.1+cocco</valid_values>
+    <valid_values>latest,latest+cocco,cesm2.1,cesm2.1+cocco,cesm2.0,SPECTRA1.0</valid_values>
     <default_value>latest</default_value>
     <values>
+	<value compset="POP2%[^_]*ECOCESM21">cesm2.1</value>
 	<value compset="POP2%[^_]*ECOCESM20">cesm2.0</value>
     </values>
     <group>run_component_pop</group>

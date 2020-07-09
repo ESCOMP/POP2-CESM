@@ -1,1 +1,11 @@
-./xmlchange OCN_BGC_CONFIG=cesm2.1+cocco
+# Check current value of OCN_BGC_CONFIG
+ocn_bgc_config=(`./xmlquery OCN_BGC_CONFIG --value`)
+
+if [[ "${ocn_bgc_config}" == "latest" ]]; then
+  ./xmlchange OCN_BGC_CONFIG=latest+cocco
+elif [[ "${ocn_bgc_config}" == "cesm2.1" ]]; then
+  ./xmlchange OCN_BGC_CONFIG=cesm2.1+cocco
+elif [[ "${ocn_bgc_config}" != *"cocco"* ]]; then
+  echo "ERROR: OCN_BGC_CONFIG=${ocn_bgc_config} does not have equivalent option with coccolithophores"
+  exit 1
+fi

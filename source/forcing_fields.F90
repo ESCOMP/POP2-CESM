@@ -18,7 +18,7 @@ module forcing_fields
    use blocks,      only: nx_block, ny_block
    use constants,   only: c0
    use domain_size, only: max_blocks_clinic,nt
-      
+
    implicit none
    save
 
@@ -77,7 +77,8 @@ module forcing_fields
       ATM_PRESS,         &! atmospheric pressure forcing
       FW,FW_OLD,         &! freshwater flux at T points (cm/s)
                           ! FW_OLD is at time n-1
-      LAMULT,            &! Langmuir multiplier, QL, 150526
+      LAMULT,            &! Langmuir multiplier
+      LASL,              &! surface layer averaged Langmuir number
       USTOKES,           &! surface Stokes drift x component
       VSTOKES             ! surface Stokes drift y component
 

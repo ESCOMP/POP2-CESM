@@ -596,10 +596,10 @@
 <!-- enhanced diffusivity at depth, only default for 1 degree -->
 <!-- until validated at other resolutions                     -->
 <!-------------------------------------------------------------->
-<kappa_thic_deep                               >0.1</kappa_thic_deep>
-<kappa_isop_deep                               >0.1</kappa_isop_deep>
-<kappa_isop_deep  ocn_grid="gx1v6"             >0.2</kappa_isop_deep>
-<kappa_isop_deep  ocn_grid="gx1v7"             >0.2</kappa_isop_deep>
+<kappa_thic_deep>0.1</kappa_thic_deep>
+<kappa_isop_deep>0.1</kappa_isop_deep>
+<kappa_isop_deep ocn_grid="gx1v6" ocn_phys_dev="FALSE">0.2</kappa_isop_deep>
+<kappa_isop_deep ocn_grid="gx1v7" ocn_phys_dev="FALSE">0.2</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->
@@ -1339,6 +1339,12 @@
 <abio_atm_model_year>1</abio_atm_model_year>
 <abio_atm_data_year>1</abio_atm_data_year>
 
+<!--------------------------------->
+<!-- abio_dic_dic14 derived vars -->
+<!--------------------------------->
+
+<abio_dic_dic14_ltavg_NK>.false.</abio_dic_dic14_ltavg_NK>
+
 <!---------------------------->
 <!-- ecosys derived vars    -->
 <!---------------------------->
@@ -1362,17 +1368,14 @@
 <iron_flux_source>driver-derived</iron_flux_source>
 <iron_flux_source ocn_coupling="partial" ocn_bgc_config="cesm2.0">monthly-calendar</iron_flux_source>
 
-<dust_ratio_thres>55.0</dust_ratio_thres>
-<dust_ratio_thres ocn_bgc_config="cesm2.0">60.0</dust_ratio_thres>
-<dust_ratio_thres ocn_coupling="partial">66.2818</dust_ratio_thres>
+<dust_ratio_thres>60.0</dust_ratio_thres>
+<dust_ratio_thres ocn_coupling="partial">69.00594</dust_ratio_thres>
 
 <fe_bioavail_frac_offset>0.01</fe_bioavail_frac_offset>
-<fe_bioavail_frac_offset ocn_bgc_config="cesm2.0">0.01</fe_bioavail_frac_offset>
-<fe_bioavail_frac_offset ocn_coupling="partial">0.0131875</fe_bioavail_frac_offset>
+<fe_bioavail_frac_offset ocn_coupling="partial">0.0146756</fe_bioavail_frac_offset>
 
 <dust_ratio_to_fe_bioavail_frac_r>170.0</dust_ratio_to_fe_bioavail_frac_r>
-<dust_ratio_to_fe_bioavail_frac_r ocn_bgc_config="cesm2.0">170.0</dust_ratio_to_fe_bioavail_frac_r>
-<dust_ratio_to_fe_bioavail_frac_r ocn_coupling="partial">400.064</dust_ratio_to_fe_bioavail_frac_r>
+<dust_ratio_to_fe_bioavail_frac_r ocn_coupling="partial">366.314</dust_ratio_to_fe_bioavail_frac_r>
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
@@ -1388,8 +1391,12 @@
 
 <fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_cesm1_97_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
-<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedflux_total_reduce_oxic_POP_gx1v7.c200618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/fesedflux_total_reduce_oxic_POP_tx0.1v3.c200616.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 
@@ -1639,24 +1646,30 @@
 <iron_frac_in_atm_coarse_dust>0.035</iron_frac_in_atm_coarse_dust>
 <iron_frac_in_seaice_dust>0.035</iron_frac_in_seaice_dust>
 
-<iron_frac_in_atm_bc>0.06</iron_frac_in_atm_bc>
-<iron_frac_in_seaice_bc>0.06</iron_frac_in_seaice_bc>
+<atm_bc_fe_bioavail_frac>0.06</atm_bc_fe_bioavail_frac>
+<atm_fe_to_bc_ratio>1.0</atm_fe_to_bc_ratio>
+<seaice_bc_fe_bioavail_frac>0.06</seaice_bc_fe_bioavail_frac>
+<seaice_fe_to_bc_ratio>1.0</seaice_fe_to_bc_ratio>
 
 <!----------------------------->
 <!-- ecosys_tracer_init_nml  -->
 <!----------------------------->
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="latest+cocco">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20200325.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20200325.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="latest+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="latest+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200617.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_jan_IC_omip_POP_tx0.1v3_c200617.nc</init_ecosys_init_file>
