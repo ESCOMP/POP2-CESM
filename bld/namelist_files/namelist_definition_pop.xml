@@ -7240,7 +7240,15 @@ id="ecosys_tadvect_ctype"
 type="char*256"
 category="Ecosystem Model"
 group="ecosys_driver_nml" >
-Default: 'base model'
+Default: 'base_model'
+</entry>
+
+<entry
+id="ecosys_vflux_tadvect_ctype"
+type="char*256"
+category="Ecosystem Model"
+group="ecosys_driver_nml" >
+Default: 'base_model'
 </entry>
 
 <entry

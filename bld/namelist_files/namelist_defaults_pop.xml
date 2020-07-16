@@ -1739,6 +1739,8 @@
 
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
+<ecosys_tadvect_ctype ocn_grid="tx0.1v3">upwind3</ecosys_tadvect_ctype>
+<ecosys_vflux_tadvect_ctype>base_model</ecosys_vflux_tadvect_ctype>
 <ecosys_qsw_distrb_const                 >.true.</ecosys_qsw_distrb_const>
 <ecosys_qsw_distrb_const ocn_grid="gx3v7">.false.</ecosys_qsw_distrb_const>
 
