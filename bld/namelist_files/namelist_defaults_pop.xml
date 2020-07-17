@@ -1392,7 +1392,7 @@
 <fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_cesm1_97_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedflux_total_reduce_oxic_POP_gx1v7.c200618.nc</fesedflux_input%filename>
-<fesedflux_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/fesedflux_total_reduce_oxic_POP_tx0.1v3.c200616.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/fesedflux_total_reduce_oxic_POP_tx0.1v3.c200616.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
@@ -1407,7 +1407,7 @@
 <feventflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/feventflux_gx3v7_5gmol_cesm1_97_2017.nc</feventflux_input%filename>
 <feventflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/feventflux_gx1v6_5gmol_cesm1_97_2017.nc</feventflux_input%filename>
 <feventflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/feventflux_gx1v6_5gmol_cesm1_97_2017.nc</feventflux_input%filename>
-<feventflux_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/feventflux_5gmol_POP_tx0.1v3.c200616.nc</feventflux_input%filename>
+<feventflux_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/feventflux_5gmol_POP_tx0.1v3.c200616.nc</feventflux_input%filename>
 <feventflux_input%file_varname>FESEDFLUXIN</feventflux_input%file_varname>
 <feventflux_input%file_fmt>nc</feventflux_input%file_fmt>
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
@@ -1454,8 +1454,8 @@
 <nox_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nox_flux_monthly_input%filename>
 <nhy_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
-<nox_flux_monthly_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ndep_ocn_1850_w_nhx_emis_tx0.1v3_c191115.nc</nox_flux_monthly_input%filename>
-<nhy_flux_monthly_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ndep_ocn_1850_w_nhx_emis_tx0.1v3_c191115.nc</nhy_flux_monthly_input%filename>
+<nox_flux_monthly_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/ndep_ocn_1850_w_nhx_emis_tx0.1v3_c191115.nc</nox_flux_monthly_input%filename>
+<nhy_flux_monthly_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/ndep_ocn_1850_w_nhx_emis_tx0.1v3_c191115.nc</nhy_flux_monthly_input%filename>
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
 
@@ -1534,7 +1534,7 @@
 <riv_flux_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nnsm_e1000r500.20180511.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v7">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nnsm_e1000r300.20170425.nc</riv_flux_shr_stream_file>
-<riv_flux_shr_stream_file ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/riv_nut.gnews_gnm.JRA025m_to_tx0.1v3_nnsm_e333r100_190226.20200616.nc</riv_flux_shr_stream_file>
+<riv_flux_shr_stream_file ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/riv_nut.gnews_gnm.JRA025m_to_tx0.1v3_nnsm_e333r100_190226.20200616.nc</riv_flux_shr_stream_file>
 
 <riv_flux_shr_stream_file ocn_grid="gx3v7" estuary_type="'vsf_ebm'">ocn/pop/gx3v7/forcing/riv_nut.gnews_gnm.gx3v7_nn_open_ocean_nnsm_e1000r500_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v6" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
@@ -1617,7 +1617,7 @@
 <restore_data_filenames_derived ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_POP_gx3v7_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
 <restore_data_filenames_derived ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_POP_gx1v6_20170113.nc</restore_data_filenames_derived>
-<restore_data_filenames_derived ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_restore_POP_tx0.1v3_20200604.nc</restore_data_filenames_derived>
+<restore_data_filenames_derived ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/ecosys_restore_POP_tx0.1v3_20200604.nc</restore_data_filenames_derived>
 
 <restore_data_file_varnames>'PO4','NO3','SiO3','O2','ALK','ALK'</restore_data_file_varnames>
 
@@ -1632,7 +1632,7 @@
 <restore_inv_tau_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ecosys_restore_inv_tau_POP_gx3v7_20170125.nc</restore_inv_tau_input%filename>
 <restore_inv_tau_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ecosys_restore_inv_tau_POP_gx1v6_20170125.nc</restore_inv_tau_input%filename>
 <restore_inv_tau_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/ecosys_restore_inv_tau_POP_gx1v6_20170125.nc</restore_inv_tau_input%filename>
-<restore_inv_tau_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_restore_inv_tau_POP_tx0.1v3_20200603.nc</restore_inv_tau_input%filename>
+<restore_inv_tau_input%filename ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/forcing/ecosys_restore_inv_tau_POP_tx0.1v3_20200603.nc</restore_inv_tau_input%filename>
 <restore_inv_tau_input%file_varname>RESTORE_INV_TAU_MARGINAL_SEA_ONLY</restore_inv_tau_input%file_varname>
 <restore_inv_tau_input%file_fmt>nc</restore_inv_tau_input%file_fmt>
 <restore_inv_tau_input%scale_factor>1.0</restore_inv_tau_input%scale_factor>
@@ -1672,7 +1672,7 @@
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
-<init_ecosys_init_file ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/tmp/ecosys_jan_IC_omip_POP_tx0.1v3_c200617.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="tx0.1v3">ocn/pop/tx0.1v3/ic/ecosys_jan_IC_omip_POP_tx0.1v3_c200617.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
