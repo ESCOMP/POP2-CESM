@@ -1,5 +1,56 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  qing
+Tag Date:    9 July 2020
+Tag Name:    cesm_pop_2_1_20200709
+Tag Summary: Bring in Langmuir turbulence induced entrainment changes
+         Enables the parameterization of Langmuir turbulence induced entrainment
+         by Li and Fox-Kemper (2017) via CVMix. ( POP2-CESM PR#31)
+          - Point the CVMix repository to v0.97b-beta and update the CVMix interface in POP.
+          - Get the surface layer averaged Langmuir number LaSL from WW3.
+
+M       Externals_POP.cfg
+M       bld/namelist_files/namelist_definition_pop.xml
+M       drivers/mct/POP_CplIndices.F90
+M       drivers/mct/ocn_import_export.F90
+M       drivers/nuopc/ocn_import_export.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90
+M       source/vmix_kpp.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay (conflict resolution by mlevy)
+Tag Date:    7 April 2020
+Tag Name:    cesm_pop_2_1_20200407
+Tag Summary: Merge cesm2_1_x_rel branch into master
+             -- Brings in Keith's OMIP and JRA compset updates
+             -- Also updates ebm default parameters and adds impvmixu_tavg() function
+
+Testing: aux_pop on cheyenne (intel compiler)
+         aux_pop_MARBL on cheyenne (gnu / intel compilers) and hobart (nag, pgi)
+         * climate-changing for gx1v7
+         * climate-changing when ecosys_on = .true.
+         * bit-for-bit for gx3v7 if ecosys_on = .false.
+
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/config_compsets.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testlist_pop_nuopc.xml
+D       cime_config/testdefs/testmods_dirs/pop/ecosys_cesm2_0_settings
+A       cime_config/testdefs/testmods_dirs/pop/omip/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/omip/shell_commands
+A       cime_config/testdefs/testmods_dirs/pop/omip/user_nl_pop
+M       source/baroclinic.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_timeseries_mod.F90
+M       source/vertical_mix.F90
+
+===============================================================================
+Tag Creator: altuntas
 Developers:  mvertens, mlevy, altuntas
 Tag Date:    18 March 2020
 Tag Name:    cesm_pop_2_1_20200318

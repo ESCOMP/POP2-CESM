@@ -38,7 +38,8 @@
    use pressure_grad, only: lpressure_avg, gradp
    use horizontal_mix, only: hdiffu, hdifft, iso_impvmixt_tavg
    use vertical_mix, only: vmix_coeffs, implicit_vertical_mix, vdiffu,       &
-       vdifft, impvmixt, impvmixu, impvmixt_correct, convad, impvmixt_tavg
+       vdifft, impvmixt, impvmixu, impvmixt_correct, convad, impvmixt_tavg,  &
+       impvmixu_tavg
    use vmix_kpp, only: add_kpp_sources
    use diagnostics, only: ldiag_cfl, cfl_check, ldiag_global,                &
        DIAG_KE_ADV_2D, DIAG_KE_PRESS_2D, DIAG_KE_HMIX_2D, DIAG_KE_VMIX_2D,   &

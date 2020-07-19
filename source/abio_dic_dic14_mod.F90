@@ -179,7 +179,10 @@ module abio_dic_dic14_mod
       tavg_FG_ABIO_DIC14,       & ! tavg id for surface gas flux of C14
       tavg_FG_ABIO_DIC,         & ! tavg id for surface gas flux of CO2
       tavg_ABIO_ALK,            & ! tavg id for surface Alkalinity
-      tavg_ABIO_PH                ! tavg id for surface PH
+      tavg_ABIO_PH,             & ! tavg id for surface PH
+      tavg_d_SF_ABIO_DIC_d_ABIO_DIC,    & ! tavg id for derivative of SF_ABIO_DIC wrt ABIO_DIC
+      tavg_d_SF_ABIO_DIC14_d_ABIO_DIC,  & ! tavg id for derivative of SF_ABIO_DIC14 wrt ABIO_DIC
+      tavg_d_SF_ABIO_DIC14_d_ABIO_DIC14   ! tavg id for derivative of SF_ABIO_DIC14 wrt ABIO_DIC14
 
 !-----------------------------------------------------------------------
 !  define tavg id for 3d fields related to surface fluxes
@@ -566,9 +569,10 @@ contains
          call document(subname, 'some abio_dic_dic14 fields missing from restfile, ' /&
               &/ 'using abio_dic_dic14_restfile_fallback')
          abio_dic_dic14_restart_filename = abio_dic_dic14_restfile_fallback
-         call io_read_fallback_register_field('ABIO_PH_SURF', &
-              fallback_opt='const', const_val=c0)
       endif
+
+      call io_read_fallback_register_field('ABIO_PH_SURF', &
+           fallback_opt='const', const_val=c0)
 
       call rest_read_tracer_block(abio_dic_dic14_ind_begin,          &
                                   init_abio_dic_dic14_init_file_fmt, &
@@ -817,6 +821,23 @@ contains
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
+   call define_tavg_field(tavg_d_SF_ABIO_DIC_d_ABIO_DIC,'d_SF_ABIO_DIC_d_ABIO_DIC',2, &
+                          long_name='derivative of SF_ABIO_DIC wrt ABIO_DIC', &
+                          units='cm/s', grid_loc='2110', &
+                          coordinates='TLONG TLAT time')
+   var_cnt = var_cnt+1
+
+   call define_tavg_field(tavg_d_SF_ABIO_DIC14_d_ABIO_DIC,'d_SF_ABIO_DIC14_d_ABIO_DIC',2, &
+                          long_name='derivative of SF_ABIO_DIC14 wrt ABIO_DIC', &
+                          units='cm/s', grid_loc='2110', &
+                          coordinates='TLONG TLAT time')
+   var_cnt = var_cnt+1
+
+   call define_tavg_field(tavg_d_SF_ABIO_DIC14_d_ABIO_DIC14,'d_SF_ABIO_DIC14_d_ABIO_DIC14',2, &
+                          long_name='derivative of SF_ABIO_DIC14 wrt ABIO_DIC14', &
+                          units='cm/s', grid_loc='2110', &
+                          coordinates='TLONG TLAT time')
+   var_cnt = var_cnt+1
 
 !-----------------------------------------------------------------------
 ! Allocate variable to save surface variables to in surf_flux,
@@ -958,6 +979,7 @@ contains
    use named_field_mod,     only: named_field_get
    use grid,                only: REGION_MASK
    use c14_atm_forcing_mod, only: c14_atm_forcing_update_data, c14_atm_forcing_get_data
+   use tavg,                only: accumulate_tavg_now
 
 ! !INPUT PARAMETERS:
 
@@ -1012,6 +1034,7 @@ contains
       PHHI,             & ! upper bound for ph in solver
       ABIO_DIC_ROW,     & ! row of DIC values for solver
       CO2STAR_ROW,      & ! CO2STAR from solver
+      CO2STAR_ROW_TMP,  & ! CO2STAR from solver
       DCO2STAR_ROW,     & ! DCO2STAR from solver
       pCO2SURF_ROW,     & ! pCO2SURF from solver
       DpCO2_ROW,        & ! DpCO2 from solver
@@ -1058,7 +1081,7 @@ contains
  !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,CO2_SCHMIDT_USED,PV,SiO2, PO4,&
  !$OMP                     pCO2, D14C,SURF_VALS_DIC,SURF_VALS_DIC14,&
  !$OMP                     R14C_ocn,R14C_atm,PHLO,PHHI,ABIO_DIC_ROW,&
- !$OMP                     ALK_ROW,PH_NEW,CO2STAR_ROW, DCO2STAR_ROW,&
+ !$OMP                     ALK_ROW,PH_NEW,CO2STAR_ROW,CO2STAR_ROW_TMP,DCO2STAR_ROW,&
  !$OMP                     pCO2SURF_ROW,DpCO2_ROW,GAS_FLUX_ABIO_DIC,&
  !$OMP                     GAS_FLUX_ABIO_DIC14,CO3_ROW)
 
@@ -1225,6 +1248,51 @@ contains
          ABIO_DIC_SFLUX_TAVG(:,j,13,iblock)  = DpCO2_ROW
          ABIO_DIC_SFLUX_TAVG(:,j,14,iblock)  = ALK_ROW
 
+!-----------------------------------------------------------------------
+!  compute derivatives of surface flux terms, if requested
+!-----------------------------------------------------------------------
+
+         if (accumulate_tavg_now(tavg_d_SF_ABIO_DIC14_d_ABIO_DIC14)) then
+
+            ! d_SF_ABIO_DIC14_d_ABIO_DIC14
+            where (SURF_VALS_DIC(:,j) /= c0)
+               ABIO_DIC_SFLUX_TAVG(:,j,18,iblock) = (-1) * PV(:,j) * CO2STAR_ROW / SURF_VALS_DIC(:,j)
+            elsewhere
+               ABIO_DIC_SFLUX_TAVG(:,j,18,iblock) = c0
+            endwhere
+
+         endif
+
+         if (accumulate_tavg_now(tavg_d_SF_ABIO_DIC_d_ABIO_DIC) .or. &
+             accumulate_tavg_now(tavg_d_SF_ABIO_DIC14_d_ABIO_DIC)) then
+
+            call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), .true., &
+                             .false., SST(:,j,iblock), SSS(:,j,iblock), &
+                             ABIO_DIC_ROW + c1, ALK_ROW, PO4(:,j), SiO2(:,j), &
+                             PHLO, PHHI, PH_NEW, pCO2(:,j), &
+                             AP_USED(:,j,iblock), CO2STAR_ROW_TMP, &
+                             DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW, CO3_ROW)
+
+            call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), .true., &
+                             .false., SST(:,j,iblock), SSS(:,j,iblock), &
+                             ABIO_DIC_ROW - c1, ALK_ROW, PO4(:,j), SiO2(:,j), &
+                             PHLO, PHHI, PH_NEW, pCO2(:,j), &
+                             AP_USED(:,j,iblock), CO2STAR_ROW, &
+                             DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW, CO3_ROW)
+
+            ! d_SF_ABIO_DIC_d_ABIO_DIC
+            ABIO_DIC_SFLUX_TAVG(:,j,16,iblock) = (-1) * PV(:,j) * &
+               (CO2STAR_ROW_TMP - CO2STAR_ROW) * p5
+
+            ! d_SF_ABIO_DIC14_d_ABIO_DIC
+            where (SURF_VALS_DIC(:,j) /= c0)
+               ABIO_DIC_SFLUX_TAVG(:,j,17,iblock) = (-1) * PV(:,j) * SURF_VALS_DIC14(:,j) * &
+                  (CO2STAR_ROW_TMP / (SURF_VALS_DIC(:,j) + c1) - CO2STAR_ROW / (SURF_VALS_DIC(:,j) - c1)) * p5
+            elsewhere
+               ABIO_DIC_SFLUX_TAVG(:,j,17,iblock) = c0
+            endwhere
+
+         endif
 
       end do !j = 1,ny_block
 !-----------------------------------------------------------------------
@@ -1406,6 +1474,9 @@ contains
       call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,13,iblock),tavg_ABIO_DpCO2,iblock,1)
       call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,14,iblock),tavg_ABIO_ALK,iblock,1)
       call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,15,iblock),tavg_ABIO_D14Catm,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,16,iblock),tavg_d_SF_ABIO_DIC_d_ABIO_DIC,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,17,iblock),tavg_d_SF_ABIO_DIC14_d_ABIO_DIC,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,18,iblock),tavg_d_SF_ABIO_DIC14_d_ABIO_DIC14,iblock,1)
    end do
 
 

@@ -2,9 +2,12 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%ECO][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
+    <desc ocn="POP2[%1D][%PHYS-DEV][%ECO][%ECOCESM21][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
     <desc option="1D" >Single column </desc>
+    <desc option="PHYS-DEV">Use development namelist defaults</desc>
     <desc option="ECO">Ecosystem</desc>
+    <desc option="ECOCESM21">Ecosystem, using CESM 2.1 settings</desc>
+    <desc option="ECOCESM20">Ecosystem, using CESM 2.0 settings</desc>
     <desc option="ABIO-DIC">Abiotic DIC/DIC14</desc>
     <desc option="PHYS-CYCLE">phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
@@ -38,6 +41,7 @@
     <values>
       <value compset="_POP2%[^_]*ECO"             >prognostic</value>
       <value compset="_DATM.*CICE.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="OMIP_DATM.*CICE.*_POP2%[^_]*ECO">prognostic</value>
       <value compset="_DATM%CPLHIST.*CICE.*_POP2%[^_]*ECO">prognostic</value>
     </values>
     <group>run_component_pop</group>
@@ -77,6 +81,19 @@
     <group>run_component_pop</group>
     <file>env_run.xml</file>
     <desc>TRUE turns off all horizontal motion in POP (single column)</desc>
+  </entry>
+
+  <entry id="OCN_PHYS_DEV">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <values>
+      <value compset = "_POP2%[^_]*PHYS-DEV">TRUE</value>
+    </values>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>TRUE uses development parameter settings that haven't necessarily
+          been scientifically vetted for all compsets in the POP namelist</desc>
   </entry>
 
   <entry id="OCN_NDEP_DRIVER">
@@ -136,10 +153,14 @@
 
   <entry id="OCN_TRANSIENT">
     <type>char</type>
-    <valid_values>unset,CORE2,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp585</valid_values>
+    <valid_values>unset,CORE2_NYF,CORE2,CORE2_OMIP,JRA,JRA_OMIP,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp585</valid_values>
     <default_value>unset</default_value>
     <values>
+      <value compset="DATM%NYF">CORE2_NYF</value>
       <value compset="DATM%IAF">CORE2</value>
+      <value compset="^OMIP_DATM%IAF">CORE2_OMIP</value>
+      <value compset="DATM%JRA">JRA</value>
+      <value compset="^OMIP_DATM%JRA">JRA_OMIP</value>
       <value compset="^5505_CAM">1850-2000</value>
       <value compset="^HIST_CAM">1850-2000</value>
       <value compset="^RCP4_CAM">rcp4.5</value>
@@ -185,6 +206,8 @@
       <value compset="_POP2%[^_]*ECO.*_BGC%BPRP">prognostic</value>
       <value compset="_POP2%[^_]*ECO.*_BGC%BDRD">diagnostic</value>
       <value compset="_DATM%CPLHIST.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="^OMIP_DATM%IAF.*_POP2%[^_]*ECO">diagnostic</value>
+      <value compset="^OMIP_DATM%JRA.*_POP2%[^_]*ECO">diagnostic</value>
     </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
@@ -195,8 +218,12 @@
 
   <entry id="OCN_BGC_CONFIG">
     <type>char</type>
-    <valid_values>latest,cesm2.0,SPECTRA1.0,cesm2.1+cocco</valid_values>
+    <valid_values>latest,latest+cocco,cesm2.1,cesm2.1+cocco,cesm2.0,SPECTRA1.0</valid_values>
     <default_value>latest</default_value>
+    <values>
+	<value compset="POP2%[^_]*ECOCESM21">cesm2.1</value>
+	<value compset="POP2%[^_]*ECOCESM20">cesm2.0</value>
+    </values>
     <group>run_component_pop</group>
     <file>env_run.xml</file>
     <desc>Version of ocean BGC tunings to use (default values can be overwritten by user_nl_pop and user_nl_marbl)</desc>
