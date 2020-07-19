@@ -22,7 +22,7 @@ module forcing_timeseries_mod
   integer (int_kind), parameter :: forcing_timeseries_taxmode_endpoint    = 1
   integer (int_kind), parameter :: forcing_timeseries_taxmode_extrapolate = 2
 
-  real (r8), parameter :: max_yr_extension = 2.0_r8 ! maximum number of years that a timeseries will be extrapolated
+  real (r8), parameter :: max_yr_extension = 4.0_r8 ! maximum number of years that a timeseries will be extrapolated
 
   type :: forcing_timeseries_var
     character (char_len)   :: name

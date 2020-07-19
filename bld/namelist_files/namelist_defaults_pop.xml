@@ -596,10 +596,10 @@
 <!-- enhanced diffusivity at depth, only default for 1 degree -->
 <!-- until validated at other resolutions                     -->
 <!-------------------------------------------------------------->
-<kappa_thic_deep                               >0.1</kappa_thic_deep>
-<kappa_isop_deep                               >0.1</kappa_isop_deep>
-<kappa_isop_deep  ocn_grid="gx1v6"             >0.2</kappa_isop_deep>
-<kappa_isop_deep  ocn_grid="gx1v7"             >0.2</kappa_isop_deep>
+<kappa_thic_deep>0.1</kappa_thic_deep>
+<kappa_isop_deep>0.1</kappa_isop_deep>
+<kappa_isop_deep ocn_grid="gx1v6" ocn_phys_dev="FALSE">0.2</kappa_isop_deep>
+<kappa_isop_deep ocn_grid="gx1v7" ocn_phys_dev="FALSE">0.2</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->
@@ -947,6 +947,9 @@
 
 <sfwf_filename ocn_grid="gx3v7"  >ocn/pop/gx3v7/forcing/sfwf_mm_PHC2_salx_flxio_20090831.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="gx1v6"  >ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  ocn_transient="CORE2_NYF">ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  ocn_transient="CORE2">ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
+<sfwf_filename ocn_grid="gx1v7"  ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="gx1v7"  >ocn/pop/gx1v7/forcing/sfwf_mm_WOA13v2_salx_flxio_gx1v7_20170706.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx1v1"  >ocn/pop/tx1v1/forcing/sfwf_mm_PHC2_salx_flxio_20080502.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
@@ -957,7 +960,8 @@
 <sfwf_weak_restore ocn_grid="gx1v6"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v7"  >0.0115</sfwf_weak_restore>
-<sfwf_weak_restore ocn_grid="gx1v7"  datm_mode="CORE_IAF_JRA">0.046</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  ocn_transient="JRA">0.046</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v7"  ocn_transient="JRA_OMIP">0.046</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v7"  ocn_onedim="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
@@ -1216,7 +1220,16 @@
 <model_year&cfc_nml                          >   1</model_year&cfc_nml>
 
 <data_year&cfc_nml  ocn_transient="CORE2"    >2009</data_year&cfc_nml>
-<model_year&cfc_nml ocn_transient="CORE2"    > 310</model_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="CORE2"    > 372</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
+
+<data_year&cfc_nml  ocn_transient="CORE2_OMIP">2009</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="CORE2_OMIP"> 372</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
+
+<data_year&cfc_nml  ocn_transient="JRA"      >2018</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="JRA"      > 366</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
+
+<data_year&cfc_nml  ocn_transient="JRA_OMIP" >2018</data_year&cfc_nml>
+<model_year&cfc_nml ocn_transient="JRA_OMIP" > 366</model_year&cfc_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
 
 <data_year&cfc_nml  ocn_transient="1850-2000">1850</data_year&cfc_nml>
 <model_year&cfc_nml ocn_transient="1850-2000">1850</model_year&cfc_nml>
@@ -1236,7 +1249,16 @@
 <model_year&sf6_nml                          >   1</model_year&sf6_nml>
 
 <data_year&sf6_nml  ocn_transient="CORE2"    >2009</data_year&sf6_nml>
-<model_year&sf6_nml ocn_transient="CORE2"    > 310</model_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="CORE2"    > 372</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
+
+<data_year&sf6_nml  ocn_transient="CORE2_OMIP">2009</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="CORE2_OMIP"> 372</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2009-1948+1) -->
+
+<data_year&sf6_nml  ocn_transient="JRA"      >2018</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="JRA"      > 366</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
+
+<data_year&sf6_nml  ocn_transient="JRA_OMIP" >2018</data_year&sf6_nml>
+<model_year&sf6_nml ocn_transient="JRA_OMIP" > 366</model_year&sf6_nml> <!-- ncycles*nyrs = 6*(2018-1958+1) -->
 
 <data_year&sf6_nml  ocn_transient="1850-2000">1850</data_year&sf6_nml>
 <model_year&sf6_nml ocn_transient="1850-2000">1850</model_year&sf6_nml>
@@ -1311,6 +1333,12 @@
 <abio_atm_model_year>1</abio_atm_model_year>
 <abio_atm_data_year>1</abio_atm_data_year>
 
+<!--------------------------------->
+<!-- abio_dic_dic14 derived vars -->
+<!--------------------------------->
+
+<abio_dic_dic14_ltavg_NK>.false.</abio_dic_dic14_ltavg_NK>
+
 <!---------------------------->
 <!-- ecosys derived vars    -->
 <!---------------------------->
@@ -1321,8 +1349,8 @@
 <!-- ecosys_forcing_data_nml - -->
 <!-------------------------- - -->
 
-<dust_flux_source ocn_coupling="partial">monthly-calendar</dust_flux_source>
-<dust_flux_source                       >driver          </dust_flux_source>
+<dust_flux_source>driver</dust_flux_source>
+<dust_flux_source ocn_coupling="partial" ocn_bgc_config="cesm2.0">monthly-calendar</dust_flux_source>
 
 <dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename>
 <dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename>
@@ -1331,11 +1359,17 @@
 <dust_flux_input%file_varname>DSTSF</dust_flux_input%file_varname>
 <dust_flux_input%scale_factor>1.0e-1</dust_flux_input%scale_factor>
 
-<iron_flux_source ocn_coupling="partial">monthly-calendar</iron_flux_source>
-<iron_flux_source                       >driver-derived  </iron_flux_source>
+<iron_flux_source>driver-derived</iron_flux_source>
+<iron_flux_source ocn_coupling="partial" ocn_bgc_config="cesm2.0">monthly-calendar</iron_flux_source>
 
-<dust_ratio_thres>55.0</dust_ratio_thres>
-<dust_ratio_thres ocn_bgc_config="cesm2.0">60.0</dust_ratio_thres>
+<dust_ratio_thres>60.0</dust_ratio_thres>
+<dust_ratio_thres ocn_coupling="partial">69.00594</dust_ratio_thres>
+
+<fe_bioavail_frac_offset>0.01</fe_bioavail_frac_offset>
+<fe_bioavail_frac_offset ocn_coupling="partial">0.0146756</fe_bioavail_frac_offset>
+
+<dust_ratio_to_fe_bioavail_frac_r>170.0</dust_ratio_to_fe_bioavail_frac_r>
+<dust_ratio_to_fe_bioavail_frac_r ocn_coupling="partial">366.314</dust_ratio_to_fe_bioavail_frac_r>
 
 <iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7_6gmol_cesm1_93_20161122.nc</iron_flux_input%filename>
 <iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6_8gmol_cesm1_93_20161114.nc</iron_flux_input%filename>
@@ -1350,7 +1384,11 @@
 
 <fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_gx3v7_cesm1_97_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
-<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/fesedflux_total_reduce_oxic_POP_gx1v7.c200618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/forcing/fesedfluxTot_gx1v6_cesm2_2018_c180618.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 <fesedflux_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_cesm2_2017.nc</fesedflux_input%filename>
 
@@ -1366,10 +1404,10 @@
 <feventflux_input%scale_factor>1.1574e-6</feventflux_input%scale_factor>
 
 <o2_consumption_scalef_opt>const</o2_consumption_scalef_opt>
-<o2_consumption_scalef_opt ocn_grid="gx1v6">file_time_invariant</o2_consumption_scalef_opt>
-<o2_consumption_scalef_opt ocn_grid="gx1v7">file_time_invariant</o2_consumption_scalef_opt>
 <o2_consumption_scalef_opt ocn_grid="gx1v6" ocn_bgc_config="cesm2.0">const</o2_consumption_scalef_opt>
 <o2_consumption_scalef_opt ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">const</o2_consumption_scalef_opt>
+<o2_consumption_scalef_opt ocn_grid="gx1v6" ocn_coupling="full">file_time_invariant</o2_consumption_scalef_opt>
+<o2_consumption_scalef_opt ocn_grid="gx1v7" ocn_coupling="full">file_time_invariant</o2_consumption_scalef_opt>
 
 <o2_consumption_scalef_const>1.0</o2_consumption_scalef_const>
 <o2_consumption_scalef_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/o2_consumption_scalef_0.30_POP_gx1v6_20180623.nc</o2_consumption_scalef_input%filename>
@@ -1384,9 +1422,7 @@
 <p_remin_scalef_input%file_fmt>nc</p_remin_scalef_input%file_fmt>
 <p_remin_scalef_input%scale_factor>1.0</p_remin_scalef_input%scale_factor>
 
-<ndep_data_type ocn_transient="unset">monthly-calendar</ndep_data_type>
-<ndep_data_type ocn_transient="CORE2">monthly-calendar</ndep_data_type>
-
+<ndep_data_type>monthly-calendar</ndep_data_type>
 <nox_flux_monthly_input%file_fmt>nc</nox_flux_monthly_input%file_fmt>
 <nox_flux_monthly_input%file_varname>NOy_deposition</nox_flux_monthly_input%file_varname>
 <nox_flux_monthly_input%scale_factor>7.1429e+06</nox_flux_monthly_input%scale_factor>
@@ -1410,6 +1446,22 @@
 <nhy_flux_monthly_input%filename ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/forcing/ndep_ocn_1850_w_nhx_emis_gx1v6_c180427.nc</nhy_flux_monthly_input%filename>
 
 <ndep_shr_stream_scale_factor>7.1429e+06</ndep_shr_stream_scale_factor>
+
+<ndep_data_type ocn_transient="CORE2_OMIP">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="CORE2_OMIP">1637</ndep_shr_stream_year_first> <!-- 1948-(6-1)*(2009-1948+1)-1 -->
+<ndep_shr_stream_year_last  ocn_transient="CORE2_OMIP">2010</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="CORE2_OMIP">0</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="CORE2_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
+
+<ndep_data_type ocn_transient="JRA_OMIP">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="JRA_OMIP">1652</ndep_shr_stream_year_first> <!-- 1958-(6-1)*(2018-1958+1)-1 -->
+<ndep_shr_stream_year_last  ocn_transient="JRA_OMIP">2019</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="JRA_OMIP">0</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="JRA_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
 
 <ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="1850-2000">1849</ndep_shr_stream_year_first>
@@ -1475,11 +1527,21 @@
 <riv_flux_shr_stream_file ocn_grid="gx1v6" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
 <riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea.20170425.nc</riv_flux_shr_stream_file>
 
-<riv_flux_shr_stream_year_first>1900</riv_flux_shr_stream_year_first>
-<riv_flux_shr_stream_year_align>1900</riv_flux_shr_stream_year_align>
+<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="rx1">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.rx1_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_170413.20190602.nc</riv_flux_shr_stream_file>
 
-<riv_flux_shr_stream_year_last ocn_transient="unset">1900</riv_flux_shr_stream_year_last>
-<riv_flux_shr_stream_year_last                      >2000</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_file ocn_grid="gx1v7" estuary_type="'vsf_ebm'" rof_grid="JRA025v2">ocn/pop/gx1v7/forcing/riv_nut.gnews_gnm.JRA025m_to_gx1v7_nn_open_ocean_nnsm_e1000r300_marginal_sea_190214.20190602.nc</riv_flux_shr_stream_file>
+
+<riv_flux_shr_stream_year_first>1900</riv_flux_shr_stream_year_first>
+
+<riv_flux_shr_stream_year_align                           >1900</riv_flux_shr_stream_year_align>
+<riv_flux_shr_stream_year_align ocn_transient="CORE2_OMIP"> 263</riv_flux_shr_stream_year_align> <!-- 6*(2009-1948+1)-(2009-1900) -->
+<riv_flux_shr_stream_year_align ocn_transient="JRA_OMIP"  > 248</riv_flux_shr_stream_year_align> <!-- 6*(2018-1958+1)-(2018-1900) -->
+
+<riv_flux_shr_stream_year_last ocn_transient="unset"    >1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="CORE2_NYF">1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="CORE2"    >1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last ocn_transient="JRA"      >1900</riv_flux_shr_stream_year_last>
+<riv_flux_shr_stream_year_last                          >2000</riv_flux_shr_stream_year_last>
 
 <riv_flux_din_file_varname>din_riv_flux</riv_flux_din_file_varname>
 <riv_flux_din_scale_factor>         1.0</riv_flux_din_scale_factor>
@@ -1568,24 +1630,31 @@
 <iron_frac_in_atm_coarse_dust>0.035</iron_frac_in_atm_coarse_dust>
 <iron_frac_in_seaice_dust>0.035</iron_frac_in_seaice_dust>
 
-<iron_frac_in_atm_bc>0.06</iron_frac_in_atm_bc>
-<iron_frac_in_seaice_bc>0.06</iron_frac_in_seaice_bc>
+<atm_bc_fe_bioavail_frac>0.06</atm_bc_fe_bioavail_frac>
+<atm_fe_to_bc_ratio>1.0</atm_fe_to_bc_ratio>
+<seaice_bc_fe_bioavail_frac>0.06</seaice_bc_fe_bioavail_frac>
+<seaice_fe_to_bc_ratio>1.0</seaice_fe_to_bc_ratio>
 
 <!----------------------------->
 <!-- ecosys_tracer_init_nml  -->
 <!----------------------------->
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20180308.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20190712.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_9p6z_20180124_3impCalc.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="latest+cocco">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20190712.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20180124_3impCalc.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="latest+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
-<init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20190712.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20180124_3impCalc.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="latest+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200617.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.1+cocco">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20200325.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="SPECTRA1.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_9p6z_20200325_3impCalc.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
@@ -1686,7 +1755,8 @@
 <estuary_type ocn_grid="gx1v7">vsf_ebm</estuary_type>
 <ebm_param_option ocn_grid="gx1v7">file</ebm_param_option>
 <ebm_param_filename ocn_grid="gx1v7">ocn/pop/gx1v6/forcing/EBMparm_HU20HL20_gx1v6.20170312.nc</ebm_param_filename>
-<ebm_param_filename ocn_grid="gx1v7" datm_mode="CORE_IAF_JRA">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
+<ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
+<ebm_param_filename ocn_grid="gx1v7" rof_grid="JRA025v2">ocn/pop/gx1v7/forcing/EBM_param_gx1v7_JRA55.2017-11-16.nc</ebm_param_filename>
 
 <estuary_option ocn_grid="tx0.1v3">on</estuary_option>
 

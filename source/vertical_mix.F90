@@ -56,7 +56,7 @@
              vmix_coeffs,                          &
              vdifft, vdiffu,                       &
              impvmixt, impvmixt_correct, impvmixu, &
-             convad, impvmixt_tavg
+             convad, impvmixt_tavg, impvmixu_tavg
 
 ! !PUBLIC DATA MEMBERS:
 
@@ -474,11 +474,14 @@
 
    call define_tavg_field(tavg_VUF,'VUF',3,                     &
                           long_name='Zonal viscous stress',     &
-                          units='    ', grid_loc='3222')
+                          units='    ', grid_loc='3223',        &
+                          coordinates='ULONG ULAT z_w_bot time')
 
    call define_tavg_field(tavg_VVF,'VVF',3,                      &
                           long_name='Meridional viscous stress', &
-                          units='    ', grid_loc='3222')
+                          units='    ', grid_loc='3223',        &
+                          coordinates='ULONG ULAT z_w_bot time')
+
 
    if (convection_itype == convect_type_adjust) then
      call define_tavg_field(tavg_PEC,'PEC',3,                          &
@@ -1013,14 +1016,145 @@
 !  accumulate time-average of vertical diffusion fluxes if reqd
 !
 !-----------------------------------------------------------------------
-
-   call accumulate_tavg_field(VUF(:,:,bid),tavg_VUF,bid,k)
-   call accumulate_tavg_field(VVF(:,:,bid),tavg_VVF,bid,k)
-
+!!$
+!!$   call accumulate_tavg_field(VUF(:,:,bid),tavg_VUF,bid,k)
+!!$   call accumulate_tavg_field(VVF(:,:,bid),tavg_VVF,bid,k)
+!!$
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine vdiffu
+
+!***********************************************************************
+!BOP
+! !IROUTINE: impvmixu_tavg
+! !INTERFACE:
+
+ subroutine impvmixu_tavg(UOLD, VOLD, UNEW, VNEW, this_block)
+
+   ! !DESCRIPTION:
+   !  Computes vertical diffusion of momentum for time average history files
+   !  \begin{equation}
+   !   VUF = \mu\delta_z(u,v)
+   !  \end{equation}
+   !  \begin{eqnarray}
+   !   \mu\delta_z(u,v) = (\tau_x,\tau_y)    &{\rm at }& z=0 \\
+   !   \mu\delta_z(u,v) = c|{\bf\rm u}|(u,v) &{\rm at }& z=-H_U
+   !  \end{eqnarray}
+   !
+   ! !REVISION HISTORY:
+   !  same as module
+
+   ! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+        UOLD,                 &! U velocity at old time level
+        VOLD,                 &! V velocity at old time level
+        UNEW,                 &! U velocity at old time level
+        VNEW                   ! V velocity at old time level
+
+   type (block), intent(in) :: &
+      this_block             ! block info for current block
+
+   ! !OUTPUT PARAMETERS:
+   !EOP
+   !BOC
+   !-----------------------------------------------------------------------
+   !
+   !  local variables:
+   !
+   !-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+        i,j,k,              &! loop indices
+        kp1,                &! k+1
+        kvvc,               &! index into viscosity array
+        ib,ie,jb,je,        &! beg,end indices for physical domain
+        bid                  ! local block address
+
+   real (r8) :: & 
+        vmag                ! temp for bottom drag
+
+   real (r8), dimension(nx_block,ny_block) :: & 
+        VUFB,VVFB,        &! vertical momentum fluxes at bottom of box
+        WORK               ! local work array
+
+   !-----------------------------------------------------------------------
+   !
+   !  set vertical level indices
+   !
+   !-----------------------------------------------------------------------
+
+   bid = this_block%local_id
+   ib  = this_block%ib
+   ie  = this_block%ie
+   jb  = this_block%jb
+   je  = this_block%je
+
+   do k=1,km
+      if (k  <  km) then
+         kp1 = k + 1
+      else
+         kp1 = km
+      endif
+
+      kvvc = min(k,size(VVC,DIM=3))  !*** reduce to 1 if VVC 2-d array 
+
+      !-----------------------------------------------------------------------
+      !
+      !  vertical momentum flux vvc*Dz{(Ub,Vb)} at bottom of U box
+      !
+      !-----------------------------------------------------------------------
+
+      if (partial_bottom_cells) then
+
+         if (k < km) then
+            WORK = p5*(DZU(:,:,k,bid)+DZU(:,:,kp1,bid))
+         else
+            WORK = p5*DZU(:,:,kp1,bid)
+         endif
+
+         !CDIR COLLAPSE
+         VUFB = VVC(:,:,kvvc,bid)*(UNEW(:,:,k) - UNEW(:,:,kp1))/WORK
+         !CDIR COLLAPSE
+         VVFB = VVC(:,:,kvvc,bid)*(VNEW(:,:,k) - VNEW(:,:,kp1))/WORK
+      else
+         !CDIR COLLAPSE
+         VUFB = VVC(:,:,kvvc,bid)*(UNEW(:,:,k) - UNEW(:,:,kp1))*dzwr(k)
+         !CDIR COLLAPSE
+         VVFB = VVC(:,:,kvvc,bid)*(VNEW(:,:,k) - VNEW(:,:,kp1))*dzwr(k)
+      endif
+
+      !-----------------------------------------------------------------------
+      !
+      !  bottom momentum fluxes from quadratic drag law
+      !  uses old time level
+      !-----------------------------------------------------------------------
+
+      do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            if (k == KMU(i,j,bid)) then 
+               vmag = bottom_drag*sqrt(UOLD(i,j,k)**2 + VOLD(i,j,k)**2)
+               VUFB(i,j) = vmag*UOLD(i,j,k)
+               VVFB(i,j) = vmag*VOLD(i,j,k)
+            endif
+         end do
+      end do
+
+      !-----------------------------------------------------------------------
+      !  accumulate time-average of vertical diffusion fluxes if reqd
+      !
+      !-----------------------------------------------------------------------
+
+      call accumulate_tavg_field(VUFB,tavg_VUF,bid,k)
+      call accumulate_tavg_field(VVFB,tavg_VVF,bid,k)
+
+      !-----------------------------------------------------------------------
+      !EOC
+
+   enddo
+
+ end subroutine impvmixu_tavg
 
 !***********************************************************************
 !BOP
