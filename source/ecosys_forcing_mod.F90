@@ -34,6 +34,8 @@ module ecosys_forcing_mod
   use timers, only : timer_stop
   use timers, only : get_timer
 
+  use registry, only : register_string
+
   use strdata_interface_mod     , only : strdata_input_type
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
@@ -1072,6 +1074,8 @@ contains
 
     call mask_time_invariant_forcing_data(surface_flux_forcings, land_mask)
     call mask_time_invariant_forcing_data(interior_tendency_forcings, land_mask)
+
+    call register_string('ecosys_forcing_init')
 
   end subroutine ecosys_forcing_init
 

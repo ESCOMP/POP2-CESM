@@ -1,0 +1,15 @@
+# check to see if "-trage 0" has been added to CICE_CONFIG_OPTS,
+# add it if it is not already there
+# (check for an exact match of "-trage")
+array_of_cice_opts=(`./xmlquery CICE_CONFIG_OPTS --value`)
+found=0
+for mod in ${array_of_cice_opts[@]}; do
+  if [[ $mod == "-trage" ]] ; then
+    found=1
+  fi
+done
+if [[ $found == 0 ]]; then
+    ./xmlchange -a CICE_CONFIG_OPTS="-trage 0"
+fi
+
+./xmlchange OCN_BGC_CONFIG=cesm2.1+cocco

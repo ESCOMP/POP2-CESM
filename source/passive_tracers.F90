@@ -126,6 +126,8 @@
 
    integer (int_kind), dimension (3:nt) ::  &
       tavg_var,                 & ! tracer
+      tavg_var_2,               & ! tracer
+      tavg_var_z_t_150m,        & ! tracer (top 150 m)
       tavg_var_sqr,             & ! tracer square
       tavg_var_surf,            & ! tracer surface value
       tavg_var_zint_100m,       & ! 0-100m integral of tracer
@@ -538,6 +540,24 @@
                              units=units, grid_loc=grid_loc,        &
                              scale_factor=tracer_d(n)%scale_factor, &
                              coordinates=coordinates)
+
+      sname = trim(tracer_d(n)%short_name) /&
+                                            &/ '_2'
+      call define_tavg_field(tavg_var_2(n),                         &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates=coordinates)
+
+      sname = trim(tracer_d(n)%short_name) /&
+                                            &/ '_z_t_150m'
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ', top 150m'
+      call define_tavg_field(tavg_var_z_t_150m(n),                  &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc='3114',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates='TLONG TLAT z_t_150m time')
 
       sname = trim(tracer_d(n)%short_name) /&
                                             &/ '_SQR'
@@ -1316,6 +1336,8 @@
    if (mix_pass /= 1) then
       do n = 3, nt
          call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
+         call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var_2(n),bid,k)
+         call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var_z_t_150m(n),bid,k)
 
          if (accumulate_tavg_now(tavg_var_sqr(n))) then
             WORK = TRACER(:,:,k,n,curtime,bid) ** 2
