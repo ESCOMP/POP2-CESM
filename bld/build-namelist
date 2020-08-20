@@ -515,7 +515,7 @@ add_default($nl, 'dt_option');
 my $time_mix_opt = $nl->get_value('time_mix_opt');
 $time_mix_opt =~ s/^\s+//;
 $time_mix_opt =~ s/\s+$//;
-add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM", 'time_mix'=>"$time_mix_opt");
+add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM", 'time_mix'=>"$time_mix_opt", 'ocn_transient'=>"$OCN_TRANSIENT");
 
 add_default($nl, 'impcor');
 add_default($nl, 'laccel');
