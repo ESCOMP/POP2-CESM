@@ -1450,17 +1450,17 @@
 <ndep_shr_stream_year_first ocn_transient="CORE2_OMIP">1637</ndep_shr_stream_year_first> <!-- 1948-(6-1)*(2009-1948+1)-1 -->
 <ndep_shr_stream_year_last  ocn_transient="CORE2_OMIP">2010</ndep_shr_stream_year_last>
 <ndep_shr_stream_year_align ocn_transient="CORE2_OMIP">0</ndep_shr_stream_year_align>
-<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="CORE2_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c190522.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c190522.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c190522.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="CORE2_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="CORE2_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
 
 <ndep_data_type ocn_transient="JRA_OMIP">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="JRA_OMIP">1652</ndep_shr_stream_year_first> <!-- 1958-(6-1)*(2018-1958+1)-1 -->
 <ndep_shr_stream_year_last  ocn_transient="JRA_OMIP">2019</ndep_shr_stream_year_last>
 <ndep_shr_stream_year_align ocn_transient="JRA_OMIP">0</ndep_shr_stream_year_align>
-<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="JRA_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c190522.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c190522.nc</ndep_shr_stream_file>
-<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c190522.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="JRA_OMIP">ocn/pop/gx3v7/forcing/ndep_ocn_omip_w_nhx_emis_gx3v7_1637-2019_c200324.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_2003242.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="JRA_OMIP">ocn/pop/gx1v6/forcing/ndep_ocn_omip_w_nhx_emis_gx1v6_1637-2019_c200324.nc</ndep_shr_stream_file>
 
 <ndep_data_type ocn_transient="1850-2000">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="1850-2000">1849</ndep_shr_stream_year_first>
@@ -1638,7 +1638,7 @@
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20180308.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c190615.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v7">ocn/pop/gx1v6/ic/ecosys_jan_IC_omip_POP_gx1v7_c200323.nc</init_ecosys_init_file>
 <init_ecosys_init_file ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20180308.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
