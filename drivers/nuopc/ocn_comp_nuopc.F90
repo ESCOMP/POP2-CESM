@@ -104,7 +104,7 @@ module ocn_comp_nuopc
   real(R8)               :: attribute_orb_obliq       ! attribute - obliquity in degrees
   real(R8)               :: attribute_orb_mvelp       ! attribute - moving vernal equinox longitude
   real(R8)               :: attribute_orb_eccen       ! attribute and update-  orbital eccentricity
-
+  logical                :: mastertask
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
@@ -559,7 +559,8 @@ contains
     EMesh = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
          elementDistgrid=Distgrid, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (my_task == master_task) then
+    mastertask = my_task == master_task
+    if (mastertask) then
        write(stdout,*)'mesh file for pop domain is ',trim(cvalue)
     end if
 
@@ -726,7 +727,7 @@ contains
        call named_field_register('ATM_CO2_DIAG', ATM_CO2_DIAG_nf_ind)
     endif
     if (ldriver_has_ndep) then
-       if (my_task == master_task) write(stdout,'(" using ATM_NHx and ATM_NOy from mediator")')
+       if (mastertask) write(stdout,'(" using ATM_NHx and ATM_NOy from mediator")')
        call named_field_register('ATM_NHx', ATM_NHx_nf_ind)
        call named_field_register('ATM_NOy', ATM_NOy_nf_ind)
     endif
@@ -908,10 +909,10 @@ contains
 
     if (registry_match('qsw_distrb_iopt_cosz')) then
 
-       call pop_orbital_init(gcomp, stdout, my_task==master_task, rc)
+       call pop_orbital_init(gcomp, stdout, mastertask, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call pop_orbital_update(clock, stdout, my_task==master_task, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
+       call pop_orbital_update(clock, stdout, mastertask, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        write(stdout,*) ' '
@@ -945,7 +946,7 @@ contains
     ! Output delimiter to log file
     !-----------------------------------------------------------------------
 
-    if (my_task == master_task) then
+    if (mastertask) then
        write(stdout,blank_fmt)
        write(stdout,'(" End of initialization")')
        write(stdout,blank_fmt)
@@ -1011,7 +1012,7 @@ contains
     if (first_time) then
        first_time = .false.
        if (runtype == 'initial') then
-          if (my_task == master_task) then
+          if (mastertask) then
              write(stdout,*)'Returning at first coupling interval'
           end if
           RETURN
@@ -1080,7 +1081,7 @@ contains
     call NUOPC_ModelGet(gcomp, modelClock=clock, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (dbug > 1 .and. master_task) then
+    if (dbug > 1 .and. mastertask) then
        call log_clock_advance(clock, 'POP', stdout, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     endif
@@ -1131,7 +1132,7 @@ contains
 
           ! update orbital parameters
 
-          call pop_orbital_update(clock, stdout, my_task==master_task, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
+          call pop_orbital_update(clock, stdout, mastertask, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call pop_set_coupled_forcing
@@ -1358,7 +1359,7 @@ contains
     call ESMF_TimeGet(currTime, yy=yy, mm=mon, dd=day, s=tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (my_task == master_task) then
+    if (mastertask) then
        write(stdout,*)' CheckImport pop2 year = ',yy
        write(stdout,*)' CheckImport pop2 mon  = ',mon
        write(stdout,*)' CheckImport pop2 day  = ',day
@@ -1402,7 +1403,7 @@ contains
 
     !  write final message to pop output log
 
-    if (my_task == master_task) then
+    if (mastertask) then
       write(stdout,*) '==================='
       write(stdout,*) 'completed POP_Final'
       write(stdout,*) '==================='
