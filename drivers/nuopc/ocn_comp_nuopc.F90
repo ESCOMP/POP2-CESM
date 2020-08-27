@@ -402,7 +402,6 @@ contains
     call get_component_instance(gcomp, inst_suffix, inst_index, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     inst_name = "OCN"//trim(inst_suffix)
-    write(6,*)'DEBUG: inst_index,inst_suffix,inst_name = ',inst_index,trim(inst_suffix),trim(inst_name)
 
     !-----------------------------------------------------------------------
     !  first initializaiton phase of pop2
@@ -1080,11 +1079,6 @@ contains
 
     call NUOPC_ModelGet(gcomp, modelClock=clock, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (dbug > 1 .and. mastertask) then
-       call log_clock_advance(clock, 'POP', stdout, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
 
     !----------------------------------------------------------------------------
     ! restart flag (rstwr) will assume only an eod restart for now

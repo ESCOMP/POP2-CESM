@@ -783,7 +783,7 @@ contains
     call state_getfldptr(exportState, 'So_omask', dataPtr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    dataptr1(:) = shr_const_spval
+    dataptr1(:) = 0.0_r8
     n=0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
