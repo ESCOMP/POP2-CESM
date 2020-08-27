@@ -69,6 +69,7 @@
    integer (int_kind) :: &
       tavg_SHF,          &! tavg_id for surface heat flux
       tavg_SHF_QSW,      &! tavg_id for short-wave solar heat flux
+      tavg_SHF_QSW_2,    &! tavg_id for short-wave solar heat flux
       tavg_SFWF,         &! tavg_id for surface freshwater flux
       tavg_SFWF_WRST,    &! tavg_id for weak restoring freshwater flux
       tavg_TAUX,         &! tavg_id for wind stress in X direction
@@ -178,6 +179,11 @@
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SHF_QSW, 'SHF_QSW', 2,                        &
+                          long_name='Solar Short-Wave Heat Flux',            &
+                          units='watt/m^2', grid_loc='2110',                 &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_SHF_QSW_2, 'SHF_QSW_2', 2,                    &
                           long_name='Solar Short-Wave Heat Flux',            &
                           units='watt/m^2', grid_loc='2110',                 &
                           coordinates='TLONG TLAT time')
@@ -510,7 +516,7 @@
          call accumulate_tavg_field(WORK,tavg_SHF,iblock,1)
       endif
 
-      if (accumulate_tavg_now(tavg_SHF_QSW)) then
+      if (accumulate_tavg_now(tavg_SHF_QSW) .or. accumulate_tavg_now(tavg_SHF_QSW_2)) then
          where (KMT(:,:,iblock) > 0)
             WORK = SHF_QSW(:,:,iblock)/hflux_factor ! W/m^2
          elsewhere
@@ -518,6 +524,7 @@
          end where
 
          call accumulate_tavg_field(WORK,tavg_SHF_QSW,iblock,1)
+         call accumulate_tavg_field(WORK,tavg_SHF_QSW_2,iblock,1)
       endif
 
       if (accumulate_tavg_now(tavg_SFWF)) then

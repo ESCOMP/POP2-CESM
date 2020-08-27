@@ -109,7 +109,8 @@ module ecosys_driver
   integer (int_kind)  :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer
   integer (int_kind)  :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux
 
-  character (char_len)               :: ecosys_tadvect_ctype    ! advection method for ecosys tracers
+  character (char_len)               :: ecosys_tadvect_ctype          ! advection method for ecosys tracers
+  character (char_len)               :: ecosys_vflux_tadvect_ctype    ! advection method for ecosys tracers with virtual fluxes
   logical   (log_kind) , public      :: ecosys_qsw_distrb_const
   logical   (log_kind)               :: ciso_on
   logical   (log_kind) , allocatable :: land_mask(:, :, :)
@@ -227,15 +228,16 @@ contains
     !-----------------------------------------------------------------------
 
     namelist /ecosys_driver_nml/ &
-         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const, &
-         marbl_settings_file
+         lmarginal_seas, ecosys_tadvect_ctype, ecosys_vflux_tadvect_ctype, &
+         ecosys_qsw_distrb_const, marbl_settings_file
 
     errorCode = POP_Success
 
-    lmarginal_seas            = .true.
-    ecosys_tadvect_ctype      = 'base_model'
-    ecosys_qsw_distrb_const   = .true.
-    marbl_settings_file       = 'marbl_in'
+    lmarginal_seas             = .true.
+    ecosys_tadvect_ctype       = 'base_model'
+    ecosys_vflux_tadvect_ctype = 'base_model'
+    ecosys_qsw_distrb_const    = .true.
+    marbl_settings_file        = 'marbl_in'
 
     ! -----------------------------
     ! Read pop namelist into string
@@ -548,12 +550,22 @@ contains
     !--------------------------------------------------------------------
 
     associate(diags => marbl_instances(1)%surface_flux_diags%diags)
-      allocate(surface_flux_diags(nx_block, ny_block, size(diags), nblocks_clinic))
+       allocate(surface_flux_diags(nx_block, ny_block, size(diags), nblocks_clinic))
     end associate
 
     surface_flux_diags = c0
 
-    tadvect_ctype(1:ecosys_tracer_cnt) = ecosys_tadvect_ctype
+    if (.not. registry_match('ecosys_forcing_init')) then
+       call exit_POP(sigAbort, 'ecosys_forcing_init needs to be called ' /&
+          &/ 'before setting tadvect_ctype so tracer_ref_val is computed properly.')
+    end if
+    do n = 1, ecosys_tracer_cnt
+       if (ecosys_driver_tracer_ref_val(n) /= c0) then ! same logic as setting lhas_vflux(n)
+          tadvect_ctype(n) = ecosys_vflux_tadvect_ctype
+       else
+          tadvect_ctype(n) = ecosys_tadvect_ctype
+       end if
+    end do
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -710,7 +722,7 @@ contains
 
              marbl_instances(bid)%domain%kmt = KMT(i, c, bid)
              if (partial_bottom_cells) then
-                marbl_instances(bid)%domain%delta_z(:) = DZT(i, c, :, bid)
+                marbl_instances(bid)%domain%delta_z(1:km) = DZT(i, c, 1:km, bid)
              end if
 
              ! --- set forcing fields ---
@@ -790,6 +802,9 @@ contains
                          end if
                       end associate
                    end do
+                   if (partial_bottom_cells) then
+                      write(stdout, *) 'delta_z = ', marbl_instances(bid)%domain%delta_z(k)
+                   end if
                    call exit_POP(sigAbort, 'Stopping in ' // subname)
                 end if
              end do

@@ -123,7 +123,7 @@
 !BOC
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 1000+34*nt   ! limit on available fields - can
+      max_avail_tavg_fields = 1000+36*nt   ! limit on available fields - can
                                            !   be pushed as high as necessary practical
                                            !   (total of all fields in all streams)
 

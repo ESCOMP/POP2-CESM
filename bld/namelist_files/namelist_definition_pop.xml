@@ -4936,6 +4936,23 @@ group="tavg_nml" >
 Default: .false. .false. .false.
 </entry>
 
+<!-- - - - - - - - - - - - - - - - - -->
+<!-- Group: tavg derived vars      - -->
+<!-- - - - - - - - - - - - - - - - - -->
+
+<entry
+id="tavg_contents_override_file"
+type="char*256"
+category="History Files (Time-Averaged)"
+group="derived">
+When set in user_nl_pop, use the provided tavg_contents file rather
+than auto-generating it based on what tracer modules are in use.
+Note that all the ocn.*.tavg.csh scripts will still run, so tavg_nml
+is not affected by this option.
+
+Default: 'none'
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: mcog_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -7223,7 +7240,15 @@ id="ecosys_tadvect_ctype"
 type="char*256"
 category="Ecosystem Model"
 group="ecosys_driver_nml" >
-Default: 'base model'
+Default: 'base_model'
+</entry>
+
+<entry
+id="ecosys_vflux_tadvect_ctype"
+type="char*256"
+category="Ecosystem Model"
+group="ecosys_driver_nml" >
+Default: 'base_model'
 </entry>
 
 <entry
