@@ -91,6 +91,24 @@
     <lname>1850_DATM%NYF_SLND_DICE%SSMI_POP2%ECOCESM20_DROF%NYF_SGLC_WW3</lname>
   </compset>
 
+  <compset>
+    <!-- C_JRA repeat year forcing 1984-1985 -->
+    <alias>C_JRA-RYF8485</alias>
+    <lname>2000_DATM%JRA-RYF8485_SLND_DICE%SSMI_POP2_DROF%JRA-RYF8485_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <!-- C_JRA repeat year forcing 1990-1991 -->
+    <alias>C_JRA-RYF9091</alias>
+    <lname>2000_DATM%JRA-RYF9091_SLND_DICE%SSMI_POP2_DROF%JRA-RYF9091_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <!-- C_JRA repeat year forcing 2003-2004 -->
+    <alias>C_JRA-RYF0304</alias>
+    <lname>2000_DATM%JRA-RYF0304_SLND_DICE%SSMI_POP2_DROF%JRA-RYF0304_SGLC_SWAV</lname>
+  </compset>
+
   <!-- G compsets -->
 
   <compset>
@@ -173,6 +191,24 @@
   <compset>
     <alias>G1850ECO_CPLHIST_PHYS_CYCLE</alias>
     <lname>1850_DATM%CPLHIST_SLND_CICE_POP2%ECO%PHYS-CYCLE_DROF%CPLHIST_SGLC_WW3</lname>
+  </compset>
+
+  <compset>
+    <!-- G_JRA repeat year forcing 1984-1985 -->
+    <alias>G_JRA-RYF8485</alias>
+    <lname>2000_DATM%JRA-RYF8485_SLND_CICE_POP2_DROF%JRA-RYF8485_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <!-- G_JRA repeat year forcing 1990-1991 -->
+    <alias>G_JRA-RYF9091</alias>
+    <lname>2000_DATM%JRA-RYF9091_SLND_CICE_POP2_DROF%JRA-RYF9091_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <!-- G_JRA repeat year forcing 2003-2004 -->
+    <alias>G_JRA-RYF0304</alias>
+    <lname>2000_DATM%JRA-RYF0304_SLND_CICE_POP2_DROF%JRA-RYF0304_SGLC_SWAV</lname>
   </compset>
 
   <!-- Single Column POP -->
