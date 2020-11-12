@@ -706,7 +706,7 @@
       case ('once')
          tavg_freq_iopt(ns) = freq_opt_once
          write(stdout,'(a,i3,a)') 'stream #', ns, 'tavg fields written once (time-invariant fields)'
-	 write(time_period_freq(ns),'(a)') 'once'
+         write(time_period_freq(ns),'(a)') 'once'
       case ('nyear')
          tavg_freq_iopt(ns) = freq_opt_nyear
          write(stdout,freq_fmt) ns, tavg_freq(ns),' years  '
@@ -714,23 +714,23 @@
       case ('nmonth')
          tavg_freq_iopt(ns) = freq_opt_nmonth
          write(stdout,freq_fmt) ns, tavg_freq(ns),' months '
-	 write(time_period_freq(ns),'(a,i0)') 'month_',tavg_file_freq(ns)
+         write(time_period_freq(ns),'(a,i0)') 'month_',tavg_file_freq(ns)
       case ('nday')
          tavg_freq_iopt(ns) = freq_opt_nday
          write(stdout,freq_fmt) ns, tavg_freq(ns),' days   '
-	 write(time_period_freq(ns),'(a,i0)') 'day_',tavg_file_freq(ns)
+         write(time_period_freq(ns),'(a,i0)') 'day_',tavg_file_freq(ns)
       case ('nhour')
          tavg_freq_iopt(ns) = freq_opt_nhour
          write(stdout,freq_fmt) ns, tavg_freq(ns),' hours  '
-	 write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_file_freq(ns)
+         write(time_period_freq(ns),'(a,i0)') 'hour_',tavg_file_freq(ns)
       case ('nsecond')
          tavg_freq_iopt(ns) = freq_opt_nsecond
          write(stdout,freq_fmt) ns, tavg_freq(ns),' seconds'
-	 write(time_period_freq(ns),'(a,i0)') 'second_',tavg_file_freq(ns)
+         write(time_period_freq(ns),'(a,i0)') 'second_',tavg_file_freq(ns)
       case ('nstep')
          tavg_freq_iopt(ns) = freq_opt_nstep
          write(stdout,freq_fmt) ns, tavg_freq(ns),' steps  '
-	 write(time_period_freq(ns),'(a,i0)') 'step_',tavg_file_freq(ns)
+         write(time_period_freq(ns),'(a,i0)') 'step_',tavg_file_freq(ns)
       case default
          tavg_freq_iopt(ns) = -1000
       end select
@@ -783,7 +783,7 @@
            write(stdout,freq_fmt) ns, tavg_file_freq(ns),' steps  '
         case default
            tavg_file_freq_iopt(ns) = -1000
-	   write(time_period_freq(ns),'(a)') 'undefined'
+           write(time_period_freq(ns),'(a)') 'undefined'
         end select
       endif
 
@@ -2205,6 +2205,7 @@
            end do
            call timer_stop(timer_write_transpose)
          end if
+
          call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter), &
 #ifdef TAVG_R8
                         fill_value_d=avail_tavg_fields(nfield)%fill_value)
