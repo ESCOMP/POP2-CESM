@@ -370,7 +370,7 @@
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
    endif
 
-   ioroot = shr_pio_getioroot('OCN')
+   ioroot = shr_pio_getioroot(inst_name)
 
 !-----------------------------------------------------------------------
 !
@@ -668,7 +668,7 @@
 !
 !-----------------------------------------------------------------------
 
-   ioroot = shr_pio_getioroot('OCN')
+   ioroot = shr_pio_getioroot(inst_name)
    nreg2_transport = 0
    transport_region_info(:)%name   = char_blank
    transport_region_info(:)%number = 9999
@@ -1003,7 +1003,7 @@
                 // ' transport computations, but one is missing.')
    endif
 
-   ioroot = shr_pio_getioroot('OCN')
+   ioroot = shr_pio_getioroot(inst_name)
 
    ldiag_gm_bolus = .false.
    if ( present(W_I) )  ldiag_gm_bolus = .true.
@@ -1387,7 +1387,7 @@
          // ' the related transport computations, but one is missing.')
    endif
 
-   ioroot = shr_pio_getioroot('OCN')
+   ioroot = shr_pio_getioroot(inst_name)
 
    ldiag_gm_bolus = .false.
    if ( present(ADV_I) )  ldiag_gm_bolus = .true.

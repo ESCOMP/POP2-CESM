@@ -175,7 +175,7 @@ contains
   !***********************************************************************
 
   subroutine POP_strdata_create(inputlist)
-
+    use pop_iounitsmod, only : inst_name
     type(strdata_input_type), intent(inout) :: inputlist
 
     if (inputlist%depth_flag) then
@@ -199,8 +199,8 @@ contains
                             FileName=(/trim(inputlist%file_name)/),           &
                             fldListFile=inputlist%field_list,                 &
                             fldListModel=inputlist%field_list,                &
-                            pio_subsystem=shr_pio_getiosys('OCN'),        &
-                            pio_iotype=shr_pio_getiotype('OCN'),          &
+                            pio_subsystem=shr_pio_getiosys(inst_name),        &
+                            pio_iotype=shr_pio_getiotype(inst_name),          &
                             fillalgo='none', mapalgo='none',                  &
                             tintalgo=inputlist%tintalgo,                      &
                             taxMode=inputlist%taxMode)
@@ -223,8 +223,8 @@ contains
                             FileName=(/trim(inputlist%file_name)/),           &
                             fldListFile=inputlist%field_list,                 &
                             fldListModel=inputlist%field_list,                &
-                            pio_subsystem=shr_pio_getiosys('OCN'),        &
-                            pio_iotype=shr_pio_getiotype('OCN'),          &
+                            pio_subsystem=shr_pio_getiosys(inst_name),        &
+                            pio_iotype=shr_pio_getiotype(inst_name),          &
                             fillalgo='none', mapalgo='none',                  &
                             tintalgo=inputlist%tintalgo,                      &
                             taxMode=inputlist%taxMode)

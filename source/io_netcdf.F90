@@ -712,7 +712,7 @@
             io_field%long_name = char_blank
 
             iostat = pio_inq_att(data_file%File, io_field%id, 'long_name', &
-	                          xtype, nsize)
+                                  xtype, nsize)
             if (iostat == pio_noerr) then
                if (nsize <= len(io_field%long_name)) then
                   iostat = pio_get_att(data_file%File, io_field%id, 'long_name', &
@@ -739,12 +739,12 @@
             io_field%units = char_blank
 
             iostat = pio_inq_att(data_file%File, io_field%id, 'units', &
-	                          xtype, nsize)
+                                  xtype, nsize)
 
             if (iostat == pio_noerr) then
                if (nsize <= len(io_field%units)) then
                   iostat = pio_get_att(data_file%File, io_field%id, 'units', &
-	                                io_field%units(1:nsize))
+                                        io_field%units(1:nsize))
                else
                   if (my_task == master_task) then
                      call document('define_field_netcdf', 'nsize', int(nsize))
@@ -763,7 +763,7 @@
             io_field%coordinates = char_blank
 
             iostat = pio_inq_att(data_file%File, io_field%id, 'coordinates', &
-	                          xtype, nsize)
+                                  xtype, nsize)
 
             if (iostat == pio_noerr) then
                if (nsize <= len(io_field%coordinates)) then
@@ -1499,15 +1499,15 @@
    ! Currently halo update is not supported for tripole grid
    if (ltripole_grid) then
       if (io_field%field_type == field_type_noupdate .or. &
-	  io_field%field_loc  == field_loc_noupdate) then
+          io_field%field_loc  == field_loc_noupdate) then
          lhalo_update = .false.
       else
          lhalo_update = .true.
       end if
    else
       if (io_field%field_loc == field_loc_noupdate .or. &
-	  io_field%field_loc == field_loc_unknown) then
-    	 lhalo_update = .false.
+          io_field%field_loc == field_loc_unknown) then
+         lhalo_update = .false.
       else
          lhalo_update = .true.
       end if
@@ -1813,7 +1813,7 @@
 
     !*** long_name
     iostat = pio_inq_att(data_file%File, field_id, 'long_name', &
-	                  xtype, len)
+                          xtype, len)
     if (iostat /= PIO_NOERR) then ! attrib probably not defined
        iostat = pio_put_att(data_file%File, varid=field_id, &
                              name='long_name',    &
@@ -1823,7 +1823,7 @@
 
     !*** units
     iostat = pio_inq_att(data_file%File, field_id, 'units', &
-	                  xtype, len)
+                          xtype, len)
     if (iostat /= PIO_NOERR) then ! attrib probably not defined
        iostat = pio_put_att(data_file%File, varid=field_id, &
                              name='units',        &
@@ -1895,7 +1895,7 @@
 ! !INTERFACE:
 
  subroutine  write_time_bounds (data_file, time_bound_id, &
-	                        time_bound_dims, time_bound_data)
+                                time_bound_dims, time_bound_data)
 
 ! !INPUT PARAMETERS:
    integer (i4), intent (in)                ::  time_bound_id
@@ -2122,7 +2122,7 @@
 
    supported = .true.
 
-   ioroot = shr_pio_getioroot('OCN')
+   ioroot = shr_pio_getioroot(inst_name)
 
 !-----------------------------------------------------------------------
 !
