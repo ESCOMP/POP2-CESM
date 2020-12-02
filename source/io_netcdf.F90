@@ -2062,25 +2062,8 @@
       write_error,       &! error flag
       supported
 
-   real (r4), allocatable, dimension (:,:,:,:,:)  ::  &
-      outdata_5d_r4
-
-   real (r4), allocatable, dimension (:,:,:,:)    ::  &
-      outdata_4d_r4
-
-   real (r4), allocatable, dimension (:,:,:)      ::  &
-      outdata_3d_r4
-
-   real (r4), allocatable, dimension (:,:)        ::  &
-      outdata_2d_r4
-
-   real (r8), allocatable, dimension (:)          ::  &
-      outdata_1d_r8
    real (r8), allocatable, dimension (:,:)        ::  &
       outdata_2d_r8
-
-   character(char_len), allocatable, dimension (:,:)  ::  &
-      outdata_2d_ch
 
    character(1), dimension(char_len) :: &
       tmpString                          ! temp for manipulating output string
@@ -2117,7 +2100,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  define sstart, count for all dimensions; do not allow out-of-bounds
+!  define start, count for all dimensions; do not allow out-of-bounds
 !
 !-----------------------------------------------------------------------
    if (ndims > max_dims) &
@@ -2136,15 +2119,8 @@
            case (.true.)
               select case (ndims)
                   case(2)
-                     if (my_task == ioroot) then
-                       nout(1) = size(indata_1d_r8,DIM=1)
-                       allocate (outdata_2d_r8(nout(1),1))
-                       outdata_2d_r8(:,1) = indata_1d_r8(:)
-                     else
-                       allocate (outdata_2d_r8(1,1))
-                     endif
-                     iostat = pio_put_var (data_file%File, field_id, outdata_2d_r8 )
-                     deallocate (outdata_2d_r8)
+                     iostat = pio_put_var (data_file%File, field_id, ival=indata_1d_r8, &
+                          start=start(1:ndims), count=count(1:ndims))
                   case default
                    supported = .false.
               end select ! ndims
