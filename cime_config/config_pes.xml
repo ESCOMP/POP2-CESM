@@ -166,12 +166,12 @@
     </mach>
 
     <!-- gx3v7 resolution on greenplanet -->
-    <mach name="greenplanet\b">
+    <mach name="greenplanet-sib29\b">
 
-      <!-- C and C+ECO (e.g., C1850ECO) with gx3v7 on GreenPlanet:
+      <!-- C and C+ECO (e.g., C1850ECO) with gx3v7 on sib2.9 queue of GreenPlanet:
            all components share 4 nodes -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2">
-        <comment>C or C+ECO (e.g., C1850ECO); gx3v7 resolution on GreenPlanet</comment>
+        <comment>C or C+ECO (e.g., C1850ECO); gx3v7 resolution on GreenPlanet (sib2.9)</comment>
         <ntasks>
           <ntasks_ocn>-4</ntasks_ocn>
           <ntasks_ice>-4</ntasks_ice>
@@ -204,12 +204,12 @@
         </rootpe>
       </pes>
 
-      <!-- G with gx3v7 on GreenPlanet:
+      <!-- G with gx3v7 on sib2.9 queue of GreenPlanet:
            POP gets 4 nodes
            CICE and coupler share 2 nodes
            all other components share 2 nodes -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
-        <comment>G; gx3v7 resolution on GreenPlanet</comment>
+        <comment>G; gx3v7 resolution on GreenPlanet (sib2.9 queue)</comment>
         <ntasks>
           <ntasks_ocn>-4</ntasks_ocn>
           <ntasks_ice>-2</ntasks_ice>
@@ -242,11 +242,11 @@
         </rootpe>
       </pes>
 
-      <!-- G+ECO (e.g., G1850ECO) with gx3v7 on GreenPlanet:
+      <!-- G+ECO (e.g., G1850ECO) with gx3v7 on sib2.9 queue of GreenPlanet:
            POP gets 4 nodes
            all other components share 2 nodes -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
-        <comment>G+ECO (e.g., G1850ECO); gx3v7 resolution on GreenPlanet</comment>
+        <comment>G+ECO (e.g., G1850ECO); gx3v7 resolution on GreenPlanet (sib2.9)</comment>
         <ntasks>
           <ntasks_ocn>-4</ntasks_ocn>
           <ntasks_ice>-2</ntasks_ice>
@@ -279,12 +279,12 @@
         </rootpe>
       </pes>
     </mach>
-    <mach name="greenplanet40">
+    <mach name="greenplanet-sky24">
 
-      <!-- C and C+ECO (e.g., C1850ECO) with gx3v7 on GreenPlanet (sky2.4 queue):
+      <!-- C and C+ECO (e.g., C1850ECO) with gx3v7 on sky2.4 queue of GreenPlanet:
            all components share 2 nodes -->
       <pes pesize="any" compset="_DATM.*_DICE.*_POP2">
-        <comment>C or C+ECO (e.g., C1850ECO); gx3v7 resolution on GreenPlanet (sky2.4)</comment>
+        <comment>C or C+ECO (e.g., C1850ECO); gx3v7 resolution on GreenPlanet (sky2.4 queue)</comment>
         <ntasks>
           <ntasks_ocn>-2</ntasks_ocn>
           <ntasks_ice>-2</ntasks_ice>
@@ -317,12 +317,12 @@
         </rootpe>
       </pes>
 
-      <!-- G with gx3v7 on GreenPlanet (sky2.4 queue):
+      <!-- G with gx3v7 on sky2.4 queue of GreenPlanet:
            POP gets 2 nodes
            CICE and coupler share 1 nodes
            all other components share 1 nodes -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2[^%]">
-        <comment>G; gx3v7 resolution on GreenPlanet (sky2.4)</comment>
+        <comment>G; gx3v7 resolution on GreenPlanet (sky2.4 queue)</comment>
         <ntasks>
           <ntasks_ocn>-2</ntasks_ocn>
           <ntasks_ice>-1</ntasks_ice>
@@ -355,11 +355,11 @@
         </rootpe>
       </pes>
 
-      <!-- G+ECO (e.g., G1850ECO) with gx3v7 on GreenPlanet (sky2.4 queue):
+      <!-- G+ECO (e.g., G1850ECO) with gx3v7 on sky2.4 queue of GreenPlanet:
            POP gets 2 nodes
            all other components share 1 nodes -->
       <pes pesize="any" compset="_DATM.*_CICE.*_POP2%ECO">
-        <comment>G+ECO (e.g., G1850ECO); gx3v7 resolution on GreenPlanet (sky2.4)</comment>
+        <comment>G+ECO (e.g., G1850ECO); gx3v7 resolution on GreenPlanet (sky2.4 queue)</comment>
         <ntasks>
           <ntasks_ocn>-2</ntasks_ocn>
           <ntasks_ice>-1</ntasks_ice>
