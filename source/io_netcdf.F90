@@ -2062,9 +2062,6 @@
       write_error,       &! error flag
       supported
 
-   real (r8), allocatable, dimension (:,:)        ::  &
-      outdata_2d_r8
-
    character(1), dimension(char_len) :: &
       tmpString                          ! temp for manipulating output string
 
