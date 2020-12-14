@@ -625,17 +625,6 @@ contains
          flds_scalar_num=flds_scalar_num, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    !-----------------------------------------------------------------
-    ! Initialize MCT gsmaps and domains
-    !-----------------------------------------------------------------
-
-    ! call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! read(cvalue,*) ocnid  ! convert from string to integer
-
-    ! call pop_mct_init(ocnid, mpi_communicator_ocn)
-    ! if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
-
   end subroutine InitializeRealize
 
   !===============================================================================

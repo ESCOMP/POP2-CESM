@@ -502,7 +502,7 @@
 !BOC
 !-----------------------------------------------------------------------
 !
-!  close a data file
+!  sync a data file
 !
 !-----------------------------------------------------------------------
 
@@ -1287,14 +1287,10 @@
    if (io_field%set_ioFrame) then
       ndims = io_field%nfield_dims
       call pio_setframe(data_file%File, io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET_KIND))
-!   else
-!     call pio_setframe(data_file%File, io_field%vardesc, 0_PIO_OFFSET_KIND)
    end if
    if (associated(io_field%field_r_3d)) then
-   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_r_3d, iostat, fillval=fill_value_r)
-
    else if (associated(io_field%field_r_2d)) then
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_r_2d, iostat, fillval=fill_value_r)
@@ -1318,12 +1314,10 @@
       end if
 
    else if (associated(io_field%field_d_3d)) then
-   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_d_3d, iostat, fillval=fill_value_d)
 
    else if (associated(io_field%field_d_2d)) then
-   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_d_2d, iostat, fillval=fill_value_d)
 
@@ -1347,12 +1341,10 @@
       end if
 
    else if (associated(io_field%field_i_3d)) then
-   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_i_3d, iostat, fillval=fill_value_i)
 
    else if (associated(io_field%field_i_2d)) then
-   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_i_2d, iostat, fillval=fill_value_i)
 
@@ -2070,26 +2062,6 @@
       write_error,       &! error flag
       supported
 
-   real (r4), allocatable, dimension (:,:,:,:,:)  ::  &
-      outdata_5d_r4
-
-   real (r4), allocatable, dimension (:,:,:,:)    ::  &
-      outdata_4d_r4
-
-   real (r4), allocatable, dimension (:,:,:)      ::  &
-      outdata_3d_r4
-
-   real (r4), allocatable, dimension (:,:)        ::  &
-      outdata_2d_r4
-
-   real (r8), allocatable, dimension (:)          ::  &
-      outdata_1d_r8
-   real (r8), allocatable, dimension (:,:)        ::  &
-      outdata_2d_r8
-
-   character(char_len), allocatable, dimension (:,:)  ::  &
-      outdata_2d_ch
-
    character(1), dimension(char_len) :: &
       tmpString                          ! temp for manipulating output string
 
@@ -2108,7 +2080,6 @@
       iostat = pio_enddef(data_file%File)
       data_file%ldefine = .false.
    endif
-
 !-----------------------------------------------------------------------
 !
 !  make sure field has been defined
@@ -2145,15 +2116,8 @@
            case (.true.)
               select case (ndims)
                   case(2)
-                     if (my_task == ioroot) then
-                       nout(1) = size(indata_1d_r8,DIM=1)
-                       allocate (outdata_2d_r8(nout(1),1))
-                       outdata_2d_r8(:,1) = indata_1d_r8(:)
-                     else
-                       allocate (outdata_2d_r8(1,1))
-                     endif
-                     iostat = pio_put_var (data_file%File, field_id, outdata_2d_r8 )
-                     deallocate (outdata_2d_r8)
+                     iostat = pio_put_var (data_file%File, field_id, ival=indata_1d_r8, &
+                          start=start(1:ndims), count=count(1:ndims))
                   case default
                    supported = .false.
               end select ! ndims
@@ -2177,47 +2141,17 @@
                   case(2)
                      supported = .false.
                   case(3)
-                     if (my_task == ioroot) then
-                       do n=1,ndims-1
-                         nout(n) = size(indata_2d_r4,DIM=n)
-                       enddo
-                       tb = io_dims(ndims)%start
-                       allocate (outdata_3d_r4(nout(1),nout(2),tb:tb))
-                       outdata_3d_r4(:,:,tb) = indata_2d_r4(:,:)
-                     else
-                       allocate (outdata_3d_r4(1,1,1))
-                     endif
-                     iostat = pio_put_var (data_file%File, field_id, ival=outdata_3d_r4,  &
+                     if (my_task /= ioroot) count = 0
+                     iostat = pio_put_var (data_file%File, field_id, ival=indata_2d_r4, &
                                            start=start(1:ndims), count=count(1:ndims))
-                     deallocate (outdata_3d_r4)
                   case(4)
-                     if (my_task == ioroot) then
-                       do n=1,ndims-1
-                         nout(n) = size(indata_3d_r4,DIM=n)
-                       enddo
-                       tb = io_dims(ndims)%start
-                       allocate (outdata_4d_r4(nout(1),nout(2),nout(3),tb:tb))
-                       outdata_4d_r4(:,:,:,tb) = indata_3d_r4(:,:,:)
-                     else
-                       allocate (outdata_4d_r4(1,1,1,1))
-                     endif
-                     iostat = pio_put_var (data_file%File, field_id, ival=outdata_4d_r4,  &
+                     if (my_task /= ioroot) count = 0
+                     iostat = pio_put_var (data_file%File, field_id, ival=indata_3d_r4, &
                                            start=start(1:ndims), count=count(1:ndims))
-                     deallocate (outdata_4d_r4)
                   case(5)
-                     if (my_task == ioroot) then
-                       do n=1,ndims-1
-                         nout(n) = size(indata_4d_r4,DIM=n)
-                       enddo
-                       tb = io_dims(ndims)%start
-                       allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),tb:tb))
-                       outdata_5d_r4(:,:,:,:,tb) = indata_4d_r4(:,:,:,:)
-                     else
-                       allocate (outdata_5d_r4(1,1,1,1,1))
-                     endif
-                     iostat = pio_put_var (data_file%File, field_id, ival=outdata_5d_r4,  &
+                     if (my_task /= ioroot) count = 0
+                     iostat = pio_put_var (data_file%File, field_id, ival=indata_4d_r4, &
                                            start=start(1:ndims), count=count(1:ndims))
-                     deallocate (outdata_5d_r4)
                   case default
                    supported = .false.
               end select ! ndims
