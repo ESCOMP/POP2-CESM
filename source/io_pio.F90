@@ -230,7 +230,7 @@ module io_pio
             else if (nsize3d_i(i) == iunset .and. ksize3d_i(i) == iunset) then
                index = i
                nsize3d_i(index) = ndim3
-               ksize3d_i(index) = kdim3
+	       ksize3d_i(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
@@ -244,7 +244,7 @@ module io_pio
             else if (nsize3d_r(i) == iunset .and. ksize3d_r(i) == iunset) then
                index = i
                nsize3d_r(index) = ndim3
-               ksize3d_r(index) = kdim3
+	       ksize3d_r(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
@@ -258,7 +258,7 @@ module io_pio
             else if (nsize3d_d(i) == iunset .and. ksize3d_d(i) == iunset) then
                index = i
                nsize3d_d(index) = ndim3
-               ksize3d_d(index) = kdim3
+	       ksize3d_d(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
@@ -267,11 +267,11 @@ module io_pio
 
       if (set_ioDesc) then
 
-         if ((ndim3 == 0 .and. kdim3 /= 0) .or. (ndim3 /=0 .and. kdim3 == 0)) then
+	 if ((ndim3 == 0 .and. kdim3 /= 0) .or. (ndim3 /=0 .and. kdim3 == 0)) then
             call exit_POP(sigAbort,' io_pio_initdecomp: ndim3 and kdim3 must both be zero or nonzero')
          end if
 
-         if (ndim3 > kdim3) then
+	 if (ndim3 > kdim3) then
             call exit_POP(sigAbort,' io_pio_initdecomp: ndim3 must be less than or equal to kdim3')
          end if
 
