@@ -13,6 +13,7 @@ module ocn_import_export
   use shr_cal_mod,           only: shr_cal_date2ymd
   use shr_sys_mod,           only: shr_sys_flush, shr_sys_abort
   use shr_const_mod,         only: shr_const_spval
+  use shr_string_mod,        only : shr_string_listGetNum, shr_string_listGetName
   use communicate,           only: my_task, master_task
   use domain,                only: distrb_clinic, POP_haloClinic
   use forcing_shf,           only: SHF_QSW
@@ -34,7 +35,7 @@ module ocn_import_export
   use named_field_mod,       only: named_field_register, named_field_get_index, named_field_set, named_field_get
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
   use grid,                  only: KMT
-  use ocn_shr_methods,       only: chkerr
+  use nuopc_shr_methods,     only: chkerr
   use constants
   use blocks
   use exit_mod
@@ -73,19 +74,26 @@ module ocn_import_export
      module procedure state_getfldptr_2d
   end interface state_getfldptr
 
+  logical :: ocn2glc_coupling
+  integer :: num_ocn2glc_levels
+  integer, allocatable :: ocn2glc_levels(:)
+
   ! accumulated sum of send buffer quantities for averaging before being sent
-  real (r8) :: sbuff_sum_u    (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_v    (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_t    (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_s    (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_dhdx (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_dhdy (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_bld  (nx_block,ny_block,max_blocks_clinic)
-  real (r8) :: sbuff_sum_co2  (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_u    (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_v    (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_t    (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_s    (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_dhdx (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_dhdy (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_bld  (nx_block,ny_block,max_blocks_clinic)
+  real(r8) :: sbuff_sum_co2  (nx_block,ny_block,max_blocks_clinic)
+  real(r8), allocatable :: sbuff_sum_t_depth (:,:,:,:)
+  real(r8), allocatable :: sbuff_sum_s_depth (:,:,:,:)
 
   ! tlast_coupled is incremented by delt every time pop_sum_buffer is called
   ! tlast_coupled is reset to 0 when ocn_export is called
   real (r8) :: tlast_coupled
+
 
   integer     , parameter :: dbug = 1        ! i/o debug messages
   character(*), parameter :: u_FILE_u = &
@@ -108,6 +116,7 @@ contains
     integer       :: n
     character(CS) :: stdname
     character(CS) :: cvalue
+    character(CS) :: cname
     integer       :: ice_ncat
     logical       :: flds_i2o_per_cat  ! .true. => select per ocn thickness category
     character(len=*), parameter :: subname='(ocn_import_export:ocn_advertise_fields)'
@@ -194,7 +203,6 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_snow')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_rain')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ocph'  , ungridded_lbound=1, ungridded_ubound=3)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_nhx')
@@ -211,8 +219,34 @@ contains
     ! advertise export fields
     !-----------------
 
-    call fldlist_add(fldsFrOcn_num, fldsFrOcn, trim(flds_scalar_name))
+    ! Determine if ocn is sending temperature and salinity data to glc
+    call NUOPC_CompAttributeGet(gcomp, name="ocn2glc_coupling", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) ocn2glc_coupling
+    if (my_task == master_task) then
+       write(stdout,'(a,l)') trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
+    end if
+    write(6,*) trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
 
+    ! Determine number of ocean levels and ocean level indices
+    if (ocn2glc_coupling) then
+       call NUOPC_CompAttributeGet(gcomp, name="ocn2glc_levels", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       num_ocn2glc_levels = shr_string_listGetNum(cvalue)
+       allocate(ocn2glc_levels(num_ocn2glc_levels))
+       do n = 1,num_ocn2glc_levels
+          call shr_string_listGetName(cvalue, n, cname, rc)
+          read(cname,*) ocn2glc_levels(n)
+       end do
+       if (my_task == master_task) then
+          write(stdout,'(a,i0)') trim(subname)//' number of ocean levels sent to glc = ',num_ocn2glc_levels
+          write(stdout,*)' ',trim(subname)//' ocean level indices are ',ocn2glc_levels
+       end if
+       write(6,'(a,i0)') trim(subname)//' number of ocean levels sent to glc = ',num_ocn2glc_levels
+       write(6,*)' ',trim(subname)//' ocean level indices are ',ocn2glc_levels
+    end if
+
+    call fldlist_add(fldsFrOcn_num, fldsFrOcn, trim(flds_scalar_name))
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, 'So_omask')
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, 'So_t')
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, 'So_u')
@@ -223,6 +257,12 @@ contains
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, 'So_bldepth')
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, 'Fioo_q')
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, 'Faoo_fco2_ocn')
+    if (ocn2glc_coupling) then
+       call fldlist_add(fldsFrOcn_num , fldsFrOcn, 'So_t_depth', &
+            ungridded_lbound=1, ungridded_ubound=num_ocn2glc_levels)
+       call fldlist_add(fldsFrOcn_num , fldsFrOcn, 'So_s_depth', &
+            ungridded_lbound=1, ungridded_ubound=num_ocn2glc_levels)
+    end if
 
     do n = 1,fldsFrOcn_num
        call NUOPC_Advertise(exportState, standardName=fldsFrOcn(n)%stdname, &
@@ -706,8 +746,23 @@ contains
        m2percm2  = mpercm*mpercm
        do nfld = 1, fieldCount
           if (trim(fieldNameList(nfld)) /= flds_scalar_name) then
-             call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
-             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             if (fieldNameList(nfld) == 'Faxa_bcph') then
+                work1 = ATM_BLACK_CARBON_FLUX
+             else if (fieldNameList(nfld) == 'Faxa_dstwet') then
+                work1 = ATM_FINE_DUST_FLUX
+             else if (fieldNameList(nfld) == 'Faxa_dstdry') then
+                work1 = ATM_COARSE_DUST_FLUX
+             else if (fieldNameList(nfld) == 'Fioi_flxdst') then
+                work1 = SEAICE_DUST_FLUX
+             else if (fieldNameList(nfld) == 'Fioi_bcph') then
+                work1 = SEAICE_BLACK_CARBON_FLUX
+             else if (fieldNameList(nfld) == 'Fioi_swpen_ifrac_n' .or. fieldNameList(nfld) == 'Si_ifrac_n') then
+                ! do nothing for now
+             else
+                call ESMF_LogWrite(subname//' fieldname is '//trim(fieldNameList(nfld)), ESMF_LOGMSG_INFO)
+                call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             end if
 
              gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
 
@@ -742,7 +797,7 @@ contains
 
     ! local variables
     type (block)         :: this_block ! local block info
-    integer (int_kind)   :: n, i,j,k,iblock,nfld
+    integer (int_kind)   :: n,i,j,k,iblock,nfld,lev
     character (char_len) :: label
     real (r8)            :: work1(nx_block,ny_block)
     real (r8)            :: work2(nx_block,ny_block)
@@ -753,6 +808,7 @@ contains
     real (r8)            :: gsum
     real (r8), pointer   :: dataptr1(:)
     real (r8), pointer   :: dataptr2(:)
+    real (r8), pointer   :: dataptr2d(:,:)
     integer (int_kind)   :: fieldCount
     character (char_len), allocatable :: fieldNameList(:)
     character(len=*), parameter :: subname='(ocn_import_export:ocn_export)'
@@ -768,9 +824,8 @@ contains
 
     call state_getfldptr(exportState, 'So_omask', dataPtr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    dataptr1(:) = shr_const_spval
-    n=0
+    dataptr1(:) = c0
+    n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j = this_block%jb,this_block%je
@@ -818,7 +873,6 @@ contains
 
     call state_getfldptr(exportState, 'So_t', dataptr1, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     dataptr1(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
@@ -830,6 +884,25 @@ contains
           enddo
        enddo
     enddo
+    if (ocn2glc_coupling) then
+       call state_getfldptr(exportState, 'So_t_depth', dataptr2d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       dataptr2d(:,:) = c0
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n = n + 1
+             do lev = 1,num_ocn2glc_levels
+                if (KMT(i,j,iblock) >= ocn2glc_levels(lev)) then
+                   dataptr2d(lev,n) = sbuff_sum_t_depth(i,j,iblock,lev)/tlast_coupled + T0_Kelvin
+                end if
+             end do
+          enddo
+          enddo
+       enddo
+    endif
 
     !-----------------------------------------------------------------------
     ! convert and pack salinity
@@ -849,6 +922,25 @@ contains
           enddo
        enddo
     enddo
+    if (ocn2glc_coupling) then
+       call state_getfldptr(exportState, 'So_s_depth', dataptr2d, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       dataptr2d(:,:) = c0
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n = n + 1
+             do lev = 1,num_ocn2glc_levels
+                if (KMT(i,j,iblock) >= ocn2glc_levels(lev)) then
+                   dataptr2d(lev,n) = sbuff_sum_s_depth(i,j,iblock,lev)*salt_to_ppt/tlast_coupled
+                end if
+             end do
+          end do
+          end do
+       end do
+    end if
 
     !-----------------------------------------------------------------------
     ! convert and pack boundary layer depth
@@ -1290,11 +1382,13 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
+    type (block)             :: this_block ! local block info
     real (r8)                :: work(nx_block,ny_block,max_blocks_clinic) ! local work arrays
     real (r8)                :: delt                                      ! time interval since last step
     real (r8)                :: delt_last                                 ! time interval for previous step
     integer (int_kind)       :: iblock                                    ! block index
     integer (int_kind)       :: sflux_co2_nf_ind = 0                      ! named field index of fco2
+    integer (int_kind)       :: i,j,n,lev                                 ! indices
     logical (log_kind), save :: first = .true.                            ! only true for first call
 
     !-----------------------------------------------------------------------
@@ -1310,6 +1404,14 @@ contains
        sbuff_sum_dhdy (:,:,:) = c0
        sbuff_sum_bld  (:,:,:) = c0
        sbuff_sum_co2  (:,:,:) = c0
+       if (.not. allocated(sbuff_sum_t_depth)) then
+          allocate(sbuff_sum_t_depth (nx_block,ny_block,max_blocks_clinic,num_ocn2glc_levels))
+       end if
+       sbuff_sum_t_depth(:,:,:,:) = c0
+       if (.not. allocated(sbuff_sum_s_depth)) then
+          allocate(sbuff_sum_s_depth (nx_block,ny_block,max_blocks_clinic,num_ocn2glc_levels))
+       end if
+       sbuff_sum_s_depth(:,:,:,:) = c0
     end if
 
     work = c0
@@ -1360,6 +1462,24 @@ contains
        sbuff_sum_dhdy (:,:,iblock) = sbuff_sum_dhdy(:,:,iblock) + delt * GRADPY(:,:,curtime,iblock)
        sbuff_sum_bld  (:,:,iblock) = sbuff_sum_bld (:,:,iblock) + delt * KPP_HBLT(:,:,iblock)
     end do
+    if (ocn2glc_coupling) then
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                do n = 1,num_ocn2glc_levels
+                   lev = ocn2glc_levels(n)
+                   if (KMT(i,j,iblock) >= lev) then
+                      sbuff_sum_t_depth(i,j,iblock,n) = sbuff_sum_t_depth(i,j,iblock,n) + &
+                           delt * TRACER(i,j,lev,1,curtime,iblock)
+                      sbuff_sum_s_depth(i,j,iblock,n) = sbuff_sum_s_depth(i,j,iblock,n) + &
+                           delt * TRACER(i,j,lev,2,curtime,iblock)
+                   end if
+                end do
+             end do
+          end do
+       end do
+    end if
 
     if ( State_FldChk(exportState, 'Faoo_fco2_ocn') .and. sflux_co2_nf_ind > 0) then
        do iblock = 1, nblocks_clinic

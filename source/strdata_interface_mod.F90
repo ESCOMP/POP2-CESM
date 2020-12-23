@@ -25,7 +25,6 @@ module strdata_interface_mod
   use domain_size,      only : km
   use communicate,      only : my_task
   use communicate,      only : master_task
-  use POP_IOUnitsMod,   only : inst_name
   use POP_CommMod,      only : POP_communicator
   use POP_MCT_vars_mod, only : POP_MCT_OCNID
   use POP_MCT_vars_mod, only : POP_MCT_gsMap_o
@@ -176,7 +175,7 @@ contains
   !***********************************************************************
 
   subroutine POP_strdata_create(inputlist)
-
+    use pop_iounitsmod, only : inst_name
     type(strdata_input_type), intent(inout) :: inputlist
 
     if (inputlist%depth_flag) then

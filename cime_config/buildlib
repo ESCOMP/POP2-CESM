@@ -27,6 +27,7 @@ def _copy_files_to_blddir(case):
     srcroot = case.get_value("SRCROOT")
     objroot = case.get_value("OBJROOT")
     caseroot = case.get_value("CASEROOT")
+    cimeroot = case.get_value("CIMEROOT")
     driver = case.get_value("COMP_INTERFACE")
 
     # create bld directories
