@@ -2,7 +2,7 @@
 
 <entry_id version="3.0">
   <description modifier_mode="*">
-    <desc ocn="POP2[%1D][%PHYS-DEV][%ECO][%ECOCESM21][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP]">POP2 </desc>
+    <desc ocn="POP2[%1D][%PHYS-DEV][%ECO][%ECOCESM21][%ECOCESM20][%ABIO-DIC][%PHYS-CYCLE][%DAR][%NDEP][%SMYLE]">POP2 </desc>
     <desc option="1D" >Single column </desc>
     <desc option="PHYS-DEV">Use development namelist defaults</desc>
     <desc option="ECO">Ecosystem</desc>
@@ -12,6 +12,7 @@
     <desc option="PHYS-CYCLE">phys cycle option</desc>
     <desc option="DAR">diagnostic</desc>
     <desc option="NDEP">Nitrogen Deposition from Coupler</desc>
+    <desc option="SMYLE">use POP/MARBL forcing settings for SMYLE coupled experiments</desc>
   </description>
 
   <entry id="COMP_OCN">
@@ -227,6 +228,18 @@
     <group>run_component_pop</group>
     <file>env_run.xml</file>
     <desc>Version of ocean BGC tunings to use (default values can be overwritten by user_nl_pop and user_nl_marbl)</desc>
+  </entry>
+
+  <entry id="POP_SMYLE_SETTINGS">
+    <type>logical</type>
+    <valid_values>TRUE,FALSE</valid_values>
+    <default_value>FALSE</default_value>
+    <values>
+      <value compset = "_POP2%[^_]*SMYLE">TRUE</value>
+    </values>
+    <group>run_component_pop</group>
+    <file>env_run.xml</file>
+    <desc>if TRUE, use POP/MARBL forcing settings for SMYLE coupled experiments</desc>
   </entry>
 
   <entry id="POP_TAVG_R8">

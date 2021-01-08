@@ -345,6 +345,7 @@ my $OCN_TAVG_TRACER_BUDGET = "$xmlvars{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$xmlvars{'OCN_TAVG_HIFREQ'}";
 my $OCN_ONEDIM             = "$xmlvars{'OCN_ONEDIM'}";
 my $OCN_PHYS_DEV           = "$xmlvars{'OCN_PHYS_DEV'}";
+my $POP_SMYLE_SETTINGS     = "$xmlvars{'POP_SMYLE_SETTINGS'}";
 my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
 my $INFO_DBUG              = "$xmlvars{'INFO_DBUG'}";
 my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
@@ -921,7 +922,7 @@ add_default($nl, 'ah&hmix_del4t_nml');
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
-add_default($nl, 'kappa_isop_deep','ocn_phys_dev'=>"$OCN_PHYS_DEV");
+add_default($nl, 'kappa_isop_deep', 'ocn_phys_dev'=>"$OCN_PHYS_DEV", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
 add_default($nl, 'kappa_thic_deep');
 
 # All namelist values are stored in exactly the format
@@ -1553,7 +1554,7 @@ if ($ecosys_on eq "TRUE") {
   add_default($nl, 'feventflux_input%file_fmt');
   add_default($nl, 'feventflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
 
-  add_default($nl, 'o2_consumption_scalef_opt', 'ocn_coupling'=>"$OCN_COUPLING");
+  add_default($nl, 'o2_consumption_scalef_opt', 'ocn_coupling'=>"$OCN_COUPLING", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
   if ($nl->get_value('o2_consumption_scalef_opt') eq '\'file_time_invariant\'') {
     add_default($nl, 'o2_consumption_scalef_input%filename');
     add_default($nl, 'o2_consumption_scalef_input%file_varname');
@@ -1576,7 +1577,7 @@ if ($ecosys_on eq "TRUE") {
   if ($OCN_NDEP_DRIVER eq "TRUE"){
       add_default($nl, 'ndep_data_type', 'val'=>'driver');
   }else{
-      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
+      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
   }
   my $ndep_data_type = $nl->get_value('ndep_data_type');
   # Need to strip the quotes
@@ -1591,10 +1592,10 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'nhy_flux_monthly_input%file_varname');
     add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
   } elsif ($ndep_data_type eq "shr_stream") {
-    add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
+    add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
+    add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
+    add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
     add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
   } elsif ($ndep_data_type ne "driver") {
     print " ndep_data_type=$ndep_data_type not supported by ecosys module\n";

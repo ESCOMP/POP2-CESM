@@ -600,6 +600,8 @@
 <kappa_isop_deep>0.1</kappa_isop_deep>
 <kappa_isop_deep ocn_grid="gx1v6" ocn_phys_dev="FALSE">0.2</kappa_isop_deep>
 <kappa_isop_deep ocn_grid="gx1v7" ocn_phys_dev="FALSE">0.2</kappa_isop_deep>
+<kappa_isop_deep ocn_grid="gx1v6" ocn_phys_dev="FALSE" pop_smyle_settings="TRUE">0.1</kappa_isop_deep>
+<kappa_isop_deep ocn_grid="gx1v7" ocn_phys_dev="FALSE" pop_smyle_settings="TRUE">0.1</kappa_isop_deep>
 
 <!---------------------------->
 <!-- hmix_gm_nml -->
@@ -1417,6 +1419,8 @@
 <o2_consumption_scalef_opt ocn_grid="gx1v7" ocn_bgc_config="cesm2.0">const</o2_consumption_scalef_opt>
 <o2_consumption_scalef_opt ocn_grid="gx1v6" ocn_coupling="full">file_time_invariant</o2_consumption_scalef_opt>
 <o2_consumption_scalef_opt ocn_grid="gx1v7" ocn_coupling="full">file_time_invariant</o2_consumption_scalef_opt>
+<o2_consumption_scalef_opt ocn_grid="gx1v6" ocn_coupling="full" pop_smyle_settings="TRUE">const</o2_consumption_scalef_opt>
+<o2_consumption_scalef_opt ocn_grid="gx1v7" ocn_coupling="full" pop_smyle_settings="TRUE">const</o2_consumption_scalef_opt>
 
 <o2_consumption_scalef_const>1.0</o2_consumption_scalef_const>
 <o2_consumption_scalef_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/o2_consumption_scalef_0.30_POP_gx1v6_20180623.nc</o2_consumption_scalef_input%filename>
@@ -1482,6 +1486,13 @@
 <ndep_shr_stream_file ocn_grid="gx3v7" ocn_transient="1850-2000">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2000_w_nhx_emis_gx3v7_c180926.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="1850-2000">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2000_w_nhx_emis_gx1v6_c180926.nc</ndep_shr_stream_file>
 <ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="1850-2000">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2000_w_nhx_emis_gx1v6_c180926.nc</ndep_shr_stream_file>
+
+<ndep_data_type ocn_transient="1850-2000" pop_smyle_settings="TRUE">shr_stream</ndep_data_type>
+<ndep_shr_stream_year_first ocn_transient="1850-2000" pop_smyle_settings="TRUE">1849</ndep_shr_stream_year_first>
+<ndep_shr_stream_year_last  ocn_transient="1850-2000" pop_smyle_settings="TRUE">2025</ndep_shr_stream_year_last>
+<ndep_shr_stream_year_align ocn_transient="1850-2000" pop_smyle_settings="TRUE">1849</ndep_shr_stream_year_align>
+<ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="1850-2000" pop_smyle_settings="TRUE">ocn/pop/gx1v6/forcing/ndep_ocn_SMYLE_w_nhx_emis_gx1v6_1652-2025_c201113.nc</ndep_shr_stream_file>
+<ndep_shr_stream_file ocn_grid="gx1v7" ocn_transient="1850-2000" pop_smyle_settings="TRUE">ocn/pop/gx1v6/forcing/ndep_ocn_SMYLE_w_nhx_emis_gx1v6_1652-2025_c201113.nc</ndep_shr_stream_file>
 
 <ndep_data_type ocn_transient="rcp4.5">shr_stream</ndep_data_type>
 <ndep_shr_stream_year_first ocn_transient="rcp4.5">2004</ndep_shr_stream_year_first>
