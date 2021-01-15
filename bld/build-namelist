@@ -1349,8 +1349,8 @@ if ($iage_on eq "TRUE") {
 
 my $cfc_on = $cfg->get("use_cfc");
 if ($cfc_on eq "TRUE") {
-    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'model_year&cfc_nml', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
+    add_default($nl, 'data_year&cfc_nml' , 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
     add_default($nl, 'pcfc_first_nonzero_year');
 
     # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective cfc year >= pcfc_first_nonzero_year
@@ -1393,8 +1393,8 @@ if ($cfc_on eq "TRUE") {
 
 my $sf6_on = $cfg->get("use_sf6");
 if ($sf6_on eq "TRUE") {
-    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT");
-    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT");
+    add_default($nl, 'model_year&sf6_nml', 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
+    add_default($nl, 'data_year&sf6_nml' , 'ocn_transient'=>"$OCN_TRANSIENT", 'pop_smyle_settings'=>"$POP_SMYLE_SETTINGS");
     add_default($nl, 'psf6_first_nonzero_year');
 
     # If RUN_TYPE=startup, CONTINUE_RUN=FALSE, and the effective sf6 year >= psf6_first_nonzero_year

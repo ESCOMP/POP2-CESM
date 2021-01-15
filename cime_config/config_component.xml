@@ -116,6 +116,7 @@
     <values modifier='merge'>
       <value compset="^HIST">cfc sf6</value>
       <value compset="^5505">cfc sf6</value>
+      <value compset="^SSP370_CAM.*_POP2%[^_]*SMYLE">cfc sf6</value>
       <value compset="_POP2%[^_]*ECO">ecosys</value>
       <value compset="_POP2%[^_]*ABIO-DIC">abio_dic_dic14</value>
     </values>
