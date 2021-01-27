@@ -13,7 +13,7 @@ module ocn_import_export
   use shr_cal_mod,           only: shr_cal_date2ymd
   use shr_sys_mod,           only: shr_sys_flush, shr_sys_abort
   use shr_const_mod,         only: shr_const_spval
-  use shr_string_mod,        only : shr_string_listGetNum, shr_string_listGetName
+  use shr_string_mod,        only: shr_string_listGetNum, shr_string_listGetName
   use communicate,           only: my_task, master_task
   use domain,                only: distrb_clinic, POP_haloClinic
   use forcing_shf,           only: SHF_QSW
@@ -34,7 +34,7 @@ module ocn_import_export
   use io_tools,              only: document
   use named_field_mod,       only: named_field_register, named_field_get_index, named_field_set, named_field_get
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
-  use grid,                  only: KMT
+  use grid,                  only: KMT, TAREA
   use nuopc_shr_methods,     only: chkerr
   use constants
   use blocks
@@ -68,6 +68,10 @@ module ocn_import_export
   integer                  :: fldsFrOcn_num = 0
   type (fld_list_type)     :: fldsToOcn(fldsMax)
   type (fld_list_type)     :: fldsFrOcn(fldsMax)
+
+  ! area correction factors for fluxes send and received from mediator
+  real(r8), allocatable :: mod2med_areacor(:) ! ratios of model areas to input mesh areas
+  real(r8), allocatable :: med2mod_areacor(:) ! ratios of input mesh areas to model areas
 
   interface state_getfldptr
      module procedure state_getfldptr_1d
@@ -286,8 +290,15 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    type(ESMF_State) :: importState
-    type(ESMF_State) :: exportState
+    type(ESMF_State)      :: importState
+    type(ESMF_State)      :: exportState
+    type(ESMF_Field)      :: lfield
+    integer               :: numOwnedElements
+    integer               :: i,j,iblock,n
+    type(block)           :: this_block         ! block information for current block
+    real(r8), allocatable :: mesh_areas(:)
+    real(r8), allocatable :: model_areas(:)
+    real(r8), pointer     :: dataptr(:)
     character(len=*), parameter :: subname='(ocn_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -317,6 +328,50 @@ contains
          tag=subname//':POP_Import',&
          mesh=mesh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Determine areas for regridding
+    call ESMF_MeshGet(mesh, numOwnedElements=numOwnedElements, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_StateGet(exportState, itemName=trim(fldsFrOcn(2)%stdname), field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldRegridGetArea(lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_FieldGet(lfield, farrayPtr=dataptr, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    allocate(mesh_areas(numOwnedElements))
+    mesh_areas(:) = dataptr(:)
+
+    ! Determine model areas
+    allocate(model_areas(numOwnedElements))
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n+1
+             model_areas(n) = tarea(i,j,iblock)/(radius*radius)
+          enddo
+       enddo
+    enddo
+
+    ! Determine flux correction factors (module variables)
+    allocate (mod2med_areacor(numOwnedElements))
+    allocate (med2mod_areacor(numOwnedElements))
+    do n = 1,numOwnedElements
+       if (model_areas(n) == mesh_areas(n)) then
+          mod2med_areacor(n) = 1._r8
+          med2mod_areacor(n) = 1._r8
+       else
+          mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
+          med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
+          if (abs(mod2med_areacor(n) - 1._r8) > 1.e-13) then
+             write(6,'(a,i8,2x,d21.14,2x)')' AREACOR pop: n, abs(mod2med_areacor(n)-1)', &
+                  n, abs(mod2med_areacor(n) - 1._r8)
+          end if
+       end if
+    end do
+    deallocate(model_areas)
+    deallocate(mesh_areas)
 
     ! error checks
 
@@ -1005,7 +1060,7 @@ contains
        do j=this_block%jb,this_block%je
           do i=this_block%ib,this_block%ie
              n = n + 1
-             dataptr1(n) = QFLUX(i,j,iblock)
+             dataptr1(n) = QFLUX(i,j,iblock) * mod2med_areacor(n)
           enddo
        enddo
     enddo
@@ -1030,7 +1085,7 @@ contains
           do j=this_block%jb,this_block%je
              do i=this_block%ib,this_block%ie
                 n = n + 1
-                dataptr1(n) = sbuff_sum_co2(i,j,iblock)/tlast_coupled
+                dataptr1(n) = (sbuff_sum_co2(i,j,iblock)/tlast_coupled) * mod2med_areacor(n)
              enddo
           enddo
        enddo
@@ -1096,19 +1151,20 @@ contains
 
 !==============================================================================
 
-  subroutine state_getimport(state, fldname, output, ungridded_index, do_sum, rc)
+  subroutine state_getimport(state, fldname, output, ungridded_index, do_sum, areacor, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
     ! ----------------------------------------------
 
     ! input/output variables
-    type(ESMF_State)  , intent(in)    :: state
-    character(len=*)  , intent(in)    :: fldname
-    real (r8)         , intent(inout) :: output(:,:,:)
-    integer, optional , intent(in)    :: ungridded_index
-    logical, optional , intent(in)    :: do_sum
-    integer           , intent(out)   :: rc
+    type(ESMF_State)    , intent(in)    :: state
+    character(len=*)    , intent(in)    :: fldname
+    real (r8)           , intent(inout) :: output(:,:,:)
+    integer  , optional , intent(in)    :: ungridded_index
+    logical  , optional , intent(in)    :: do_sum
+    real(r8) , optional , intent(in)    :: areacor(:)
+    integer             , intent(out)   :: rc
 
     ! local variables
     type(block)       :: this_block         ! block information for current block
@@ -1151,6 +1207,11 @@ contains
           end do
        end do
     end do
+    if (present(areacor)) then
+       do n = 1,size(dataPtr1d)
+          dataPtr1d(n) = dataPtr1d(n) * areacor(n)
+       end do
+    end if
 
   end subroutine state_getimport
 
