@@ -433,6 +433,7 @@ contains
     real (r8), pointer   :: Fioi_swpen_ifrac_n(:,:)
     integer (int_kind)   :: fieldCount
     character (char_len), allocatable :: fieldNameList(:)
+    character (char_len) :: fldname
     type(ESMF_StateItem_Flag) :: itemflag
 #ifdef _HIRES
     real (r8)            :: qsw_eps = -1.e-3_r8
@@ -518,52 +519,63 @@ contains
     !-----------------------------------------------------------------------
 
     ! sea-level pressure (Pa)
-    call state_getimport(importState, 'Sa_pslv', work1, rc=rc)
+    call state_getimport(importState, 'Sa_pslv', work1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_PRESS(:,:,:) = c10 * work1(:,:,:) * RCALCT(:,:,:) ! convert from Pa to dynes/cm**2
 
     ! water flux due to snow (kg/m2/s)
-    call state_getimport(importState, 'Faxa_snow', SNOW_F, rc=rc)
+    call state_getimport(importState, 'Faxa_snow', SNOW_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! water flux due to rain (kg/m2/s)
-    call state_getimport(importState, 'Faxa_rain', work1, rc=rc)
+    call state_getimport(importState, 'Faxa_rain', work1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     PREC_F(:,:,:) = work1(:,:,:) + SNOW_F(:,:,:) ! rain + snow
 
     ! longwave radiation (down) (W/m2)
-    call state_getimport(importState, 'Faxa_lwdn', LWDN_F, rc=rc)
+    call state_getimport(importState, 'Faxa_lwdn', LWDN_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! fine dust flux from atm
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=1, rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
+         ungridded_index=1,  areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=1, rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
+         do_sum=.true., ungridded_index=1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_FINE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     ! coarse dust flux from atm
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, ungridded_index=2, rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
+         ungridded_index=2,  areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=2, rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
+         do_sum=.true., ungridded_index=2, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
+         do_sum=.true., ungridded_index=3, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
+         do_sum=.true., ungridded_index=3, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
+    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
+         do_sum=.true., ungridded_index=4, areacor=med2mod_areacor,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, do_sum=.true., ungridded_index=4, rc=rc)
+    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
+         do_sum=.true., ungridded_index=4, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_COARSE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     ! black carbon flux from atm
-    call state_getimport(importState, 'Faxa_bcph', output=work1, do_sum=.true., ungridded_index=1, rc=rc)
+    call state_getimport(importState, 'Faxa_bcph', output=work1, &
+         do_sum=.true., ungridded_index=1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_bcph', output=work1, do_sum=.true., ungridded_index=2, rc=rc)
+    call state_getimport(importState, 'Faxa_bcph', output=work1, &
+         do_sum=.true., ungridded_index=2, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_bcph', output=work1, do_sum=.true., ungridded_index=3, rc=rc)
+    call state_getimport(importState, 'Faxa_bcph', output=work1, &
+         do_sum=.true., ungridded_index=3, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
@@ -578,32 +590,35 @@ contains
     IFRAC(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)
 
     ! snow melt flux from sea ice (kg/m2/s)
-    call state_getimport(importState, 'Fioi_meltw', MELT_F, rc=rc)
+    call state_getimport(importState, 'Fioi_meltw', MELT_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! heat flux from sea ice snow & ice melt (W/m2)
-    call state_getimport(importState, 'Fioi_melth', MELTH_F, rc=rc)
+    call state_getimport(importState, 'Fioi_melth', MELTH_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! salt from sea ice (kg(salt)/m2/s)
-    call state_getimport(importState, 'Fioi_salt', SALT_F, rc=rc)
+    call state_getimport(importState, 'Fioi_salt', SALT_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! dust flux from sea ice
-    call state_getimport(importState, 'Fioi_flxdst', work1, rc=rc)
+    call state_getimport(importState, 'Fioi_flxdst', work1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     SEAICE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     ! black carbon flux from sea ice
-    call state_getimport(importState, 'Fioi_bcpho', work1, rc=rc)
+    call state_getimport(importState, 'Fioi_bcpho', work1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Fioi_bcphi', work1, do_sum=.true., rc=rc)
+    call state_getimport(importState, 'Fioi_bcphi', work1, do_sum=.true., areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     SEAICE_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
 
     !  optional fields from sea ice per mcog column
     call state_getfldptr(importState, 'Foxx_swnet', Foxx_swnet, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,size(Foxx_swnet)
+       Foxx_swnet(n) = Foxx_swnet(n) * med2mod_areacor(n)
+    end do
 
     if (lmcog) then
        ! extract fields for each column and pass to import_mcog
@@ -614,10 +629,17 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(Foxx_swnet_afracr)
+          Foxx_swnet_afracr(n) = Foxx_swnet_afracr(n) * med2mod_areacor(n)
+       end do
        call state_getfldptr(importState, 'Si_ifrac_n', Si_ifrac_n, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Fioi_swpen_ifrac_n', Fioi_swpen_ifrac_n, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do n = 1,size(Fioi_swpen_ifrac_n, dim=2)
+          Fioi_swpen_ifrac_n(:,n) = Fioi_swpen_ifrac_n(:,n) * med2mod_areacor(n)
+       end do
+
        n = 0
        do iblock = 1, nblocks_clinic
           this_block = get_block(blocks_clinic(iblock),iblock)
@@ -690,11 +712,11 @@ contains
     !-----------------------------------------------------------------------
 
     ! liquid runoff flux (kg/m2/s)
-    call state_getimport(importState, 'Foxx_rofl', ROFF_F, rc=rc)
+    call state_getimport(importState, 'Foxx_rofl', ROFF_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ice runoff flux (kg/m2/s)
-    call state_getimport(importState, 'Foxx_rofi', IOFF_F, rc=rc)
+    call state_getimport(importState, 'Foxx_rofi', IOFF_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !-----------------------------------------------------------------------
@@ -745,7 +767,7 @@ contains
 
     call ESMF_StateGet(importState, 'Faxa_nhx', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
-       call state_getimport(importState, 'Faxa_nhx', work1, rc=rc)
+       call state_getimport(importState, 'Faxa_nhx', work1, areacor=med2mod_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Note - the input units are kgN/m2/s to nmolN/cm2/s
@@ -764,7 +786,7 @@ contains
     call ESMF_StateGet(importState, 'Faxa_noy', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
 
-       call state_getimport(importState, 'Faxa_noy', work1, rc=rc)
+       call state_getimport(importState, 'Faxa_noy', work1, areacor=med2mod_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Note - the input units are kgN/m2/s to nmolN/cm2/s
@@ -815,8 +837,14 @@ contains
                 ! do nothing for now
              else
                 call ESMF_LogWrite(subname//' fieldname is '//trim(fieldNameList(nfld)), ESMF_LOGMSG_INFO)
-                call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                fldname = trim(fieldnamelist(nfld))
+                if (fldname(1:1) == 'F') then
+                   call state_getimport(importState, trim(fieldNameList(nfld)), work1, areacor=med2mod_areacor, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                else
+                   call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
+                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                end if
              end if
 
              gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
@@ -1208,9 +1236,15 @@ contains
        end do
     end do
     if (present(areacor)) then
-       do n = 1,size(dataPtr1d)
-          dataPtr1d(n) = dataPtr1d(n) * areacor(n)
-       end do
+       if (present(ungridded_index)) then
+          do n = 1,size(dataPtr2d, dim=2)
+             dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
+          end do
+       else
+          do n = 1,size(dataPtr1d)
+             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
+          end do
+       end if
     end if
 
   end subroutine state_getimport
