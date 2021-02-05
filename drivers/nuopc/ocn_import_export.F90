@@ -278,8 +278,7 @@ contains
 
   end subroutine ocn_advertise_fields
 
-!==============================================================================
-
+  !==============================================================================
   subroutine ocn_realize_fields(gcomp, mesh, flds_scalar_name, flds_scalar_num, rc)
 
     ! input/output variables
@@ -400,7 +399,6 @@ contains
   end subroutine ocn_realize_fields
 
   !==============================================================================
-
   subroutine ocn_import( importState, flds_scalar_name, ldiag_cpl, errorCode, rc )
 
     !-----------------------------------------------------------------------
@@ -431,6 +429,12 @@ contains
     real (r8), pointer   :: Sf_afracr(:)
     real (r8), pointer   :: Si_ifrac_n(:,:)
     real (r8), pointer   :: Fioi_swpen_ifrac_n(:,:)
+    real (r8), pointer   :: dataptr2d_faxa_dstwet(:,:)
+    real (r8), pointer   :: dataptr2d_faxa_dstdry(:,:)
+    real (r8), pointer   :: dataptr2d_faxa_bcph(:,:)
+    real (r8), pointer   :: dataptr1d_fioi_flxdst(:)
+    real (r8), pointer   :: dataptr1d_fioi_bcpho(:)
+    real (r8), pointer   :: dataptr1d_fioi_bcphi(:)
     integer (int_kind)   :: fieldCount
     character (char_len), allocatable :: fieldNameList(:)
     character (char_len) :: fldname
@@ -479,7 +483,6 @@ contains
     ! convert to dyne/cm**2, and shift SMFT to U grid
     ! halo updates are performed in subroutine rotate_wind_stress,
     ! following the rotation
-
     call rotate_wind_stress(work1, work2)
 
     ! evaporation flux (kg/m2/s)
@@ -523,61 +526,62 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ATM_PRESS(:,:,:) = c10 * work1(:,:,:) * RCALCT(:,:,:) ! convert from Pa to dynes/cm**2
 
-    ! water flux due to snow (kg/m2/s)
+    ! water flux due to snow + rain(kg/m2/s)
     call state_getimport(importState, 'Faxa_snow', SNOW_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! water flux due to rain (kg/m2/s)
     call state_getimport(importState, 'Faxa_rain', work1, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     PREC_F(:,:,:) = work1(:,:,:) + SNOW_F(:,:,:) ! rain + snow
 
     ! longwave radiation (down) (W/m2)
     call state_getimport(importState, 'Faxa_lwdn', LWDN_F, areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! fine dust flux from atm
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
-         ungridded_index=1,  areacor=med2mod_areacor, rc=rc)
+    ! dust flux from atm (convert from from MKS (kg/m^2/s) to CGS (g/cm^2/s))
+    call state_getfldptr(importState, 'Faxa_dstwet', dataPtr2d_faxa_dstwet, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
-         do_sum=.true., ungridded_index=1, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Faxa_dstdry', dataPtr2d_faxa_dstdry, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ATM_FINE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n+1
+             ! fine dust flux from atm
+             ATM_FINE_DUST_FLUX(i,j,iblock)   = dataPtr2d_faxa_dstwet(1,n) + dataptr2d_faxa_dstdry(1,n)
+             ! coarse dust flux from atm
+             ATM_COARSE_DUST_FLUX(i,j,iblock) = dataPtr2d_faxa_dstwet(2,n) + dataptr2d_faxa_dstdry(2,n) + &
+                                                dataPtr2d_faxa_dstwet(3,n) + dataptr2d_faxa_dstdry(3,n) + &
+                                                dataPtr2d_faxa_dstwet(4,n) + dataptr2d_faxa_dstdry(4,n)
 
-    ! coarse dust flux from atm
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
-         ungridded_index=2,  areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
-         do_sum=.true., ungridded_index=2, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
-         do_sum=.true., ungridded_index=3, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
-         do_sum=.true., ungridded_index=3, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstwet', output=work1, &
-         do_sum=.true., ungridded_index=4, areacor=med2mod_areacor,rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_dstdry', output=work1, &
-         do_sum=.true., ungridded_index=4, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ATM_COARSE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
+             ATM_FINE_DUST_FLUX(i,j,iblock)   = ATM_FINE_DUST_FLUX(i,j,iblock) * & 
+                                                0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+             ATM_COARSE_DUST_FLUX(i,j,iblock) = ATM_COARSE_DUST_FLUX(i,j,iblock) * & 
+                                                0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+          end do
+       end do
+    end do
 
-    ! black carbon flux from atm
-    call state_getimport(importState, 'Faxa_bcph', output=work1, &
-         do_sum=.true., ungridded_index=1, areacor=med2mod_areacor, rc=rc)
+    ! black carbon flux from atm (convert from MKS (kg/m^2/s) to CGS (g/cm^2/s))
+    call state_getfldptr(importState, 'Faxa_bcph', dataPtr2d_faxa_bcph, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_bcph', output=work1, &
-         do_sum=.true., ungridded_index=2, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_bcph', output=work1, &
-         do_sum=.true., ungridded_index=3, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ATM_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n + 1
+             ATM_BLACK_CARBON_FLUX(i,j,iblock) = dataPtr2d_faxa_bcph(1,n) + &
+                                                 dataptr2d_faxa_bcph(2,n) + &
+                                                 dataptr2d_faxa_bcph(3,n)
+             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
+             ATM_BLACK_CARBON_FLUX(i,j,iblock) = ATM_BLACK_CARBON_FLUX(i,j,iblock) * &
+                                                 0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+          end do
+       end do
+    end do
 
     !-----------------------------------------------------------------------
     ! from sea-ice
@@ -586,7 +590,6 @@ contains
     ! ice fraction
     call state_getimport(importState, 'Si_ifrac', work1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     IFRAC(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)
 
     ! snow melt flux from sea ice (kg/m2/s)
@@ -602,16 +605,40 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! dust flux from sea ice
-    call state_getimport(importState, 'Fioi_flxdst', work1, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Fioi_flxdst', dataPtr1d_fioi_flxdst, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    SEAICE_DUST_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n + 1
+             SEAICE_DUST_FLUX(i,j,iblock) = dataptr1d_fioi_flxdst(n)
+             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
+             SEAICE_DUST_FLUX(i,j,iblock) = SEAICE_DUST_FLUX(i,j,iblock) * & 
+                                            0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+          end do
+       end do
+    end do
 
     ! black carbon flux from sea ice
-    call state_getimport(importState, 'Fioi_bcpho', work1, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Fioi_bcpho', dataPtr1d_fioi_bcpho, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Fioi_bcphi', work1, do_sum=.true., areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Fioi_bcphi', dataPtr1d_fioi_bcpho, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    SEAICE_BLACK_CARBON_FLUX(:,:,:) = 0.1_r8 * RCALCT(:,:,:) * work1(:,:,:) ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n + 1
+             SEAICE_BLACK_CARBON_FLUX(i,j,iblock) = dataptr1d_fioi_bcpho(n) + dataptr1d_fioi_bcphi(n)
+             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
+             SEAICE_BLACK_CARBON_FLUX(i,j,iblock) = SEAICE_BLACK_CARBON_FLUX(i,j,iblock) * &
+                                                    0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+          end do
+       end do
+    end do
 
     !  optional fields from sea ice per mcog column
     call state_getfldptr(importState, 'Foxx_swnet', Foxx_swnet, rc)
@@ -863,8 +890,7 @@ contains
 
   end subroutine ocn_import
 
-!==============================================================================
-
+  !==============================================================================
   subroutine ocn_export(exportState, flds_scalar_name, ldiag_cpl, errorCode, rc)
 
     !-----------------------------------------------------------------------
@@ -1177,9 +1203,8 @@ contains
 
   end subroutine ocn_export
 
-!==============================================================================
-
-  subroutine state_getimport(state, fldname, output, ungridded_index, do_sum, areacor, rc)
+  !==============================================================================
+  subroutine state_getimport(state, fldname, output, areacor, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
@@ -1189,8 +1214,6 @@ contains
     type(ESMF_State)    , intent(in)    :: state
     character(len=*)    , intent(in)    :: fldname
     real (r8)           , intent(inout) :: output(:,:,:)
-    integer  , optional , intent(in)    :: ungridded_index
-    logical  , optional , intent(in)    :: do_sum
     real(r8) , optional , intent(in)    :: areacor(:)
     integer             , intent(out)   :: rc
 
@@ -1198,19 +1221,13 @@ contains
     type(block)       :: this_block         ! block information for current block
     integer           :: i, j, iblock, n   ! incides
     real(r8), pointer :: dataPtr1d(:)
-    real(r8), pointer :: dataPtr2d(:,:)
     character(len=*), parameter :: subname='(ice_import_export:state_getimport)'
     ! ----------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    if (present(ungridded_index)) then
-       call state_getfldptr(state, trim(fldname), dataptr2d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call state_getfldptr(state, trim(fldname), dataptr1d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call state_getfldptr(state, trim(fldname), dataptr1d, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! determine output array
     n = 0
@@ -1219,38 +1236,19 @@ contains
        do j = this_block%jb,this_block%je
           do i = this_block%ib,this_block%ie
              n = n + 1
-             if (present(do_sum)) then
-                if (present(ungridded_index)) then
-                   output(i,j,iblock)  = output(i,j,iblock) + dataPtr2d(ungridded_index,n)
-                else
-                   output(i,j,iblock)  = output(i,j,iblock) + dataPtr1d(n)
-                end if
-             else
-                if (present(ungridded_index)) then
-                   output(i,j,iblock)  = dataPtr2d(ungridded_index,n)
-                else
-                   output(i,j,iblock)  = dataPtr1d(n)
-                end if
-             end if
+             output(i,j,iblock)  = dataPtr1d(n)
           end do
        end do
     end do
     if (present(areacor)) then
-       if (present(ungridded_index)) then
-          do n = 1,size(dataPtr2d, dim=2)
-             dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
-          end do
-       else
-          do n = 1,size(dataPtr1d)
-             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
-          end do
-       end if
+       do n = 1,size(dataPtr1d)
+          dataPtr1d(n) = dataPtr1d(n) * areacor(n)
+       end do
     end if
 
   end subroutine state_getimport
 
   !===============================================================================
-
   subroutine fldlist_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
 
     ! input/output variables
@@ -1280,7 +1278,6 @@ contains
   end subroutine fldlist_add
 
   !===============================================================================
-
   subroutine fldlist_realize(state, fldList, numflds, flds_scalar_name, flds_scalar_num, mesh, tag, rc)
 
     use NUOPC, only : NUOPC_IsConnected, NUOPC_Realize
@@ -1388,7 +1385,6 @@ contains
   end subroutine fldlist_realize
 
   !===============================================================================
-
   subroutine State_GetFldPtr_1d(State, fldname, fldptr, rc)
     ! ----------------------------------------------
     ! Get 1d pointer to a state field
@@ -1409,14 +1405,12 @@ contains
 
     call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine State_GetFldPtr_1d
 
   !===============================================================================
-
   subroutine State_GetFldPtr_2d(State, fldname, fldptr, rc)
     ! ----------------------------------------------
     ! Get 2d pointer to a state field
@@ -1437,14 +1431,12 @@ contains
 
     call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine State_GetFldPtr_2d
 
   !===============================================================================
-
   logical function State_FldChk(State, fldname)
     ! ----------------------------------------------
     ! Determine if field is in state
@@ -1459,7 +1451,6 @@ contains
     ! ----------------------------------------------
 
     call ESMF_StateGet(State, trim(fldname), itemType)
-
     State_FldChk = (itemType /= ESMF_STATEITEM_NOTFOUND)
 
   end function State_FldChk
