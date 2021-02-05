@@ -624,7 +624,7 @@ contains
     ! black carbon flux from sea ice
     call state_getfldptr(importState, 'Fioi_bcpho', dataPtr1d_fioi_bcpho, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getfldptr(importState, 'Fioi_bcphi', dataPtr1d_fioi_bcpho, rc)
+    call state_getfldptr(importState, 'Fioi_bcphi', dataPtr1d_fioi_bcphi, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     n = 0
     do iblock = 1, nblocks_clinic
