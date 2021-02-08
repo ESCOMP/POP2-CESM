@@ -14,12 +14,13 @@ module ocn_import_export
   use shr_sys_mod,           only: shr_sys_flush, shr_sys_abort
   use shr_const_mod,         only: shr_const_spval
   use shr_string_mod,        only: shr_string_listGetNum, shr_string_listGetName
+  use shr_mpi_mod,           only: shr_mpi_min, shr_mpi_max
   use communicate,           only: my_task, master_task
+  use ocn_communicator,      only: mpi_communicator_ocn
   use domain,                only: distrb_clinic, POP_haloClinic
-  use forcing_shf,           only: SHF_QSW
   use forcing_sfwf,          only: lsend_precip_fact, precip_fact
-  use forcing_fields,        only: EVAP_F, PREC_F, SNOW_F, MELT_F, ROFF_F, IOFF_F
-  use forcing_fields,        only: SALT_F
+  use forcing_shf,           only: SHF_QSW
+  use forcing_fields,        only: EVAP_F, PREC_F, SNOW_F, MELT_F, ROFF_F, IOFF_F, SALT_F
   use forcing_fields,        only: SENH_F, LWUP_F, LWDN_F, MELTH_F
   use forcing_fields,        only: ATM_CO2_PROG_nf_ind, ATM_CO2_DIAG_nf_ind
   use forcing_fields,        only: ATM_NHx_nf_ind, ATM_NOy_nf_ind
@@ -123,7 +124,7 @@ contains
     character(CS) :: cname
     integer       :: ice_ncat
     logical       :: flds_i2o_per_cat  ! .true. => select per ocn thickness category
-    character(len=*), parameter :: subname='(ocn_import_export:ocn_advertise_fields)'
+    character(len=*), parameter :: subname='(ocn_advertise_fields)'
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -139,16 +140,18 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) lmcog_flds_sent
-    call ESMF_LogWrite('lmcog_flds_sent = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    write(stdout,*) 'lmcog_flds_sent = ',lmcog_flds_sent
+    if (my_task == master_task) then
+       write(stdout,*) 'lmcog_flds_sent = ',lmcog_flds_sent
+    end if
 
     ! Note that ice_ncat is set by the env_run.xml variable ICE_NCAT which is set
     ! by the ice component (default is 1)
     call NUOPC_CompAttributeGet(gcomp, name='ice_ncat', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) ice_ncat
-    call ESMF_LogWrite('ice_ncat = '// trim(cvalue), ESMF_LOGMSG_INFO)
-    write(stdout,*) 'ice_ncat = ',ice_ncat
+    if (my_task == master_task) then
+       write(stdout,*) 'ice_ncat = ',ice_ncat
+    end if
 
     if (lmcog_flds_sent) then
        mcog_ncols = ice_ncat+1
@@ -174,7 +177,7 @@ contains
        ! this implementation only handles columns due to ice thickness categories
        call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sf_afrac')
        call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sf_afracr')
-       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Foxx_swnet_afracr')
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Foxx_swnet_afracr' )
        call fldlist_add(fldsToOcn_num, fldsToOcn, 'Fioi_swpen_ifrac_n', ungridded_lbound=1, ungridded_ubound=ice_ncat)
        call fldlist_add(fldsToOcn_num, fldsToOcn, 'Si_ifrac_n'        , ungridded_lbound=1, ungridded_ubound=ice_ncat)
     endif
@@ -230,7 +233,6 @@ contains
     if (my_task == master_task) then
        write(stdout,'(a,L1)') trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
     end if
-    write(6,*) trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
 
     ! Determine number of ocean levels and ocean level indices
     if (ocn2glc_coupling) then
@@ -246,8 +248,6 @@ contains
           write(stdout,'(a,i0)') trim(subname)//' number of ocean levels sent to glc = ',num_ocn2glc_levels
           write(stdout,*)' ',trim(subname)//' ocean level indices are ',ocn2glc_levels
        end if
-       write(6,'(a,i0)') trim(subname)//' number of ocean levels sent to glc = ',num_ocn2glc_levels
-       write(6,*)' ',trim(subname)//' ocean level indices are ',ocn2glc_levels
     end if
 
     call fldlist_add(fldsFrOcn_num, fldsFrOcn, trim(flds_scalar_name))
@@ -292,22 +292,62 @@ contains
     type(ESMF_State)      :: importState
     type(ESMF_State)      :: exportState
     type(ESMF_Field)      :: lfield
+    integer               :: spatialDim
     integer               :: numOwnedElements
     integer               :: i,j,iblock,n
     type(block)           :: this_block         ! block information for current block
     real(r8), allocatable :: mesh_areas(:)
     real(r8), allocatable :: model_areas(:)
     real(r8), pointer     :: dataptr(:)
+    integer               :: num_ocn
+    real(r8)              :: max_mod2med_areacor
+    real(r8)              :: max_med2mod_areacor
+    real(r8)              :: min_mod2med_areacor
+    real(r8)              :: min_med2mod_areacor
+    real(r8)              :: max_mod2med_areacor_glob
+    real(r8)              :: max_med2mod_areacor_glob
+    real(r8)              :: min_mod2med_areacor_glob
+    real(r8)              :: min_med2mod_areacor_glob
+    real(r8), pointer     :: ownedElemCoords(:)
+    real(r8), pointer     :: latModel(:), latMesh(:)
+    real(r8), pointer     :: lonModel(:), lonMesh(:)
+    real(r8)              :: diff_lon
+    real(r8)              :: diff_lat
     character(len=*), parameter :: subname='(ocn_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
+    ! Get import and export states
     call NUOPC_ModelGet(gcomp, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Only mesh is supported for now
+    ! Error checks before realizing fields
+    if (lmcog) then
+       if ( (.not. State_FldChk(importState, 'Si_ifrac_n'         )) .and. &
+            (.not. State_FldChk(importState, 'Fioi_swpen_ifrac_n' )) .and. &
+            (.not. State_FldChk(importState, 'Foxx_swnet_afracr'  )) .and. &
+            (.not. State_FldChk(importState, 'Sf_afrac'           )) .and. &
+            (.not. State_FldChk(importState, 'Sf_afracr'          ))) then
 
+          if (my_task == master_task) then
+             write(stdout,*) ' Query for Si_ifrac_n         in import state is ',&
+                  State_FldChk(importState, 'Si_ifrac_n')
+             write(stdout,*) ' Query for Fioi_swpen_ifrac_n in import state is ',&
+                  State_FldChk(importState, 'Foxx_swnet_afracr')
+             write(stdout,*) ' Query for Foxx_swnet_afracr  in import state is ',&
+                  State_FldChk(importState, 'Foxx_swnet_afracr')
+             write(stdout,*) ' Query for Sf_afrac           in import state is ',&
+                  State_FldChk(importState, 'Sf_afrac')
+             write(stdout,*) ' Query for Sf_afracr          in import state is ',&
+                  State_FldChk(importState, 'Sf_afracr')
+             write(stdout,*) ' Aborting: all above import fields must be in import state if lmcog is true'
+          end if
+          call shr_sys_abort(trim(subname)//": all import fields not set if lmcog is .true.")
+       end if
+    end if
+
+    ! Realize import and export states
     call fldlist_realize( &
          state=ExportState, &
          fldList=fldsFrOcn, &
@@ -328,10 +368,51 @@ contains
          mesh=mesh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine areas for regridding
-    call ESMF_MeshGet(mesh, numOwnedElements=numOwnedElements, rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_StateGet(exportState, itemName=trim(fldsFrOcn(2)%stdname), field=lfield, rc=rc)
+    ! Determine mesh lats and lons
+    call ESMF_MeshGet(mesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    allocate(ownedElemCoords(spatialDim*numownedelements))
+    allocate(lonMesh(numOwnedElements))
+    allocate(latMesh(numOwnedElements))
+    allocate(lonModel(numOwnedElements))
+    allocate(latModel(numOwnedElements))
+    call ESMF_MeshGet(mesh, ownedElemCoords=ownedElemCoords)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    do n = 1,numOwnedElements
+       lonMesh(n) = ownedElemCoords(2*n-1)
+       latMesh(n) = ownedElemCoords(2*n)
+    end do
+    deallocate(ownedElemCoords)
+
+    ! Compare mesh lats/lons to model generated lats/lons
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n+1
+             lonModel(n) = tlond(i,j,iblock)
+             latModel(n) = tlatd(i,j,iblock)
+             diff_lon = abs(lonMesh(n) - lonModel(n))
+             if ( (diff_lon > 1.e2  .and. abs(diff_lon - 360.) > 1.e-1) .or.&
+                  (diff_lon > 1.e-3 .and. diff_lon < c1) ) then
+                write(6,'(a,i6,2(f21.13,3x),d21.5)') &
+                     'ERROR: POP n, lonMesh, lonModel, diff_lon = ',&
+                     n,lonMesh(n),lonModel(n), diff_lon
+                call shr_sys_abort()
+             end if
+             if (abs(latMesh(n) - latModel(n)) > 1.e-1) then
+                write(6,'(a,i6,2(f21.13,3x),d21.5)') &
+                     'ERROR: POP n, latMesh, latModel, diff_lat = ', &
+                     n,latMesh(n),latModel(n), abs(latMesh(n)-latModel(n))
+                call shr_sys_abort()
+             end if
+          enddo
+       enddo
+    enddo
+
+    ! Determine mesh areas used in regridding
+    lfield = ESMF_FieldCreate(mesh, ESMF_TYPEKIND_R8 , meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_FieldRegridGetArea(lfield, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -339,9 +420,15 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     allocate(mesh_areas(numOwnedElements))
     mesh_areas(:) = dataptr(:)
+    call ESMF_FieldDestroy(lfield, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
 
-    ! Determine model areas
+    ! Determine flux correction factors (module variables)
     allocate(model_areas(numOwnedElements))
+    allocate(mod2med_areacor(numOwnedElements))
+    allocate(med2mod_areacor(numOwnedElements))
+    mod2med_areacor(:) = 1._r8
+    med2mod_areacor(:) = 1._r8
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -349,52 +436,29 @@ contains
           do i = this_block%ib,this_block%ie
              n = n+1
              model_areas(n) = tarea(i,j,iblock)/(radius*radius)
-          enddo
-       enddo
-    enddo
-
-    ! Determine flux correction factors (module variables)
-    allocate (mod2med_areacor(numOwnedElements))
-    allocate (med2mod_areacor(numOwnedElements))
-    do n = 1,numOwnedElements
-       if (model_areas(n) == mesh_areas(n)) then
-          mod2med_areacor(n) = 1._r8
-          med2mod_areacor(n) = 1._r8
-       else
-          mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
-          med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
-          if (abs(mod2med_areacor(n) - 1._r8) > 1.e-13) then
-             write(6,'(a,i8,2x,d21.14,2x)')' AREACOR pop: n, abs(mod2med_areacor(n)-1)', &
-                  n, abs(mod2med_areacor(n) - 1._r8)
-          end if
-       end if
+             mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
+             med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
+          end do
+       end do
     end do
+    min_mod2med_areacor = minval(mod2med_areacor)
+    max_mod2med_areacor = maxval(mod2med_areacor)
+    min_med2mod_areacor = minval(med2mod_areacor)
+    max_med2mod_areacor = maxval(med2mod_areacor)
+    call shr_mpi_max(max_mod2med_areacor, max_mod2med_areacor_glob, mpi_communicator_ocn)
+    call shr_mpi_min(min_mod2med_areacor, min_mod2med_areacor_glob, mpi_communicator_ocn)
+    call shr_mpi_max(max_med2mod_areacor, max_med2mod_areacor_glob, mpi_communicator_ocn)
+    call shr_mpi_min(min_med2mod_areacor, min_med2mod_areacor_glob, mpi_communicator_ocn)
+
+    if (my_task == master_task) then
+       write(stdout,'(2A,2g23.15,A )') trim(subname),' :  min_mod2med_areacor, max_mod2med_areacor ',&
+            min_mod2med_areacor_glob, max_mod2med_areacor_glob, 'POP'
+       write(stdout,'(2A,2g23.15,A )') trim(subname),' :  min_med2mod_areacor, max_med2mod_areacor ',&
+            min_med2mod_areacor_glob, max_med2mod_areacor_glob, 'POP'
+    end if
+
     deallocate(model_areas)
     deallocate(mesh_areas)
-
-    ! error checks
-
-    if (lmcog) then
-       if ( (.not. State_FldChk(importState, 'Si_ifrac_n'         )) .and. &
-            (.not. State_FldChk(importState, 'Fioi_swpen_ifrac_n' )) .and. &
-            (.not. State_FldChk(importState, 'Foxx_swnet_afracr'  )) .and. &
-            (.not. State_FldChk(importState, 'Sf_afrac'           )) .and. &
-            (.not. State_FldChk(importState, 'Sf_afracr'          ))) then
-
-          write(stdout,*) ' Query for Si_ifrac_n         in import state is ',&
-               State_FldChk(importState, 'Si_ifrac_n')
-          write(stdout,*) ' Query for Fioi_swpen_ifrac_n in import state is ',&
-               State_FldChk(importState, 'Foxx_swnet_afracr')
-          write(stdout,*) ' Query for Foxx_swnet_afracr  in import state is ',&
-               State_FldChk(importState, 'Foxx_swnet_afracr')
-          write(stdout,*) ' Query for Sf_afrac           in import state is ',&
-               State_FldChk(importState, 'Sf_afrac')
-          write(stdout,*) ' Query for Sf_afracr          in import state is ',&
-               State_FldChk(importState, 'Sf_afracr')
-          write(stdout,*) ' Aborting: all above import fields must be in import state if lmcog is true'
-          call shr_sys_abort(trim(subname)//": all import fields not set if lmcog is .true.")
-       end if
-    end if
 
   end subroutine ocn_realize_fields
 
@@ -409,7 +473,7 @@ contains
     ! input/output variables
     type(ESMF_State)   , intent(in)  :: importState
     character(len=*)   , intent(in)  :: flds_scalar_name
-    logical (log_kind) , intent(in)  :: ldiag_cpl
+    logical (log_kind) , intent(inout)  :: ldiag_cpl
     integer            , intent(out) :: errorCode
     integer            , intent(out) :: rc
 
@@ -418,25 +482,51 @@ contains
     character (char_len) :: label,  message
     real (r8)            :: work1(nx_block,ny_block,max_blocks_clinic)
     real (r8)            :: work2(nx_block,ny_block,max_blocks_clinic)  ! local work space
-    integer (int_kind)   :: i,j,k,n,ncol,iblock,nfld
-    real (r8)            :: frac_col_1pt(mcog_ncols)
+    integer (int_kind)   :: i,j,k,n,ncol,iblock,nfld,nf
+    real (r8)            :: m2percm2, gsum
+    real (r8), pointer   :: dataptr1d(:)
+    real (r8), pointer   :: dataptr2d(:,:)
+    ! from mediator (virtual ocn)
+    real (r8), pointer   :: foxx_swnet(:)
+    real (r8), pointer   :: foxx_swnet_afracr(:)
+    real (r8), pointer   :: foxx_taux(:)
+    real (r8), pointer   :: foxx_tauy(:)
+    real (r8), pointer   :: foxx_lwup(:)
+    real (r8), pointer   :: foxx_sen(:)
+    real (r8), pointer   :: foxx_evap(:)
+    real (r8), pointer   :: foxx_rofl(:)
+    real (r8), pointer   :: foxx_rofi(:)
+    real (r8), pointer   :: so_duu10n(:)
+    ! from atm
+    real (r8), pointer   :: sa_pslv(:)
+    real (r8), pointer   :: faxa_rain(:)
+    real (r8), pointer   :: faxa_snow(:)
+    real (r8), pointer   :: faxa_lwdn(:)
+    real (r8), pointer   :: faxa_dstwet(:,:)
+    real (r8), pointer   :: faxa_dstdry(:,:)
+    real (r8), pointer   :: faxa_bcph(:,:)
+    ! from ice
+    real (r8), pointer   :: sf_afrac(:)
+    real (r8), pointer   :: sf_afracr(:)
+    real (r8), pointer   :: si_ifrac(:)
+    real (r8), pointer   :: si_ifrac_n(:,:)
+    real (r8), pointer   :: fioi_flxdst(:)
+    real (r8), pointer   :: fioi_bcpho(:)
+    real (r8), pointer   :: fioi_bcphi(:)
+    real (r8), pointer   :: fioi_meltw(:)
+    real (r8), pointer   :: fioi_melth(:)
+    real (r8), pointer   :: fioi_salt(:)
+    real (r8), pointer   :: fioi_swpen_ifrac_n(:,:)
+    real (r8)            :: frac_col_1pt(mcog_ncols) 
     real (r8)            :: fracr_col_1pt(mcog_ncols)
     real (r8)            :: qsw_fracr_col_1pt(mcog_ncols)
-    real (r8)            :: m2percm2, gsum
-    real (r8), pointer   :: Foxx_swnet(:)
-    real (r8), pointer   :: Foxx_swnet_afracr(:)
-    real (r8), pointer   :: Sf_afrac(:)
-    real (r8), pointer   :: Sf_afracr(:)
-    real (r8), pointer   :: Si_ifrac_n(:,:)
-    real (r8), pointer   :: Fioi_swpen_ifrac_n(:,:)
-    real (r8), pointer   :: dataptr2d_faxa_dstwet(:,:)
-    real (r8), pointer   :: dataptr2d_faxa_dstdry(:,:)
-    real (r8), pointer   :: dataptr2d_faxa_bcph(:,:)
-    real (r8), pointer   :: dataptr1d_fioi_flxdst(:)
-    real (r8), pointer   :: dataptr1d_fioi_bcpho(:)
-    real (r8), pointer   :: dataptr1d_fioi_bcphi(:)
+    ! from wave
+    real (r8), pointer   :: sw_lamult(:)
+    real (r8), pointer   :: sw_ustokes(:)
+    real (r8), pointer   :: sw_vstokes(:)
+    real (r8), pointer   :: sw_hstokes(:)
+    !
     integer (int_kind)   :: fieldCount
-    character (char_len), allocatable :: fieldNameList(:)
     character (char_len) :: fldname
     type(ESMF_StateItem_Flag) :: itemflag
 #ifdef _HIRES
@@ -444,6 +534,7 @@ contains
 #else
     real (r8)            :: qsw_eps = 0._r8
 #endif
+    character (char_len), allocatable :: fieldNameList(:)
     character(len=*), parameter :: subname='(ocn_import_export:ocn_import)'
     !-----------------------------------------------------------------------
 
@@ -471,101 +562,10 @@ contains
     !  unpack and distribute wind stress, then convert to correct units
     !  and rotate components to local coordinates
 
-    ! zonal wind stress  (W/m2)
-    call state_getimport(importState, 'Foxx_taux', work1, rc=rc)
+    ! zonal wind and meridional wind stress  (W/m2)
+    call state_getfldptr(importState, 'Foxx_taux', foxx_taux, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! meridonal wind stress (W/m2)
-    call state_getimport(importState, 'Foxx_tauy', work2, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! rotate true zonal/meridional wind stress into local coordinates,
-    ! convert to dyne/cm**2, and shift SMFT to U grid
-    ! halo updates are performed in subroutine rotate_wind_stress,
-    ! following the rotation
-    call rotate_wind_stress(work1, work2)
-
-    ! evaporation flux (kg/m2/s)
-    call state_getimport(importState, 'Foxx_evap', EVAP_F, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! sensible heat flux (W/m2)
-    call state_getimport(importState, 'Foxx_sen', SENH_F, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'Foxx_lwup', LWUP_F, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'Foxx_swnet', work1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    SHF_QSW(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)*hflux_factor  !  convert from W/m**2
-    if (ANY(SHF_QSW < qsw_eps)) then
-       do iblock = 1, nblocks_clinic
-          this_block = get_block(blocks_clinic(iblock),iblock)
-          do j = this_block%jb,this_block%je
-             do i = this_block%ib,this_block%ie
-                write(6,*)'ERROR: j,i,shf_qsw = ',this_block%j_glob(j),this_block%i_glob(i),SHF_QSW(i,j,iblock)
-             enddo
-          enddo
-       enddo
-       call shr_sys_abort('(set_surface_forcing) ERROR: SHF_QSW < qsw_eps in set_surface_forcing')
-    endif
-
-    ! 10m wind speed squared (m^2/s^2)
-    call state_getimport(importState, 'So_duu10n', work1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    U10_SQR(:,:,:)  = cmperm * cmperm * work1(:,:,:) * RCALCT(:,:,:) ! convert from m**2/s**2 to cm**2/s**2
-
-    !-----------------------------------------------------------------------
-    ! from atmosphere
-    !-----------------------------------------------------------------------
-
-    ! sea-level pressure (Pa)
-    call state_getimport(importState, 'Sa_pslv', work1, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ATM_PRESS(:,:,:) = c10 * work1(:,:,:) * RCALCT(:,:,:) ! convert from Pa to dynes/cm**2
-
-    ! water flux due to snow + rain(kg/m2/s)
-    call state_getimport(importState, 'Faxa_snow', SNOW_F, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'Faxa_rain', work1, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    PREC_F(:,:,:) = work1(:,:,:) + SNOW_F(:,:,:) ! rain + snow
-
-    ! longwave radiation (down) (W/m2)
-    call state_getimport(importState, 'Faxa_lwdn', LWDN_F, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! dust flux from atm (convert from from MKS (kg/m^2/s) to CGS (g/cm^2/s))
-    call state_getfldptr(importState, 'Faxa_dstwet', dataPtr2d_faxa_dstwet, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getfldptr(importState, 'Faxa_dstdry', dataPtr2d_faxa_dstdry, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    n = 0
-    do iblock = 1, nblocks_clinic
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       do j = this_block%jb,this_block%je
-          do i = this_block%ib,this_block%ie
-             n = n+1
-             ! fine dust flux from atm
-             ATM_FINE_DUST_FLUX(i,j,iblock)   = dataPtr2d_faxa_dstwet(1,n) + dataptr2d_faxa_dstdry(1,n)
-             ! coarse dust flux from atm
-             ATM_COARSE_DUST_FLUX(i,j,iblock) = dataPtr2d_faxa_dstwet(2,n) + dataptr2d_faxa_dstdry(2,n) + &
-                                                dataPtr2d_faxa_dstwet(3,n) + dataptr2d_faxa_dstdry(3,n) + &
-                                                dataPtr2d_faxa_dstwet(4,n) + dataptr2d_faxa_dstdry(4,n)
-
-             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
-             ATM_FINE_DUST_FLUX(i,j,iblock)   = ATM_FINE_DUST_FLUX(i,j,iblock) * & 
-                                                0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
-             ATM_COARSE_DUST_FLUX(i,j,iblock) = ATM_COARSE_DUST_FLUX(i,j,iblock) * & 
-                                                0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
-          end do
-       end do
-    end do
-
-    ! black carbon flux from atm (convert from MKS (kg/m^2/s) to CGS (g/cm^2/s))
-    call state_getfldptr(importState, 'Faxa_bcph', dataPtr2d_faxa_bcph, rc)
+    call state_getfldptr(importState, 'Foxx_tauy', foxx_tauy, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     n = 0
     do iblock = 1, nblocks_clinic
@@ -573,12 +573,107 @@ contains
        do j = this_block%jb,this_block%je
           do i = this_block%ib,this_block%ie
              n = n + 1
-             ATM_BLACK_CARBON_FLUX(i,j,iblock) = dataPtr2d_faxa_bcph(1,n) + &
-                                                 dataptr2d_faxa_bcph(2,n) + &
-                                                 dataptr2d_faxa_bcph(3,n)
-             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
-             ATM_BLACK_CARBON_FLUX(i,j,iblock) = ATM_BLACK_CARBON_FLUX(i,j,iblock) * &
-                                                 0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+             work1(i,j,iblock)  = foxx_taux(n) * med2mod_areacor(n)
+             work2(i,j,iblock)  = foxx_tauy(n) * med2mod_areacor(n)
+          end do
+       end do
+    end do
+    ! rotate true zonal/meridional wind stress into local coordinates,
+    ! convert to dyne/cm**2, and shift SMFT to U grid
+    ! halo updates are performed in subroutine rotate_wind_stress,
+    ! following the rotation
+    call rotate_wind_stress(work1, work2)
+
+    ! evaporation flux (kg/m2/s)
+    call state_getfldptr(importState, 'Foxx_evap', foxx_evap, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! sensible heat flux (W/m2)
+    call state_getfldptr(importState, 'Foxx_sen', foxx_sen, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! long wave up flux  (W/m2)
+    call state_getfldptr(importState, 'Foxx_lwup', foxx_lwup, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! shortwave net flux  (W/m2)
+    call state_getfldptr(importState, 'Foxx_swnet', foxx_swnet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! 10m wind speed squared (m^2/s^2)
+    call state_getfldptr(importState, 'So_duu10n', so_duu10n, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+ 
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n + 1
+             EVAP_F(i,j,iblock) = foxx_evap(n) * med2mod_areacor(n)
+             SENH_F(i,j,iblock) = foxx_sen(n) * med2mod_areacor(n)
+             LWUP_F(i,j,iblock) = foxx_lwup(n) * med2mod_areacor(n)
+             !  convert from W/m**2
+             SHF_QSW(i,j,iblock) = foxx_swnet(n) * med2mod_areacor(n) * RCALCT(i,j,iblock)*hflux_factor
+             ! convert from m**2/s**2 to cm**2/s**2
+             U10_SQR(i,j,iblock) = cmperm * cmperm * so_duu10n(n) * RCALCT(i,j,iblock) 
+         end do
+       end do
+    end do
+    if (ANY(SHF_QSW < qsw_eps)) then
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                write(6,*)'ERROR: j,i,shf_qsw = ',&
+                     this_block%j_glob(j),this_block%i_glob(i),SHF_QSW(i,j,iblock)
+             enddo
+          enddo
+       enddo
+       call shr_sys_abort('(set_surface_forcing) ERROR: SHF_QSW < qsw_eps in set_surface_forcing')
+    endif
+
+    !-----------------------------------------------------------------------
+    ! from atmosphere
+    !-----------------------------------------------------------------------
+
+    ! sea-level pressure (Pa)
+    call state_getfldptr(importState, 'Sa_pslv', sa_pslv, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! snow
+    call state_getfldptr(importState, 'Faxa_snow', faxa_snow, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! rain
+    call state_getfldptr(importState, 'Faxa_rain', faxa_rain, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! longwave radiation (down) (W/m2)
+    call state_getfldptr(importState, 'Faxa_lwdn', faxa_lwdn, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! wet dust flux from atm (convert from from MKS (kg/m^2/s) to CGS (g/cm^2/s))
+    call state_getfldptr(importState, 'Faxa_dstwet', faxa_dstwet, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! dry dust flux from atm (convert from from MKS (kg/m^2/s) to CGS (g/cm^2/s))
+    call state_getfldptr(importState, 'Faxa_dstdry', faxa_dstdry, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! black carbon flux from atm (convert from MKS (kg/m^2/s) to CGS (g/cm^2/s))
+    call state_getfldptr(importState, 'Faxa_bcph', faxa_bcph, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j = this_block%jb,this_block%je
+          do i = this_block%ib,this_block%ie
+             n = n+1
+             ATM_PRESS(i,j,iblock) = c10 * sa_pslv(n) * RCALCT(i,j,iblock) ! convert from Pa to dynes/cm**2
+             SNOW_F = faxa_snow(n) * med2mod_areacor(n)
+             PREC_F(i,j,iblock) = (faxa_rain(n) + faxa_snow(n)) * med2mod_areacor(n) ! rain + snow
+             LWDN_F(i,j,iblock) = faxa_lwdn(n) * med2mod_areacor(n)
+             ATM_FINE_DUST_FLUX(i,j,iblock)   = (faxa_dstwet(1,n) + faxa_dstdry(1,n)) * med2mod_areacor(n)
+             ATM_COARSE_DUST_FLUX(i,j,iblock) = (faxa_dstwet(2,n) + faxa_dstdry(2,n) + &
+                                                 faxa_dstwet(3,n) + faxa_dstdry(3,n) + &
+                                                 faxa_dstwet(4,n) + faxa_dstdry(4,n)) * med2mod_areacor(n)
+             ATM_BLACK_CARBON_FLUX(i,j,iblock) = (faxa_bcph(1,n) + faxa_bcph(2,n) + faxa_bcph(3,n)) * med2mod_areacor(n)
+             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s)
+             ATM_FINE_DUST_FLUX(i,j,iblock)    = ATM_FINE_DUST_FLUX(i,j,iblock)    * 0.1_r8 * RCALCT(i,j,iblock)
+             ATM_COARSE_DUST_FLUX(i,j,iblock)  = ATM_COARSE_DUST_FLUX(i,j,iblock)  * 0.1_r8 * RCALCT(i,j,iblock)
+             ATM_BLACK_CARBON_FLUX(i,j,iblock) = ATM_BLACK_CARBON_FLUX(i,j,iblock) * 0.1_r8 * RCALCT(i,j,iblock)
           end do
        end do
     end do
@@ -588,51 +683,41 @@ contains
     !-----------------------------------------------------------------------
 
     ! ice fraction
-    call state_getimport(importState, 'Si_ifrac', work1, rc=rc)
+    call state_getfldptr(importState, 'Si_ifrac', si_ifrac, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    IFRAC(:,:,:) = work1(:,:,:) * RCALCT(:,:,:)
-
-    ! snow melt flux from sea ice (kg/m2/s)
-    call state_getimport(importState, 'Fioi_meltw', MELT_F, areacor=med2mod_areacor, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! heat flux from sea ice snow & ice melt (W/m2)
-    call state_getimport(importState, 'Fioi_melth', MELTH_F, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Fioi_melth', fioi_melth, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! salt from sea ice (kg(salt)/m2/s)
-    call state_getimport(importState, 'Fioi_salt', SALT_F, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Fioi_salt', fioi_salt, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
+    ! snow melt flux from sea ice (kg/m2/s)
+    call state_getfldptr(importState, 'Fioi_meltw', fioi_meltw, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ! dust flux from sea ice
-    call state_getfldptr(importState, 'Fioi_flxdst', dataPtr1d_fioi_flxdst, rc)
+    call state_getfldptr(importState, 'Fioi_flxdst', fioi_flxdst, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    n = 0
-    do iblock = 1, nblocks_clinic
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       do j = this_block%jb,this_block%je
-          do i = this_block%ib,this_block%ie
-             n = n + 1
-             SEAICE_DUST_FLUX(i,j,iblock) = dataptr1d_fioi_flxdst(n)
-             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
-             SEAICE_DUST_FLUX(i,j,iblock) = SEAICE_DUST_FLUX(i,j,iblock) * & 
-                                            0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
-          end do
-       end do
-    end do
-
     ! black carbon flux from sea ice
-    call state_getfldptr(importState, 'Fioi_bcpho', dataPtr1d_fioi_bcpho, rc)
+    call state_getfldptr(importState, 'Fioi_bcpho', fioi_bcpho, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getfldptr(importState, 'Fioi_bcphi', dataPtr1d_fioi_bcphi, rc)
+    call state_getfldptr(importState, 'Fioi_bcphi', fioi_bcphi, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
        do j = this_block%jb,this_block%je
           do i = this_block%ib,this_block%ie
              n = n + 1
-             SEAICE_BLACK_CARBON_FLUX(i,j,iblock) = dataptr1d_fioi_bcpho(n) + dataptr1d_fioi_bcphi(n)
+             IFRAC(i,j,iblock) = si_ifrac(n) * RCALCT(i,j,iblock)
+             MELTH_F(i,j,iblock) = fioi_melth(n) * med2mod_areacor(n)
+             MELT_F(i,j,iblock) = fioi_meltw(n) * med2mod_areacor(n)
+             SALT_F(i,j,iblock) = fioi_salt(n) * med2mod_areacor(n)
+             SEAICE_DUST_FLUX(i,j,iblock) = fioi_flxdst(n)
+             ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
+             SEAICE_DUST_FLUX(i,j,iblock) = SEAICE_DUST_FLUX(i,j,iblock) * &
+                                            0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
+             SEAICE_BLACK_CARBON_FLUX(i,j,iblock) = fioi_bcpho(n) + fioi_bcphi(n)
              ! convert from MKS (kg/m^2/s) to CGS (g/cm^2/s) and apply flux area correction factor
              SEAICE_BLACK_CARBON_FLUX(i,j,iblock) = SEAICE_BLACK_CARBON_FLUX(i,j,iblock) * &
                                                     0.1_r8 * RCALCT(i,j,iblock) * med2mod_areacor(n)
@@ -640,31 +725,31 @@ contains
        end do
     end do
 
-    !  optional fields from sea ice per mcog column
-    call state_getfldptr(importState, 'Foxx_swnet', Foxx_swnet, rc)
+    ! net sw to ocn needed below
+    call state_getfldptr(importState, 'Foxx_swnet', foxx_swnet, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     do n = 1,size(Foxx_swnet)
-       Foxx_swnet(n) = Foxx_swnet(n) * med2mod_areacor(n)
+       foxx_swnet(n) = foxx_swnet(n) * med2mod_areacor(n)
     end do
 
     if (lmcog) then
        ! extract fields for each column and pass to import_mcog
 
-       call state_getfldptr(importState, 'Sf_afrac', Sf_afrac, rc)
+       call state_getfldptr(importState, 'Sf_afrac', sf_afrac, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sf_afracr', Sf_afracr, rc)
+       call state_getfldptr(importState, 'Sf_afracr', sf_afracr, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Foxx_swnet_afracr', Foxx_swnet_afracr, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(Foxx_swnet_afracr)
-          Foxx_swnet_afracr(n) = Foxx_swnet_afracr(n) * med2mod_areacor(n)
+          foxx_swnet_afracr(n) = Foxx_swnet_afracr(n) * med2mod_areacor(n)
        end do
        call state_getfldptr(importState, 'Si_ifrac_n', Si_ifrac_n, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call state_getfldptr(importState, 'Fioi_swpen_ifrac_n', Fioi_swpen_ifrac_n, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        do n = 1,size(Fioi_swpen_ifrac_n, dim=2)
-          Fioi_swpen_ifrac_n(:,n) = Fioi_swpen_ifrac_n(:,n) * med2mod_areacor(n)
+          fioi_swpen_ifrac_n(:,n) = Fioi_swpen_ifrac_n(:,n) * med2mod_areacor(n) !
        end do
 
        n = 0
@@ -700,9 +785,9 @@ contains
                 fracr_col_1pt(ncol) = c1
                 qsw_fracr_col_1pt(ncol) = Foxx_swnet(n)
                 call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, Foxx_swnet(n), iblock, i, j)
-             enddo ! do i
-          enddo ! do j
-       enddo ! do iblock = 1, nblocks_clinic
+             enddo
+          enddo
+       enddo
 
     endif ! if (lmcog) then
 
@@ -710,41 +795,60 @@ contains
     ! from wave
     !-----------------------------------------------------------------------
 
-    call state_getimport(importState, 'Sw_lamult', work1, rc=rc)
+    ! enhancement factor (unitless)
+    call state_getfldptr(importState, 'Sw_lamult', sw_lamult, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    where (IFRAC <= 0.05_r8)
-       LAMULT(:,:,:) = work1 * RCALCT(:,:,:) ! import enhancement factor (unitless)
-    elsewhere
-       LAMULT(:,:,:) = c1
-    end where
+    ! Stokes drift (m/s)
+    call state_getfldptr(importState, 'Sw_ustokes', sw_ustokes, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! Stokes drift (m/s)
+    call state_getfldptr(importState, 'Sw_vstokes', sw_vstokes, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    ! surface layer Lanmguir number (unitless)
+    call state_getfldptr(importState, 'Sw_hstokes', sw_hstokes, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'Sw_ustokes', work1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    USTOKES(:,:,:) = work1(:,:,:) * RCALCT(:,:,:) ! Stokes drift (m/s)
-
-    call state_getimport(importState, 'Sw_vstokes', work1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    VSTOKES(:,:,:) = work1(:,:,:) * RCALCT(:,:,:) ! Stokes drift (m/s)
-
-    call state_getimport(importState, 'Sw_hstokes', work1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    where (IFRAC <= 0.05_r8)
-       LASL(:,:,:) = work1 * RCALCT(:,:,:) ! surface layer Lanmguir number (unitless)
-    elsewhere
-       LASL(:,:,:) = -c1
-    end where
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n = n+1
+             if (IFRAC(i,j,iblock) <= 0.05_r8) then
+                LAMULT(i,j,iblock) = sw_lamult(n)  * RCALCT(i,j,iblock)
+                LASL(i,j,iblock)   = sw_hstokes(n) * RCALCT(i,j,iblock)
+             else
+                LAMULT(i,j,iblock) =  c1
+                LASL(i,j,iblock)   = -c1
+             end if
+             USTOKES(i,j,iblock) = sw_ustokes(n) * RCALCT(i,j,iblock)
+             VSTOKES(i,j,iblock) = sw_vstokes(n) * RCALCT(i,j,iblock)
+          end do
+       end do
+    end do
 
     !-----------------------------------------------------------------------
     ! from river
     !-----------------------------------------------------------------------
 
     ! liquid runoff flux (kg/m2/s)
-    call state_getimport(importState, 'Foxx_rofl', ROFF_F, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Foxx_rofl', foxx_rofl, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
     ! ice runoff flux (kg/m2/s)
-    call state_getimport(importState, 'Foxx_rofi', IOFF_F, areacor=med2mod_areacor, rc=rc)
+    call state_getfldptr(importState, 'Foxx_rofi', foxx_rofi, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+             n = n+1
+             ! TODO: add aread correction
+             ROFF_F(i,j,iblock) = foxx_rofl(n)
+             IOFF_F(i,j,iblock) = foxx_rofi(n)
+          end do
+       end do
+    end do
 
     !-----------------------------------------------------------------------
     ! update ghost cells for fluxes received from the mediator
@@ -833,6 +937,7 @@ contains
     !  diagnostics
     !-----------------------------------------------------------------------
 
+    ldiag_cpl = .true.
     if (ldiag_cpl) then
        write(message,'(6a,1x,5a)')  &
             ' Global averages of fluxes received from cpl at ',  &
@@ -847,42 +952,110 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! loop over all fields in import state
+       ! from atm - black carbon deposition fluxes (3)
+       ! (1) => Faxa_bcphidry, (2) => Faxa_bcphodry, (3) => Faxa_bcphiwet
+       ! from atm - organic carbon deposition fluxes (3)
+       ! (1) => Faxa_dstwet1, (2) => Faxa_dstwet2, (3) => Faxa_dstwet3, (4) => Faxa_dstwet4
+       ! from atm - dry dust deposition frluxes (4 sizes)
+       ! (1) => Faxa_dstdry1, (2) => Faxa_dstdry2, (3) => Faxa_dstdry3, (4) => Faxa_dstdry4
+
        m2percm2  = mpercm*mpercm
        do nfld = 1, fieldCount
-          if (trim(fieldNameList(nfld)) /= flds_scalar_name) then
-             if (fieldNameList(nfld) == 'Faxa_bcph') then
-                work1 = ATM_BLACK_CARBON_FLUX
-             else if (fieldNameList(nfld) == 'Faxa_dstwet') then
-                work1 = ATM_FINE_DUST_FLUX
-             else if (fieldNameList(nfld) == 'Faxa_dstdry') then
-                work1 = ATM_COARSE_DUST_FLUX
-             else if (fieldNameList(nfld) == 'Fioi_flxdst') then
-                work1 = SEAICE_DUST_FLUX
-             else if (fieldNameList(nfld) == 'Fioi_bcph') then
-                work1 = SEAICE_BLACK_CARBON_FLUX
-             else if (fieldNameList(nfld) == 'Fioi_swpen_ifrac_n' .or. fieldNameList(nfld) == 'Si_ifrac_n') then
-                ! do nothing for now
-             else
-                call ESMF_LogWrite(subname//' fieldname is '//trim(fieldNameList(nfld)), ESMF_LOGMSG_INFO)
-                fldname = trim(fieldnamelist(nfld))
-                if (fldname(1:1) == 'F') then
-                   call state_getimport(importState, trim(fieldNameList(nfld)), work1, areacor=med2mod_areacor, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                else
-                   call state_getimport(importState, trim(fieldNameList(nfld)), work1, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                end if
-             end if
-
+          if (fieldNameList(nfld) == trim(flds_scalar_name)) then
+             CYCLE
+          else if (fieldNameList(nfld) == 'Faxa_bcph') then
+             call state_getfldptr(importState, 'Faxa_bcph', dataPtr2d, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             do nf = 1,3
+                if (nf == 1) fldname = 'Faxa_bcphidry'
+                if (nf == 2) fldname = 'Faxa_bcphodry'
+                if (nf == 3) fldname = 'Faxa_bcphiwet'
+                n = 0
+                do iblock = 1, nblocks_clinic
+                   this_block = get_block(blocks_clinic(iblock),iblock)
+                   do j = this_block%jb,this_block%je
+                      do i = this_block%ib,this_block%ie
+                         n = n + 1
+                         work1(i,j,iblock) = dataPtr2d(nf,n)
+                      end do
+                   end do
+                end do
+                gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
+                if (my_task == master_task) then
+                   write(stdout,1100)'ocn','recv', trim(fldname), gsum
+                   call shr_sys_flush(stdout)
+                endif
+             end do
+          else if (fieldNameList(nfld) == 'Faxa_dstwet') then
+             call state_getfldptr(importState, 'Faxa_dstwet', dataPtr2d, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             do nf = 1,4
+                if (nf == 1) fldname = 'Faxa_dstwet1'
+                if (nf == 2) fldname = 'Faxa_dstwet2'
+                if (nf == 3) fldname = 'Faxa_dstwet3'
+                if (nf == 4) fldname = 'Faxa_dstwet4'
+                n = 0
+                do iblock = 1, nblocks_clinic
+                   this_block = get_block(blocks_clinic(iblock),iblock)
+                   do j = this_block%jb,this_block%je
+                      do i = this_block%ib,this_block%ie
+                         n = n + 1
+                         work1(i,j,iblock) = dataPtr2d(nf,n)
+                      end do
+                   end do
+                end do
+                gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
+                if (my_task == master_task) then
+                   write(stdout,1100)'ocn','recv', trim(fldname), gsum
+                   call shr_sys_flush(stdout)
+                endif
+             end do
+          else if (fieldNameList(nfld) == 'Faxa_dstdry') then
+             call state_getfldptr(importState, 'Faxa_dstdry', dataPtr2d, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             do nf = 1,4
+                if (nf == 1) fldname = 'Faxa_dstdry1'
+                if (nf == 2) fldname = 'Faxa_dstdry2'
+                if (nf == 3) fldname = 'Faxa_dstdry3'
+                if (nf == 4) fldname = 'Faxa_dstdry4'
+                n = 0
+                do iblock = 1, nblocks_clinic
+                   this_block = get_block(blocks_clinic(iblock),iblock)
+                   do j = this_block%jb,this_block%je
+                      do i = this_block%ib,this_block%ie
+                         n = n + 1
+                         work1(i,j,iblock) = dataPtr2d(nf,n)
+                      end do
+                   end do
+                end do
+                gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
+                if (my_task == master_task) then
+                   write(stdout,1100)'ocn','recv', trim(fldname), gsum
+                   call shr_sys_flush(stdout)
+                endif
+             end do
+          else if (fieldNameList(nfld) == 'Fioi_swpen_ifrac_n' .or. fieldNameList(nfld) == 'Si_ifrac_n') then
+             ! do nothing for now
+          else
+             call state_getfldptr(importState, trim(fieldNameList(nfld)), dataPtr1d, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+             n = 0
+             do iblock = 1, nblocks_clinic
+                this_block = get_block(blocks_clinic(iblock),iblock)
+                do j = this_block%jb,this_block%je
+                   do i = this_block%ib,this_block%ie
+                      n = n + 1
+                      work1(i,j,iblock) = dataPtr1d(n)
+                   end do
+                end do
+             end do
              gsum = global_sum_prod(work1, TAREA, distrb_clinic,  field_loc_center, RCALCT) * m2percm2
-
              if (my_task == master_task) then
                 write(stdout,1100)'ocn','recv', trim(fieldNameList(nfld)), gsum
                 call shr_sys_flush(stdout)
              endif
           end if
        end do
-
     end if
 1100 format ('comm_diag ', a3, 1x, a4, 1x, a15, 1x, es26.19:, 1x, a6)
 
@@ -900,7 +1073,7 @@ contains
     ! input/output variables
     type(ESMF_State)                 :: exportState
     character(len=*)   , intent(in)  :: flds_scalar_name
-    logical (log_kind) , intent(in)  :: ldiag_cpl
+    logical (log_kind) , intent(inout)  :: ldiag_cpl
     integer (POP_i4)   , intent(out) :: errorCode  ! pop error code
     integer            , intent(out) :: rc         ! returned error code
 
@@ -1131,8 +1304,8 @@ contains
     if ( State_FldChk(exportState, 'Faoo_fco2_ocn')) then
        call state_getfldptr(exportState, 'Faoo_fco2_ocn', dataPtr1, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        dataptr1(:) = shr_const_spval
+
        n = 0
        do iblock = 1, nblocks_clinic
           this_block = get_block(blocks_clinic(iblock),iblock)
@@ -1151,7 +1324,9 @@ contains
 
     if (ldiag_cpl) then
        call ccsm_char_date_and_time
-       write(stdout,*)'pop_send_to_coupler'
+       if (my_task == master_task) then
+          write(stdout,*)'pop_send_to_mediator'
+       end if
 
        ! Determine all field names in export state
        call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
@@ -1202,51 +1377,6 @@ contains
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine ocn_export
-
-  !==============================================================================
-  subroutine state_getimport(state, fldname, output, areacor, rc)
-
-    ! ----------------------------------------------
-    ! Map import state field to output array
-    ! ----------------------------------------------
-
-    ! input/output variables
-    type(ESMF_State)    , intent(in)    :: state
-    character(len=*)    , intent(in)    :: fldname
-    real (r8)           , intent(inout) :: output(:,:,:)
-    real(r8) , optional , intent(in)    :: areacor(:)
-    integer             , intent(out)   :: rc
-
-    ! local variables
-    type(block)       :: this_block         ! block information for current block
-    integer           :: i, j, iblock, n   ! incides
-    real(r8), pointer :: dataPtr1d(:)
-    character(len=*), parameter :: subname='(ice_import_export:state_getimport)'
-    ! ----------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    call state_getfldptr(state, trim(fldname), dataptr1d, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! determine output array
-    n = 0
-    do iblock = 1, nblocks_clinic
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       do j = this_block%jb,this_block%je
-          do i = this_block%ib,this_block%ie
-             n = n + 1
-             output(i,j,iblock)  = dataPtr1d(n)
-          end do
-       end do
-    end do
-    if (present(areacor)) then
-       do n = 1,size(dataPtr1d)
-          dataPtr1d(n) = dataPtr1d(n) * areacor(n)
-       end do
-    end if
-
-  end subroutine state_getimport
 
   !===============================================================================
   subroutine fldlist_add(num, fldlist, stdname, ungridded_lbound, ungridded_ubound)
@@ -1383,6 +1513,54 @@ contains
     end subroutine SetScalarField
 
   end subroutine fldlist_realize
+
+  !==============================================================================
+  subroutine state_getimport(state, fldname, output, areacor, rc)
+
+    ! ----------------------------------------------
+    ! Map import state field to output array
+    ! ----------------------------------------------
+
+    ! input/output variables
+    type(ESMF_State)    , intent(in)    :: state
+    character(len=*)    , intent(in)    :: fldname
+    real (r8)           , intent(inout) :: output(:,:,:)
+    real(r8) , optional , intent(in)    :: areacor(:)
+    integer             , intent(out)   :: rc
+
+    ! local variables
+    type(block)       :: this_block         ! block information for current block
+    integer           :: i, j, iblock, n   ! incides
+    real(r8), pointer :: dataPtr1d(:)
+    character(len=*), parameter :: subname='(import_export:state_getimport)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call state_getfldptr(state, trim(fldname), dataptr1d, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    n = 0
+    do iblock = 1, nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       if (present(areacor)) then
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                n = n + 1
+                output(i,j,iblock) = dataPtr1d(n) * areacor(n)
+             end do
+          end do
+       else
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                n = n + 1
+                output(i,j,iblock) = dataPtr1d(n)
+             end do
+          end do
+       end if
+    end do
+
+  end subroutine state_getimport
 
   !===============================================================================
   subroutine State_GetFldPtr_1d(State, fldname, fldptr, rc)

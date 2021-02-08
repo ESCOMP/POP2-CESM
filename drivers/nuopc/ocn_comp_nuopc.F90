@@ -60,8 +60,8 @@ module ocn_comp_nuopc
   use perf_mod              , only : t_startf, t_stopf
   use ocn_import_export     , only : ocn_advertise_fields, ocn_realize_fields
   use ocn_import_export     , only : ocn_import, ocn_export, pop_sum_buffer, tlast_coupled
-  use nuopc_shr_methods       , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
-  use nuopc_shr_methods       , only : set_component_logging, get_component_instance, log_clock_advance
+  use nuopc_shr_methods     , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
+  use nuopc_shr_methods     , only : set_component_logging, get_component_instance, log_clock_advance
 
   ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -206,66 +206,68 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
+    type(ESMF_VM)     :: vm
+    integer(int_kind) :: iam
+    integer(int_kind) :: lmpicom
+    integer(int_kind) :: shrlogunit
     character(len=CL) :: logmsg
     character(len=CS) :: cvalue
     logical           :: isPresent, isSet
     character(len=*), parameter :: subname='ocn_comp_nuopc:(InitializeAdvertise) '
     !--------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       flds_scalar_name = trim(cvalue)
-       call ESMF_LogWrite(trim(subname)//' flds_scalar_name = '//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
+
+    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    mpi_communicator_ocn = lmpicom
+
+    ! reset shr logging to my log file
+    if (iam == 0) then
+       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldName')
-    endif
-
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue, *) flds_scalar_num
-       write(logmsg,*) flds_scalar_num
-       call ESMF_LogWrite(trim(subname)//' flds_scalar_num = '//trim(logmsg), ESMF_LOGMSG_INFO)
+       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldCount')
-    endif
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_nx
-       write(logmsg,*) flds_scalar_index_nx
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nx = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNX')
-    endif
-
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    flds_scalar_name = trim(cvalue)
+    call ESMF_LogWrite(trim(subname)//' flds_scalar_name = '//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_ny
-       write(logmsg,*) flds_scalar_index_ny
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_ny = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNY')
-    endif
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_precip_factor
-       write(logmsg,*) flds_scalar_index_precip_factor
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_precip_factor = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxPrecipFactor')
-    endif
+    read(cvalue, *) flds_scalar_num
+    write(logmsg,*) flds_scalar_num
+    call ESMF_LogWrite(trim(subname)//' flds_scalar_num = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_nx
+    write(logmsg,*) flds_scalar_index_nx
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nx = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_ny
+    write(logmsg,*) flds_scalar_index_ny
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_ny = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_precip_factor
+    write(logmsg,*) flds_scalar_index_precip_factor
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_precip_factor = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Advertise fields
     call ocn_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -322,7 +324,6 @@ contains
     integer                 :: my_elim_start
     integer                 :: my_elim_end
     integer(int_kind)       :: lsize
-    integer(int_kind)       :: shrlogunit      ! old values
     integer(int_kind)       :: nThreads
     integer(int_kind)       :: npes
     integer(int_kind)       :: iam
@@ -330,7 +331,6 @@ contains
     integer                 :: n,i,j,iblk,jblk,ig,jg
     integer                 :: lbnum
     integer(POP_i4)         :: errorCode       ! error code
-    integer                 :: lmpicom
     integer(POP_i4) , pointer    :: blockLocation(:)
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(InitializeRealize)"
 #ifdef _OPENMP
@@ -352,20 +352,8 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, PetCount=npes, rc=rc)
+    call ESMF_VMGet(vm, localPet=iam, PetCount=npes, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    mpi_communicator_ocn = lmpicom
-
-    ! reset shr logging to my log file
-    if (iam == 0) then
-       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
 
 #if (defined _MEMTRACE)
     if (iam == 0) then
