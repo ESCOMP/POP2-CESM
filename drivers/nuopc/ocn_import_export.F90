@@ -228,7 +228,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) ocn2glc_coupling
     if (my_task == master_task) then
-       write(stdout,'(a,l)') trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
+       write(stdout,'(a,L1)') trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
     end if
     write(6,*) trim(subname) // 'ocn2glc coupling is ',ocn2glc_coupling
 
