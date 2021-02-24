@@ -138,7 +138,7 @@
 
   <entry id="OCN_TRANSIENT">
     <type>char</type>
-    <valid_values>unset,CORE2_NYF,CORE2,CORE2_OMIP,JRA,JRA_OMIP,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp534ext,ssp585,ssp585ext</valid_values>
+    <valid_values>unset,CORE2_NYF,CORE2,CORE2_OMIP,JRA,JRA_OMIP,1850-2000,rcp4.5,rcp8.5,ssp126,ssp245,ssp370,ssp534,ssp534ext,ssp585,ssp585ext</valid_values>
     <default_value>unset</default_value>
     <values>
       <value compset="DATM%NYF">CORE2_NYF</value>
@@ -153,6 +153,7 @@
       <value compset="^SSP126_CAM">ssp126</value>
       <value compset="^SSP245_CAM">ssp245</value>
       <value compset="^SSP370_CAM">ssp370</value>
+      <value compset="^SSP534_CAM">ssp534</value>
       <value compset="^SSP534EXT_CAM">ssp534ext</value>
       <value compset="^SSP585_CAM">ssp585</value>
       <value compset="^SSP585EXT_CAM">ssp585ext</value>

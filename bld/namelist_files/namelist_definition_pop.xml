@@ -6367,7 +6367,7 @@ type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1849 for OCN_TRANSIENT=1850-2000, 2004 for rcp runs, 2014 for ssp runs,
-1637 for OCN_TRANSIENT=CORE2OMIP, 1652 for OCN_TRANSIENT=JRA_OMIP
+2039 for ssp534, 1637 for OCN_TRANSIENT=CORE2OMIP, 1652 for OCN_TRANSIENT=JRA_OMIP
 </entry>
 
 <entry
@@ -6385,7 +6385,7 @@ type="integer"
 category="Forcing (Ecosystem)"
 group="ecosys_forcing_data_nml" >
 Default: 1849 for OCN_TRANSIENT=1850-2000, 2004 for rcp runs, 2014 for ssp runs,
-0 for OCN_TRANSIENT=CORE2OMIP,JRA_OMIP
+2039 for ssp534, 0 for OCN_TRANSIENT=CORE2OMIP,JRA_OMIP
 </entry>
 
 <entry
