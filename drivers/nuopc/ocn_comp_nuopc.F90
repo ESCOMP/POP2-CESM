@@ -301,14 +301,6 @@ contains
     type(ESMF_VM)           :: vm
     type(ESMF_DistGrid)     :: distGrid
     type(ESMF_Mesh)         :: Emesh
-    type(ESMF_Array)        :: EArray
-    integer                 :: spatialDim
-    integer                 :: numOwnedElements
-    real(R8), pointer       :: ownedElemCoords(:)
-    real(R8)                :: lon, lat, area
-    real(R8)                :: diff_lon, diff_lat, diff_area
-    real(R8), pointer       :: areaMesh(:)
-    real(R8), allocatable   :: lonMesh(:), latMesh(:)
     integer , allocatable   :: gindex_ocn(:)
     integer , allocatable   :: gindex_elim(:)
     integer , allocatable   :: gindex(:)
@@ -336,9 +328,6 @@ contains
 #ifdef _OPENMP
     integer, external :: omp_get_max_threads  ! max threads that can execute concurrently in a single parallel region
 #endif
-    type(ESMF_Field)  :: areaField
-    type(ESMF_Array)  :: areaArray
-    real(R8), pointer :: areaptr(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -550,60 +539,6 @@ contains
     if (mastertask) then
        write(stdout,*)'mesh file for pop domain is ',trim(cvalue)
     end if
-
-    !---------------------------------------------------------------------------
-    ! Error checking
-    !---------------------------------------------------------------------------
-
-    ! obtain mesh lats and lons
-    call ESMF_MeshGet(Emesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    allocate(ownedElemCoords(spatialDim*numOwnedElements))
-    allocate(lonMesh(numOwnedElements), latMesh(numOwnedElements))
-    call ESMF_MeshGet(Emesh, ownedElemCoords=ownedElemCoords)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,numOwnedElements
-       lonMesh(n) = ownedElemCoords(2*n-1)
-       latMesh(n) = ownedElemCoords(2*n)
-    end do
-
-    ! obtain mesh area
-    ! areaField = ESMF_FieldCreate(Emesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldGet(areaField, array=areaArray, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_MeshGet(Emesh, elemAreaArray=areaArray, rc=rc)  !<== crashes if this is added
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! error check differences between internally generated lons and those read in
-    n = 0
-    do iblock = 1, nblocks_clinic
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-          do i=this_block%ib,this_block%ie
-             n = n+1
-             lon  = TLON(i,j,iblock) * 180._R8/shr_const_pi
-             lat  = TLAT(i,j,iblock) * 180._R8/shr_const_pi
-             area = TAREA(i,j,iblock) / (radius*radius)
-             diff_lon  = abs(lonMesh(n) - lon)
-             diff_lat  = abs(latMesh(n) - lat)
-             !diff_area = abs(areaMesh(n) - area)
-             if (diff_lon  > 1.e-10 ) write(6,100) n,lonMesh(n),lon,diff_lon
-             if (diff_lat  > 1.e-10 ) write(6,101) n,latMesh(n),lat,diff_lat
-             !if (diff_area > 1.e-12) write(6,102) n,areaMesh(n),area,diff_area
-          end do
-       end do
-    end do
-100 format('WARNING: POP n, lonmesh(n) , lon , diff_lon  = ',i6,2(f21.13,3x),d21.5)
-101 format('WARNING: POP n, latmesh(n) , lat , diff_lat  = ',i6,2(f21.13,3x),d21.5)
-102 format('WARNING: POP n, areamesh(n), area, diff_area = ',i6,2(f21.13,3x),d21.5)
-
-    ! deallocate memory
-    deallocate(ownedElemCoords, lonMesh, latMesh)
-
-    !call ESMF_FieldDestroy(areaField)
 
     !-----------------------------------------------------------------
     ! Realize the actively coupled fields
