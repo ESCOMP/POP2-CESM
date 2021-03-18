@@ -662,7 +662,7 @@ contains
           do i = this_block%ib,this_block%ie
              n = n+1
              ATM_PRESS(i,j,iblock) = c10 * sa_pslv(n) * RCALCT(i,j,iblock) ! convert from Pa to dynes/cm**2
-             SNOW_F = faxa_snow(n) * med2mod_areacor(n)
+             SNOW_F(i,j,iblock) = faxa_snow(n) * med2mod_areacor(n)
              PREC_F(i,j,iblock) = (faxa_rain(n) + faxa_snow(n)) * med2mod_areacor(n) ! rain + snow
              LWDN_F(i,j,iblock) = faxa_lwdn(n) * med2mod_areacor(n)
              ATM_FINE_DUST_FLUX(i,j,iblock)   = (faxa_dstwet(1,n) + faxa_dstdry(1,n)) * med2mod_areacor(n)
@@ -843,9 +843,8 @@ contains
        do j=this_block%jb,this_block%je
           do i=this_block%ib,this_block%ie
              n = n+1
-             ! TODO: add aread correction
-             ROFF_F(i,j,iblock) = foxx_rofl(n)
-             IOFF_F(i,j,iblock) = foxx_rofi(n)
+             ROFF_F(i,j,iblock) = foxx_rofl(n) * med2mod_areacor(n)
+             IOFF_F(i,j,iblock) = foxx_rofi(n) * med2mod_areacor(n)
           end do
        end do
     end do
