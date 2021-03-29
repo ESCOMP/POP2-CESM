@@ -263,9 +263,12 @@ contains
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     read(cvalue,*) flds_scalar_index_precip_factor
-    write(logmsg,*) flds_scalar_index_precip_factor
-    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_precip_factor = '//trim(logmsg), ESMF_LOGMSG_INFO)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if ( .not. flds_scalar_index_precip_factor > 0 ) then
+       call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 for pop')
+    else
+       write(logmsg,*) flds_scalar_index_precip_factor
+       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_precip_factor = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    end if
 
     ! Advertise fields
     call ocn_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
@@ -797,13 +800,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( lsend_precip_fact ) then
-       if ( flds_scalar_index_precip_factor > 0 ) then
-          call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
-               flds_scalar_name, flds_scalar_num, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
-       end if
+       call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call State_SetScalar(1._r8, flds_scalar_index_precip_factor, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
 #if (defined _MEMTRACE)
@@ -1079,13 +1082,14 @@ contains
           endif
 
           if ( lsend_precip_fact ) then
-             if ( flds_scalar_index_precip_factor > 0 ) then
-                call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
-                     flds_scalar_name, flds_scalar_num, rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             else
-                call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
-             end if
+             call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+                  flds_scalar_name, flds_scalar_num, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+             ! Just send back 1.
+             call State_SetScalar(1._r8, flds_scalar_index_precip_factor, exportState, &
+                  flds_scalar_name, flds_scalar_num, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           exit advance
