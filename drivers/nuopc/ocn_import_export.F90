@@ -936,7 +936,6 @@ contains
     !  diagnostics
     !-----------------------------------------------------------------------
 
-    ldiag_cpl = .true.
     if (ldiag_cpl) then
        write(message,'(6a,1x,5a)')  &
             ' Global averages of fluxes received from cpl at ',  &
