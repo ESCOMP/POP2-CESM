@@ -150,7 +150,9 @@
       tavg_ST,           &! tavg id for salt*temperature
       tavg_RHO,          &! tavg id for in-situ density
       tavg_RHO_VINT,     &! tavg id for vertical integral of in-situ density
-      tavg_UV             ! tavg id for u times v
+      tavg_UV,           &! tavg id for u times v
+      tavg_U2_2,         &! tavg id for U           in second lvl
+      tavg_V2_2           ! tavg id for V           in second lvl
 
 !-----------------------------------------------------------------------
 !
@@ -265,6 +267,14 @@
 
    call define_tavg_field(tavg_V1_1,'V1_1',2,                          &
                           long_name='Meridional Velocity lvls 1-1',    &
+                          units='centimeter/s', grid_loc='2221')
+
+   call define_tavg_field(tavg_U2_2,'U2_2',2,                          &
+                          long_name='Zonal Velocity lvls 2-2',         &
+                          units='centimeter/s', grid_loc='2221')
+
+   call define_tavg_field(tavg_V2_2,'V2_2',2,                          &
+                          long_name='Meridional Velocity lvls 2-2',    &
                           units='centimeter/s', grid_loc='2221')
 
    call define_tavg_field(tavg_U1_8,'U1_8',2,                          &
@@ -768,6 +778,9 @@
          if (k <= 1)  &
             call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
                                        tavg_U1_1,iblock,k)
+         if (k == 2)  &
+            call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
+                                       tavg_U2_2,iblock,k)
          if (k <= 8)  &
          call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock),tavg_U1_8,iblock,k)
 
@@ -779,6 +792,9 @@
 
          if (k <= 1)  &
          call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock),tavg_V1_1,iblock,k)
+
+         if (k == 2)  &
+            call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock),tavg_V2_2,iblock,k)
 
          if (k <= 8)  &
          call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock),tavg_V1_8,iblock,k)
@@ -1133,6 +1149,13 @@
 !     always contain the full velocites.
 !
 !-----------------------------------------------------------------------
+
+      call impvmixu_tavg(UVEL(:,:,:,oldtime,iblock),&
+      &           VVEL(:,:,:,oldtime,iblock),&
+      &           UVEL(:,:,:,newtime,iblock),&
+      &           VVEL(:,:,:,newtime,iblock),&
+      &           this_block)
+
 !-----------------------------------------------------------------------
 !
 !  end of second block loop over vertical levels.
