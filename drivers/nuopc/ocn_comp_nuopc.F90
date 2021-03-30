@@ -60,8 +60,8 @@ module ocn_comp_nuopc
   use perf_mod              , only : t_startf, t_stopf
   use ocn_import_export     , only : ocn_advertise_fields, ocn_realize_fields
   use ocn_import_export     , only : ocn_import, ocn_export, pop_sum_buffer, tlast_coupled
-  use nuopc_shr_methods       , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
-  use nuopc_shr_methods       , only : set_component_logging, get_component_instance, log_clock_advance
+  use nuopc_shr_methods     , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
+  use nuopc_shr_methods     , only : set_component_logging, get_component_instance, log_clock_advance
 
   ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -206,66 +206,71 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
+    type(ESMF_VM)     :: vm
+    integer(int_kind) :: iam
+    integer(int_kind) :: lmpicom
+    integer(int_kind) :: shrlogunit
     character(len=CL) :: logmsg
     character(len=CS) :: cvalue
     logical           :: isPresent, isSet
     character(len=*), parameter :: subname='ocn_comp_nuopc:(InitializeAdvertise) '
     !--------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       flds_scalar_name = trim(cvalue)
-       call ESMF_LogWrite(trim(subname)//' flds_scalar_name = '//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
+
+    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    mpi_communicator_ocn = lmpicom
+
+    ! reset shr logging to my log file
+    if (iam == 0) then
+       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldName')
-    endif
-
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue, *) flds_scalar_num
-       write(logmsg,*) flds_scalar_num
-       call ESMF_LogWrite(trim(subname)//' flds_scalar_num = '//trim(logmsg), ESMF_LOGMSG_INFO)
+       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldCount')
-    endif
+    end if
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_nx
-       write(logmsg,*) flds_scalar_index_nx
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nx = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNX')
-    endif
+    flds_scalar_name = trim(cvalue)
+    call ESMF_LogWrite(trim(subname)//' flds_scalar_name = '//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_ny
-       write(logmsg,*) flds_scalar_index_ny
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_ny = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNY')
-    endif
+    read(cvalue, *) flds_scalar_num
+    write(logmsg,*) flds_scalar_num
+    call ESMF_LogWrite(trim(subname)//' flds_scalar_num = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_precip_factor
+    read(cvalue,*) flds_scalar_index_nx
+    write(logmsg,*) flds_scalar_index_nx
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nx = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_ny
+    write(logmsg,*) flds_scalar_index_ny
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_ny = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_precip_factor
+    if ( .not. flds_scalar_index_precip_factor > 0 ) then
+       call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 for pop')
+    else
        write(logmsg,*) flds_scalar_index_precip_factor
        call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_precip_factor = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxPrecipFactor')
-    endif
+    end if
 
+    ! Advertise fields
     call ocn_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -299,14 +304,6 @@ contains
     type(ESMF_VM)           :: vm
     type(ESMF_DistGrid)     :: distGrid
     type(ESMF_Mesh)         :: Emesh
-    type(ESMF_Array)        :: EArray
-    integer                 :: spatialDim
-    integer                 :: numOwnedElements
-    real(R8), pointer       :: ownedElemCoords(:)
-    real(R8)                :: lon, lat, area
-    real(R8)                :: diff_lon, diff_lat, diff_area
-    real(R8), pointer       :: areaMesh(:)
-    real(R8), allocatable   :: lonMesh(:), latMesh(:)
     integer , allocatable   :: gindex_ocn(:)
     integer , allocatable   :: gindex_elim(:)
     integer , allocatable   :: gindex(:)
@@ -322,7 +319,6 @@ contains
     integer                 :: my_elim_start
     integer                 :: my_elim_end
     integer(int_kind)       :: lsize
-    integer(int_kind)       :: shrlogunit      ! old values
     integer(int_kind)       :: nThreads
     integer(int_kind)       :: npes
     integer(int_kind)       :: iam
@@ -330,15 +326,11 @@ contains
     integer                 :: n,i,j,iblk,jblk,ig,jg
     integer                 :: lbnum
     integer(POP_i4)         :: errorCode       ! error code
-    integer                 :: lmpicom
     integer(POP_i4) , pointer    :: blockLocation(:)
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(InitializeRealize)"
 #ifdef _OPENMP
     integer, external :: omp_get_max_threads  ! max threads that can execute concurrently in a single parallel region
 #endif
-    type(ESMF_Field)  :: areaField
-    type(ESMF_Array)  :: areaArray
-    real(R8), pointer :: areaptr(:)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -352,20 +344,8 @@ contains
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, PetCount=npes, rc=rc)
+    call ESMF_VMGet(vm, localPet=iam, PetCount=npes, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    mpi_communicator_ocn = lmpicom
-
-    ! reset shr logging to my log file
-    if (iam == 0) then
-       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
 
 #if (defined _MEMTRACE)
     if (iam == 0) then
@@ -562,60 +542,6 @@ contains
     if (mastertask) then
        write(stdout,*)'mesh file for pop domain is ',trim(cvalue)
     end if
-
-    !---------------------------------------------------------------------------
-    ! Error checking
-    !---------------------------------------------------------------------------
-
-    ! obtain mesh lats and lons
-    call ESMF_MeshGet(Emesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    allocate(ownedElemCoords(spatialDim*numOwnedElements))
-    allocate(lonMesh(numOwnedElements), latMesh(numOwnedElements))
-    call ESMF_MeshGet(Emesh, ownedElemCoords=ownedElemCoords)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,numOwnedElements
-       lonMesh(n) = ownedElemCoords(2*n-1)
-       latMesh(n) = ownedElemCoords(2*n)
-    end do
-
-    ! obtain mesh area
-    ! areaField = ESMF_FieldCreate(Emesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldGet(areaField, array=areaArray, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_MeshGet(Emesh, elemAreaArray=areaArray, rc=rc)  !<== crashes if this is added
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! error check differences between internally generated lons and those read in
-    n = 0
-    do iblock = 1, nblocks_clinic
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-          do i=this_block%ib,this_block%ie
-             n = n+1
-             lon  = TLON(i,j,iblock) * 180._R8/shr_const_pi
-             lat  = TLAT(i,j,iblock) * 180._R8/shr_const_pi
-             area = TAREA(i,j,iblock) / (radius*radius)
-             diff_lon  = abs(lonMesh(n) - lon)
-             diff_lat  = abs(latMesh(n) - lat)
-             !diff_area = abs(areaMesh(n) - area)
-             if (diff_lon  > 1.e-10 ) write(6,100) n,lonMesh(n),lon,diff_lon
-             if (diff_lat  > 1.e-10 ) write(6,101) n,latMesh(n),lat,diff_lat
-             !if (diff_area > 1.e-12) write(6,102) n,areaMesh(n),area,diff_area
-          end do
-       end do
-    end do
-100 format('WARNING: POP n, lonmesh(n) , lon , diff_lon  = ',i6,2(f21.13,3x),d21.5)
-101 format('WARNING: POP n, latmesh(n) , lat , diff_lat  = ',i6,2(f21.13,3x),d21.5)
-102 format('WARNING: POP n, areamesh(n), area, diff_area = ',i6,2(f21.13,3x),d21.5)
-
-    ! deallocate memory
-    deallocate(ownedElemCoords, lonMesh, latMesh)
-
-    !call ESMF_FieldDestroy(areaField)
 
     !-----------------------------------------------------------------
     ! Realize the actively coupled fields
@@ -874,13 +800,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( lsend_precip_fact ) then
-       if ( flds_scalar_index_precip_factor > 0 ) then
-          call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
-               flds_scalar_name, flds_scalar_num, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
-       end if
+       call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call State_SetScalar(1._r8, flds_scalar_index_precip_factor, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
 #if (defined _MEMTRACE)
@@ -1156,13 +1082,14 @@ contains
           endif
 
           if ( lsend_precip_fact ) then
-             if ( flds_scalar_index_precip_factor > 0 ) then
-                call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
-                     flds_scalar_name, flds_scalar_num, rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             else
-                call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
-             end if
+             call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+                  flds_scalar_name, flds_scalar_num, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+             ! Just send back 1.
+             call State_SetScalar(1._r8, flds_scalar_index_precip_factor, exportState, &
+                  flds_scalar_name, flds_scalar_num, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           exit advance
