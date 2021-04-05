@@ -539,6 +539,15 @@
     <decomptype>spacecurve</decomptype>
   </decomp>
 
+  <decomp nproc="1692" res="gx1v7" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >5</bsize_x>
+    <bsize_y   >12</bsize_y>
+    <nx_blocks >36</nx_blocks>
+    <ny_blocks >48</ny_blocks>
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
 <!-- ====================================================================== -->
 
   <!-- tx1v1 resolution -->
