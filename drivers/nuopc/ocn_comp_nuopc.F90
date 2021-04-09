@@ -3,7 +3,7 @@ module ocn_comp_nuopc
   !----------------------------------------------------------------------------
   ! This is the NUOPC cap for POP
   !----------------------------------------------------------------------------
-
+!$ use omp_lib, only : omp_set_num_threads
   use ESMF
   use NUOPC                 , only : NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize
   use NUOPC                 , only : NUOPC_CompFilterPhaseMap, NUOPC_IsUpdated, NUOPC_IsAtTime
@@ -94,6 +94,7 @@ module ocn_comp_nuopc
   integer (int_kind)  :: cpl_diag_global     ! flag id for computing diagnostics
   integer (int_kind)  :: cpl_diag_transp     ! flag id for computing diagnostics
   character(char_len) :: runtype
+  integer(int_kind)       :: nThreads        ! number of threads per mpi task for this component
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -285,7 +286,7 @@ contains
     !  initialize the timers, communication routines, global reductions,
     !  domain decomposition, grid, and overflows
     !-----------------------------------------------------------------------
-
+    use ESMF               , only: ESMF_VMGet
     use shr_const_mod      , only: shr_const_pi
     use constants          , only: radius
 
@@ -319,7 +320,7 @@ contains
     integer                 :: my_elim_start
     integer                 :: my_elim_end
     integer(int_kind)       :: lsize
-    integer(int_kind)       :: nThreads
+    integer(int_kind)       :: shrlogunit      ! old values
     integer(int_kind)       :: npes
     integer(int_kind)       :: iam
     character(len=32)       :: starttype
@@ -328,9 +329,7 @@ contains
     integer(POP_i4)         :: errorCode       ! error code
     integer(POP_i4) , pointer    :: blockLocation(:)
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(InitializeRealize)"
-#ifdef _OPENMP
-    integer, external :: omp_get_max_threads  ! max threads that can execute concurrently in a single parallel region
-#endif
+
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -338,14 +337,30 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-#ifdef _OPENMP
-    nThreads = omp_get_max_threads()
-#endif
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMGet(vm, localPet=iam, PetCount=npes, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_VMGet(vm, pet=iam, peCount=nthreads, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(nthreads==1) then
+       call NUOPC_CompAttributeGet(gcomp, "nthreads", value=cvalue, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+       read(cvalue,*) nthreads
+    endif
+
+!$  call omp_set_num_threads(nThreads)
+
+    ! reset shr logging to my log file
+    if (iam == 0) then
+       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
 #if (defined _MEMTRACE)
     if (iam == 0) then
@@ -618,7 +633,6 @@ contains
 
     ! query the Component for its importState, exportState and clock
     call ESMF_GridCompGet(gcomp, importState=importState, exportState=exportState, clock=clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call ESMF_StateGet(importState, 'Sa_co2prog', itemType, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -657,16 +671,10 @@ contains
 
     call pop_init_phase2(errorCode)
     if (errorCode /= POP_Success) then
-       call POP_ErrorSet(errorCode, 'POP_Initialize2: error in pop_init_phase2')
-       return
-    endif
-
-    if (errorCode /= POP_Success) then
        call ESMF_LogWrite(trim(subname)//'POP_Initialize2: error in pop_init_phase2',ESMF_LOGMSG_INFO, rc=rc)
        rc = ESMF_FAILURE
        return
     endif
-
     ! initialize driver-level flags and timers
     call access_time_flag ('stop_now', stop_now)
     call access_time_flag ('coupled_ts', cpl_ts)
@@ -694,6 +702,7 @@ contains
 
        call shr_cal_ymd2date(start_year,start_month,start_day,start_ymd)
 
+!$OMP MASTER
        if (iyear0 /= start_year) then
           call document ('DataInitialize', 'iyear0      ', iyear0)
           call document ('DataInitialize', 'imonth0     ', imonth0)
@@ -708,7 +717,6 @@ contains
                     (iday0 == 1   .and. start_day == 31))) then
              call exit_POP(sigAbort,' iyear0 does not match start_year')
           endif
-
        else if (imonth0 /= start_month) then
           call document ('DataInitialize', 'imonth0     ', imonth0)
           call document ('DataInitialize', 'iday0       ', iday0)
@@ -730,8 +738,8 @@ contains
              call exit_POP(sigAbort,' iday0 does not match start_day')
           endif
        end if
+!$OMP END MASTER
     end if
-
     !-----------------------------------------------------------------
     ! Initialize MCT gsmaps and domains
     !-----------------------------------------------------------------
@@ -922,7 +930,6 @@ contains
     ! NOTE: pop starts one coupling interval ahead of the rest of the system
     ! so to have it be in sync with the rest of the system, simply skip the first
     ! coupling interval for a initial run only
-
     if (first_time) then
        first_time = .false.
        if (runtype == 'initial') then
@@ -932,6 +939,8 @@ contains
           RETURN
        end if
     end if
+
+!$  call omp_set_num_threads(nThreads)
 
 
 #if (defined _MEMTRACE)
@@ -963,6 +972,7 @@ contains
     call shr_cal_ymd2date(yr_sync, mon_sync, day_sync, ymd_sync)
 
     ! check
+!$OMP MASTER
     if ( (ymd /= ymd_sync) .or. (tod /= tod_sync) ) then
        write(stdout,*)' pop2 ymd=',ymd     ,'  pop2 tod= ',tod
        write(stdout,*)' sync ymd=',ymd_sync,'  sync tod= ',tod_sync
@@ -970,7 +980,7 @@ contains
        call ESMF_LogWrite(subname//" Internal POP clock not in sync with ESMF model clock", ESMF_LOGMSG_INFO)
        !call shr_sys_abort(subName// ":: Internal POP clock not in sync with ESMF model Clock")
     end if
-
+!$OMP END MASTER
     !-----------------------------------------------------------------------
     !  start up the main timer
     !-----------------------------------------------------------------------

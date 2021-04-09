@@ -159,7 +159,7 @@ def _build_pop():
         srcroot = case.get_value("SRCROOT")
         gmake_j = case.get_value("GMAKE_J")
         gmake = case.get_value("GMAKE")
-
+        caseroot = case.get_value("CASEROOT")
         # copy all F90 files to $OBJROOT/ocn/source
         _copy_files_to_blddir(case)
 
@@ -167,7 +167,7 @@ def _build_pop():
         objroot = case.get_value("OBJROOT")
         filepath_file = os.path.join(objroot, "ocn", "obj", "Filepath")
         if not os.path.isfile(filepath_file):
-            paths = [os.path.join(objroot, "ocn", "source")]
+            paths = [os.path.join(caseroot,"SourceMods","src.pop"),os.path.join(objroot, "ocn", "source")]
             with open(filepath_file, "w") as filepath:
                 filepath.write("\n".join(paths))
                 filepath.write("\n")
