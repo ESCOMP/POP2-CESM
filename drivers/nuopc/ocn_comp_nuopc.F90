@@ -353,15 +353,6 @@ contains
 
 !$  call omp_set_num_threads(nThreads)
 
-    ! reset shr logging to my log file
-    if (iam == 0) then
-       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
 #if (defined _MEMTRACE)
     if (iam == 0) then
        lbnum=1
