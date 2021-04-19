@@ -1,4 +1,17 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    19 April 2021
+Tag Name:    cesm_pop_2_1_20210419
+Tag Summary: Remove duplicate code in NUOPC driver
+
+Testing: Jim tested with NUOPC
+
+Changes to be committed:
+
+M       drivers/nuopc/ocn_comp_nuopc.F90
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  jedwards
 Tag Date:    9 April 2021
