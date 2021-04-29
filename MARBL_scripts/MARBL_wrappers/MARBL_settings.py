@@ -93,10 +93,10 @@ class MARBL_settings_for_POP(object):
         """ Returns a list of all autotrophs in current configuration
         """
         autotroph_list = []
-        for n in range(1, self._MARBL_settings.settings_dict['autotroph_cnt']+1):
-            autotroph_name = self._MARBL_settings.settings_dict['autotroph_settings(%d)%%sname' % n].strip('"')
-            imp_calcifier = (self._MARBL_settings.settings_dict['autotroph_settings(%d)%%imp_calcifier' % n].strip('"') == '.true.')
-            exp_calcifier = (self._MARBL_settings.settings_dict['autotroph_settings(%d)%%exp_calcifier' % n].strip('"') == '.true.')
+        for n in range(1, self._MARBL_settings.settings_dict['autotroph_cnt']['value']+1):
+            autotroph_name = self._MARBL_settings.settings_dict['autotroph_settings(%d)%%sname' % n]['value'].strip('"')
+            imp_calcifier = (self._MARBL_settings.settings_dict['autotroph_settings(%d)%%imp_calcifier' % n]['value'].strip('"') == '.true.')
+            exp_calcifier = (self._MARBL_settings.settings_dict['autotroph_settings(%d)%%exp_calcifier' % n]['value'].strip('"') == '.true.')
             if imp_calcifier or exp_calcifier or (not calcifier_only):
                 autotroph_list.append(autotroph_name)
         return autotroph_list
@@ -107,8 +107,8 @@ class MARBL_settings_for_POP(object):
         """ Returns a list of all zooplankton in current configuration
         """
         zooplankton_list = []
-        for n in range(1, self._MARBL_settings.settings_dict['zooplankton_cnt']+1):
-            zooplankton_name = self._MARBL_settings.settings_dict['zooplankton_settings(%d)%%sname' % n].strip('"')
+        for n in range(1, self._MARBL_settings.settings_dict['zooplankton_cnt']['value']+1):
+            zooplankton_name = self._MARBL_settings.settings_dict['zooplankton_settings(%d)%%sname' % n]['value'].strip('"')
             zooplankton_list.append(zooplankton_name)
         return zooplankton_list
 
@@ -117,7 +117,7 @@ class MARBL_settings_for_POP(object):
     def ladjust_bury_coeff(self):
         """ Returns True if ladjust_bury_coeff = .true.
         """
-        return (self._MARBL_settings.settings_dict['ladjust_bury_coeff'].strip('"') == '.true.')
+        return (self._MARBL_settings.settings_dict['ladjust_bury_coeff']['value'].strip('"') == '.true.')
 
     #######################################
 
