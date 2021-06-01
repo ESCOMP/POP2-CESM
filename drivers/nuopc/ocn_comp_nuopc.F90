@@ -628,11 +628,9 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     ldriver_has_atm_co2_diag = (itemType /= ESMF_STATEITEM_NOTFOUND)
 
-    call ESMF_StateGet(importState, 'Faxa_nhx', itemType1, rc=rc)
+    call ESMF_StateGet(importState, 'Faxa_ndep', itemType, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_StateGet(importState, 'Faxa_noy', itemType2, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_ndep = ((itemType1 /= ESMF_STATEITEM_NOTFOUND) .or. (itemType2 /= ESMF_STATEITEM_NOTFOUND))
+    ldriver_has_ndep = (itemType /= ESMF_STATEITEM_NOTFOUND)
 
     if (ldriver_has_atm_co2_prog) then
        call named_field_register('ATM_CO2_PROG', ATM_CO2_PROG_nf_ind)

@@ -212,8 +212,7 @@ contains
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_nhx')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_noy')
+    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ndep'  , ungridded_lbound=1, ungridded_ubound=2)
 
     ! optional per thickness category fields
     do n = 1,fldsToOcn_num
@@ -313,6 +312,9 @@ contains
     real(r8), pointer     :: lonModel(:), lonMesh(:)
     real(r8)              :: diff_lon
     real(r8)              :: diff_lat
+    !DEBUG
+    type(ESMF_StateItem_Flag) :: itemflag
+    !DEBUG
     character(len=*), parameter :: subname='(ocn_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -459,6 +461,13 @@ contains
 
     deallocate(model_areas)
     deallocate(mesh_areas)
+
+    !DEBUG
+    call ESMF_StateGet(importState, 'Faxa_ndep', itemFlag, rc=rc)
+    if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
+       call ESMF_LogWrite(subname//' Faxa_ndep is in import state', ESMF_LOGMSG_INFO)
+    end if
+    !DEBUG
 
   end subroutine ocn_realize_fields
 
@@ -885,7 +894,6 @@ contains
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
        call state_getimport(importState, 'Sa_co2diag', work1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
        if (errorCode /= POP_Success) then
@@ -895,35 +903,45 @@ contains
        call named_field_set(ATM_CO2_DIAG_nf_ind, work1)
     endif
 
-    call ESMF_StateGet(importState, 'Faxa_nhx', itemFlag, rc=rc)
+    call ESMF_StateGet(importState, 'Faxa_ndep', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
-       call state_getimport(importState, 'Faxa_nhx', work1, areacor=med2mod_areacor, rc=rc)
+       call state_getfldptr(importState, 'Faxa_ndep', dataptr2d, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       ! Note that nhx is ungridded_index=1, nhy is ungridded_index = 2
        ! Note - the input units are kgN/m2/s to nmolN/cm2/s
        ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
        ! consistency when bringing in N isotopes into the code
-       work1(:,:,:) = work1(:,:,:) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8)
-       call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
+
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                n = n+1
+                work1(:,:,:) = dataptr2d(n,1) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
+             end do
+          end do
+       end do
+       call POP_HaloUpdate(work1, POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
        if (errorCode /= POP_Success) then
           call POP_ErrorSet(errorCode, 'ocn_import_import: error updating DIAG NHx halo')
           return
        endif
        call named_field_set(ATM_NHx_nf_ind, work1)
-    endif
 
-    call ESMF_StateGet(importState, 'Faxa_noy', itemFlag, rc=rc)
-    if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
-
-       call state_getimport(importState, 'Faxa_noy', work1, areacor=med2mod_areacor, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Note - the input units are kgN/m2/s to nmolN/cm2/s
-       ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
-       ! consistency when bringing in N isotopes into the code
-       work1(:,:,:) = work1(:,:,:) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8)
-       call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                n = n+1
+                work1(:,:,:) = dataptr2d(n,2) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
+             end do
+          end do
+       end do
+       call POP_HaloUpdate(work1, POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
        if (errorCode /= POP_Success) then
           call POP_ErrorSet(errorCode, 'ocn_import_import: error updating DIAG NOy halo')
