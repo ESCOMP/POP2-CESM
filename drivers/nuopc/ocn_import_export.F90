@@ -919,7 +919,7 @@ contains
           do j = this_block%jb,this_block%je
              do i = this_block%ib,this_block%ie
                 n = n+1
-                work1(:,:,:) = dataptr2d(n,1) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
+                work1(i,j,iblock) = dataptr2d(1,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
              end do
           end do
        end do
@@ -937,7 +937,7 @@ contains
           do j = this_block%jb,this_block%je
              do i = this_block%ib,this_block%ie
                 n = n+1
-                work1(:,:,:) = dataptr2d(n,2) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
+                work1(i,j,iblock) = dataptr2d(2,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
              end do
           end do
        end do
