@@ -312,9 +312,7 @@ contains
     real(r8), pointer     :: lonModel(:), lonMesh(:)
     real(r8)              :: diff_lon
     real(r8)              :: diff_lat
-    !DEBUG
     type(ESMF_StateItem_Flag) :: itemflag
-    !DEBUG
     character(len=*), parameter :: subname='(ocn_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -462,12 +460,10 @@ contains
     deallocate(model_areas)
     deallocate(mesh_areas)
 
-    !DEBUG
     call ESMF_StateGet(importState, 'Faxa_ndep', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
        call ESMF_LogWrite(subname//' Faxa_ndep is in import state', ESMF_LOGMSG_INFO)
     end if
-    !DEBUG
 
   end subroutine ocn_realize_fields
 
