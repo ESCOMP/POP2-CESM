@@ -810,7 +810,7 @@ contains
                 frac_col_1pt(1)  = max(c0, min(c1, Sf_afrac(n)))
                 fracr_col_1pt(1) = max(c0, min(c1, Sf_afracr(n)))
                 qsw_fracr_col_1pt(1) = Foxx_swnet_afracr(n)
-                do ncol = 2,mcog_ncols ! same as ice_ncat
+                do ncol = 2,mcog_ncols ! mcog_ncols is the same as ice_ncat+1
                    frac_col_1pt(ncol)  = max(c0, min(c1, Si_ifrac_n(ncol-1,n)))
                    fracr_col_1pt(ncol) = max(c0, min(c1, Si_ifrac_n(ncol-1,n)))
                    qsw_fracr_col_1pt(ncol) = Fioi_swpen_ifrac_n(ncol-1,n)
