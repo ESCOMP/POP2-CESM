@@ -584,9 +584,6 @@ contains
     type(ESMF_Clock)          :: clock
     type(ESMF_State)          :: importState
     type(ESMF_State)          :: exportState
-    type(ESMF_StateItem_Flag) :: itemType
-    type(ESMF_StateItem_Flag) :: itemType1
-    type(ESMF_StateItem_Flag) :: itemType2
     type(ESMF_TimeInterval)   :: timeStep        ! Model timestep
     type(ESMF_Time)           :: starttime
     character(CL)             :: cvalue
@@ -619,18 +616,6 @@ contains
 
     ! query the Component for its importState, exportState and clock
     call ESMF_GridCompGet(gcomp, importState=importState, exportState=exportState, clock=clock, rc=rc)
-
-    call ESMF_StateGet(importState, 'Sa_co2prog', itemType, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_atm_co2_prog = (itemType /= ESMF_STATEITEM_NOTFOUND)
-
-    call ESMF_StateGet(importState, 'Sa_co2diag', itemType, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_atm_co2_diag = (itemType /= ESMF_STATEITEM_NOTFOUND)
-
-    call ESMF_StateGet(importState, 'Faxa_ndep', itemType, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_ndep = (itemType /= ESMF_STATEITEM_NOTFOUND)
 
     if (ldriver_has_atm_co2_prog) then
        call named_field_register('ATM_CO2_PROG', ATM_CO2_PROG_nf_ind)
