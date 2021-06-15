@@ -1,6 +1,20 @@
 ===============================================================================
 Tag Creator: altuntas
 Developers:  mvertens
+Tag Date:    15 June 2021
+Tag Name:    cesm_pop_2_1_20210615
+Tag Summary: Additional bug fixes for ndep and co2 for nuopc cap (PR #56)
+
+Testing: mvertens tested with NUOPC
+
+Changes to be committed:
+
+M       drivers/nuopc/ocn_comp_nuopc.F90
+M       drivers/nuopc/ocn_import_export.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  mvertens
 Tag Date:    02 June 2021
 Tag Name:    cesm_pop_2_1_20210602
 Tag Summary: fixed ndep problem for pop in nuopc cap
