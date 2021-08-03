@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: altuntas
+Developers:  fischer
+Tag Date:    03 Aug 2021
+Tag Name:    cesm_pop_2_1_20210803
+Tag Summary: Change shebang lines to python3
+
+Testing: aux_pop.cheyenne_intel. b4b.
+
+Changes to be committed:
+
+M       cime_config/buildcpp 
+M       cime_config/buildlib 
+M       cime_config/buildnml 
+
+===============================================================================
+Tag Creator: altuntas
 Developers:  mvertens
 Tag Date:    15 June 2021
 Tag Name:    cesm_pop_2_1_20210615
