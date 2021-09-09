@@ -15,6 +15,7 @@ module ocn_import_export
   use shr_const_mod,         only: shr_const_spval
   use shr_string_mod,        only: shr_string_listGetNum, shr_string_listGetName
   use shr_mpi_mod,           only: shr_mpi_min, shr_mpi_max
+  use shr_ndep_mod,          only: shr_ndep_readnl
   use communicate,           only: my_task, master_task
   use ocn_communicator,      only: mpi_communicator_ocn
   use domain,                only: distrb_clinic, POP_haloClinic
@@ -37,6 +38,7 @@ module ocn_import_export
   use vmix_kpp,              only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
   use grid,                  only: KMT, TAREA
   use nuopc_shr_methods,     only: chkerr
+  use ecosys_forcing_mod,    only: ldriver_has_ndep, ldriver_has_atm_co2_diag, ldriver_has_atm_co2_prog
   use constants
   use blocks
   use exit_mod
@@ -124,6 +126,10 @@ contains
     character(CS) :: cname
     integer       :: ice_ncat
     logical       :: flds_i2o_per_cat  ! .true. => select per ocn thickness category
+    logical       :: flds_co2a
+    logical       :: flds_co2b
+    logical       :: flds_co2c
+    integer       :: ndep_nflds
     character(len=*), parameter :: subname='(ocn_advertise_fields)'
     !-------------------------------------------------------------------------------
 
@@ -204,16 +210,53 @@ contains
 
     ! from atmosphere
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_pslv')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_co2prog')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_co2diag')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_lwdn')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_snow')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_rain')
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_bcph'  , ungridded_lbound=1, ungridded_ubound=3)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
     call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_nhx')
-    call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_noy')
+
+    ! from atm co2 fields
+    call NUOPC_CompAttributeGet(gcomp, name='flds_co2a', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_co2a
+    if (my_task == master_task) then
+       write(stdout,'(a)') trim(subname)//'flds_co2a = '// trim(cvalue)
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='flds_co2b', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_co2b
+    if (my_task == master_task) then
+       write(stdout,'(a)') trim(subname)//'flds_co2b = '// trim(cvalue)
+    end if
+
+    call NUOPC_CompAttributeGet(gcomp, name='flds_co2c', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_co2c
+    if (my_task == master_task) then
+       write(stdout,'(a)') trim(subname)//'flds_co2c = '// trim(cvalue)
+    end if
+
+    if (flds_co2a .or. flds_co2c) then
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_co2diag')
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Sa_co2prog')
+       ldriver_has_atm_co2_prog = .true.
+       ldriver_has_atm_co2_diag = .true.
+    else
+       ldriver_has_atm_co2_prog = .false.
+       ldriver_has_atm_co2_diag = .false.
+    end if
+
+    ! Determine if will get nitrogen deposition from atm
+    call shr_ndep_readnl("drv_flds_in", ndep_nflds)
+    if (ndep_nflds > 0) then
+       ldriver_has_ndep = .true.
+       call fldlist_add(fldsToOcn_num, fldsToOcn, 'Faxa_ndep'  , ungridded_lbound=1, ungridded_ubound=2)
+    else
+       ldriver_has_ndep = .false.
+    end if
 
     ! optional per thickness category fields
     do n = 1,fldsToOcn_num
@@ -313,6 +356,7 @@ contains
     real(r8), pointer     :: lonModel(:), lonMesh(:)
     real(r8)              :: diff_lon
     real(r8)              :: diff_lat
+    type(ESMF_StateItem_Flag) :: itemflag
     character(len=*), parameter :: subname='(ocn_import_export:realize_fields)'
     !---------------------------------------------------------------------------
 
@@ -460,6 +504,11 @@ contains
     deallocate(model_areas)
     deallocate(mesh_areas)
 
+    call ESMF_StateGet(importState, 'Faxa_ndep', itemFlag, rc=rc)
+    if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
+       call ESMF_LogWrite(subname//' Faxa_ndep is in import state', ESMF_LOGMSG_INFO)
+    end if
+
   end subroutine ocn_realize_fields
 
   !==============================================================================
@@ -517,7 +566,7 @@ contains
     real (r8), pointer   :: fioi_melth(:)
     real (r8), pointer   :: fioi_salt(:)
     real (r8), pointer   :: fioi_swpen_ifrac_n(:,:)
-    real (r8)            :: frac_col_1pt(mcog_ncols) 
+    real (r8)            :: frac_col_1pt(mcog_ncols)
     real (r8)            :: fracr_col_1pt(mcog_ncols)
     real (r8)            :: qsw_fracr_col_1pt(mcog_ncols)
     ! from wave
@@ -599,7 +648,7 @@ contains
     ! 10m wind speed squared (m^2/s^2)
     call state_getfldptr(importState, 'So_duu10n', so_duu10n, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
- 
+
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
@@ -612,7 +661,7 @@ contains
              !  convert from W/m**2
              SHF_QSW(i,j,iblock) = foxx_swnet(n) * med2mod_areacor(n) * RCALCT(i,j,iblock)*hflux_factor
              ! convert from m**2/s**2 to cm**2/s**2
-             U10_SQR(i,j,iblock) = cmperm * cmperm * so_duu10n(n) * RCALCT(i,j,iblock) 
+             U10_SQR(i,j,iblock) = cmperm * cmperm * so_duu10n(n) * RCALCT(i,j,iblock)
          end do
        end do
     end do
@@ -761,7 +810,7 @@ contains
                 frac_col_1pt(1)  = max(c0, min(c1, Sf_afrac(n)))
                 fracr_col_1pt(1) = max(c0, min(c1, Sf_afracr(n)))
                 qsw_fracr_col_1pt(1) = Foxx_swnet_afracr(n)
-                do ncol = 2,mcog_ncols ! same as ice_ncat
+                do ncol = 2,mcog_ncols ! mcog_ncols is the same as ice_ncat+1
                    frac_col_1pt(ncol)  = max(c0, min(c1, Si_ifrac_n(ncol-1,n)))
                    fracr_col_1pt(ncol) = max(c0, min(c1, Si_ifrac_n(ncol-1,n)))
                    qsw_fracr_col_1pt(ncol) = Fioi_swpen_ifrac_n(ncol-1,n)
@@ -885,7 +934,6 @@ contains
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
        call state_getimport(importState, 'Sa_co2diag', work1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
        call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
        if (errorCode /= POP_Success) then
@@ -895,35 +943,45 @@ contains
        call named_field_set(ATM_CO2_DIAG_nf_ind, work1)
     endif
 
-    call ESMF_StateGet(importState, 'Faxa_nhx', itemFlag, rc=rc)
+    call ESMF_StateGet(importState, 'Faxa_ndep', itemFlag, rc=rc)
     if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
-       call state_getimport(importState, 'Faxa_nhx', work1, areacor=med2mod_areacor, rc=rc)
+       call state_getfldptr(importState, 'Faxa_ndep', dataptr2d, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+       ! Note that nhx is ungridded_index=1, nhy is ungridded_index = 2
        ! Note - the input units are kgN/m2/s to nmolN/cm2/s
        ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
        ! consistency when bringing in N isotopes into the code
-       work1(:,:,:) = work1(:,:,:) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8)
-       call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
+
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                n = n+1
+                work1(i,j,iblock) = dataptr2d(1,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
+             end do
+          end do
+       end do
+       call POP_HaloUpdate(work1, POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
        if (errorCode /= POP_Success) then
           call POP_ErrorSet(errorCode, 'ocn_import_import: error updating DIAG NHx halo')
           return
        endif
        call named_field_set(ATM_NHx_nf_ind, work1)
-    endif
 
-    call ESMF_StateGet(importState, 'Faxa_noy', itemFlag, rc=rc)
-    if (itemFlag /= ESMF_STATEITEM_NOTFOUND) then
-
-       call state_getimport(importState, 'Faxa_noy', work1, areacor=med2mod_areacor, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       ! Note - the input units are kgN/m2/s to nmolN/cm2/s
-       ! TODO: Keith has pointed out might want to use 14.007_r8 instead of 14.0_r8 for more
-       ! consistency when bringing in N isotopes into the code
-       work1(:,:,:) = work1(:,:,:) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8)
-       call POP_HaloUpdate(work1,POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
+       n = 0
+       do iblock = 1, nblocks_clinic
+          this_block = get_block(blocks_clinic(iblock),iblock)
+          do j = this_block%jb,this_block%je
+             do i = this_block%ib,this_block%ie
+                n = n+1
+                work1(i,j,iblock) = dataptr2d(2,n) * (1.0e-1_r8 * (c1/14.0_r8) * 1.0e9_r8) * med2mod_areacor(n)
+             end do
+          end do
+       end do
+       call POP_HaloUpdate(work1, POP_haloClinic, POP_gridHorzLocCenter, POP_fieldKindScalar, &
             errorCode, fillValue = 0.0_POP_r8)
        if (errorCode /= POP_Success) then
           call POP_ErrorSet(errorCode, 'ocn_import_import: error updating DIAG NOy halo')

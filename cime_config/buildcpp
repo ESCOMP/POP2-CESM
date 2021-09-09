@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Set POP cppdefs and config_cache.xml file (the latter is used for namelist generation)

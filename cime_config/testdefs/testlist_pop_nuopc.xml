@@ -56,8 +56,8 @@
       <machine name="cheyenne" compiler="gnu" category="prebeta"/>
       <machine name="cheyenne" compiler="intel" category="prebeta"/>
       <machine name="cheyenne" compiler="pgi" category="prebeta"/>
-      <machine name="hobart" compiler="intel" category="prebeta"/>
-      <machine name="hobart" compiler="pgi" category="prebeta"/>
+      <machine name="izumi" compiler="intel" category="prebeta"/>
+      <machine name="izumi" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_ocn_transient_1850_2000">
@@ -88,8 +88,8 @@
   </test>
   <test name="ERS_Vnuopc" grid="T62_g16" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="hobart" compiler="intel" category="prebeta"/>
-      <machine name="hobart" compiler="pgi" category="prebeta"/>
+      <machine name="izumi" compiler="intel" category="prebeta"/>
+      <machine name="izumi" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="G" testmods="pop/cice">
@@ -103,7 +103,7 @@
   </test>
   <test name="ERS_Vnuopc" grid="T62_s11" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="hobart" compiler="nag" category="prebeta"/>
+      <machine name="izumi" compiler="nag" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_t12" compset="G" testmods="pop/cice">
@@ -139,8 +139,8 @@
   <test name="ERS_Vnuopc_D" grid="f19_g16_rx1" compset="G1850ECO" testmods="pop/cice_ecosys">
     <machines>
       <machine name="edison" compiler="intel" category="prebeta"/>
-      <machine name="hobart" compiler="intel" category="prebeta"/>
-      <machine name="hobart" compiler="pgi" category="prebeta"/>
+      <machine name="izumi" compiler="intel" category="prebeta"/>
+      <machine name="izumi" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_E_Lm3" grid="T62_g16" compset="C1850ECO" testmods="pop/default">
@@ -164,7 +164,7 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="prebeta"/>
       <machine name="cheyenne" compiler="pgi" category="prebeta"/>
-      <machine name="hobart" compiler="pgi" category="prebeta"/>
+      <machine name="izumi" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_IOP" grid="T62_g16" compset="GIAF" testmods="pop/default">
@@ -289,7 +289,7 @@
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="G1850ECO" testmods="pop/ciso_abio_dic_dic14">
@@ -328,7 +328,7 @@
       <machine name="cheyenne" compiler="gnu" category="prebeta"/>
       <machine name="cheyenne" compiler="intel" category="prebeta"/>
       <machine name="cheyenne" compiler="pgi" category="prebeta"/>
-      <machine name="hobart" compiler="pgi" category="prebeta"/>
+      <machine name="izumi" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="T62_g16" compset="GIAF" testmods="pop/cice">
@@ -444,7 +444,7 @@
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO_ECOCESM20" testmods="pop/ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="C1850ECO_ECOCESM20" testmods="pop/ecosys">
@@ -457,28 +457,28 @@
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="hobart" compiler="nag" category="prealpha"/>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="prealpha"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_ladjust_bury_coeff">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_fixed_PtoC">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_box_atm_co2">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="G1850ECO" testmods="pop/ecosys_daily_r4_tavg">
@@ -516,17 +516,17 @@
   </test>
   <test name="SMS_Vnuopc_Ld2" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld2" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_daily_r4_tavg">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld1" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld20" grid="T62_g17" compset="C" testmods="pop/performance_eval">
@@ -547,12 +547,12 @@
   </test>
   <test name="SMS_Vnuopc_Ld2_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_N2_Ld3" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
     <machines>
-      <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_N2_Ld3_P144x1" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
