@@ -3,13 +3,14 @@ module ocn_comp_nuopc
   !----------------------------------------------------------------------------
   ! This is the NUOPC cap for POP
   !----------------------------------------------------------------------------
-
+!$ use omp_lib, only : omp_set_num_threads
   use ESMF
   use NUOPC                 , only : NUOPC_CompDerive, NUOPC_CompSetEntryPoint, NUOPC_CompSpecialize
   use NUOPC                 , only : NUOPC_CompFilterPhaseMap, NUOPC_IsUpdated, NUOPC_IsAtTime
   use NUOPC                 , only : NUOPC_CompAttributeGet, NUOPC_Advertise, NUOPC_CompSetClock
   use NUOPC                 , only : NUOPC_SetAttribute, NUOPC_CompAttributeGet, NUOPC_CompAttributeSet
   use NUOPC_Model           , only : model_routine_SS           => SetServices
+  use NUOPC_Model           , only : SetVM
   use NUOPC_Model           , only : model_label_Advance        => label_Advance
   use NUOPC_Model           , only : model_label_DataInitialize => label_DataInitialize
   use NUOPC_Model           , only : model_label_SetRunClock    => label_SetRunClock
@@ -59,15 +60,15 @@ module ocn_comp_nuopc
   use perf_mod              , only : t_startf, t_stopf
   use ocn_import_export     , only : ocn_advertise_fields, ocn_realize_fields
   use ocn_import_export     , only : ocn_import, ocn_export, pop_sum_buffer, tlast_coupled
-  use ocn_shr_methods       , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
-  use ocn_shr_methods       , only : set_component_logging, get_component_instance, log_clock_advance
+  use nuopc_shr_methods     , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
+  use nuopc_shr_methods     , only : set_component_logging, get_component_instance, log_clock_advance
 
   ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
   private                              ! By default make data private
 
   public  :: SetServices
-
+  public  :: SetVM
   private :: InitializeP0
   private :: InitializeAdvertise
   private :: InitializeRealize
@@ -93,6 +94,7 @@ module ocn_comp_nuopc
   integer (int_kind)  :: cpl_diag_global     ! flag id for computing diagnostics
   integer (int_kind)  :: cpl_diag_transp     ! flag id for computing diagnostics
   character(char_len) :: runtype
+  integer(int_kind)       :: nThreads        ! number of threads per mpi task for this component
 
   character(*), parameter :: u_FILE_u = &
        __FILE__
@@ -103,7 +105,7 @@ module ocn_comp_nuopc
   real(R8)               :: attribute_orb_obliq       ! attribute - obliquity in degrees
   real(R8)               :: attribute_orb_mvelp       ! attribute - moving vernal equinox longitude
   real(R8)               :: attribute_orb_eccen       ! attribute and update-  orbital eccentricity
-
+  logical                :: mastertask
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
@@ -205,66 +207,66 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
+    type(ESMF_VM)     :: vm
+    integer(int_kind) :: iam
+    integer(int_kind) :: lmpicom
+    integer(int_kind) :: shrlogunit
     character(len=CL) :: logmsg
     character(len=CS) :: cvalue
     logical           :: isPresent, isSet
     character(len=*), parameter :: subname='ocn_comp_nuopc:(InitializeAdvertise) '
     !--------------------------------
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       flds_scalar_name = trim(cvalue)
-       call ESMF_LogWrite(trim(subname)//' flds_scalar_name = '//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldName')
-    endif
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue, *) flds_scalar_num
-       write(logmsg,*) flds_scalar_num
-       call ESMF_LogWrite(trim(subname)//' flds_scalar_num = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldCount')
-    endif
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_nx
-       write(logmsg,*) flds_scalar_index_nx
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nx = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNX')
-    endif
+    mpi_communicator_ocn = lmpicom
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    ! reset shr logging to my log file
+    call set_component_logging(gcomp, iam==0, stdout, shrlogunit, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_ny
-       write(logmsg,*) flds_scalar_index_ny
-       call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_ny = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxGridNY')
-    endif
 
-    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_scalar_index_precip_factor
+    flds_scalar_name = trim(cvalue)
+    call ESMF_LogWrite(trim(subname)//' flds_scalar_name = '//trim(flds_scalar_name), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue, *) flds_scalar_num
+    write(logmsg,*) flds_scalar_num
+    call ESMF_LogWrite(trim(subname)//' flds_scalar_num = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNX", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_nx
+    write(logmsg,*) flds_scalar_index_nx
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_nx = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxGridNY", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_ny
+    write(logmsg,*) flds_scalar_index_ny
+    call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_ny = '//trim(logmsg), ESMF_LOGMSG_INFO)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldIdxPrecipFactor", value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) flds_scalar_index_precip_factor
+    if ( .not. flds_scalar_index_precip_factor > 0 ) then
+       call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 for pop')
+    else
        write(logmsg,*) flds_scalar_index_precip_factor
        call ESMF_LogWrite(trim(subname)//' : flds_scalar_index_precip_factor = '//trim(logmsg), ESMF_LOGMSG_INFO)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call shr_sys_abort(subname//'Need to set attribute ScalarFieldIdxPrecipFactor')
-    endif
+    end if
 
+    ! Advertise fields
     call ocn_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -279,8 +281,8 @@ contains
     !  initialize the timers, communication routines, global reductions,
     !  domain decomposition, grid, and overflows
     !-----------------------------------------------------------------------
-
-    use shr_const_mod      , only: shr_const_pi  
+    use ESMF               , only: ESMF_VMGet
+    use shr_const_mod      , only: shr_const_pi
     use constants          , only: radius
 
     ! Initialize POP
@@ -298,14 +300,6 @@ contains
     type(ESMF_VM)           :: vm
     type(ESMF_DistGrid)     :: distGrid
     type(ESMF_Mesh)         :: Emesh
-    type(ESMF_Array)        :: EArray
-    integer                 :: spatialDim
-    integer                 :: numOwnedElements
-    real(R8), pointer       :: ownedElemCoords(:)
-    real(R8)                :: lon, lat, area
-    real(R8)                :: diff_lon, diff_lat, diff_area
-    real(R8), pointer       :: areaMesh(:)  
-    real(R8), allocatable   :: lonMesh(:), latMesh(:)
     integer , allocatable   :: gindex_ocn(:)
     integer , allocatable   :: gindex_elim(:)
     integer , allocatable   :: gindex(:)
@@ -322,22 +316,15 @@ contains
     integer                 :: my_elim_end
     integer(int_kind)       :: lsize
     integer(int_kind)       :: shrlogunit      ! old values
-    integer(int_kind)       :: nThreads
     integer(int_kind)       :: npes
     integer(int_kind)       :: iam
     character(len=32)       :: starttype
     integer                 :: n,i,j,iblk,jblk,ig,jg
     integer                 :: lbnum
     integer(POP_i4)         :: errorCode       ! error code
-    integer                 :: lmpicom
     integer(POP_i4) , pointer    :: blockLocation(:)
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(InitializeRealize)"
-#ifdef _OPENMP
-    integer, external :: omp_get_max_threads  ! max threads that can execute concurrently in a single parallel region
-#endif
-    type(ESMF_Field)  :: areaField
-    type(ESMF_Array)  :: areaArray
-    real(R8), pointer :: areaptr(:)
+
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
@@ -345,26 +332,21 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-#ifdef _OPENMP
-    nThreads = omp_get_max_threads()
-#endif
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, PetCount=npes, rc=rc)
+    call ESMF_VMGet(vm, localPet=iam, PetCount=npes, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    mpi_communicator_ocn = lmpicom
+    call ESMF_VMGet(vm, pet=iam, peCount=nthreads, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if(nthreads==1) then
+       call NUOPC_CompAttributeGet(gcomp, "nthreads", value=cvalue, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=u_FILE_u)) return
+       read(cvalue,*) nthreads
+    endif
 
-    ! reset shr logging to my log file
-    if (iam == 0) then
-       call set_component_logging(gcomp, .true., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call set_component_logging(gcomp, .false., stdout, shrlogunit, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+!$  call omp_set_num_threads(nThreads)
 
 #if (defined _MEMTRACE)
     if (iam == 0) then
@@ -400,8 +382,7 @@ contains
 
     call get_component_instance(gcomp, inst_suffix, inst_index, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    inst_name = "OCN"//trim(inst_suffix)
-    write(6,*)'DEBUG: inst_index,inst_suffix,inst_name = ',inst_index,trim(inst_suffix),trim(inst_name)
+    inst_name = "OCN"
 
     !-----------------------------------------------------------------------
     !  first initializaiton phase of pop2
@@ -558,63 +539,10 @@ contains
     EMesh = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
          elementDistgrid=Distgrid, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (my_task == master_task) then
+    mastertask = my_task == master_task
+    if (mastertask) then
        write(stdout,*)'mesh file for pop domain is ',trim(cvalue)
     end if
-
-    !---------------------------------------------------------------------------
-    ! Error checking
-    !---------------------------------------------------------------------------
-
-    ! obtain mesh lats and lons
-    call ESMF_MeshGet(Emesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    allocate(ownedElemCoords(spatialDim*numOwnedElements))
-    allocate(lonMesh(numOwnedElements), latMesh(numOwnedElements))
-    call ESMF_MeshGet(Emesh, ownedElemCoords=ownedElemCoords)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    do n = 1,numOwnedElements
-       lonMesh(n) = ownedElemCoords(2*n-1)
-       latMesh(n) = ownedElemCoords(2*n)
-    end do
-
-    ! obtain mesh area
-    ! areaField = ESMF_FieldCreate(Emesh, ESMF_TYPEKIND_R8, meshloc=ESMF_MESHLOC_ELEMENT, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_FieldGet(areaField, array=areaArray, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_MeshGet(Emesh, elemAreaArray=areaArray, rc=rc)  !<== crashes if this is added
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! call ESMF_ArrayGet(areaArray, farrayptr=areaMesh, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    
-    ! error check differences between internally generated lons and those read in
-    n = 0
-    do iblock = 1, nblocks_clinic
-       this_block = get_block(blocks_clinic(iblock),iblock)
-       do j=this_block%jb,this_block%je
-          do i=this_block%ib,this_block%ie
-             n = n+1
-             lon  = TLON(i,j,iblock) * 180._R8/shr_const_pi
-             lat  = TLAT(i,j,iblock) * 180._R8/shr_const_pi
-             area = TAREA(i,j,iblock) / (radius*radius) 
-             diff_lon  = abs(lonMesh(n) - lon)
-             diff_lat  = abs(latMesh(n) - lat)
-             !diff_area = abs(areaMesh(n) - area)
-             if (diff_lon  > 1.e-10 ) write(6,100) n,lonMesh(n),lon,diff_lon
-             if (diff_lat  > 1.e-10 ) write(6,101) n,latMesh(n),lat,diff_lat
-             !if (diff_area > 1.e-12) write(6,102) n,areaMesh(n),area,diff_area
-          end do
-       end do
-    end do
-100 format('WARNING: POP n, lonmesh(n) , lon , diff_lon  = ',i6,2(f21.13,3x),d21.5)
-101 format('WARNING: POP n, latmesh(n) , lat , diff_lat  = ',i6,2(f21.13,3x),d21.5)
-102 format('WARNING: POP n, areamesh(n), area, diff_area = ',i6,2(f21.13,3x),d21.5)
-
-    ! deallocate memory
-    deallocate(ownedElemCoords, lonMesh, latMesh)
-
-    !call ESMF_FieldDestroy(areaField)
 
     !-----------------------------------------------------------------
     ! Realize the actively coupled fields
@@ -623,17 +551,6 @@ contains
     call ocn_realize_fields(gcomp, mesh=Emesh, flds_scalar_name=flds_scalar_name, &
          flds_scalar_num=flds_scalar_num, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !-----------------------------------------------------------------
-    ! Initialize MCT gsmaps and domains
-    !-----------------------------------------------------------------
-
-    ! call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! read(cvalue,*) ocnid  ! convert from string to integer
-
-    ! call pop_mct_init(ocnid, mpi_communicator_ocn)
-    ! if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
   end subroutine InitializeRealize
 
@@ -667,9 +584,6 @@ contains
     type(ESMF_Clock)          :: clock
     type(ESMF_State)          :: importState
     type(ESMF_State)          :: exportState
-    type(ESMF_StateItem_Flag) :: itemType
-    type(ESMF_StateItem_Flag) :: itemType1
-    type(ESMF_StateItem_Flag) :: itemType2
     type(ESMF_TimeInterval)   :: timeStep        ! Model timestep
     type(ESMF_Time)           :: starttime
     character(CL)             :: cvalue
@@ -702,21 +616,6 @@ contains
 
     ! query the Component for its importState, exportState and clock
     call ESMF_GridCompGet(gcomp, importState=importState, exportState=exportState, clock=clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call ESMF_StateGet(importState, 'Sa_co2prog', itemType, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_atm_co2_prog = (itemType /= ESMF_STATEITEM_NOTFOUND)
-
-    call ESMF_StateGet(importState, 'Sa_co2diag', itemType, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_atm_co2_diag = (itemType /= ESMF_STATEITEM_NOTFOUND)
-
-    call ESMF_StateGet(importState, 'Faxa_nhx', itemType1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_StateGet(importState, 'Faxa_noy', itemType2, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ldriver_has_ndep = ((itemType1 /= ESMF_STATEITEM_NOTFOUND) .or. (itemType2 /= ESMF_STATEITEM_NOTFOUND))
 
     if (ldriver_has_atm_co2_prog) then
        call named_field_register('ATM_CO2_PROG', ATM_CO2_PROG_nf_ind)
@@ -725,7 +624,7 @@ contains
        call named_field_register('ATM_CO2_DIAG', ATM_CO2_DIAG_nf_ind)
     endif
     if (ldriver_has_ndep) then
-       if (my_task == master_task) write(stdout,'(" using ATM_NHx and ATM_NOy from mediator")')
+       if (mastertask) write(stdout,'(" using ATM_NHx and ATM_NOy from mediator")')
        call named_field_register('ATM_NHx', ATM_NHx_nf_ind)
        call named_field_register('ATM_NOy', ATM_NOy_nf_ind)
     endif
@@ -741,16 +640,10 @@ contains
 
     call pop_init_phase2(errorCode)
     if (errorCode /= POP_Success) then
-       call POP_ErrorSet(errorCode, 'POP_Initialize2: error in pop_init_phase2')
-       return
-    endif
-
-    if (errorCode /= POP_Success) then
        call ESMF_LogWrite(trim(subname)//'POP_Initialize2: error in pop_init_phase2',ESMF_LOGMSG_INFO, rc=rc)
        rc = ESMF_FAILURE
        return
     endif
-
     ! initialize driver-level flags and timers
     call access_time_flag ('stop_now', stop_now)
     call access_time_flag ('coupled_ts', cpl_ts)
@@ -778,6 +671,7 @@ contains
 
        call shr_cal_ymd2date(start_year,start_month,start_day,start_ymd)
 
+!$OMP MASTER
        if (iyear0 /= start_year) then
           call document ('DataInitialize', 'iyear0      ', iyear0)
           call document ('DataInitialize', 'imonth0     ', imonth0)
@@ -792,7 +686,6 @@ contains
                     (iday0 == 1   .and. start_day == 31))) then
              call exit_POP(sigAbort,' iyear0 does not match start_year')
           endif
-
        else if (imonth0 /= start_month) then
           call document ('DataInitialize', 'imonth0     ', imonth0)
           call document ('DataInitialize', 'iday0       ', iday0)
@@ -814,8 +707,8 @@ contains
              call exit_POP(sigAbort,' iday0 does not match start_day')
           endif
        end if
+!$OMP END MASTER
     end if
-
     !-----------------------------------------------------------------
     ! Initialize MCT gsmaps and domains
     !-----------------------------------------------------------------
@@ -884,13 +777,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if ( lsend_precip_fact ) then
-       if ( flds_scalar_index_precip_factor > 0 ) then
-          call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
-               flds_scalar_name, flds_scalar_num, rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       else
-          call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
-       end if
+       call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    else
+       call State_SetScalar(1._r8, flds_scalar_index_precip_factor, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
 #if (defined _MEMTRACE)
@@ -907,10 +800,10 @@ contains
 
     if (registry_match('qsw_distrb_iopt_cosz')) then
 
-       call pop_orbital_init(gcomp, stdout, my_task==master_task, rc)
+       call pop_orbital_init(gcomp, stdout, mastertask, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call pop_orbital_update(clock, stdout, my_task==master_task, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
+       call pop_orbital_update(clock, stdout, mastertask, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        write(stdout,*) ' '
@@ -944,7 +837,7 @@ contains
     ! Output delimiter to log file
     !-----------------------------------------------------------------------
 
-    if (my_task == master_task) then
+    if (mastertask) then
        write(stdout,blank_fmt)
        write(stdout,'(" End of initialization")')
        write(stdout,blank_fmt)
@@ -1006,16 +899,17 @@ contains
     ! NOTE: pop starts one coupling interval ahead of the rest of the system
     ! so to have it be in sync with the rest of the system, simply skip the first
     ! coupling interval for a initial run only
-
     if (first_time) then
        first_time = .false.
        if (runtype == 'initial') then
-          if (my_task == master_task) then
+          if (mastertask) then
              write(stdout,*)'Returning at first coupling interval'
           end if
           RETURN
        end if
     end if
+
+!$  call omp_set_num_threads(nThreads)
 
 
 #if (defined _MEMTRACE)
@@ -1047,6 +941,7 @@ contains
     call shr_cal_ymd2date(yr_sync, mon_sync, day_sync, ymd_sync)
 
     ! check
+!$OMP MASTER
     if ( (ymd /= ymd_sync) .or. (tod /= tod_sync) ) then
        write(stdout,*)' pop2 ymd=',ymd     ,'  pop2 tod= ',tod
        write(stdout,*)' sync ymd=',ymd_sync,'  sync tod= ',tod_sync
@@ -1054,7 +949,7 @@ contains
        call ESMF_LogWrite(subname//" Internal POP clock not in sync with ESMF model clock", ESMF_LOGMSG_INFO)
        !call shr_sys_abort(subName// ":: Internal POP clock not in sync with ESMF model Clock")
     end if
-
+!$OMP END MASTER
     !-----------------------------------------------------------------------
     !  start up the main timer
     !-----------------------------------------------------------------------
@@ -1078,11 +973,6 @@ contains
 
     call NUOPC_ModelGet(gcomp, modelClock=clock, importState=importState, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    if (dbug > 1 .and. master_task) then
-       call log_clock_advance(clock, 'POP', stdout, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    endif
 
     !----------------------------------------------------------------------------
     ! restart flag (rstwr) will assume only an eod restart for now
@@ -1130,7 +1020,7 @@ contains
 
           ! update orbital parameters
 
-          call pop_orbital_update(clock, stdout, my_task==master_task, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
+          call pop_orbital_update(clock, stdout, mastertask, orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           call pop_set_coupled_forcing
@@ -1171,13 +1061,14 @@ contains
           endif
 
           if ( lsend_precip_fact ) then
-             if ( flds_scalar_index_precip_factor > 0 ) then
-                call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
-                     flds_scalar_name, flds_scalar_num, rc)
-                if (ChkErr(rc,__LINE__,u_FILE_u)) return
-             else
-                call shr_sys_abort('flds_scalar_index_precip_factor must be > 0 when lsend_precip_fact is .true.')
-             end if
+             call State_SetScalar(precip_fact, flds_scalar_index_precip_factor, exportState, &
+                  flds_scalar_name, flds_scalar_num, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
+          else
+             ! Just send back 1.
+             call State_SetScalar(1._r8, flds_scalar_index_precip_factor, exportState, &
+                  flds_scalar_name, flds_scalar_num, rc)
+             if (ChkErr(rc,__LINE__,u_FILE_u)) return
           end if
 
           exit advance
@@ -1335,29 +1226,29 @@ contains
     ! input/output variables
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
-    
+
     ! local variables
     type(ESMF_Clock)  :: clock
     type(ESMF_Time)   :: currTime
     integer(int_kind) :: yy  ! current date (YYYYMMDD)
-    integer(int_kind) :: mon ! current month 
+    integer(int_kind) :: mon ! current month
     integer(int_kind) :: day ! current day
     integer(int_kind) :: tod ! current time of day (sec)
     !-----------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
-    
+
     ! query the Component for its clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      
+
     call ESMF_ClockGet( clock, currTime=currTime, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    
+
     call ESMF_TimeGet(currTime, yy=yy, mm=mon, dd=day, s=tod, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (my_task == master_task) then
+    if (mastertask) then
        write(stdout,*)' CheckImport pop2 year = ',yy
        write(stdout,*)' CheckImport pop2 mon  = ',mon
        write(stdout,*)' CheckImport pop2 day  = ',day
@@ -1401,7 +1292,7 @@ contains
 
     !  write final message to pop output log
 
-    if (my_task == master_task) then
+    if (mastertask) then
       write(stdout,*) '==================='
       write(stdout,*) 'completed POP_Final'
       write(stdout,*) '==================='
@@ -1425,7 +1316,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp)                 :: gcomp
     integer             , intent(in)    :: logunit
-    logical             , intent(in)    :: mastertask 
+    logical             , intent(in)    :: mastertask
     integer             , intent(out)   :: rc              ! output error
 
     ! local variables
@@ -1519,12 +1410,12 @@ contains
   subroutine pop_orbital_update(clock, logunit,  mastertask, eccen, obliqr, lambm0, mvelpp, rc)
 
     !----------------------------------------------------------
-    ! Update orbital settings 
+    ! Update orbital settings
     !----------------------------------------------------------
 
     ! input/output variables
     type(ESMF_Clock) , intent(in)    :: clock
-    integer          , intent(in)    :: logunit 
+    integer          , intent(in)    :: logunit
     logical          , intent(in)    :: mastertask
     real(R8)         , intent(inout) :: eccen  ! orbital eccentricity
     real(R8)         , intent(inout) :: obliqr ! Earths obliquity in rad
@@ -1534,7 +1425,7 @@ contains
 
     ! local variables
     type(ESMF_Time)   :: CurrTime ! current time
-    integer           :: year     ! model year at current time 
+    integer           :: year     ! model year at current time
     integer           :: orb_year ! orbital year for current orbital computation
     character(len=CL) :: msgstr   ! temporary
     logical           :: lprint
@@ -1550,7 +1441,7 @@ contains
        orb_year = attribute_orb_iyear + (year - attribute_orb_iyear_align)
        lprint = mastertask
     else
-       orb_year = attribute_orb_iyear 
+       orb_year = attribute_orb_iyear
        if (first_time) then
           lprint = mastertask
           first_time = .false.

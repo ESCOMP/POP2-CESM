@@ -1,5 +1,125 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    09 Sep 2021
+Tag Name:    cesm_pop_2_1_20210909
+Tag Summary: Update hobart tests -> izumi tests
+
+Testing: aux_pop on izumi runs
+
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testlist_pop_nuopc.xml
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  fischer
+Tag Date:    03 Aug 2021
+Tag Name:    cesm_pop_2_1_20210803
+Tag Summary: Change shebang lines to python3
+
+Testing: aux_pop.cheyenne_intel. b4b.
+
+Changes to be committed:
+
+M       cime_config/buildcpp
+M       cime_config/buildlib
+M       cime_config/buildnml
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  mvertens
+Tag Date:    15 June 2021
+Tag Name:    cesm_pop_2_1_20210615
+Tag Summary: Additional bug fixes for ndep and co2 for nuopc cap (PR #56)
+
+Testing: mvertens tested with NUOPC
+
+Changes to be committed:
+
+M       drivers/nuopc/ocn_comp_nuopc.F90
+M       drivers/nuopc/ocn_import_export.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  mvertens
+Tag Date:    02 June 2021
+Tag Name:    cesm_pop_2_1_20210602
+Tag Summary: fixed ndep problem for pop in nuopc cap
+
+Testing: mvertens tested with NUOPC
+
+Changes to be committed:
+
+M       drivers/nuopc/ocn_comp_nuopc.F90
+M       drivers/nuopc/ocn_import_export.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    19 April 2021
+Tag Name:    cesm_pop_2_1_20210419
+Tag Summary: Remove duplicate code in NUOPC driver
+
+Testing: Jim tested with NUOPC
+
+Changes to be committed:
+
+M       drivers/nuopc/ocn_comp_nuopc.F90
+
+===============================================================================
+Tag Creator: altuntas
+Developers:  jedwards
+Tag Date:    9 April 2021
+Tag Name:    cesm_pop_2_1_20210409
+Tag Summary: add support for threading in cmeps, add SourceMods in bld
+
+Testing: aux_pop (cheyenne_intel); bit-for-bit & ERI_Vnuopc.T62_g17.G.cheyenne_intel
+
+Changes to be committed:
+
+M       bld/generate_pop_decomp.xml
+M       cime_config/buildlib
+M       drivers/nuopc/ocn_comp_nuopc.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  altuntas,mvertens
+Tag Date:    30 March 2021
+Tag Name:    cesm_pop_2_1_20210330
+Tag Summary: Additional tavg terms for momentum budget and updates to NUOPC cap
+
+Testing: aux_pop_MARBL (cheyenne_intel); bit-for-bit
+         - no NUOPC tests were run, but this is answer-changing with NUOPC driver
+         - only ran aux_pop_MARBL because those baselines were readily available
+
+Changes to be committed:
+
+M       Externals_POP.cfg
+M       cime_config/buildlib
+M       drivers/nuopc/ocn_comp_nuopc.F90
+M       drivers/nuopc/ocn_import_export.F90
+D       drivers/nuopc/ocn_shr_methods.F90
+M       source/baroclinic.F90
+M       source/strdata_interface_mod.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    4 December 2020
+Tag Name:    cesm_pop_2_1_20201204
+Tag Summary: Updates to be compatible with PIO2
+
+Testing: aux_pop (cheyenne_intel); bit-for-bit (sticking with PIO1 for testing)
+
+Changes to be committed:
+
+M       source/hmix_aniso.F90
+M       source/io_netcdf.F90
+M       source/tavg.F90
+
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    30 July 2020
 Tag Name:    cesm_pop_2_1_20200730
