@@ -184,6 +184,15 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
+  <decomp nproc="80" res="gx3v7" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >10</bsize_x>
+    <bsize_y   >15</bsize_y>
+    <nx_blocks >10</nx_blocks>
+    <ny_blocks >8</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
 <!-- ====================================================================== -->
 
   <!-- gx1v[67] resolution -->
