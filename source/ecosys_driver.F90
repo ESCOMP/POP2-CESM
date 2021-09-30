@@ -724,6 +724,8 @@ contains
              if (partial_bottom_cells) then
                 marbl_instances(bid)%domain%delta_z(1:km) = DZT(i, c, 1:km, bid)
              end if
+             marbl_instances(bid)%bot_flux_to_tend(:) = c0
+             marbl_instances(bid)%bot_flux_to_tend(KMT(i, c, bid)) = 1. / marbl_instances(bid)%domain%delta_z(KMT(i, c, bid))
 
              ! --- set forcing fields ---
 
