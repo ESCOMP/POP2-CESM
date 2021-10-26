@@ -115,7 +115,7 @@ contains
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
     type(ESMF_State)               :: importState
-    type(ESMF_State)               :: exportState    
+    type(ESMF_State)               :: exportState
     character(len=*) , intent(in)  :: flds_scalar_name
     integer          , intent(out) :: rc
 
