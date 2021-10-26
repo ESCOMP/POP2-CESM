@@ -115,11 +115,12 @@ contains
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
     type(ESMF_State)               :: importState
-    type(ESMF_State)               :: exportState
+    type(ESMF_State)               :: exportState    
     character(len=*) , intent(in)  :: flds_scalar_name
     integer          , intent(out) :: rc
 
     ! local variables
+    type(ESMF_VM) :: vm
     integer       :: n
     character(CS) :: stdname
     character(CS) :: cvalue
@@ -137,10 +138,16 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
+    ! pop has not yet initialized my_task and master_task so do it here
+    master_task = 0
+    call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMGet(vm, localPet=my_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     !-----------------
     ! optional input from cice columns due to ice thickness categories
     !-----------------
-
     ! Note that flds_i2o_per_cat is set by the env_run.xml variable CPL_I2O_PER_CAT
     ! This xml variable is set by the POP build-namelist
     call NUOPC_CompAttributeGet(gcomp, name='flds_i2o_per_cat', value=cvalue, rc=rc)
