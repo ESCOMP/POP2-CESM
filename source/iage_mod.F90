@@ -22,7 +22,7 @@ module iage_mod
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use kinds_mod
-   use constants, only: c0, c1, char_blank, delim_fmt
+   use pop_constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
@@ -377,7 +377,7 @@ contains
 
    use time_management, only: mix_pass, c2dtt
    use prognostic, only: PSURF, newtime
-   use constants, only: grav
+   use pop_constants, only: grav
    use grid, only: dz
 
 ! !INPUT PARAMETERS:

@@ -15,7 +15,7 @@
    use io_types,      only: nml_in, nml_filename, stdout
    use broadcast,     only: broadcast_scalar, broadcast_array
    use exit_mod,      only: sigAbort, exit_POP
-   use constants,     only: c0, c1, blank_fmt, ndelim_fmt
+   use pop_constants,     only: c0, c1, blank_fmt, ndelim_fmt
    use io_tools,      only: document
    use blocks,        only: nx_block, ny_block, block, get_block
    use domain,        only: nblocks_clinic, blocks_clinic

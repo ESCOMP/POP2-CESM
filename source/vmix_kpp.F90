@@ -21,7 +21,7 @@
    use distribution
    use domain_size
    use domain
-   use constants
+   use pop_constants
    use grid
    use broadcast
    use io

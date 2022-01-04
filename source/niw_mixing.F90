@@ -61,7 +61,7 @@
    use io
    use io_tools
    use io_types
-   use constants
+   use pop_constants
    use exit_mod
    use grid
    use communicate

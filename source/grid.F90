@@ -25,7 +25,7 @@
    use distribution
    use domain_size
    use domain
-   use constants
+   use pop_constants
    use io
    use broadcast
    use gather_scatter

@@ -9,7 +9,7 @@ module ecosys_forcing_mod
   !  This module mostly handles surface flux forcing, but also handles some
   !  interior tendency forcing -- namely tracer restoring.
 
-  use constants, only : c0, c1
+  use pop_constants, only : c0, c1
 
   use kinds_mod, only : r8, int_kind, log_kind, char_len, char_len_long
 
@@ -324,7 +324,7 @@ contains
 
     use marbl_interface_public_types, only : marbl_forcing_fields_type
 
-    use constants, only : delim_fmt, ndelim_fmt
+    use pop_constants, only : delim_fmt, ndelim_fmt
 
     use domain, only : distrb_clinic
 
@@ -1550,7 +1550,7 @@ contains
          FRACR_BIN, QSW_RAW_BIN, QSW_BIN, ecosys_qsw_distrb_const, land_mask)
 
     use blocks                , only : get_block
-    use constants             , only : p5, salt_to_ppt
+    use pop_constants             , only : p5, salt_to_ppt
     use domain                , only : blocks_clinic
     use grid                  , only : KMT
     use mcog                  , only : mcog_nbins
@@ -1700,8 +1700,8 @@ contains
     use domain                , only : POP_haloClinic
     use domain                , only : blocks_clinic
     use blocks                , only : get_block
-    use constants             , only : field_loc_center
-    use constants             , only : field_type_scalar
+    use pop_constants             , only : field_loc_center
+    use pop_constants             , only : field_type_scalar
     use forcing_tools         , only : interpolate_forcing
     use forcing_tools         , only : update_forcing_data
     use named_field_mod       , only : named_field_get
@@ -2076,7 +2076,7 @@ contains
     ! compute river fluxes
 
     use marbl_constants_mod,                only : R13C_std, R14C_std
-    use constants,                          only : p001
+    use pop_constants,                          only : p001
 
     implicit none
 

@@ -25,7 +25,7 @@
    use POP_HaloMod
 
    use kinds_mod
-   use constants
+   use pop_constants
    use communicate
    use broadcast
    use blocks

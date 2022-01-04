@@ -21,7 +21,7 @@
    use POP_IOUnitsMod
 
    use kinds_mod
-   use constants
+   use pop_constants
    use communicate
    use broadcast
    use exit_mod

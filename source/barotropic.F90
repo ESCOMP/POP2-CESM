@@ -28,7 +28,7 @@
    use domain_size
    use domain, only: distrb_clinic, blocks_clinic, nblocks_clinic,  &
        POP_haloClinic
-   use constants, only: field_type_vector, field_type_scalar,       &
+   use pop_constants, only: field_type_vector, field_type_scalar,       &
        grav, c1, c0, c2,field_loc_NEcorner, field_loc_center
    use prognostic, only: max_blocks_clinic, GRADPX, GRADPY, UBTROP, VBTROP, &
        PSURF, curtime, oldtime, newtime, PGUESS

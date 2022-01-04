@@ -39,7 +39,7 @@ module ocn_import_export
   use grid,                  only: KMT, TAREA
   use nuopc_shr_methods,     only: chkerr
   use ecosys_forcing_mod,    only: ldriver_has_ndep, ldriver_has_atm_co2_diag, ldriver_has_atm_co2_prog
-  use constants
+  use pop_constants
   use blocks
   use exit_mod
   use prognostic

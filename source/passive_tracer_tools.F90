@@ -15,12 +15,12 @@
 ! !USES:
 
    use kinds_mod
-   use constants, only: c0, c1, p5, char_blank, blank_fmt
+   use pop_constants, only: c0, c1, p5, char_blank, blank_fmt
    use domain_size, only: nx_global, ny_global
    use domain, only: nblocks_clinic, blocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
+   use pop_constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
    use io_tools, only: document
    use io, only: data_set
    use io_types, only: datafile, io_dim, io_field_desc, rec_type_dbl, &

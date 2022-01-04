@@ -257,7 +257,7 @@ contains
   subroutine ecosys_tavg_define_from_diag(marbl_diags, stream_cnt, tavg_ids)
 
     use tavg, only : tavg_method_avg
-    use constants, only : cmperm
+    use pop_constants, only : cmperm
     use domain_size, only : km
     use grid, only : zw
 

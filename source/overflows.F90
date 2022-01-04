@@ -36,7 +36,7 @@
    use blocks
    use broadcast
    use communicate
-   use constants
+   use pop_constants
    use domain
    use exit_mod
    use global_reductions

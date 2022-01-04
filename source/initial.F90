@@ -25,7 +25,7 @@
    use domain_size, only: nx_global, ny_global, max_blocks_clinic, km, nt
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
        init_domain_distribution, distrb_clinic
-   use constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
+   use pop_constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
        c0, ppt_to_salt, mpercm, c1, field_type_scalar, init_constants,     &
        stefan_boltzmann, latent_heat_vapor_mks, vonkar, emissivity, &
        latent_heat_fusion, t0_kelvin, pi, ocn_ref_salinity,     &

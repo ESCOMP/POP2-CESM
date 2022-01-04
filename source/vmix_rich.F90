@@ -19,7 +19,7 @@
    use blocks
    use distribution
    use domain
-   use constants
+   use pop_constants
    use grid
    use broadcast
    use io

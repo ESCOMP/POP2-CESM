@@ -19,7 +19,7 @@
    use POP_SolversMod
 
    use domain
-   use constants
+   use pop_constants
    use prognostic
    use time_management
    use io

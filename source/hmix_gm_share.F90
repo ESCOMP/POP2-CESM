@@ -13,7 +13,7 @@ module hmix_gm_share
 
    use domain_size, only: nt
    use kinds_mod
-   use constants
+   use pop_constants
 
    implicit none
    private

@@ -22,7 +22,7 @@
 
    use domain_size
    use domain
-   use constants, only: char_blank, field_loc_NEcorner, field_type_vector,  &
+   use pop_constants, only: char_blank, field_loc_NEcorner, field_type_vector,  &
        field_loc_center, field_type_scalar, blank_fmt, c0, grav
    use blocks, only: nx_block, ny_block, block, get_block
    use prognostic, only : UBTROP, VBTROP, PSURF, GRADPX, GRADPY, UVEL, VVEL

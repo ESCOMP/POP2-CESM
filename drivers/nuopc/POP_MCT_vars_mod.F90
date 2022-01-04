@@ -8,7 +8,7 @@ module POP_MCT_vars_mod
   use grid        , only : TLOND, TLATD, TAREA, KMT
   use domain_size , only : km, nx_global, ny_global
   use io_types    , only : stdout
-  use constants   , only : radius
+  use pop_constants   , only : radius
 
   implicit none
   private

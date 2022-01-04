@@ -35,7 +35,7 @@ module abio_dic_dic14_mod
    use domain, only: nblocks_clinic, distrb_clinic, blocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use constants, only: c0, c1, c1000, p5, c2,rho_sw
+   use pop_constants, only: c0, c1, c1000, p5, c2,rho_sw
    use io_types
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
@@ -45,7 +45,7 @@ module abio_dic_dic14_mod
    use netcdf
    use co2calc
    use time_management
-   use constants, only: xkw_coeff
+   use pop_constants, only: xkw_coeff
    use schmidt_number, only: SCHMIDT_CO2
 
    implicit none
@@ -260,7 +260,7 @@ contains
 !  same as module
 
 ! !USES:
-   use constants, only: char_blank
+   use pop_constants, only: char_blank
    use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, n_topo_smooth, fill_points
    use timers, only: get_timer
@@ -974,7 +974,7 @@ contains
 
 ! !USES:
 
-   use constants,           only: ocn_ref_salinity, rho_sw
+   use pop_constants,           only: ocn_ref_salinity, rho_sw
    use timers,              only: timer_start, timer_stop
    use named_field_mod,     only: named_field_get
    use grid,                only: REGION_MASK
@@ -1701,7 +1701,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !
 ! !REVISION HISTORY:
 !  same as module
-  use constants, only: char_blank, field_loc_center, field_type_scalar
+  use pop_constants, only: char_blank, field_loc_center, field_type_scalar
 
 ! !INPUT PARAMETERS:
 

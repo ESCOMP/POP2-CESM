@@ -29,7 +29,7 @@
 
    use kinds_mod, only: r4, r8, i4, int_kind, char_len, log_kind, rtavg
 
-   use constants
+   use pop_constants
 
    use blocks, only: nx_block, ny_block, block, get_block, &
         nblocks_x, nblocks_y, nblocks_tot, get_block_ids_from_coords, &

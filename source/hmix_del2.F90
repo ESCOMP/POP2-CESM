@@ -27,7 +27,7 @@
    use domain_size
    use domain
    use broadcast
-   use constants
+   use pop_constants
    use topostress
    use diagnostics
    use io

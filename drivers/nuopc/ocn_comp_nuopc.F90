@@ -18,7 +18,7 @@ module ocn_comp_nuopc
   use NUOPC_Model           , only : model_label_SetClock       => label_SetClock
   use NUOPC_Model           , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model           , only : NUOPC_ModelGet
-  use constants             , only : c0, blank_fmt, ndelim_fmt
+  use pop_constants             , only : c0, blank_fmt, ndelim_fmt
   use POP_IOUnitsMod        , only : POP_IOUnitsFlush, POP_stdout, inst_suffix, inst_index, inst_name
   use POP_ErrorMod          , only : POP_ErrorSet, POP_Success, POP_ErrorPrint
   use shr_file_mod          , only : shr_file_getLogUnit, shr_file_setLogUnit
@@ -283,7 +283,7 @@ contains
     !-----------------------------------------------------------------------
     use ESMF               , only: ESMF_VMGet
     use shr_const_mod      , only: shr_const_pi
-    use constants          , only: radius
+    use pop_constants          , only: radius
 
     ! Initialize POP
 

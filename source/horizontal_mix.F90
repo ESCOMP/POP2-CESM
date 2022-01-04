@@ -23,7 +23,7 @@
    use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, distrb_clinic
-   use constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt
+   use pop_constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt
    use communicate, only: my_task, master_task
    use time_management, only: km, nt, mix_pass
    use broadcast, only: broadcast_scalar

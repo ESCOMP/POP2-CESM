@@ -29,7 +29,7 @@
    use grid
    use global_reductions
    use gather_scatter
-   use constants
+   use pop_constants
    use registry
    use timers
    use shr_pio_mod, only : shr_pio_getioroot

@@ -31,7 +31,7 @@
 
    use communicate
    use global_reductions
-   use constants
+   use pop_constants
    use io
    use time_management
    use grid

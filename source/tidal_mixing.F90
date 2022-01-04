@@ -142,7 +142,7 @@
    use blocks
    use broadcast
    use communicate
-   use constants
+   use pop_constants
    use cvmix_tidal
    use domain_size
    use domain

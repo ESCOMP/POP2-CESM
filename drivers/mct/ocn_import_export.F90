@@ -19,7 +19,7 @@ module ocn_import_export
    use perf_mod
    use kinds_mod,         only: int_kind, r8
    use communicate,       only: my_task, master_task
-   use constants
+   use pop_constants
    use blocks
    use domain,            only: distrb_clinic, POP_haloClinic
    use exit_mod

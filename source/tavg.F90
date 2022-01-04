@@ -22,7 +22,7 @@
    use blocks
    use distribution
    use domain
-   use constants
+   use pop_constants
    use prognostic
    use grid
    use time_management

@@ -23,7 +23,7 @@
    use kinds_mod, only: int_kind, log_kind, char_len, r8
    use blocks, only: nx_block, ny_block, block
    use domain_size
-   use constants, only: cp_sw, latent_heat_fusion, delim_fmt, blank_fmt,     &
+   use pop_constants, only: cp_sw, latent_heat_fusion, delim_fmt, blank_fmt,     &
        sea_ice_salinity, ppt_to_salt, ocn_ref_salinity, c0, p5, hflux_factor,&
        grav, eps2, ndelim_fmt
    use broadcast, only: broadcast_scalar

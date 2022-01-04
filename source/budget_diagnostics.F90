@@ -20,7 +20,7 @@
    use domain_size
    use diagnostics
    use domain
-   use constants
+   use pop_constants
    use prognostic
    use timers
    use io

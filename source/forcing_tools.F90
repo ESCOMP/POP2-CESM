@@ -16,7 +16,7 @@
    use kinds_mod
    use blocks
    use domain
-   use constants
+   use pop_constants
    use io
    use io_types
    use grid
