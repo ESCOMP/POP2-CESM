@@ -35,7 +35,7 @@
    use timers, only: timer_start, timer_stop
    use tavg, only: define_tavg_field, tavg_method_qflux,  &
        accumulate_tavg_field, accumulate_tavg_now
-   use constants, only: c0, c1, p5, delim_fmt, char_blank, &
+   use pop_constants, only: c0, c1, p5, delim_fmt, char_blank, &
        grav, salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
    use time_management, only: mix_pass, c2dtt
    use grid, only: partial_bottom_cells, DZT, KMT, dz, zw, &

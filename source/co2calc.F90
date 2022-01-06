@@ -7,7 +7,7 @@ MODULE co2calc
   !   CVS:$Name$
   !-----------------------------------------------------------------------------
 
-  USE constants, only : c0, p001, p5, c1, c2, c3, c10, c1000, T0_Kelvin, rho_sw
+  use pop_constants, only : c0, p001, p5, c1, c2, c3, c10, c1000, T0_Kelvin, rho_sw
   USE blocks, ONLY : nx_block, ny_block, block, get_block
   USE domain, ONLY : blocks_clinic
   USE domain_size, ONLY : max_blocks_clinic

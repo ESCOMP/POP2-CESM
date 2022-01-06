@@ -19,7 +19,7 @@
    use kinds_mod
    use domain_size
    use domain
-   use constants
+   use pop_constants
    use communicate
    use broadcast
    use gather_scatter

@@ -14,7 +14,7 @@
 ! !USES:
 
    use kinds_mod,       only : r8, log_kind, int_kind
-   use constants,       only : c1
+   use pop_constants,       only : c1
    use time_management, only : steps_per_year
    use domain_size,     only : km
    use blocks,          only : nx_block, ny_block

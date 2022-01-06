@@ -25,7 +25,7 @@
 !   use distribution, only:
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, POP_haloClinic
-   use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
+   use pop_constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
        field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
        hflux_factor, salinity_factor, salt_to_ppt
    use prognostic, only: TRACER, UVEL, VVEL, max_blocks_clinic, km, mixtime, &

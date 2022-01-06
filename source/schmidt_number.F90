@@ -24,7 +24,7 @@ contains
     !
     
     use kinds_mod, only: r8, log_kind, int_kind
-    use constants, only: c0
+    use pop_constants, only: c0
     use blocks, only: nx_block, ny_block
 
     ! INPUT PARAMETERS:

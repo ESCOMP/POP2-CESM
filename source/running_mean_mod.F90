@@ -51,7 +51,7 @@ module running_mean_mod
    use domain_size, only: km, nx_global, ny_global
    use blocks, only: nx_block, ny_block
    use domain, only: nblocks_clinic
-   use constants, only: c0, p5, c1, c2, c3, c4
+   use pop_constants, only: c0, p5, c1, c2, c3, c4
    use prognostic, only: ldebug
    use var_consistency_mod, only : var_consistency_check
 

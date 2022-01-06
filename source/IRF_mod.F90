@@ -71,7 +71,7 @@ contains
 ! !USES:
 
    use broadcast
-   use constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt
+   use pop_constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt
    use communicate, only: my_task, master_task
    use domain, only: nblocks_clinic
    use domain_size, only: max_blocks_clinic

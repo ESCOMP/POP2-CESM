@@ -15,7 +15,7 @@
    use kinds_mod
    use blocks
    use broadcast
-   use constants
+   use pop_constants
    use diagnostics
    use distribution
    use domain

@@ -17,7 +17,7 @@
    use blocks
    use distribution
    use domain
-   use constants
+   use pop_constants
    use io
    use grid
    use global_reductions

@@ -22,7 +22,7 @@ module cfc11_mod
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use kinds_mod
-   use constants, only: c0, c1, char_blank, delim_fmt
+   use pop_constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
    use io_types, only: stdout, datafile, io_field_desc, io_dim,       &
        nml_in, nml_filename, construct_file, construct_io_dim,        &
@@ -162,7 +162,7 @@ contains
 ! !USES:
 
    use broadcast, only: broadcast_scalar, broadcast_array
-   use constants, only: c0, field_loc_center, blank_fmt, &
+   use pop_constants, only: c0, field_loc_center, blank_fmt, &
        field_type_scalar
    use domain_size, only : nx_global, ny_global 
    use prognostic, only: curtime, oldtime, tracer_field
@@ -543,7 +543,7 @@ contains
  subroutine cfc11_init_sflux
 
    use broadcast, only: broadcast_scalar, broadcast_array
-   use constants, only: field_loc_center, blank_fmt, field_type_scalar
+   use pop_constants, only: field_loc_center, blank_fmt, field_type_scalar
    use grid, only: KMT, zt, zw
    use forcing_tools, only: find_forcing_times
 
@@ -863,7 +863,7 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar, &
+   use pop_constants, only: field_loc_center, field_type_scalar, &
        mpercm, eps, p5, cmperm, xkw_coeff
    use time_management, only: thour00, check_time_flag, iyear,  &
        seconds_this_year, seconds_in_year, tday
@@ -1315,7 +1315,7 @@ contains
 
 ! !USES:
 
-   use constants, only: T0_Kelvin, c1000
+   use pop_constants, only: T0_Kelvin, c1000
 
 ! !INPUT PARAMETERS:
 

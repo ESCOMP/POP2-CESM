@@ -17,7 +17,7 @@
 
    use kinds_mod
    use domain
-!   use constants, only: 
+!   use pop_constants, only: 
 !   use time_management, only: 
    use restart, only: write_restart, init_restart, lrestart_write
    use history, only: write_history, init_history

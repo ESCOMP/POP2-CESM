@@ -43,7 +43,7 @@ module ocn_comp_mct
    use POP_InitMod,       only: POP_Initialize1, POP_Initialize2, &
                                 timer_total, cpl_ts 
    use communicate,       only: my_task, master_task
-   use constants
+   use pop_constants
    use blocks
    use domain,            only: distrb_clinic, POP_haloClinic
    use exit_mod

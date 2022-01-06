@@ -24,7 +24,7 @@
    use broadcast
    use exit_mod
    use domain
-   use constants
+   use pop_constants
    use io_netcdf
    use io_binary
    use io_types

@@ -23,7 +23,7 @@ module ecosys_driver
   use io_types                  , only : stdout, nml_in, nml_filename
   use io_tools                  , only : document
   use exit_mod                  , only : sigAbort, exit_POP
-  use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
+  use pop_constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use communicate               , only : my_task, master_task
 
   use shr_infnan_mod            , only : shr_infnan_isnan
@@ -166,7 +166,7 @@ contains
     use prognostic , only : tracer_field_type => tracer_field
 
     use global_reductions, only : global_sum
-    use constants, only : field_loc_center
+    use pop_constants, only : field_loc_center
     use broadcast, only : broadcast_scalar
     use time_management, only : init_time_flag
     use passive_tracer_tools, only : set_tracer_indices
@@ -1111,7 +1111,7 @@ contains
     ! perform global operations
 
     use global_reductions, only : global_sum_prod
-    use constants        , only : field_loc_center
+    use pop_constants        , only : field_loc_center
     use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_update
     use ecosys_running_mean_saved_state_mod, only : ecosys_running_mean_saved_state_get_var_vals
     use POP_CommMod      , only : POP_Barrier
@@ -1351,7 +1351,7 @@ contains
   subroutine ecosys_driver_print_marbl_timers(stats)
 
     use timers, only : timer_format, stats_fmt1, stats_fmt2, stats_fmt3, stats_fmt4
-    use constants, only : bignum, blank_fmt, delim_fmt
+    use pop_constants, only : bignum, blank_fmt, delim_fmt
     use global_reductions, only : global_maxval, global_minval, global_sum
     use domain, only : distrb_clinic
 

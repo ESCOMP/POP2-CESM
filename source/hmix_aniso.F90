@@ -22,7 +22,7 @@
    use communicate
    use distribution
    use domain
-   use constants
+   use pop_constants
    use broadcast
    use POP_ReductionsMod
    use gather_scatter

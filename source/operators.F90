@@ -21,7 +21,7 @@
    use blocks
    use domain_size
    use domain
-   use constants
+   use pop_constants
    use grid
 
    implicit none

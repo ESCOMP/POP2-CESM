@@ -24,7 +24,7 @@
    use POP_HaloMod
 
    use kinds_mod, only: r4, r8, int_kind, char_len, log_kind, rtavg
-   use constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, ndelim_fmt, c2, &
+   use pop_constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, ndelim_fmt, c2, &
        field_loc_center, field_type_scalar, &
        field_loc_Eface, field_type_vector
    use blocks, only: nx_block, ny_block, block, get_block

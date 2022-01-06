@@ -19,7 +19,7 @@
 !   use domain, only: 
    use blocks, only: nx_block, ny_block, block
 !   use distribution, only: 
-   use constants, only: grav, p5, delim_fmt, blank_fmt, c1, p25, c2, c0, ndelim_fmt
+   use pop_constants, only: grav, p5, delim_fmt, blank_fmt, c1, p25, c2, c0, ndelim_fmt
    use operators, only: grad
    use grid, only: dzw
    use broadcast, only: broadcast_scalar

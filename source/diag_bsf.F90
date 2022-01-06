@@ -23,7 +23,7 @@
    use broadcast
    use domain_size
    use domain
-   use constants
+   use pop_constants
    use exit_mod
    use global_reductions
    use gather_scatter

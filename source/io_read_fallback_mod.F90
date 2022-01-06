@@ -15,7 +15,7 @@
    use io_tools,  only: document
    use exit_mod,  only: exit_POP, sigAbort
    use io_types,  only: datafile, io_field_desc
-   use constants, only: c1
+   use pop_constants, only: c1
 
    implicit none
    private

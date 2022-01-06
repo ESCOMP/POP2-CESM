@@ -17,7 +17,7 @@
 
    use kinds_mod
    use communicate
-   use constants
+   use pop_constants
    use POP_IOUnitsMod
 
    implicit none

@@ -15,7 +15,7 @@
    use kinds_mod             , only : char_len, r8, int_kind, log_kind
    use blocks                , only : nx_block, ny_block
    use domain_size           , only : max_blocks_clinic, km, nt
-   use constants
+   use pop_constants
 
    implicit none
    public

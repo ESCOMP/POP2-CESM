@@ -18,7 +18,7 @@
 !   use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic
-   use constants, only: grav, c0
+   use pop_constants, only: grav, c0
    use prognostic, only: max_blocks_clinic, PSURF, GRADPX, GRADPY, newtime,  &
        curtime, oldtime
    use forcing_fields, only: FW, FW_OLD

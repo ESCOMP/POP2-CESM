@@ -16,7 +16,7 @@
 
    use kinds_mod
    use blocks
-   use constants
+   use pop_constants
    use exit_mod
    use time_management
    use tavg

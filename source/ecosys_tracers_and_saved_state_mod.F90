@@ -6,7 +6,7 @@ module ecosys_tracers_and_saved_state_mod
   !  populate MARBL's saved_state type (used to pass data between the surface
   !  and interior computations).
 
-  use constants, only : c0, c1
+  use pop_constants, only : c0, c1
 
   use kinds_mod, only : r8, int_kind, log_kind, char_len, char_len_long
 
@@ -134,7 +134,7 @@ Contains
     use domain, only : nblocks_clinic
     use domain_size, only : km, nt
 
-    use constants, only : delim_fmt, char_blank, ndelim_fmt
+    use pop_constants, only : delim_fmt, char_blank, ndelim_fmt
 
     use ecosys_forcing_saved_state_mod, only : ecosys_forcing_saved_state_init
 
@@ -571,8 +571,8 @@ Contains
     use domain_size, only : nx_global
     use domain_size, only : ny_global
     use domain_size, only : km
-    use constants  , only : field_loc_center
-    use constants  , only : field_type_scalar
+    use pop_constants  , only : field_loc_center
+    use pop_constants  , only : field_type_scalar
     use io         , only : data_set
     use io         , only : datafile
     use io_types   , only : io_dim

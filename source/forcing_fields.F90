@@ -16,7 +16,7 @@ module forcing_fields
 
    use kinds_mod
    use blocks,      only: nx_block, ny_block
-   use constants,   only: c0
+   use pop_constants,   only: c0
    use domain_size, only: max_blocks_clinic,nt
 
    implicit none

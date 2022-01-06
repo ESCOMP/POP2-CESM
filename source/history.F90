@@ -15,7 +15,7 @@
 
    use kinds_mod
    use domain
-   use constants
+   use pop_constants
    use prognostic
    use grid
    use io

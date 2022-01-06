@@ -19,7 +19,7 @@
    use blocks
    use kinds_mod
    use grid
-   use constants
+   use pop_constants
    use state_mod
    use time_management
    use domain_size, only: km, nt

@@ -22,7 +22,7 @@
    use kinds_mod
    use blocks
    use domain
-   use constants
+   use pop_constants
    use broadcast
    use grid
    use io

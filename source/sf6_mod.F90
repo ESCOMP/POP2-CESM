@@ -31,7 +31,7 @@ module sf6_mod
    use domain,      only: nblocks_clinic, distrb_clinic
    use exit_mod,    only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use constants,   only: c0, c1
+   use pop_constants,   only: c0, c1
    use io_types,    only: stdout
    use io_tools,    only: document
    use tavg,        only: define_tavg_field, accumulate_tavg_field
@@ -160,7 +160,7 @@ contains
 
 ! !USES:
 
-   use constants,  only: char_blank, delim_fmt
+   use pop_constants,  only: char_blank, delim_fmt
    use prognostic, only: curtime, oldtime, tracer_field
    use grid,       only: KMT, n_topo_smooth, fill_points
    use io_types,   only: nml_in, nml_filename
@@ -733,7 +733,7 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar, p5, xkw_coeff
+   use pop_constants, only: field_loc_center, field_type_scalar, p5, xkw_coeff
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
@@ -970,7 +970,7 @@ contains
 ! !USES:
 
    use grid, only : TLATD
-   use constants, only : c10
+   use pop_constants, only : c10
    use forcing_timeseries_mod, only: forcing_timeseries_dataset_get_var
 
 ! !INPUT PARAMETERS:
@@ -1112,7 +1112,7 @@ contains
 
 ! !USES:
 
-   use constants, only: T0_Kelvin
+   use pop_constants, only: T0_Kelvin
 
 ! !INPUT PARAMETERS:
 

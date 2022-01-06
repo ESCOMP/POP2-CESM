@@ -20,7 +20,7 @@
    use grid
    use domain_size
    use domain
-   use constants
+   use pop_constants
    use broadcast
    use io
    use state_mod

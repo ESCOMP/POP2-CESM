@@ -14,7 +14,7 @@
 ! !USES:
 
    use kinds_mod
-   use constants,         only: c0, c1, salt_to_ppt, ppt_to_salt, fwmass_to_fwflux
+   use pop_constants,         only: c0, c1, salt_to_ppt, ppt_to_salt, fwmass_to_fwflux
    use communicate,       only: my_task, master_task
    use domain_size,       only: nt, max_blocks_clinic
    use domain,            only: nblocks_clinic, distrb_clinic, blocks_clinic
@@ -123,7 +123,7 @@
 !
 !-----------------------------------------------------------------------0
 
-   use constants,    only: blank_fmt, ndelim_fmt, field_loc_center, field_type_scalar
+   use pop_constants,    only: blank_fmt, ndelim_fmt, field_loc_center, field_type_scalar
    use domain_size,  only: nx_global, ny_global
    use registry,     only: registry_match
    use forcing_sfwf, only: lfw_as_salt_flx
@@ -540,7 +540,7 @@
 
    use passive_tracers, only: tracer_ref_val
    use forcing_fields,  only: lhas_vflux, vflux_tracer_cnt
-   use constants,       only: ocn_ref_salinity, field_loc_center
+   use pop_constants,       only: ocn_ref_salinity, field_loc_center
    use prognostic,      only: tracer_d
 
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1019,7 +1019,7 @@ subroutine estuary_box_model (Q_r,tide_amp,S_l,W_h,H,a1,a2,h0,   &
 !-----------------------------------------------------------------------
 ! QSun, MMWhitney, 2015.04.20
 
-      use constants, only: grav, rho_fw, pi
+      use pop_constants, only: grav, rho_fw, pi
 
 ! input variables
 
@@ -1197,7 +1197,7 @@ subroutine cubsolve(a,b,c,roots)
 !                  http://www.helioscorner.com
 ! QSun, MMWhitney, 2014.06.18
 
-!     use constants, only: pi
+!     use pop_constants, only: pi
 
 ! input variables
 

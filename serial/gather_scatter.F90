@@ -18,7 +18,7 @@
 
    use kinds_mod
    use communicate
-   use constants
+   use pop_constants
    use blocks
    use distribution
    use domain

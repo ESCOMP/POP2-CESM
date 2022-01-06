@@ -15,7 +15,7 @@
 ! !USES:
 
    use kinds_mod
-   use constants
+   use pop_constants
    use domain
    use global_reductions
    use io

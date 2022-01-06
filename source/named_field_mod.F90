@@ -27,7 +27,7 @@
    use exit_mod, only: exit_POP, sigAbort
    use blocks, only: nx_block, ny_block
    use domain, only: nblocks_clinic
-   use constants, only : c0
+   use pop_constants, only : c0
 
    implicit none
    private

@@ -64,7 +64,7 @@ contains
     ! This should only be called once per task.
     !-----------------------------------------------------------------------
 
-    use constants, only: c0
+    use pop_constants, only: c0
 
     character (len=*), intent(in)   :: name             ! see box_atm_trace_gas_type for description
     real (r8), intent(in)           :: flux_conv_factor ! see box_atm_trace_gas_type for description
@@ -312,7 +312,7 @@ contains
 
     use grid, only: TAREA, RCALCT
     use domain, only: distrb_clinic
-    use constants, only: c1, p5, field_loc_center
+    use pop_constants, only: c1, p5, field_loc_center
     use global_reductions, only : global_sum_prod
     use time_management, only: lpre_time_manager, avg_ts_next, back_to_back_next, avg_ts, back_to_back, dtt
 

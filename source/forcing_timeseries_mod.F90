@@ -409,7 +409,7 @@ contains
 
   subroutine ref_date_to_ref_year(ref_date, ref_year)
 
-    use constants, only: c1
+    use pop_constants, only: c1
 
     character (*), intent(in) :: ref_date
 
@@ -537,7 +537,7 @@ contains
 !  update the vars in a dataset, interpolating in time, storing the result in curr var components
 
     use time_management, only: iyear, iday_of_year, frac_day, days_in_year
-    use constants,       only: c0
+    use pop_constants,       only: c0
 
     type (forcing_timeseries_dataset), intent(inout) :: &
       dataset             ! forcing_timeseries_dataset containing data
