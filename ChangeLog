@@ -1,4 +1,15 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  mvertens
+Tag Date:    06 Jan 2022
+Tag Name:    cesm_pop_2_1_20220106
+Tag Summary: Replace constants module with pop_constants module
+
+Testing: aux_pop on cheyenne. b4b
+
+M       96 *.F files using the constants module (in drivers/ mpi/ serial/ source/ directories.)
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    09 Sep 2021
