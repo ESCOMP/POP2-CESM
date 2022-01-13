@@ -1309,6 +1309,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     dataptr1(:) = shr_const_spval
+    dataptr2(:) = shr_const_spval
     n = 0
     do iblock = 1, nblocks_clinic
        this_block = get_block(blocks_clinic(iblock),iblock)
