@@ -1,4 +1,19 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy (h/t to klindsay for finding the bug)
+Tag Date:    13 Jan 2022
+Tag Name:    cesm_pop_2_1_20220113
+Tag Summary: initialize array holding So_dhdy to _FillValue before populating it
+             and passing it to the coupler (necessary when using land-block
+             elimination, otherwise field may be uninitialized in places)
+
+Testing: SMS_Ld1_P136_D.T62_g17.C.cheyenne_intel.pop-144blocks_320x384_spacecurve
+         - ocnImp_So_dhdy in cpl.hi history file was corrupt, now has missing
+           values where expected due to LBE
+
+M       drivers/nuopc/ocn_import_export.F90
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  mvertens
 Tag Date:    06 Jan 2022
