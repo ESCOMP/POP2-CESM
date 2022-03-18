@@ -2499,9 +2499,10 @@
        endif 
      end do 
    end do 
+#ifdef DEBUG
    write(POP_stdout,'(a8,I5,a15,I5,a15,I5)') 'PROC',POP_myTask, & 
                     ' EVP blocks :',nb*mb, ' land blocks :', sum(landIndx)
-
+#endif
   end subroutine EvpPre
   
   subroutine ExplicitBlockEvpPre(cc,ne,rinv,n,m)
