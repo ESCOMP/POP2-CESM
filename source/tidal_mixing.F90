@@ -970,13 +970,13 @@
      call exit_POP (SigAbort, 'ERROR  ALL REGION_BOX2D_G values are zero')
    endif
    endif ! master_task
-
+#ifdef DEBUG
    if (any(REGION_BOX2D .ne. 0)) then
      write(stdout,*) my_task, ': (init_tidal_mixing1) not all REGION_BOX2D values are zero'
    else
      write(stdout,*) my_task, ': (init_tidal_mixing1)     ALL REGION_BOX2D values are zero'
    endif
-
+#endif
  !... create 3D local tidal-region box mask
    do iblock = 1,nblocks_clinic
       do ii=1,num_tidal_min_regions
@@ -1009,6 +1009,9 @@
                           grid_loc='3111',                        &
                           coordinates  ='TLONG TLAT z_w time'     ) 
 
+#ifndef DEBUG
+   if (my_task == master_task) then
+#endif
    do iblock = 1,nblocks_clinic
      this_block = get_block(blocks_clinic(iblock),iblock)
      do ii=1,num_tidal_min_regions
@@ -1027,9 +1030,15 @@
       enddo ! k
      enddo ! ii
    enddo ! iblock
+#ifndef DEBUG
+  endif
+#endif
 1212 format(1x, a, a, 6i4, 1x, 2F10.2)
 1213 format(1x, a, 6i3)
-write(stdout,*) ' after REGION_BOX3D print test'
+#ifndef DEBUG
+            if (my_task == master_task) &
+#endif
+                 write(stdout,*) ' after REGION_BOX3D print test'
 
    deallocate (REGION_BOX2D_G, REGION_BOX2D)
    deallocate (TLAT_G, TLON_G)
