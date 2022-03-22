@@ -1237,8 +1237,12 @@
                    do m=1,ovf(n)%num_kmt
                       if( ovf(n)%loc_kmt(m)%i.eq.this_block%i_glob(i).and.&
                           ovf(n)%loc_kmt(m)%j.eq.this_block%j_glob(j) ) then
-                         write(stdout,100) KMT(i,j,iblock),ovf(n)%loc_kmt(m)%i, &
-                                ovf(n)%loc_kmt(m)%j,ovf(n)%loc_kmt(m)%knew
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
+                            write(stdout,100) KMT(i,j,iblock),ovf(n)%loc_kmt(m)%i, &
+                                 ovf(n)%loc_kmt(m)%j,ovf(n)%loc_kmt(m)%knew
+
                          100 format(' init_overflows_kmt: KMT = ',i5,&
                                     ' at global (i,j) = ',2(i5,1x),&
                                     ' changed to ',i5)
@@ -1323,6 +1327,9 @@
                   if( ovf(n)%reg_inf%imin  .le. this_block%i_glob(i) .and. &
                       this_block%i_glob(i) .le. ovf(n)%reg_inf%imax ) then
                          ovf(n)%mask_reg%inf(i,j,iblock) = c1
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
                          write(stdout,30) ovf(n)%name,this_block%i_glob(i), &
                                            this_block%j_glob(j)
                          30 format(' Overflow: ',a24, &
@@ -1338,6 +1345,9 @@
                   if( ovf(n)%reg_src%imin  .le. this_block%i_glob(i) .and. &
                       this_block%i_glob(i) .le. ovf(n)%reg_src%imax ) then
                          ovf(n)%mask_reg%src(i,j,iblock) = c1
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
                          write(stdout,31) ovf(n)%name,this_block%i_glob(i), &
                                            this_block%j_glob(j)
                          31 format(' Overflow: ',a24, &
@@ -1353,6 +1363,9 @@
                   if( ovf(n)%adj_src%imin  .le. this_block%i_glob(i) .and. &
                       this_block%i_glob(i) .le. ovf(n)%adj_src%imax ) then
                          ovf(n)%mask_adj%src(i,j,iblock) = c1
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
                          write(stdout,32) ovf(n)%name,this_block%i_glob(i), &
                                            this_block%j_glob(j)
                          32 format(' Overflow: ',a24, &
@@ -1368,6 +1381,9 @@
                   if( ovf(n)%reg_ent%imin  .le. this_block%i_glob(i) .and. &
                       this_block%i_glob(i) .le. ovf(n)%reg_ent%imax ) then
                          ovf(n)%mask_reg%ent(i,j,iblock) = c1
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
                          write(stdout,33) ovf(n)%name,this_block%i_glob(i), &
                                            this_block%j_glob(j)
                          33 format(' Overflow: ',a24, &
@@ -1383,6 +1399,9 @@
                   if( ovf(n)%adj_ent%imin  .le. this_block%i_glob(i) .and. &
                       this_block%i_glob(i) .le. ovf(n)%adj_ent%imax ) then
                          ovf(n)%mask_adj%ent(i,j,iblock) = c1
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
                          write(stdout,34) ovf(n)%name,this_block%i_glob(i), &
                                            this_block%j_glob(j)
                          34 format(' Overflow: ',a24, &
@@ -1401,6 +1420,9 @@
                      if( ovf(n)%adj_prd(m)%imin  .le. this_block%i_glob(i) .and. &
                          this_block%i_glob(i) .le. ovf(n)%adj_prd(m)%imax ) then
                             ovf(n)%mask_adj%prd(i,j,iblock,m) = c1
+#ifndef DEBUG
+                         if (my_task == master_task) &
+#endif
                             write(stdout,35) ovf(n)%name,this_block%i_glob(i), &
                                               this_block%j_glob(j)
                             35 format(' Overflow: ',a24, &

@@ -208,7 +208,6 @@ contains
 
     ! local variables
     type(ESMF_VM)     :: vm
-    integer(int_kind) :: iam
     integer(int_kind) :: lmpicom
     integer(int_kind) :: shrlogunit
     character(len=CL) :: logmsg
@@ -220,13 +219,13 @@ contains
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=iam, rc=rc)
+    call ESMF_VMGet(vm, mpiCommunicator=lmpicom, localPet=my_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     mpi_communicator_ocn = lmpicom
 
     ! reset shr logging to my log file
-    call set_component_logging(gcomp, iam==0, stdout, shrlogunit, rc)
+    call set_component_logging(gcomp, my_task==0, stdout, shrlogunit, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, rc=rc)
@@ -317,7 +316,6 @@ contains
     integer(int_kind)       :: lsize
     integer(int_kind)       :: shrlogunit      ! old values
     integer(int_kind)       :: npes
-    integer(int_kind)       :: iam
     character(len=32)       :: starttype
     integer                 :: n,i,j,iblk,jblk,ig,jg
     integer                 :: lbnum
@@ -332,13 +330,10 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMGet(vm, localPet=iam, PetCount=npes, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_VMGet(vm, pet=iam, peCount=nthreads, rc=rc)
+    call ESMF_VMGet(vm, peCount=nthreads, PetCount=npes, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if(nthreads==1) then
        call NUOPC_CompAttributeGet(gcomp, "nthreads", value=cvalue, rc=rc)
@@ -349,7 +344,7 @@ contains
 !$  call omp_set_num_threads(nThreads)
 
 #if (defined _MEMTRACE)
-    if (iam == 0) then
+    if (my_task == 0) then
        lbnum=1
        call memmon_dump_fort('memmon.out','InitializeRealize:start::',lbnum)
     endif
@@ -446,8 +441,8 @@ contains
 
        ! Distribute the eliminated blocks in a round robin fashion amoung processors
        num_elim_local = num_elim_global / npes
-       my_elim_start = num_elim_local*iam + min(iam, mod(num_elim_global, npes)) + 1
-       if (iam < mod(num_elim_global, npes)) then
+       my_elim_start = num_elim_local*my_task + min(my_task, mod(num_elim_global, npes)) + 1
+       if (my_task < mod(num_elim_global, npes)) then
           num_elim_local = num_elim_local + 1
        end if
        my_elim_end = my_elim_start + num_elim_local - 1
@@ -787,7 +782,7 @@ contains
     end if
 
 #if (defined _MEMTRACE)
-    if (iam  == 0) then
+    if (my_task  == 0) then
        lbnum=1
        call memmon_dump_fort('memmon.out','DataInitialize:end::',lbnum)
        call memmon_reset_addr()

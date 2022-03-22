@@ -21,7 +21,7 @@
    use communicate,     only : my_task, master_task
    use broadcast,       only : broadcast_scalar
    use exit_mod,        only : exit_POP, sigAbort
-   use io_types,        only : nml_in, nml_filename
+   use io_types,        only : nml_in, nml_filename, stdout
 #ifdef CCSMCOUPLED
    use shr_sys_mod, only: shr_sys_abort
 #endif
@@ -74,7 +74,7 @@
          read(nml_in, nml=damping_nml,iostat=nml_error)
       end do
       if (nml_error == 0) close(nml_in)
-      print*, "Done setting default values!"
+      write(stdout,*) "Done setting default values! (damping.F90)"
     end if
 
 !!!! BROADCAST NAMELIST OPTIONS OUT
