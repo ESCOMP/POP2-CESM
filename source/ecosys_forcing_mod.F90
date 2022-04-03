@@ -1584,7 +1584,6 @@ contains
     if (first_call) then
       call timer_start(ecosys_interior_strdata_create_timer)
       do n = 1, size(interior_strdata_inputlist_ptr)
-        write(6,*)"DEBUG: calling  POP_strdata_create for interior_strdata_inputlist_ptr(n) ",n 
         call POP_strdata_create(interior_strdata_inputlist_ptr(n))
       end do
       call timer_stop(ecosys_interior_strdata_create_timer)
@@ -1822,7 +1821,6 @@ contains
 
              ! Note that stream_data is allocated in this call - so need to deallocate below
              call POP_strdata_get_streamdata(riv_flux_strdata_inputlist_ptr(stream_index), var_ind, stream_data1d)
-             write(6,*)'DEBUG: size of stream_data1d is ',size(stream_data1d)
              n = 0
              do iblock = 1, nblocks_clinic
                 this_block = get_block(blocks_clinic(iblock), iblock)
@@ -1833,7 +1831,6 @@ contains
                    enddo
                 enddo
              enddo
-             write(6,*)'DEBUG: is associated stream_data1d = ',associated(stream_data1d)
              deallocate(stream_data1d)
 
              call POP_HaloUpdate(shr_stream, POP_haloClinic, &
