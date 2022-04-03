@@ -43,6 +43,12 @@ module strdata_interface_mod
   public :: POP_strdata_type_field_count
   public :: POP_strdata_create
   public :: POP_strdata_advance
+  public :: POP_strdata_get_streamdata
+
+  interface POP_strdata_get_streamdata
+    module procedure POP_strdata_get_streamdata_1d
+    module procedure POP_strdata_get_streamdata_2d
+  end interface
 
   interface POP_strdata_advance
     module procedure POP_strdata_advance_scalar
@@ -282,5 +288,47 @@ contains
     end do
 
   end subroutine POP_strdata_advance_array
+
+  !***********************************************************************
+
+  subroutine POP_strdata_get_streamdata_1d(inputlist, var_index, stream_data)
+
+    type(strdata_input_type) , intent(inout) :: inputlist
+    integer                  , intent(in)    :: var_index 
+    real(r8)                 , pointer       :: stream_data(:)
+
+    integer :: n
+
+    lsize = size(inputlist%sdat%avs(1)%rattr,dim=2))
+    allocate(stream_data(lsize))
+    do n = 1,lsize
+       stream_data(n) = inputlist%sdat%avs(1)%rAttr(var_index, n)
+    end do
+
+  end subroutine POP_strdata_get_streamdata_1d
+
+  !***********************************************************************
+
+  subroutine POP_strdata_get_streamdata_2d(inputlist, var_index, nlev, stream_data)
+    type(strdata_input_type) , intent(inout) :: inputlist
+    integer                  , intent(in)    :: var_index 
+    integer                  , intent(in)    :: nlev
+    real(r8)                 , pointer       :: stream_data(:,:)
+
+    integer :: n,nk
+
+    lsize = size(inputlist%sdat%avs(1)%rattr,dim=2))
+    allocate(stream_data(nlev,lsize))
+
+    n = 0
+    do k = 1,km
+       nk = 0
+       do n = 1,lsize
+          n = n + 1
+          nk = nk + 1
+          stream_data(k,nk) = inputlist%sdat%avs(1)%rAttr(var_index,n)
+       end do
+    end do
+  end subroutine POP_strdata_get_streamdata
 
 end module strdata_interface_mod

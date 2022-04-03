@@ -684,6 +684,7 @@
       errorcode            ! error code
 
    logical (log_kind) :: first_call_strdata_create = .true.
+   real(r8), pointer  :: stream_data(:)
 
 !-----------------------------------------------------------------------
 !
@@ -767,6 +768,8 @@
 
       ! process interior restoring
 
+      ! Note that stream_data is allocated in this call - so need to deallocate below
+      call POP_strdata_get_streamdata(s_inputlist, 1, stream_data)
       S_INTERIOR_DATA(:,:,:,:,:) = c0
       n = 0
       do iblock = 1, nblocks_clinic
@@ -775,12 +778,12 @@
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
                n = n + 1
-               S_INTERIOR_DATA(i,j,k,iblock,1) = &
-                  s_inputlist%sdat%avs(1)%rAttr(1,n)
+               S_INTERIOR_DATA(i,j,k,iblock,1) = stream_data(n)
             enddo
             enddo
          enddo
       enddo
+      deallocate(stream_data)
 
       call POP_HaloUpdate(S_INTERIOR_DATA(:,:,:,:,1),POP_haloClinic, &
                           POP_gridHorzLocCenter,          &

@@ -18,7 +18,7 @@ module ocn_comp_nuopc
   use NUOPC_Model           , only : model_label_SetClock       => label_SetClock
   use NUOPC_Model           , only : model_label_Finalize       => label_Finalize
   use NUOPC_Model           , only : NUOPC_ModelGet
-  use pop_constants             , only : c0, blank_fmt, ndelim_fmt
+  use pop_constants         , only : c0, blank_fmt, ndelim_fmt
   use POP_IOUnitsMod        , only : POP_IOUnitsFlush, POP_stdout, inst_suffix, inst_index, inst_name
   use POP_ErrorMod          , only : POP_ErrorSet, POP_Success, POP_ErrorPrint
   use shr_file_mod          , only : shr_file_getLogUnit, shr_file_setLogUnit
@@ -56,7 +56,6 @@ module ocn_comp_nuopc
   use registry              , only : registry_match, register_string
   use ecosys_forcing_mod    , only : ldriver_has_ndep, ldriver_has_atm_co2_diag, ldriver_has_atm_co2_prog
   use initial               , only : pop_init_phase1, pop_init_phase2
-  use POP_MCT_vars_mod      , only : pop_mct_init
   use perf_mod              , only : t_startf, t_stopf
   use ocn_import_export     , only : ocn_advertise_fields, ocn_realize_fields
   use ocn_import_export     , only : ocn_import, ocn_export, pop_sum_buffer, tlast_coupled
@@ -283,7 +282,8 @@ contains
     !-----------------------------------------------------------------------
     use ESMF               , only: ESMF_VMGet
     use shr_const_mod      , only: shr_const_pi
-    use pop_constants          , only: radius
+    use pop_constants      , only: radius
+    use ocn_comp_shr       , only: model_mesh, model_meshfile, model_clock
 
     ! Initialize POP
 
@@ -299,7 +299,6 @@ contains
     integer                 :: iblock
     type(ESMF_VM)           :: vm
     type(ESMF_DistGrid)     :: distGrid
-    type(ESMF_Mesh)         :: Emesh
     integer , allocatable   :: gindex_ocn(:)
     integer , allocatable   :: gindex_elim(:)
     integer , allocatable   :: gindex(:)
@@ -532,11 +531,17 @@ contains
     ! Create the POP mesh
     !---------------------------------------------------------------------------
 
+    ! Set model clock in ocn_comp_shr
+    model_clock = clock
+
     ! read in the mesh
     call NUOPC_CompAttributeGet(gcomp, name='mesh_ocn', value=cvalue, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    EMesh = ESMF_MeshCreate(filename=trim(cvalue), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
+    ! Set model_meshfile in ocn_comp_shr
+    model_meshfile = trim(cvalue)
+
+    model_mesh = ESMF_MeshCreate(filename=model_meshfile, fileformat=ESMF_FILEFORMAT_ESMFMESH, &
          elementDistgrid=Distgrid, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     mastertask = my_task == master_task
@@ -548,7 +553,7 @@ contains
     ! Realize the actively coupled fields
     !-----------------------------------------------------------------
 
-    call ocn_realize_fields(gcomp, mesh=Emesh, flds_scalar_name=flds_scalar_name, &
+    call ocn_realize_fields(gcomp, mesh=model_mesh, flds_scalar_name=flds_scalar_name, &
          flds_scalar_num=flds_scalar_num, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -597,7 +602,6 @@ contains
     integer(int_kind)         :: start_hour
     integer(POP_i4)           :: errorCode       ! error code
     integer(int_kind)         :: shrlogunit      ! old values
-    integer                   :: ocnid
     character(len=*), parameter  :: subname = "ocn_comp_nuopc:(DataInitialize)"
     !-----------------------------------------------------------------------
 
@@ -709,16 +713,6 @@ contains
        end if
 !$OMP END MASTER
     end if
-    !-----------------------------------------------------------------
-    ! Initialize MCT gsmaps and domains
-    !-----------------------------------------------------------------
-
-    call NUOPC_CompAttributeGet(gcomp, name='MCTID', value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) ocnid  ! convert from string to integer
-
-    call pop_mct_init(ocnid, mpi_communicator_ocn)
-    if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
     !-----------------------------------------------------------------------
     ! Initialize flags and shortwave absorption profile
