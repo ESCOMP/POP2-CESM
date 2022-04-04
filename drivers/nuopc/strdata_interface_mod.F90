@@ -35,6 +35,7 @@ module strdata_interface_mod
   public :: POP_strdata_create
   public :: POP_strdata_advance
   public :: POP_strdata_get_streamdata
+  public :: POP_strdata_set_n0
 
   interface POP_strdata_get_streamdata
     module procedure POP_strdata_get_streamdata_1d
@@ -241,7 +242,7 @@ contains
 
     integer(int_kind) :: date
     integer(int_kind) :: time
-    integer(int_kind) :: rc         
+    integer(int_kind) :: rc
 
     date = iyear*10000 + imonth*100 + iday
     time = isecond + 60 * (iminute + 60 * ihour)
@@ -265,7 +266,7 @@ contains
     integer(int_kind) :: date
     integer(int_kind) :: time
     integer(int_kind) :: n
-    integer(int_kind) :: rc         
+    integer(int_kind) :: rc
 
     date = iyear*10000 + imonth*100 + iday
     time = isecond + 60 * (iminute + 60 * ihour)
@@ -284,11 +285,11 @@ contains
     real(r8)                 , pointer       :: stream_data1d(:)
 
     integer           :: lsize
-    integer           :: rc 
+    integer           :: rc
     real(r8), pointer :: dataptr1d(:)
 
     lsize = inputlist%sdat%model_lsize
-    allocate(stream_data(lsize))
+    allocate(stream_data1d(lsize))
 
     call dshr_fldbun_getFldPtr(inputlist%sdat%pstrm(1)%fldbun_model, inputlist%field_names(var_index), &
          fldptr1=dataptr1d, rc=rc)
@@ -304,16 +305,16 @@ contains
   subroutine POP_strdata_get_streamdata_2d(inputlist, var_index, nlev, stream_data2d)
     type(strdata_input_type) , intent(inout) :: inputlist
     integer                  , intent(in)    :: var_index
-    integer                  , intent(in)    :: nlev 
+    integer                  , intent(in)    :: nlev
     real(r8)                 , pointer       :: stream_data2d(:,:)
 
-    integer           :: rc 
+    integer           :: rc
     integer           :: n,k
     integer           :: lsize
     real(r8), pointer :: dataptr2d(:,:)
 
     lsize = inputlist%sdat%model_lsize
-    allocate(stream_data(nlev,lsize))
+    allocate(stream_data2d(nlev,lsize))
 
     ! Note: in the stream_data output variable the level dimension is the second index
     call dshr_fldbun_getFldPtr(inputlist%sdat%pstrm(1)%fldbun_model, inputlist%field_names(var_index), &
@@ -324,5 +325,26 @@ contains
     stream_data2d(:,:) = dataptr2d(:,:)
 
   end subroutine POP_strdata_get_streamdata_2d
+
+  !***********************************************************************
+
+  subroutine POP_strdata_set_n0(nlev, n0)
+
+    use domain, only : nblocks_clinic, blocks_clinic
+    use blocks, only : block, get_block
+
+    integer, intent(in)  :: nlev  ! not used here
+    integer, intent(out) :: n0(nblocks_clinic)
+
+    integer    :: iblock
+    type(block):: this_block  ! block info for the current block
+
+    n0(1) = 0
+    do iblock = 1, nblocks_clinic-1
+       this_block = get_block(blocks_clinic(iblock), iblock)
+       n0(iblock+1) = n0(iblock) + (this_block%je-this_block%jb+1)*(this_block%ie-this_block%ib+1)
+    enddo
+
+  end subroutine POP_strdata_set_n0
 
 end module strdata_interface_mod

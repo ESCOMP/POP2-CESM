@@ -758,7 +758,7 @@
    case ('shr_stream')
 
       if (first_call_strdata_create) then
-         !--- moved to "get" interface because gsmap and other data not yet set
+         !--- moved to "get" interface because decomposition information for coupling and other data not yet set
          call POP_strdata_create(pt_inputlist)
       endif
       first_call_strdata_create = .false.

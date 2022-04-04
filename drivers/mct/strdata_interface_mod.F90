@@ -20,6 +20,7 @@ module strdata_interface_mod
   use kinds_mod,        only : char_len
   use kinds_mod,        only : int_kind
   use kinds_mod,        only : log_kind
+  use kinds_mod,        only : r8
   use domain_size,      only : nx_global
   use domain_size,      only : ny_global
   use domain_size,      only : km
@@ -44,6 +45,7 @@ module strdata_interface_mod
   public :: POP_strdata_create
   public :: POP_strdata_advance
   public :: POP_strdata_get_streamdata
+  public :: POP_strdata_set_n0
 
   interface POP_strdata_get_streamdata
     module procedure POP_strdata_get_streamdata_1d
@@ -291,44 +293,70 @@ contains
 
   !***********************************************************************
 
-  subroutine POP_strdata_get_streamdata_1d(inputlist, var_index, stream_data)
+  subroutine POP_strdata_get_streamdata_1d(inputlist, var_index, stream_data1d)
 
     type(strdata_input_type) , intent(inout) :: inputlist
-    integer                  , intent(in)    :: var_index 
-    real(r8)                 , pointer       :: stream_data(:)
+    integer                  , intent(in)    :: var_index
+    real(r8)                 , pointer       :: stream_data1d(:)
 
     integer :: n
+    integer :: lsize
 
-    lsize = size(inputlist%sdat%avs(1)%rattr,dim=2))
-    allocate(stream_data(lsize))
+    lsize = size(inputlist%sdat%avs(1)%rattr,dim=2)
+    allocate(stream_data1d(lsize))
     do n = 1,lsize
-       stream_data(n) = inputlist%sdat%avs(1)%rAttr(var_index, n)
+       stream_data1d(n) = inputlist%sdat%avs(1)%rAttr(var_index, n)
     end do
 
   end subroutine POP_strdata_get_streamdata_1d
 
   !***********************************************************************
 
-  subroutine POP_strdata_get_streamdata_2d(inputlist, var_index, nlev, stream_data)
+  subroutine POP_strdata_get_streamdata_2d(inputlist, var_index, nlev, stream_data2d)
+
+    use mct_mod
+
     type(strdata_input_type) , intent(inout) :: inputlist
-    integer                  , intent(in)    :: var_index 
+    integer                  , intent(in)    :: var_index
     integer                  , intent(in)    :: nlev
-    real(r8)                 , pointer       :: stream_data(:,:)
+    real(r8)                 , pointer       :: stream_data2d(:,:)
 
-    integer :: n,nk
+    integer :: l,n,k
+    integer :: lsize
 
-    lsize = size(inputlist%sdat%avs(1)%rattr,dim=2))
-    allocate(stream_data(nlev,lsize))
+    lsize = mct_gsMap_lsize(POP_MCT_gsmap_o, POP_communicator)
+    allocate(stream_data2d(nlev,lsize))
 
     n = 0
-    do k = 1,km
-       nk = 0
-       do n = 1,lsize
+    do k = 1,nlev
+       do l = 1,lsize
           n = n + 1
-          nk = nk + 1
-          stream_data(k,nk) = inputlist%sdat%avs(1)%rAttr(var_index,n)
+          stream_data2d(k,l) = inputlist%sdat%avs(1)%rAttr(var_index,n)
        end do
     end do
-  end subroutine POP_strdata_get_streamdata
+
+  end subroutine POP_strdata_get_streamdata_2d
+
+
+  !***********************************************************************
+
+  subroutine POP_strdata_set_n0(nlev, n0)
+
+    use domain, only : nblocks_clinic, blocks_clinic
+    use blocks, only : block, get_block
+
+    integer, intent(in)  :: nlev
+    integer, intent(out) :: n0(nblocks_clinic)
+
+    integer    :: iblock
+    type(block):: this_block  ! block info for the current block
+
+    n0(1) = 0
+    do iblock = 1, nblocks_clinic-1
+       this_block = get_block(blocks_clinic(iblock), iblock)
+       n0(iblock+1) = n0(iblock) + nlev*(this_block%je-this_block%jb+1)*(this_block%ie-this_block%ib+1)
+    enddo
+
+  end subroutine POP_strdata_set_n0
 
 end module strdata_interface_mod

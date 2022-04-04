@@ -1557,7 +1557,7 @@ contains
     use mcog                  , only : mcog_nbins
     use prognostic            , only : TRACER, oldtime, curtime
     use state_mod             , only : ref_pressure
-    use strdata_interface_mod , only : POP_strdata_create, POP_strdata_advance
+    use strdata_interface_mod , only : POP_strdata_create, POP_strdata_advance, POP_strdata_set_n0
 
     real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: FRACR_BIN
     real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: QSW_RAW_BIN
@@ -1598,13 +1598,9 @@ contains
     call POP_strdata_advance(interior_strdata_inputlist_ptr(:))
     call timer_stop(ecosys_interior_strdata_advance_timer)
 
-    ! if ((nblocks_clinic > 0) .and. (size(interior_strdata_inputlist_ptr) > 0)) then
-    !   n0(1) = 0
-    !   do iblock = 1, nblocks_clinic-1
-    !     this_block = get_block(blocks_clinic(iblock), iblock)
-    !     n0(iblock+1) = n0(iblock) + km*(this_block%je-this_block%jb+1)*(this_block%ie-this_block%ib+1)
-    !   enddo
-    ! end if
+    if ((nblocks_clinic > 0) .and. (size(interior_strdata_inputlist_ptr) > 0)) then
+      call POP_strdata_set_n0(km, n0)
+    end if
 
     !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,stream_index,var_ind,n,j,i)
     do iblock = 1, nblocks_clinic
@@ -1643,7 +1639,7 @@ contains
               var_ind      = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_var_ind
               ! Note that stream_data is allocated in this call - so need to deallocate below
               call POP_strdata_get_streamdata(interior_strdata_inputlist_ptr(stream_index), var_ind, km, stream_data2d)
-              n = 0
+              n = n0(iblock)
               do j = this_block%jb, this_block%je
                  do i = this_block%ib, this_block%ie
                     n = n + 1
