@@ -6913,7 +6913,7 @@ type="char*256"
 category="Forcing (Ecosystem)"
 group="derived"
 input_pathname="abs" >
-Default: ecosys_restore_POP_gx3v7_20170113.nc (gx3v7), ecosys_restore_POP_gx1v6_20170113.nc (gx1v6,gx1v7)
+Default: ecosys_restore_POP_gx3v7_20220403.nc (gx3v7), ecosys_restore_POP_gx1v6_20220404.nc (gx1v6,gx1v7)
 </entry>
 
 <entry
