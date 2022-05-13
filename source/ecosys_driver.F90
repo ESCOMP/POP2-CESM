@@ -29,6 +29,7 @@ module ecosys_driver
   use shr_infnan_mod            , only : shr_infnan_isnan
 
   use marbl_interface           , only : marbl_interface_class
+  use marbl_logging             , only : marbl_log_type
 
   use namelist_from_str_mod     , only : namelist_split_by_line
   use namelist_from_str_mod     , only : namelist_split_by_nl
@@ -200,6 +201,7 @@ contains
 
     character(len=*), parameter      :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)              :: log_message
+    type(marbl_log_type)             :: driver_status_log
     integer (int_kind)               :: cumulative_nt, n, bid, k, i, j
     integer (int_kind)               :: num_fields
     integer (int_kind)               :: nml_error                          ! error flag for nml read
@@ -232,6 +234,7 @@ contains
          ecosys_qsw_distrb_const, marbl_settings_file
 
     errorCode = POP_Success
+    call driver_status_log%construct()
 
     lmarginal_seas             = .true.
     ecosys_tadvect_ctype       = 'base_model'
@@ -571,7 +574,13 @@ contains
     ! Initialize tavg ids (need only do this using first block)
     !--------------------------------------------------------------------
 
-    call ecosys_tavg_init(marbl_instances(1))
+    call ecosys_tavg_init(marbl_instances(1), driver_status_log)
+    if (driver_status_log%labort_marbl) then
+      call driver_status_log%log_error_trace("ecosys_tavg_init", subname)
+      call print_marbl_log(marbl_instances(1)%StatusLog, 1)
+      call print_marbl_log(driver_status_log, 1)
+    end if
+    call driver_status_log%erase()
 
     !--------------------------------------------------------------------
     ! Register and set Chl field for short-wave absorption
@@ -1520,7 +1529,6 @@ contains
   subroutine print_marbl_log(log_to_print, iblock, i, j)
 
     use marbl_logging, only : marbl_status_log_entry_type
-    use marbl_logging, only : marbl_log_type
     use grid,          only : TLATD, TLOND
     use blocks,        only : get_block
     use domain,        only : blocks_clinic
