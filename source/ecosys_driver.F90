@@ -68,6 +68,7 @@ module ecosys_driver
   ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_driver_init
+  public :: ecosys_driver_set_compute_now
   public :: ecosys_driver_set_interior_forcing
   public :: ecosys_driver_set_interior
   public :: ecosys_driver_set_global_scalars
@@ -106,6 +107,7 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
+  type(marbl_log_type)        :: driver_status_log
 
   integer (int_kind)  :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer
   integer (int_kind)  :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux
@@ -201,7 +203,6 @@ contains
 
     character(len=*), parameter      :: subname = 'ecosys_driver:ecosys_driver_init'
     character(char_len)              :: log_message
-    type(marbl_log_type)             :: driver_status_log
     integer (int_kind)               :: cumulative_nt, n, bid, k, i, j
     integer (int_kind)               :: num_fields
     integer (int_kind)               :: nml_error                          ! error flag for nml read
@@ -768,7 +769,7 @@ contains
              call marbl_instances(bid)%interior_tendency_compute()
              if (marbl_instances(bid)%StatusLog%labort_marbl) then
                 write(log_message,"(A,I0,A)") "marbl_instances(", bid, &
-                                              ")%set_interior_forcing()"
+                                              ")%interior_tendency_compute()"
                 call marbl_instances(bid)%StatusLog%log_error_trace(log_message, subname)
              end if
              call print_marbl_log(marbl_instances(bid)%StatusLog, bid, i, c)
@@ -1111,6 +1112,27 @@ contains
     end do
 
   end subroutine ecosys_driver_post_set_sflux
+
+  !***********************************************************************
+
+  subroutine ecosys_driver_set_compute_now()
+
+   use ecosys_tavg, only : ecosys_tavg_set_compute_now
+   integer :: iblock
+   logical :: first_call = .true.
+
+   ! Return if function has already been called
+   if (.not. first_call) return
+
+   ! Loop through instances and set compute_now flag for all diagnostics
+   do iblock=1,nblocks_clinic
+      call ecosys_tavg_set_compute_now(marbl_instances(iblock)%surface_flux_diags, 'surface_flux', driver_status_log)
+      call ecosys_tavg_set_compute_now(marbl_instances(iblock)%interior_tendency_diags, 'interior_tendency', driver_status_log)
+      call print_marbl_log(driver_status_log, iblock)
+      call driver_status_log%erase()
+   end do
+   first_call = .false.
+  end subroutine ecosys_driver_set_compute_now
 
   !***********************************************************************
 

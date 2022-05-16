@@ -40,6 +40,7 @@
   public :: ecosys_tavg_accumulate_interior
   public :: ecosys_tavg_accumulate_surface
   public :: ecosys_tavg_accumulate_scalar_rmeans
+  public :: ecosys_tavg_set_compute_now
 
   !-----------------------------------------------------------------------
   !  define tavg id for interior tendency diagnostics, diagnostics related
@@ -68,8 +69,6 @@ contains
     use ecosys_diagnostics_operators_mod,   only : ecosys_diagnostics_operators_init
     use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
     use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_interior
-
-    implicit none
 
     type(marbl_interface_class), intent(in)    :: marbl_instance
     type(marbl_log_type),        intent(inout) :: status_log
@@ -141,8 +140,6 @@ contains
     use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
     use ecosys_tracers_and_saved_state_mod, only : o2_ind
 
-    implicit none
-
     integer,                     intent(in) :: marbl_col_to_pop_i(:)
     integer,                     intent(in) :: marbl_col_to_pop_j(:)
     real (r8)                  , intent(in) :: STF(:,:,:)
@@ -169,8 +166,6 @@ contains
 
     use ecosys_diagnostics_operators_mod, only : marbl_diags_stream_cnt_interior
 
-    implicit none
-
     integer,                     intent(in) :: i, c ! column indices
     type(marbl_interface_class), intent(in) :: marbl_instance
     integer,                     intent(in) :: bid ! block index
@@ -191,8 +186,6 @@ contains
   subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, marbl_diags_stream_cnt, tavg_ids, num_elements)
 
     ! Accumulate diagnostics
-
-    implicit none
 
     integer, dimension(:)        , intent(in) :: i, c ! column indices
     integer                      , intent(in) :: bid ! block index
@@ -231,8 +224,6 @@ contains
 
     ! Accumulate diagnostics for scalar running means
 
-    implicit none
-
     type(marbl_interface_class), intent(in) :: marbl_instance
     character (*),               intent(in) :: field_source   ! 'interior_tendency' or 'surface_flux'
 
@@ -264,8 +255,6 @@ contains
     use pop_constants, only : cmperm
     use domain_size, only : km
     use grid, only : zw
-
-    implicit none
 
     type(marbl_diagnostics_type),      intent(in)    :: marbl_diags
     integer(int_kind), dimension(:),   intent(in)    :: stream_cnt
@@ -350,6 +339,51 @@ contains
     end do
 
   end subroutine ecosys_tavg_define_from_diag
+
+  !***********************************************************************
+
+  subroutine ecosys_tavg_set_compute_now(marbl_diags, field_source, status_log)
+
+    use tavg, only : set_in_tavg_contents
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_surface
+    use ecosys_diagnostics_operators_mod,   only : marbl_diags_stream_cnt_interior
+
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
+    character(len=*),             intent(in)    :: field_source
+    type(marbl_log_type),         intent(inout) :: status_log
+
+    character(len=char_len) :: err_msg
+    logical :: in_tavg_contents
+    integer :: n, m
+
+    select case (trim(field_source))
+      case ('surface_flux')
+        do n=1,size(marbl_diags%diags)
+          in_tavg_contents = .false.
+          do m=1,marbl_diags_stream_cnt_surface(n)
+            in_tavg_contents = in_tavg_contents .or. set_in_tavg_contents(tavg_ids_surface_flux(n,m))
+          end do
+          call marbl_diags%set(n, 'compute_now', in_tavg_contents, status_log)
+        end do
+      case ('interior_tendency')
+        do n=1,size(marbl_diags%diags)
+          in_tavg_contents = .false.
+          do m=1,marbl_diags_stream_cnt_interior(n)
+            in_tavg_contents = in_tavg_contents .or. set_in_tavg_contents(tavg_ids_interior_tendency(n,m))
+          end do
+          call marbl_diags%set(n, 'compute_now', in_tavg_contents, status_log)
+        end do
+      case DEFAULT
+        write(err_msg, "(3A)") "'", trim(field_source), "' is not a valid field source"
+        call shr_sys_abort(err_msg)
+    end select
+
+    do n=1,size(marbl_diags%diags)
+      write(err_msg, *) "compute_now for '", trim(marbl_diags%get_str(n, 'short_name', status_log)), "': ", marbl_diags%diags(n)%compute_now
+      call status_log%log_noerror(err_msg, 'tmp_subname')
+    end do
+
+  end subroutine ecosys_tavg_set_compute_now
 
 end module ecosys_tavg
 
