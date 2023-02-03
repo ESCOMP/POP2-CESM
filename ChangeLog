@@ -1,4 +1,20 @@
 ===============================================================================
+Tag Creator: altuntas
+Developers:  jedwards
+Tag Date:    22 Mar 2022
+Tag Name:    cesm_pop_2_1_20220322
+Tag Summary: cleanup and reduce messages to stdout
+
+Testing: aux_pop.cheyenne.intel b4b
+
+M       drivers/nuopc/ocn_comp_nuopc.F90
+M       drivers/nuopc/ocn_import_export.F90
+M       source/POP_SolversMod.F90
+M       source/damping.F90
+M       source/overflows.F90
+M       source/tidal_mixing.F90
+
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy (h/t to klindsay for finding the bug)
 Tag Date:    13 Jan 2022
