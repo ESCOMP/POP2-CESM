@@ -2499,6 +2499,7 @@ contains
     use strdata_interface_mod, only : POP_strdata_type_append_field
     use strdata_interface_mod, only : POP_strdata_type_cp
     use strdata_interface_mod, only : POP_strdata_type_field_count
+    use strdata_interface_mod, only : POP_strdata_varname_not_in_field_list
 
     class(forcing_file_type),                    intent(inout) :: this
     character(len=*),                            intent(in)    :: filename
@@ -2545,8 +2546,12 @@ contains
         strdata_inputlist_size = size(strdata_inputlist_ptr)
         do n = 1, strdata_inputlist_size
           if (POP_strdata_type_match(strdata_input_var, strdata_inputlist_ptr(n))) then
-            call POP_strdata_type_append_field(this%file_varname, strdata_inputlist_ptr(n))
-            exit
+            if (POP_strdata_varname_not_in_field_list(this%file_varname, strdata_inputlist_ptr(n)%field_list)) then
+               call POP_strdata_type_append_field(this%file_varname, strdata_inputlist_ptr(n))
+               write(6,'(a)')'DEBUG: varname '//trim(this%file_varname)
+               write(6,'(a)')'DEBUG: fieldlist '//trim(strdata_inputlist_ptr(n)%field_list)
+               exit
+            endif
           endif
         end do
 

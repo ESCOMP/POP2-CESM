@@ -36,6 +36,7 @@ module strdata_interface_mod
   public :: POP_strdata_advance
   public :: POP_strdata_get_streamdata
   public :: POP_strdata_set_n0
+  public :: POP_strdata_varname_not_in_field_list
 
   interface POP_strdata_get_streamdata
     module procedure POP_strdata_get_streamdata_1d
@@ -191,6 +192,8 @@ contains
     do n = 1,num_fields
        call shr_string_listGetName(inputlist%field_list, n, inputlist%field_names(n))
     end do
+    ! remove duplicates from the list
+
 
     ! determine stream_lev_dimname
     if (inputlist%depth_flag) then
@@ -346,5 +349,23 @@ contains
     enddo
 
   end subroutine POP_strdata_set_n0
+
+  !***********************************************************************
+
+  logical function POP_strdata_varname_not_in_field_list(file_varname, field_list)
+
+     use shr_string_mod, only : shr_string_listGetIndex
+
+     character(len=*), intent(in) :: file_varname
+     character(len=*), intent(in) :: field_list
+
+     integer :: index
+     integer :: rc
+
+     call shr_string_listGetIndex(trim(field_list), trim(file_varname), index, print=.true., rc=rc)
+
+     POP_strdata_varname_not_in_field_list = (index == 0)
+
+  end function POP_strdata_varname_not_in_field_list
 
 end module strdata_interface_mod

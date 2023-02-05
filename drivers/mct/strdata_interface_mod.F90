@@ -46,6 +46,7 @@ module strdata_interface_mod
   public :: POP_strdata_advance
   public :: POP_strdata_get_streamdata
   public :: POP_strdata_set_n0
+  public :: POP_strdata_varname_not_in_field_list
 
   interface POP_strdata_get_streamdata
     module procedure POP_strdata_get_streamdata_1d
@@ -358,5 +359,21 @@ contains
     enddo
 
   end subroutine POP_strdata_set_n0
+
+  !***********************************************************************
+
+  logical function POP_strdata_varname_not_in_field_list(file_varname, field_list)
+
+     use shr_string_mod, only : shr_string_listGetIndex
+
+     character(len=*), intent(in) :: file_varname
+     character(len=*), intent(in) :: field_list
+
+     integer :: index
+     integer :: rc
+
+     POP_strdata_varname_not_in_field_list = .true.
+
+  end function POP_strdata_varname_not_in_field_list
 
 end module strdata_interface_mod
