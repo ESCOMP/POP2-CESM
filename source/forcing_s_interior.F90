@@ -684,7 +684,7 @@
       errorcode            ! error code
 
    logical (log_kind) :: first_call_strdata_create = .true.
-   real(r8), pointer  :: stream_data2d(:,:)
+   real(r8), allocatable :: stream_data2d(:,:)
 
 !-----------------------------------------------------------------------
 !
@@ -763,7 +763,7 @@
       first_call_strdata_create = .false.
 
       call timer_start(s_interior_shr_strdata_advance_timer)
-      call POP_strdata_advance(s_inputlist) 
+      call POP_strdata_advance(s_inputlist)
       call timer_stop(s_interior_shr_strdata_advance_timer)
 
       ! process interior restoring

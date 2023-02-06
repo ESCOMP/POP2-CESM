@@ -1575,7 +1575,7 @@ contains
     integer(int_kind)        :: stream_index                ! index into interior_strdata_inputlist_ptr array
     integer(int_kind)        :: var_ind                     ! var index in interior_strdata_inputlist_ptr entry
     type(block)              :: this_block                  ! block info for the current block
-    real(r8), pointer        :: stream_data2d(:,:)
+    real(r8), allocatable    :: stream_data2d(:,:)
 
     !-----------------------------------------------------------------------
     ! Initialize interior_strdata_inputlist_ptr entries (only once)
@@ -1602,13 +1602,13 @@ contains
       call POP_strdata_set_n0(km, n0)
     end if
 
-    !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,stream_index,var_ind,n,j,i)
+    !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,n,j,i)
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
       do field_index = 1, size(interior_tendency_forcings)
-!!!     the following associate construct seems to be incompatible with the OMP directive
-!!!     associate (forcing_field => interior_tendency_forcings(field_index), &
-!!!                metadata      => interior_tendency_forcings(field_index)%metadata)
+         !     the following associate construct seems to be incompatible with the OMP directive
+         !     associate (forcing_field => interior_tendency_forcings(field_index), &
+         !                metadata      => interior_tendency_forcings(field_index)%metadata)
           select case (trim(interior_tendency_forcings(field_index)%metadata%field_source))
             case('internal')
               if (field_index .eq. dustflux_ind) then
@@ -1634,34 +1634,47 @@ contains
                   interior_tendency_forcings(field_index)%field_1d(:,:,k,iblock) = ref_pressure(k)
                 end do
               end if
-            case('shr_stream')
-              stream_index = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_inputlist_ind
-              var_ind      = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_var_ind
-              ! Note that stream_data is allocated in this call - so need to deallocate below
-              call POP_strdata_get_streamdata(interior_strdata_inputlist_ptr(stream_index), var_ind, km, stream_data2d)
-              n = n0(iblock)
-              do j = this_block%jb, this_block%je
-                 do i = this_block%ib, this_block%ie
-                    n = n + 1
-                    do k = 1,km
-                       if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
-                          interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = stream_data2d(k,n)
-                       else
-                          interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = c0
-                       endif
-                    enddo
-                 enddo
-              enddo
-              deallocate(stream_data2d)
           end select
 
           if (interior_tendency_forcings(field_index)%metadata%ltime_varying) then
             call apply_unit_conv_factor(land_mask(:,:,iblock), interior_tendency_forcings(field_index), iblock)
           end if
-!!!     end associate
       end do
     end do
     !$OMP END PARALLEL DO
+
+    do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock), iblock)
+      do field_index = 1, size(interior_tendency_forcings)
+          select case (trim(interior_tendency_forcings(field_index)%metadata%field_source))
+            case('shr_stream')
+              ! Do this outside of a threaded block
+              stream_index = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_inputlist_ind
+              var_ind      = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_var_ind
+              ! Note that stream_data is allocated in this call - so need to deallocate below
+              call POP_strdata_get_streamdata(interior_strdata_inputlist_ptr(stream_index), var_ind, km, stream_data2d)
+              if (allocated(stream_data2d)) then
+                 n = n0(iblock)
+                 do j = this_block%jb, this_block%je
+                    do i = this_block%ib, this_block%ie
+                       n = n + 1
+                       do k = 1,km
+                          if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
+                             interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = stream_data2d(k,n)
+                          else
+                             interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = c0
+                          endif
+                       enddo
+                    enddo
+                 enddo
+                 deallocate(stream_data2d)
+              end if
+          end select
+          if (interior_tendency_forcings(field_index)%metadata%ltime_varying) then
+            call apply_unit_conv_factor(land_mask(:,:,iblock), interior_tendency_forcings(field_index), iblock)
+          end if
+      end do
+    end do
 
     call adjust_interior_time_varying_data()
 
@@ -1753,7 +1766,7 @@ contains
     real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: dust_ratio_to_fe_bioavail_frac
-    real      (r8), pointer        :: stream_data1d(:)
+    real      (r8), allocatable    :: stream_data1d(:)
 
     !-----------------------------------------------------------------------
 
@@ -2548,8 +2561,6 @@ contains
           if (POP_strdata_type_match(strdata_input_var, strdata_inputlist_ptr(n))) then
             if (POP_strdata_varname_not_in_field_list(this%file_varname, strdata_inputlist_ptr(n)%field_list)) then
                call POP_strdata_type_append_field(this%file_varname, strdata_inputlist_ptr(n))
-               write(6,'(a)')'DEBUG: varname '//trim(this%file_varname)
-               write(6,'(a)')'DEBUG: fieldlist '//trim(strdata_inputlist_ptr(n)%field_list)
                exit
             endif
           endif

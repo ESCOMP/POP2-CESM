@@ -298,7 +298,7 @@ contains
 
     type(strdata_input_type) , intent(inout) :: inputlist
     integer                  , intent(in)    :: var_index
-    real(r8)                 , pointer       :: stream_data1d(:)
+    real(r8), allocatable    , intent(out)   :: stream_data1d(:)
 
     integer :: n
     integer :: lsize
@@ -320,7 +320,7 @@ contains
     type(strdata_input_type) , intent(inout) :: inputlist
     integer                  , intent(in)    :: var_index
     integer                  , intent(in)    :: nlev
-    real(r8)                 , pointer       :: stream_data2d(:,:)
+    real(r8), allocatable    , intent(out)   :: stream_data2d(:,:)
 
     integer :: l,n,k
     integer :: lsize

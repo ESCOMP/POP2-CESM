@@ -285,7 +285,7 @@ contains
   subroutine POP_strdata_get_streamdata_1d(inputlist, var_index, stream_data1d)
     type(strdata_input_type) , intent(inout) :: inputlist
     integer                  , intent(in)    :: var_index
-    real(r8)                 , pointer       :: stream_data1d(:)
+    real(r8), allocatable    , intent(out)   :: stream_data1d(:)
 
     integer           :: lsize
     integer           :: rc
@@ -309,7 +309,7 @@ contains
     type(strdata_input_type) , intent(inout) :: inputlist
     integer                  , intent(in)    :: var_index
     integer                  , intent(in)    :: nlev
-    real(r8)                 , pointer       :: stream_data2d(:,:)
+    real(r8), allocatable    , intent(out)   :: stream_data2d(:,:)
 
     integer           :: rc
     integer           :: n,k
