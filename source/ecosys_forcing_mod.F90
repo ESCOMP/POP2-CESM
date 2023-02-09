@@ -37,6 +37,7 @@ module ecosys_forcing_mod
   use registry, only : register_string
 
   use strdata_interface_mod     , only : strdata_input_type
+  use strdata_interface_mod     , only : POP_strdata_get_streamdata
 
   use ecosys_tracers_and_saved_state_mod, only : marbl_tracer_cnt
   use ecosys_tracers_and_saved_state_mod, only : dic_ind, alk_ind, dic_alt_co2_ind, alk_alt_co2_ind
@@ -1556,7 +1557,7 @@ contains
     use mcog                  , only : mcog_nbins
     use prognostic            , only : TRACER, oldtime, curtime
     use state_mod             , only : ref_pressure
-    use strdata_interface_mod , only : POP_strdata_create, POP_strdata_advance
+    use strdata_interface_mod , only : POP_strdata_create, POP_strdata_advance, POP_strdata_set_n0
 
     real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: FRACR_BIN
     real(r8), dimension(nx_block, ny_block, mcog_nbins, nblocks_clinic), intent(in) :: QSW_RAW_BIN
@@ -1574,6 +1575,7 @@ contains
     integer(int_kind)        :: stream_index                ! index into interior_strdata_inputlist_ptr array
     integer(int_kind)        :: var_ind                     ! var index in interior_strdata_inputlist_ptr entry
     type(block)              :: this_block                  ! block info for the current block
+    real(r8), allocatable    :: stream_data2d(:,:)
 
     !-----------------------------------------------------------------------
     ! Initialize interior_strdata_inputlist_ptr entries (only once)
@@ -1597,20 +1599,16 @@ contains
     call timer_stop(ecosys_interior_strdata_advance_timer)
 
     if ((nblocks_clinic > 0) .and. (size(interior_strdata_inputlist_ptr) > 0)) then
-      n0(1) = 0
-      do iblock = 1, nblocks_clinic-1
-        this_block = get_block(blocks_clinic(iblock), iblock)
-        n0(iblock+1) = n0(iblock) + km*(this_block%je-this_block%jb+1)*(this_block%ie-this_block%ib+1)
-      enddo
+      call POP_strdata_set_n0(km, n0)
     end if
 
-    !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,stream_index,var_ind,n,j,i)
+    !$OMP PARALLEL DO PRIVATE(iblock,this_block,field_index,k,n,j,i)
     do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock), iblock)
       do field_index = 1, size(interior_tendency_forcings)
-!!!     the following associate construct seems to be incompatible with the OMP directive
-!!!     associate (forcing_field => interior_tendency_forcings(field_index), &
-!!!                metadata      => interior_tendency_forcings(field_index)%metadata)
+         !     the following associate construct seems to be incompatible with the OMP directive
+         !     associate (forcing_field => interior_tendency_forcings(field_index), &
+         !                metadata      => interior_tendency_forcings(field_index)%metadata)
           select case (trim(interior_tendency_forcings(field_index)%metadata%field_source))
             case('internal')
               if (field_index .eq. dustflux_ind) then
@@ -1636,32 +1634,47 @@ contains
                   interior_tendency_forcings(field_index)%field_1d(:,:,k,iblock) = ref_pressure(k)
                 end do
               end if
-            case('shr_stream')
-              stream_index = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_inputlist_ind
-              var_ind      = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_var_ind
-              n = n0(iblock)
-              do k=1,km
-                do j = this_block%jb, this_block%je
-                  do i = this_block%ib, this_block%ie
-                    n = n + 1
-                    if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
-                      interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = &
-                        interior_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind, n)
-                    else
-                      interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = c0
-                    endif
-                  enddo
-                enddo
-              enddo
           end select
 
           if (interior_tendency_forcings(field_index)%metadata%ltime_varying) then
             call apply_unit_conv_factor(land_mask(:,:,iblock), interior_tendency_forcings(field_index), iblock)
           end if
-!!!     end associate
       end do
     end do
     !$OMP END PARALLEL DO
+
+    do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock), iblock)
+      do field_index = 1, size(interior_tendency_forcings)
+          select case (trim(interior_tendency_forcings(field_index)%metadata%field_source))
+            case('shr_stream')
+              ! Do this outside of a threaded block
+              stream_index = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_inputlist_ind
+              var_ind      = interior_tendency_forcings(field_index)%metadata%field_file_info%strdata_var_ind
+              ! Note that stream_data is allocated in this call - so need to deallocate below
+              call POP_strdata_get_streamdata(interior_strdata_inputlist_ptr(stream_index), var_ind, km, stream_data2d)
+              if (allocated(stream_data2d)) then
+                 n = n0(iblock)
+                 do j = this_block%jb, this_block%je
+                    do i = this_block%ib, this_block%ie
+                       n = n + 1
+                       do k = 1,km
+                          if (land_mask(i,j,iblock) .and. k .le. KMT(i,j,iblock)) then
+                             interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = stream_data2d(k,n)
+                          else
+                             interior_tendency_forcings(field_index)%field_1d(i,j,k,iblock) = c0
+                          endif
+                       enddo
+                    enddo
+                 enddo
+                 deallocate(stream_data2d)
+              end if
+          end select
+          if (interior_tendency_forcings(field_index)%metadata%ltime_varying) then
+            call apply_unit_conv_factor(land_mask(:,:,iblock), interior_tendency_forcings(field_index), iblock)
+          end if
+      end do
+    end do
 
     call adjust_interior_time_varying_data()
 
@@ -1753,6 +1766,7 @@ contains
     real      (r8)                 :: atm_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: seaice_fe_bioavail_frac(nx_block, ny_block)
     real      (r8)                 :: dust_ratio_to_fe_bioavail_frac
+    real      (r8), allocatable    :: stream_data1d(:)
 
     !-----------------------------------------------------------------------
 
@@ -1814,16 +1828,19 @@ contains
              stream_index = metadata%field_file_info%strdata_inputlist_ind
              var_ind      = metadata%field_file_info%strdata_var_ind
 
+             ! Note that stream_data is allocated in this call - so need to deallocate below
+             call POP_strdata_get_streamdata(riv_flux_strdata_inputlist_ptr(stream_index), var_ind, stream_data1d)
              n = 0
              do iblock = 1, nblocks_clinic
                 this_block = get_block(blocks_clinic(iblock), iblock)
                 do j = this_block%jb, this_block%je
                    do i = this_block%ib, this_block%ie
                       n = n + 1
-                      shr_stream(i,j,iblock) = riv_flux_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind,n)
+                      shr_stream(i,j,iblock) = stream_data1d(n)
                    enddo
                 enddo
              enddo
+             deallocate(stream_data1d)
 
              call POP_HaloUpdate(shr_stream, POP_haloClinic, &
                   POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
@@ -2028,16 +2045,19 @@ contains
              stream_index = metadata%field_file_info%strdata_inputlist_ind
              var_ind      = metadata%field_file_info%strdata_var_ind
 
+             ! Note that stream_data is allocated in this call - so need to deallocate below
+             call POP_strdata_get_streamdata(surface_strdata_inputlist_ptr(stream_index), var_ind, stream_data1d)
              n = 0
              do iblock = 1, nblocks_clinic
                 this_block = get_block(blocks_clinic(iblock), iblock)
                 do j = this_block%jb, this_block%je
                    do i = this_block%ib, this_block%ie
                       n = n + 1
-                      shr_stream(i,j,iblock) = surface_strdata_inputlist_ptr(stream_index)%sdat%avs(1)%rAttr(var_ind,n)
+                      shr_stream(i,j,iblock) = stream_data1d(n)
                    enddo
                 enddo
              enddo
+             deallocate(stream_data1d)
 
              call POP_HaloUpdate(shr_stream, POP_haloClinic, &
                   POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
@@ -2492,6 +2512,7 @@ contains
     use strdata_interface_mod, only : POP_strdata_type_append_field
     use strdata_interface_mod, only : POP_strdata_type_cp
     use strdata_interface_mod, only : POP_strdata_type_field_count
+    use strdata_interface_mod, only : POP_strdata_varname_not_in_field_list
 
     class(forcing_file_type),                    intent(inout) :: this
     character(len=*),                            intent(in)    :: filename
@@ -2538,8 +2559,10 @@ contains
         strdata_inputlist_size = size(strdata_inputlist_ptr)
         do n = 1, strdata_inputlist_size
           if (POP_strdata_type_match(strdata_input_var, strdata_inputlist_ptr(n))) then
-            call POP_strdata_type_append_field(this%file_varname, strdata_inputlist_ptr(n))
-            exit
+            if (POP_strdata_varname_not_in_field_list(this%file_varname, strdata_inputlist_ptr(n)%field_list)) then
+               call POP_strdata_type_append_field(this%file_varname, strdata_inputlist_ptr(n))
+               exit
+            endif
           endif
         end do
 
