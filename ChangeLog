@@ -1,4 +1,25 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mvertens
+Tag Date:    9 Feb 2023
+Tag Name:    cesm_pop_2_1_20230209
+Tag Summary: remove mct dependence from NUOPC driver
+
+NUOPC was relying on MCT to read stream files in some specific situations, but
+now that can be handled by CDEPS instead.
+
+Testing: aux_pop_MARBL.cheyenne.intel b4b
+
+M       drivers/mct/strdata_interface_mod.F90
+M       drivers/nuopc/POP_MCT_vars_mod.F90
+M       drivers/nuopc/ocn_comp_nuopc.F90
+M       drivers/nuopc/ocn_comp_shr.F90
+M       drivers/nuopc/strdata_interface_mod.F90
+M       source/ecosys_forcing_mod.F90
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+
+===============================================================================
 Tag Creator: altuntas
 Developers:  jedwards
 Tag Date:    22 Mar 2022
