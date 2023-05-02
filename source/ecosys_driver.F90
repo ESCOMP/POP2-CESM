@@ -118,7 +118,7 @@ module ecosys_driver
 
   integer   (int_kind)               :: sfo_cnt
   integer   (int_kind)               :: flux_co2_id
-  integer   (int_kind)               :: totalChl_id
+  integer   (int_kind)               :: total_surfChl_id
   real      (r8)       , allocatable :: surface_flux_outputs(:, :, :, :)
 
 
@@ -583,31 +583,31 @@ contains
     ! Register flux_co2 with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
     do iblock=1, max(1,nblocks_clinic)
-       call marbl_instances(iblock)%surface_flux_output%add_sfo(              &
+       call marbl_instances(iblock)%surface_flux_output%add_output(           &
               num_elements = marbl_col_cnt(iblock),                           &
               field_name   = "flux_co2",                                      &
-              sfo_id       = flux_co2_id,                                     &
+              output_id    = flux_co2_id,                                     &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, &
-                                     ")%surface_flux_output%add_sfo(flux_co2)"
+                                     ")%surface_flux_output%add_output(flux_co2)"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
        call marbl_instances(iblock)%StatusLog%erase()
     end do
 
-    ! Register totalChl with MARBL surface flux outputs
+    ! Register total_surfChl with MARBL surface flux outputs
     sfo_cnt = sfo_cnt + 1
     do iblock=1, max(1,nblocks_clinic)
-       call marbl_instances(iblock)%surface_flux_output%add_sfo(              &
+       call marbl_instances(iblock)%surface_flux_output%add_output(           &
               num_elements = marbl_col_cnt(iblock),                           &
-              field_name   = "totalChl",                                      &
-              sfo_id       = totalChl_id,                                     &
+              field_name   = "total_surfChl",                                 &
+              output_id    = total_surfChl_id,                                &
               marbl_status_log = marbl_instances(iblock)%StatusLog)
        if (marbl_instances(iblock)%StatusLog%labort_marbl) then
          write(log_message,"(A,I0,A)") "marbl(", iblock, &
-                                     ")%surface_flux_output%add_sfo(totalChl)"
+                                     ")%surface_flux_output%add_output(total_surfChl)"
          call marbl_instances(iblock)%StatusLog%log_error_trace(log_message, subname)
        end if
        call print_marbl_log(marbl_instances(iblock)%StatusLog, iblock)
@@ -990,7 +990,7 @@ contains
 
        do n=1,sfo_cnt
          surface_flux_outputs(i,j,iblock,n) = &
-            marbl_instances(iblock)%surface_flux_output%sfo(n)%forcing_field(index_marbl)
+            marbl_instances(iblock)%surface_flux_output%outputs_for_GCM(n)%forcing_field_0d(index_marbl)
        end do
 
        !-----------------------------------------------------------
@@ -1068,7 +1068,7 @@ contains
     integer (int_kind) :: errorCode ! halo update error code
     !-----------------------------------------------------------------------
 
-    ! Added halo update for totalChl surface flux output because sw_absorption
+    ! Added halo update for total_surfChl surface flux output because sw_absorption
     ! had issue with prognostic Chl and we didn't track down why the halo cells
     ! mattered in that case
     ! klindsay thought -- KPP smooths boundary layer depth; CVMix computes KPP
@@ -1076,10 +1076,10 @@ contains
     ! so computing vertical mixing coefficients only on phys points will require
     ! halo update for HBLT (and we may be able to remove this halo update as a
     ! result)
-    call POP_HaloUpdate(surface_flux_outputs(:,:,:,totalChl_id), POP_haloclinic, &
+    call POP_HaloUpdate(surface_flux_outputs(:,:,:,total_surfChl_id), POP_haloclinic, &
          POP_gridHorzLocCenter, POP_fieldKindScalar, errorCode, fillValue = 0.0_r8)
     if (errorCode /= POP_Success) then
-       call document(subname, 'error updating SFO halo for totalChl from MARBL')
+       call document(subname, 'error updating SFO halo for total_surfChl from MARBL')
        call exit_POP(sigAbort, 'Stopping in ' // subname)
     endif
 
@@ -1093,7 +1093,7 @@ contains
     ! Update named fields
     !-----------------------------------------------------------------------
 
-    call named_field_set(totChl_surf_nf_ind, surface_flux_outputs(:,:,:,totalChl_id))
+    call named_field_set(totChl_surf_nf_ind, surface_flux_outputs(:,:,:,total_surfChl_id))
 
     !  set air-sea co2 gas flux named field, converting units from
     !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
