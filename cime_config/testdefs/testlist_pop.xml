@@ -438,7 +438,7 @@
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
-  <test name="SMS_N2" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
+  <test name="SMS_C2" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop"/>
     </machines>
@@ -464,7 +464,18 @@
       <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
+  <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_add_4p2z">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
   <test name="SMS" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_add_cocco">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
+  <test name="SMS" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_add_4p2z">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
@@ -650,12 +661,12 @@
       <machine name="izumi" compiler="nag" category="prealpha"/>
     </machines>
   </test>
-  <test name="SMS_N2_Ld3" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
+  <test name="SMS_C2_Ld3" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
     <machines>
       <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
-  <test name="SMS_N2_Ld3_P144x1" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
+  <test name="SMS_C2_Ld3_P144x1" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
     <machines>
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
