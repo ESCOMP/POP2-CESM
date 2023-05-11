@@ -469,6 +469,11 @@
       <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
+  <test name="SMS" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_add_4p2z">
+    <machines>
+      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+    </machines>
+  </test>
   <test name="SMS" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_spectra_pfts">
     <machines>
       <machine name="izumi" compiler="nag" category="aux_pop_MARBL"/>
