@@ -1,5 +1,34 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, kristenk
+Tag Date:    11 May 2023
+Tag Name:    cesm_pop_2_1_20230511
+Tag Summary: Update MARBL to most recent tag
+
+Kristen added MARBL support for 4 phytoplankton and 2 zooplankton (4p2z),
+and while we hadn't been updating POP for each MARBL tag this seemed like
+a good one to bring in
+
+Testing: aux_pop_MARBL.cheyenne (intel and gnu): answer-changing
+         -- All tests with MARBL enabled fail NLCOMP due to new parameters
+            in marbl_in
+         -- All tests with MARBL in fail BASELINE due to new output fields
+            * ecosys_add_cocco and ecosys_spectra_pfts both fail due to
+              legitimate answer changes; former due to picpoc computation,
+              latter due to changes in user_nl_marbl for the test
+
+M       Externals_POP.cfg
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       cime_config/config_component.xml
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_add_4p2z/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/ecosys_add_4p2z/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ecosys_spectra_pfts/user_nl_marbl
+M       source/ecosys_driver.F90
+M       source/ecosys_tracers_and_saved_state_mod.F90
+
+===============================================================================
+Tag Creator: mlevy
 Developers:  mvertens
 Tag Date:    9 Feb 2023
 Tag Name:    cesm_pop_2_1_20230209
