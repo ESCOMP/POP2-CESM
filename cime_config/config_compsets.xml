@@ -121,6 +121,12 @@
   </compset>
 
   <compset>
+    <!-- latest JRA forcing -->
+    <alias>GIAF_JRA_DA</alias>
+    <lname>2000_DATM%JRA-1p4-2018_SLND_CICE_POP2_DROF%JRA-1p4-2018_SGLC_WW3_DART%NOOP</lname>
+  </compset>
+
+  <compset>
     <!-- GIAF_JRA_HR from CESM 2.1.1 -->
     <alias>GIAF_JRA-1p3-2016_HR</alias>
     <lname>2000_DATM%JRA_SLND_CICE_POP2_DROF%JRA_SGLC_SWAV</lname>
