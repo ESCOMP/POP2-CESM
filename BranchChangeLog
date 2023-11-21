@@ -2,7 +2,7 @@
 Tag Creator:  mlevy
 Developers:   mlevy
 Tag Date:     21 Nov 2023
-Tag Name:     pop2_cesm2_2_x_rel_n01
+Tag Name:     pop2_cesm2_2_rel_n01
 Tag Summary:  Add support for derecho, drop support for cheyenne
 
 Testing: ran a series of smoke tests to ensure PE layouts are reasonable
