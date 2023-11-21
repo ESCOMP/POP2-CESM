@@ -2,35 +2,35 @@
 <testlist version="2.0">
   <test name="ERI_Vnuopc" grid="T62_g16" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="derecho" compiler="intel" category="prealpha"/>
     </machines>
   </test>
   <test name="ERI_Vnuopc" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERI_Vnuopc" grid="T62_g17" compset="C1850ECO" testmods="pop/ciso">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERI_Vnuopc" grid="T62_g37" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
-      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="prealpha"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_s11" compset="G" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_tripole"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_tripole"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g16" compset="C" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_rasm"/>
-      <machine name="cheyenne" compiler="intel" category="aux_science"/>
-      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="derecho" compiler="intel" category="aux_rasm"/>
+      <machine name="derecho" compiler="intel" category="aux_science"/>
+      <machine name="derecho" compiler="intel" category="prealpha"/>
       <machine name="eastwind" compiler="pgi" category="aux_rasm"/>
       <machine name="evergreen" compiler="intel" category="aux_rasm"/>
       <machine name="olympus" compiler="pgi" category="aux_rasm"/>
@@ -38,12 +38,12 @@
   </test>
   <test name="ERS_Vnuopc" grid="T62_g17" compset="C" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g17" compset="C" testmods="pop/cfc_sf6">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_s11" compset="C" testmods="pop/default">
@@ -53,37 +53,37 @@
   </test>
   <test name="ERS_Vnuopc" grid="T62_g16" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
       <machine name="hobart" compiler="intel" category="prebeta"/>
       <machine name="hobart" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys_ocn_transient_1850_2000">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_transient">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_transient_abio_dic_dic14_transient">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g16" compset="G" testmods="pop/cice">
@@ -94,11 +94,11 @@
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="aux_pop"/>
-      <machine name="cheyenne" compiler="gnu" category="prealpha"/>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="aux_pop"/>
+      <machine name="derecho" compiler="gnu" category="prealpha"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_s11" compset="G" testmods="pop/cice">
@@ -113,27 +113,27 @@
   </test>
   <test name="ERS_Vnuopc" grid="T62_g16" compset="G1850ECO" testmods="pop/cice_ecosys">
     <machines>
-      <machine name="cheyenne" compiler="pgi" category="prealpha"/>
+      <machine name="derecho" compiler="pgi" category="prealpha"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="G1850ECO" testmods="pop/cice_ciso">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="G1850ECO" testmods="pop/cice_ecosys_dust_flux_driver">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g37" compset="G1850ECO" testmods="pop/cice_ecosys_ladjust_bury_coeff">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc" grid="T62_g17" compset="G1850ECOIAF" testmods="pop/cice_ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_D" grid="f19_g16_rx1" compset="G1850ECO" testmods="pop/cice_ecosys">
@@ -145,146 +145,146 @@
   </test>
   <test name="ERS_Vnuopc_E_Lm3" grid="T62_g16" compset="C1850ECO" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_esmf"/>
+      <machine name="derecho" compiler="intel" category="aux_esmf"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_IOP" grid="T62_g16" compset="CIAF" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="prealpha"/>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prealpha"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_IOP" grid="T62_g17" compset="CIAF" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_IOP" grid="T62_s11" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
       <machine name="hobart" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_IOP" grid="T62_g16" compset="GIAF" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="prealpha"/>
+      <machine name="derecho" compiler="intel" category="prealpha"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld3" grid="T62_g37" compset="C1850ECO" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_testsystem"/>
+      <machine name="derecho" compiler="intel" category="aux_testsystem"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C" testmods="pop/abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C" testmods="pop/abio_dic_dic14_transient">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C1850ECO" testmods="pop/abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_transient">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_transient_abio_dic_dic14_transient">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="G" testmods="pop/presaero">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="G" testmods="pop/abio_dic_dic14_presaero">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="G1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="G1850ECO" testmods="pop/abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="G1850ECO" testmods="pop/ciso">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld30" grid="T62_g37" compset="G1850ECO" testmods="pop/ciso_abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5" grid="T62_g17" compset="G" testmods="pop/5day_tavg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5" grid="T62_g17" compset="G1850ECO" testmods="pop/ecosys_5day_tavg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5" grid="TL319_g17" compset="GIAF_JRA" testmods="pop/5day_tavg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g17" compset="C1850ECO" testmods="pop/ciso">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_fixed_PtoC">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_box_atm_co2">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
@@ -294,18 +294,18 @@
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="G1850ECO" testmods="pop/ciso_abio_dic_dic14">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld5_D" grid="T62_g37" compset="G1850ECO" testmods="pop/cice_ciso">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Ld6_D" grid="T62_g37" compset="C1850ECO" testmods="pop/5day_r4_tavg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="T62_g16" compset="C" testmods="pop/default">
@@ -315,7 +315,7 @@
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="T62_g17" compset="C" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="T62_g16" compset="C1850ECO" testmods="pop/ecosys">
@@ -325,65 +325,65 @@
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="T62_g16" compset="CIAF" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
       <machine name="hobart" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="T62_g16" compset="GIAF" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Lm3" grid="TL319_g17" compset="GIAF_JRA" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
     </machines>
   </test>
   <test name="ERS_Vnuopc_Lm3_E" grid="T62_g37" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_esmf"/>
+      <machine name="derecho" compiler="intel" category="aux_esmf"/>
     </machines>
   </test>
   <test name="ICP" grid="T62_g16" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_scripts"/>
+      <machine name="derecho" compiler="intel" category="aux_scripts"/>
     </machines>
   </test>
   <test name="OCP" grid="T62_g16" compset="C1850ECO">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_scripts"/>
+      <machine name="derecho" compiler="intel" category="aux_scripts"/>
     </machines>
   </test>
   <test name="PET" grid="T62_g16" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
       <machine name="edison" compiler="intel" category="prebeta"/>
     </machines>
   </test>
   <test name="PFS" grid="T62_g16" compset="C">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="csltiming"/>
+      <machine name="derecho" compiler="intel" category="csltiming"/>
     </machines>
   </test>
   <test name="PFS" grid="T62_g16" compset="C1850ECO">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="csltiming"/>
+      <machine name="derecho" compiler="intel" category="csltiming"/>
     </machines>
   </test>
   <test name="PFS" grid="T62_g16" compset="G">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="csltiming"/>
+      <machine name="derecho" compiler="intel" category="csltiming"/>
     </machines>
   </test>
   <test name="PFS" grid="T62_g16" compset="G1850ECO">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="csltiming"/>
+      <machine name="derecho" compiler="intel" category="csltiming"/>
     </machines>
   </test>
   <test name="SBN" grid="T62_t12" compset="C">
@@ -398,65 +398,65 @@
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="C" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="C" testmods="pop/default_spacecurve">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
-  <test name="SMS_Vnuopc" grid="T62_t13" compset="C_HR" testmods="pop/hires_core2_cheyenne">
+  <test name="SMS_Vnuopc" grid="T62_t13" compset="C_HR" testmods="pop/hires_core2_derecho">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_tripole"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_tripole"/>
     </machines>
   </test>
-  <test name="SMS_Vnuopc" grid="TL319_t13" compset="C_JRA_HR" testmods="pop/hires_jra_cheyenne">
+  <test name="SMS_Vnuopc" grid="TL319_t13" compset="C_JRA_HR" testmods="pop/hires_jra_derecho">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_tripole"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_tripole"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="C" testmods="pop/no_cvmix">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_N2" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
+      <machine name="derecho" compiler="intel" category="aux_cime_baselines"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g16" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_drv"/>
+      <machine name="derecho" compiler="intel" category="aux_drv"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
+      <machine name="derecho" compiler="intel" category="aux_cime_baselines"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO_ECOCESM20" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="C1850ECO_ECOCESM20" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_read_fallback_gx3v7">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
       <machine name="hobart" compiler="nag" category="aux_pop_MARBL"/>
     </machines>
   </test>
@@ -483,35 +483,35 @@
   </test>
   <test name="SMS_Vnuopc" grid="T62_g17" compset="G1850ECO" testmods="pop/ecosys_daily_r4_tavg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_D" grid="T62_s11" compset="G" testmods="pop/cice">
     <machines>
-      <machine name="cheyenne" compiler="gnu" category="prebeta"/>
-      <machine name="cheyenne" compiler="intel" category="prebeta"/>
-      <machine name="cheyenne" compiler="pgi" category="prebeta"/>
+      <machine name="derecho" compiler="gnu" category="prebeta"/>
+      <machine name="derecho" compiler="intel" category="prebeta"/>
+      <machine name="derecho" compiler="pgi" category="prebeta"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_D" grid="T62_g37" compset="G1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_D" grid="T62_g37" compset="G1850ECO" testmods="pop/cice_ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
-      <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_cime_baselines"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_DE" grid="T62_g16" compset="CIAF" testmods="pop/default">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_esmf"/>
+      <machine name="derecho" compiler="intel" category="aux_esmf"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld2" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso">
@@ -531,18 +531,18 @@
   </test>
   <test name="SMS_Vnuopc_Ld20" grid="T62_g17" compset="C" testmods="pop/performance_eval">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld20" grid="T62_g17" compset="G" testmods="pop/performance_eval">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
-      <machine name="cheyenne" compiler="intel" category="aux_cime_baselines"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_cime_baselines"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld2_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso_daily_r4_tavg">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_Ld2_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ciso">
@@ -557,12 +557,12 @@
   </test>
   <test name="SMS_Vnuopc_N2_Ld3_P144x1" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys_multiinst_lsource_sink">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop_MARBL"/>
+      <machine name="derecho" compiler="intel" category="aux_pop_MARBL"/>
     </machines>
   </test>
   <test name="SMS_Vnuopc_P15x1_D" grid="T62_g37" compset="C1850ECO" testmods="pop/ecosys">
     <machines>
-      <machine name="cheyenne" compiler="intel" category="aux_pop"/>
+      <machine name="derecho" compiler="intel" category="aux_pop"/>
     </machines>
   </test>
 </testlist>
