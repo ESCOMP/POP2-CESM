@@ -1,5 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    8 Dec 2023
+Tag Name:    cesm_pop_2_1_20231208
+Tag Summary: Drop cheyenne support, add derecho support
+
+Used the same PE layouts as the pop2_cesm2_2_rel_n01 tag; also
+added grid decomp for gx3v7 with 128 cores (have it in 2.1.5
+but not 2.2.2 for some reason)
+
+Testing: ran aux_pop on derecho, and also some performance tests
+         derecho_intel tests all passed and performance is fine
+         gnu builds but doesn't run, nvhpc doesn't build; I can
+         try to fix that in the future if machine updates in
+         future alpha tags don't
+
+modified:   ChangeLog
+modified:   bld/generate_pop_decomp.xml
+modified:   cime_config/config_pes.xml
+modified:   cime_config/testdefs/testlist_pop.xml
+modified:   cime_config/testdefs/testlist_pop_nuopc.xml
+
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, kristenk
 Tag Date:    11 May 2023
 Tag Name:    cesm_pop_2_1_20230511
