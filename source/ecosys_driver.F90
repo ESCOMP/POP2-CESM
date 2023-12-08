@@ -29,6 +29,7 @@ module ecosys_driver
   use shr_infnan_mod            , only : shr_infnan_isnan
 
   use marbl_interface           , only : marbl_interface_class
+  use marbl_logging             , only : marbl_log_type
 
   use namelist_from_str_mod     , only : namelist_split_by_line
   use namelist_from_str_mod     , only : namelist_split_by_nl
@@ -67,6 +68,7 @@ module ecosys_driver
   ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_driver_init
+  public :: ecosys_driver_set_compute_now
   public :: ecosys_driver_set_interior_forcing
   public :: ecosys_driver_set_interior
   public :: ecosys_driver_set_global_scalars
@@ -105,6 +107,7 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   type(marbl_interface_class) :: marbl_instances(max_blocks_clinic)
+  type(marbl_log_type)        :: driver_status_log
 
   integer (int_kind)  :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer
   integer (int_kind)  :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux
@@ -232,6 +235,7 @@ contains
          ecosys_qsw_distrb_const, marbl_settings_file
 
     errorCode = POP_Success
+    call driver_status_log%construct()
 
     lmarginal_seas             = .true.
     ecosys_tadvect_ctype       = 'base_model'
@@ -571,7 +575,13 @@ contains
     ! Initialize tavg ids (need only do this using first block)
     !--------------------------------------------------------------------
 
-    call ecosys_tavg_init(marbl_instances(1))
+    call ecosys_tavg_init(marbl_instances(1), driver_status_log)
+    if (driver_status_log%labort_marbl) then
+      call driver_status_log%log_error_trace("ecosys_tavg_init", subname)
+      call print_marbl_log(marbl_instances(1)%StatusLog, 1)
+      call print_marbl_log(driver_status_log, 1)
+    end if
+    call driver_status_log%erase()
 
     !--------------------------------------------------------------------
     ! Register and set Chl field for short-wave absorption
@@ -759,7 +769,7 @@ contains
              call marbl_instances(bid)%interior_tendency_compute()
              if (marbl_instances(bid)%StatusLog%labort_marbl) then
                 write(log_message,"(A,I0,A)") "marbl_instances(", bid, &
-                                              ")%set_interior_forcing()"
+                                              ")%interior_tendency_compute()"
                 call marbl_instances(bid)%StatusLog%log_error_trace(log_message, subname)
              end if
              call print_marbl_log(marbl_instances(bid)%StatusLog, bid, i, c)
@@ -1102,6 +1112,27 @@ contains
     end do
 
   end subroutine ecosys_driver_post_set_sflux
+
+  !***********************************************************************
+
+  subroutine ecosys_driver_set_compute_now()
+
+   use ecosys_tavg, only : ecosys_tavg_set_compute_now
+   integer :: iblock
+   logical :: first_call = .true.
+
+   ! Return if function has already been called
+   if (.not. first_call) return
+
+   ! Loop through instances and set compute_now flag for all diagnostics
+   do iblock=1,nblocks_clinic
+      call ecosys_tavg_set_compute_now(marbl_instances(iblock)%surface_flux_diags, 'surface_flux', driver_status_log)
+      call ecosys_tavg_set_compute_now(marbl_instances(iblock)%interior_tendency_diags, 'interior_tendency', driver_status_log)
+      call print_marbl_log(driver_status_log, iblock)
+      call driver_status_log%erase()
+   end do
+   first_call = .false.
+  end subroutine ecosys_driver_set_compute_now
 
   !***********************************************************************
 
@@ -1520,7 +1551,6 @@ contains
   subroutine print_marbl_log(log_to_print, iblock, i, j)
 
     use marbl_logging, only : marbl_status_log_entry_type
-    use marbl_logging, only : marbl_log_type
     use grid,          only : TLATD, TLOND
     use blocks,        only : get_block
     use domain,        only : blocks_clinic
