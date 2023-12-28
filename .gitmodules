@@ -1,0 +1,6 @@
+[submodule "externals/CVMix"]
+	path = externals/CVMix
+	url = https://github.com/CVMix/CVMix-src
+[submodule "externals/MARBL"]
+	path = externals/MARBL
+	url = https://github.com/marbl-ecosys/MARBL
