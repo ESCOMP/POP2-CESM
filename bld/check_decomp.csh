@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/usr/bin/env csh
 
 set res = gx1v5
 set n = 0

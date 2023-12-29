@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/usr/bin/env csh -f
 
 #==============================================================================
 # Purpose: Regenerate Buildnml_Prestage/pop.input_data_list after
