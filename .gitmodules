@@ -1,6 +1,8 @@
 [submodule "externals/CVMix"]
 	path = externals/CVMix
 	url = https://github.com/CVMix/CVMix-src
+        fxtag = v0.98-beta
 [submodule "externals/MARBL"]
 	path = externals/MARBL
 	url = https://github.com/marbl-ecosys/MARBL
+        fxtag = marbl0.43.0
