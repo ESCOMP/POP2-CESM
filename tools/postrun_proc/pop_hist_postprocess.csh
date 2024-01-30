@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 #-------------------------------------------------------------------------------
 # post process POP hist output, doing the following

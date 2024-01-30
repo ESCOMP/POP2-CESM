@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 if ( $OCN_GRID =~ gx* ) then
 #shut off time-invariant stream until vertical grid issues are resolved

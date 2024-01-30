@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 #------------------------------------------------------------------------------------
 # For now, set streams manually. You must only set as many streams as are declared
