@@ -47,6 +47,7 @@
    use ecosys_driver, only:               &
        ecosys_tracer_cnt,                 &
        ecosys_driver_init,                &
+       ecosys_driver_set_compute_now,     &
        ecosys_driver_set_sflux_forcing,   &
        ecosys_driver_set_sflux,           &
        ecosys_driver_post_set_sflux,      &
@@ -1057,6 +1058,9 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
+      ! Make sure MARBL is only computed selected diagnostics
+      call ecosys_driver_set_compute_now()
+
       call ecosys_driver_set_sflux_forcing( &
          U10_SQR, ICE_FRAC, PRESS, ATM_FINE_DUST_FLUX, ATM_COARSE_DUST_FLUX, SEAICE_DUST_FLUX, &
          ATM_BLACK_CARBON_FLUX, SEAICE_BLACK_CARBON_FLUX, &
